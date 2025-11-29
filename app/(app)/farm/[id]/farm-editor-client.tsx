@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { FarmMap } from "@/components/map/farm-map";
+import { ChatPanel } from "@/components/ai/chat-panel";
 import { Button } from "@/components/ui/button";
 import { SaveIcon } from "lucide-react";
 import type { Farm, Zone } from "@/lib/db/schema";
+import type maplibregl from "maplibre-gl";
 
 interface FarmEditorClientProps {
   farm: Farm;
@@ -14,6 +16,7 @@ interface FarmEditorClientProps {
 export function FarmEditorClient({ farm, initialZones }: FarmEditorClientProps) {
   const [zones, setZones] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const mapRef = useRef<maplibregl.Map | null>(null);
 
   const handleSave = async () => {
     setSaving(true);
@@ -29,7 +32,6 @@ export function FarmEditorClient({ farm, initialZones }: FarmEditorClientProps) 
         throw new Error("Failed to save zones");
       }
 
-      // Success feedback
       alert("Zones saved successfully!");
     } catch (error) {
       alert("Failed to save zones");
@@ -37,6 +39,51 @@ export function FarmEditorClient({ farm, initialZones }: FarmEditorClientProps) 
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAnalyze = async (query: string): Promise<string> => {
+    // Capture screenshot from map
+    if (!mapRef.current) {
+      throw new Error("Map not ready");
+    }
+
+    const canvas = mapRef.current.getCanvas();
+    const screenshotData = canvas.toDataURL('image/png');
+
+    // Upload screenshot
+    const uploadRes = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        farmId: farm.id,
+        imageData: screenshotData,
+        snapshotType: "design",
+      }),
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error("Failed to upload screenshot");
+    }
+
+    const { url } = await uploadRes.json();
+
+    // Get AI analysis
+    const analyzeRes = await fetch("/api/ai/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        farmId: farm.id,
+        query,
+        screenshotUrl: url,
+      }),
+    });
+
+    if (!analyzeRes.ok) {
+      throw new Error("Analysis failed");
+    }
+
+    const { response } = await analyzeRes.json();
+    return response;
   };
 
   return (
@@ -53,8 +100,20 @@ export function FarmEditorClient({ farm, initialZones }: FarmEditorClientProps) 
           {saving ? "Saving..." : "Save"}
         </Button>
       </div>
-      <div className="flex-1">
-        <FarmMap farm={farm} zones={initialZones} onZonesChange={setZones} />
+      <div className="flex-1 flex">
+        <div className="flex-1">
+          <FarmMap
+            farm={farm}
+            zones={initialZones}
+            onZonesChange={setZones}
+            onMapReady={(map) => {
+              mapRef.current = map;
+            }}
+          />
+        </div>
+        <div className="w-96 border-l">
+          <ChatPanel farmId={farm.id} onAnalyze={handleAnalyze} />
+        </div>
       </div>
     </div>
   );

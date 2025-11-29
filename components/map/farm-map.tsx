@@ -11,9 +11,10 @@ interface FarmMapProps {
   farm: Farm;
   zones: Zone[];
   onZonesChange: (zones: any[]) => void;
+  onMapReady?: (map: maplibregl.Map) => void;
 }
 
-export function FarmMap({ farm, zones, onZonesChange }: FarmMapProps) {
+export function FarmMap({ farm, zones, onZonesChange, onMapReady }: FarmMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
@@ -83,6 +84,15 @@ export function FarmMap({ farm, zones, onZonesChange }: FarmMapProps) {
     map.current.on("draw.create", handleCreate);
     map.current.on("draw.update", handleUpdate);
     map.current.on("draw.delete", handleDelete);
+
+    // Call onMapReady callback when map is fully initialized
+    if (onMapReady) {
+      map.current.on("load", () => {
+        if (map.current) {
+          onMapReady(map.current);
+        }
+      });
+    }
 
     return () => {
       map.current?.remove();
