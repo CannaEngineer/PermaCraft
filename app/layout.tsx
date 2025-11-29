@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PermaCraft",
-  description: "AI-first map-based permaculture planning",
+  title: "PermaCraft - Permaculture Planning Platform",
+  description: "AI-first map-based permaculture planning for small farmers",
 };
 
 export default function RootLayout({
