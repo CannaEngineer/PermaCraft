@@ -5,6 +5,8 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { area } from "@turf/area";
 import type { Feature, Polygon } from "geojson";
+import { generateGridLines } from '@/lib/map/measurement-grid';
+import type { FeatureCollection } from 'geojson';
 
 interface BoundaryDrawerProps {
   onBoundaryComplete: (boundary: Feature<Polygon>, areaAcres: number) => void;
@@ -16,6 +18,42 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
   const draw = useRef<MapboxDraw | null>(null);
   const [areaAcres, setAreaAcres] = useState<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [gridUnit, setGridUnit] = useState<'imperial' | 'metric'>('imperial');
+
+  const updateGrid = () => {
+    if (!map.current) return;
+
+    const bounds = map.current.getBounds();
+    const zoom = map.current.getZoom();
+
+    const { lines, labels } = generateGridLines(
+      {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      },
+      zoom,
+      gridUnit
+    );
+
+    const gridLineSource = map.current.getSource('grid-lines') as maplibregl.GeoJSONSource;
+    const gridLabelSource = map.current.getSource('grid-labels') as maplibregl.GeoJSONSource;
+
+    if (gridLineSource) {
+      gridLineSource.setData({
+        type: 'FeatureCollection',
+        features: lines
+      });
+    }
+
+    if (gridLabelSource) {
+      gridLabelSource.setData({
+        type: 'FeatureCollection',
+        features: labels
+      });
+    }
+  };
 
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
@@ -94,6 +132,55 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
 
     map.current.addControl(draw.current as any, "top-right");
 
+    // Add grid layers on map load
+    map.current.on('load', () => {
+      if (!map.current) return;
+
+      // Add grid layers
+      map.current.addSource('grid-lines', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.current.addLayer({
+        id: 'grid-lines-layer',
+        type: 'line',
+        source: 'grid-lines',
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 1,
+          'line-opacity': 0.2
+        }
+      });
+
+      map.current.addSource('grid-labels', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.current.addLayer({
+        id: 'grid-labels-layer',
+        type: 'symbol',
+        source: 'grid-labels',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-size': 10,
+          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular']
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#000000',
+          'text-halo-width': 1
+        }
+      });
+
+      updateGrid();
+    });
+
+    // Update grid on zoom/move end
+    map.current.on('moveend', updateGrid);
+    map.current.on('zoomend', updateGrid);
+
     // Listen for polygon creation
     const handleCreate = (e: any) => {
       const features = draw.current!.getAll().features;
@@ -140,6 +227,10 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
     map.current.on("draw.delete", handleDelete);
 
     return () => {
+      if (map.current) {
+        map.current.off('moveend', updateGrid);
+        map.current.off('zoomend', updateGrid);
+      }
       if (draw.current) {
         draw.current = null;
       }
@@ -153,6 +244,16 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
   return (
     <div className="relative">
       <div ref={mapContainer} className="h-[400px] w-full rounded-lg overflow-hidden" />
+
+      {/* Grid unit toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
+          className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded shadow text-sm font-medium"
+        >
+          {gridUnit === 'imperial' ? 'Feet' : 'Meters'} ⟷
+        </button>
+      </div>
 
       {/* Instructions */}
       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4 max-w-sm">
