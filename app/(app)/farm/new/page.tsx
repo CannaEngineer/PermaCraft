@@ -6,23 +6,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LocationPicker } from "@/components/map/location-picker";
+import { BoundaryDrawer } from "@/components/map/boundary-drawer";
+import type { Feature, Polygon } from "geojson";
 
 export default function NewFarmPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [acres, setAcres] = useState("");
-  const [location, setLocation] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
+  const [boundary, setBoundary] = useState<{ feature: Feature<Polygon>; areaAcres: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
+  const handleBoundaryComplete = (feature: Feature<Polygon>, areaAcres: number) => {
+    setBoundary({ feature, areaAcres });
+    // Auto-fill acres if not entered
+    if (!acres) {
+      setAcres(areaAcres.toFixed(1));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!location) {
-      setError("Please select a location on the map");
+    if (!boundary) {
+      setError("Please draw your farm boundary on the map");
       return;
+    }
+
+    // Validate area mismatch
+    if (acres && Math.abs(parseFloat(acres) - boundary.areaAcres) / boundary.areaAcres > 0.2) {
+      const confirmed = confirm(
+        `The drawn boundary (${boundary.areaAcres.toFixed(1)} acres) differs from the entered size (${acres} acres) by more than 20%. Continue anyway?`
+      );
+      if (!confirmed) return;
     }
 
     setLoading(true);
@@ -35,10 +52,8 @@ export default function NewFarmPage() {
         body: JSON.stringify({
           name,
           description: description || null,
-          acres: acres ? parseFloat(acres) : null,
-          center_lat: location.lat,
-          center_lng: location.lng,
-          zoom_level: location.zoom,
+          acres: acres ? parseFloat(acres) : boundary.areaAcres,
+          boundary_geometry: JSON.stringify(boundary.feature.geometry),
         }),
       });
 
@@ -95,21 +110,22 @@ export default function NewFarmPage() {
                 step="0.1"
                 value={acres}
                 onChange={(e) => setAcres(e.target.value)}
-                placeholder="5"
+                placeholder="Will auto-fill from boundary"
               />
+              <p className="text-xs text-muted-foreground">
+                Optional - will use calculated area from boundary if not entered
+              </p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Location</CardTitle>
-            <CardDescription>Click on the map to set your farm's location</CardDescription>
+            <CardTitle>Farm Boundary *</CardTitle>
+            <CardDescription>Draw the boundary of your property</CardDescription>
           </CardHeader>
           <CardContent>
-            <LocationPicker
-              onLocationSelect={(lat, lng, zoom) => setLocation({ lat, lng, zoom })}
-            />
+            <BoundaryDrawer onBoundaryComplete={handleBoundaryComplete} />
           </CardContent>
         </Card>
 
@@ -127,7 +143,7 @@ export default function NewFarmPage() {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={loading || !location}>
+          <Button type="submit" disabled={loading || !boundary}>
             {loading ? "Creating..." : "Create Farm"}
           </Button>
         </div>

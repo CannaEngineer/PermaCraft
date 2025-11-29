@@ -1,46 +1,79 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { NextRequest } from "next/server";
-import { z } from "zod";
-
-const createFarmSchema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().nullable(),
-  acres: z.number().positive().nullable(),
-  center_lat: z.number().min(-90).max(90),
-  center_lng: z.number().min(-180).max(180),
-  zoom_level: z.number().min(0).max(20),
-});
+import { centroid } from '@turf/centroid';
+import { bbox } from '@turf/bbox';
+import type { Polygon } from 'geojson';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();
     const body = await request.json();
-    const data = createFarmSchema.parse(body);
+
+    const { name, description, acres, boundary_geometry } = body;
+
+    if (!name || !boundary_geometry) {
+      return Response.json({ error: "Name and boundary are required" }, { status: 400 });
+    }
+
+    // Parse boundary geometry
+    const geometry: Polygon = JSON.parse(boundary_geometry);
+
+    // Calculate center point from boundary centroid
+    const center = centroid({
+      type: "Feature",
+      properties: {},
+      geometry: geometry
+    });
+
+    const [center_lng, center_lat] = center.geometry.coordinates;
+
+    // Calculate zoom level to fit boundary
+    const [west, south, east, north] = bbox({
+      type: "Feature",
+      properties: {},
+      geometry: geometry
+    });
+
+    // Rough zoom calculation based on bounds
+    const latDiff = north - south;
+    const lngDiff = east - west;
+    const maxDiff = Math.max(latDiff, lngDiff);
+    const zoom_level = Math.min(18, Math.max(10, Math.floor(14 - Math.log2(maxDiff * 100))));
 
     const farmId = crypto.randomUUID();
 
+    // Create farm
     await db.execute({
-      sql: `INSERT INTO farms (id, user_id, name, description, acres, center_lat, center_lng, zoom_level)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO farms (id, user_id, name, description, acres, center_lat, center_lng, zoom_level, is_public)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [farmId, session.user.id, name, description, acres, center_lat, center_lng, zoom_level, 0],
+    });
+
+    // Create farm boundary zone
+    const boundaryZoneId = crypto.randomUUID();
+    const areaAcres = acres || 0;
+    const areaHectares = areaAcres * 0.404686;
+
+    await db.execute({
+      sql: `INSERT INTO zones (id, farm_id, zone_type, geometry, properties)
+            VALUES (?, ?, ?, ?, ?)`,
       args: [
+        boundaryZoneId,
         farmId,
-        session.user.id,
-        data.name,
-        data.description,
-        data.acres,
-        data.center_lat,
-        data.center_lng,
-        data.zoom_level,
+        'farm_boundary',
+        JSON.stringify(geometry),
+        JSON.stringify({
+          name: 'Farm Boundary',
+          area_acres: areaAcres,
+          area_hectares: areaHectares
+        })
       ],
     });
 
-    return Response.json({ id: farmId });
+    return Response.json({ id: farmId, message: "Farm created successfully" });
   } catch (error) {
-    console.error("Create farm error:", error);
-    if (error instanceof z.ZodError) {
-      return Response.json({ error: "Invalid input" }, { status: 400 });
-    }
+    console.error("Failed to create farm:", error);
     return Response.json({ error: "Failed to create farm" }, { status: 500 });
   }
 }
