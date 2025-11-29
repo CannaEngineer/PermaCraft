@@ -61,6 +61,16 @@ AI-first, map-based permaculture planning platform for small farmers and permacu
 - `npm start` - Start production server
 - `turso db shell permacraft` - Open database shell
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a pull request.
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to us.
+
+[Code of Conduct](./CODE_OF_CONDUCT.md)
+
 ## License
 
 MIT
