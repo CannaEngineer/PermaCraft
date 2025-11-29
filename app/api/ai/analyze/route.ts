@@ -35,27 +35,7 @@ export async function POST(request: NextRequest) {
 
     const farm = farmResult.rows[0] as unknown as Farm;
 
-    // Build context about zones
-    let zoneContext = "";
-    if (zones && zones.length > 0) {
-      zoneContext = "\n\nDRAWN ZONES ON MAP:\n" + zones.map(z =>
-        `- ${z.name} (${z.type})`
-      ).join("\n");
-    }
-
-    // Build context about map layer
-    let mapContext = "";
-    if (mapLayer) {
-      const layerDescriptions: Record<string, string> = {
-        satellite: "showing satellite/aerial imagery",
-        terrain: "showing terrain and topographic features",
-        topo: "showing detailed topographic contours and elevation",
-        street: "showing street-level map view"
-      };
-      mapContext = `\n\nMAP VIEW: ${layerDescriptions[mapLayer] || mapLayer}`;
-    }
-
-    // Create analysis prompt with additional context
+    // Create analysis prompt with farm and map context
     const userPrompt = createAnalysisPrompt(
       {
         name: farm.name,
@@ -64,8 +44,12 @@ export async function POST(request: NextRequest) {
         rainfallInches: farm.rainfall_inches || undefined,
         soilType: farm.soil_type || undefined,
       },
-      query
-    ) + mapContext + zoneContext;
+      query,
+      {
+        layer: mapLayer,
+        zones: zones,
+      }
+    );
 
     // Call OpenRouter with base64 image data
     const completion = await openrouter.chat.completions.create({
@@ -83,7 +67,7 @@ export async function POST(request: NextRequest) {
           ],
         },
       ],
-      max_tokens: 2000,
+      max_tokens: 4000, // Increased for detailed structured responses with plant guilds, timelines, etc.
     });
 
     const response = completion.choices[0]?.message?.content || "No response generated";
