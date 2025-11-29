@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
+    "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.2.4",
+    "@types/mapbox__mapbox-gl-draw": "^1.4.9",
     "@types/maplibre-gl": "^1.13.2",
     "better-auth": "^1.4.3",
     "class-variance-authority": "^0.7.1",
