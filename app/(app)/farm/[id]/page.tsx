@@ -12,11 +12,21 @@ export default async function FarmPage({ params }: PageProps) {
   const session = await requireAuth();
   const { id } = await params;
 
-  // Get farm
-  const farmResult = await db.execute({
+  // First try to fetch farm as owner
+  let farmResult = await db.execute({
     sql: "SELECT * FROM farms WHERE id = ? AND user_id = ?",
     args: [id, session.user.id],
   });
+
+  let isOwner = farmResult.rows.length > 0;
+
+  // If not found as owner, try fetching as public farm
+  if (!isOwner) {
+    farmResult = await db.execute({
+      sql: "SELECT * FROM farms WHERE id = ? AND is_public = 1",
+      args: [id],
+    });
+  }
 
   const farm = farmResult.rows[0] as unknown as Farm;
   if (!farm) {
@@ -31,5 +41,5 @@ export default async function FarmPage({ params }: PageProps) {
 
   const zones = zonesResult.rows as unknown as Zone[];
 
-  return <FarmEditorClient farm={farm} initialZones={zones} />;
+  return <FarmEditorClient farm={farm} initialZones={zones} isOwner={isOwner} />;
 }

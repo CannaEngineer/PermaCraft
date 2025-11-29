@@ -45,6 +45,10 @@ export async function PATCH(
     const body = await request.json();
     const updates = updateFarmSchema.parse(body);
 
+    if (Object.keys(updates).length === 0) {
+      return Response.json({ error: "No fields to update" }, { status: 400 });
+    }
+
     // Verify ownership
     const farmResult = await db.execute({
       sql: "SELECT id FROM farms WHERE id = ? AND user_id = ?",

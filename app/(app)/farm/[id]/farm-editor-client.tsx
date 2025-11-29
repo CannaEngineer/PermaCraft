@@ -11,9 +11,10 @@ import type maplibregl from "maplibre-gl";
 interface FarmEditorClientProps {
   farm: Farm;
   initialZones: Zone[];
+  isOwner: boolean;
 }
 
-export function FarmEditorClient({ farm, initialZones }: FarmEditorClientProps) {
+export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClientProps) {
   const [zones, setZones] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -95,10 +96,12 @@ export function FarmEditorClient({ farm, initialZones }: FarmEditorClientProps) 
             {farm.description || "No description"}
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          <SaveIcon className="h-4 w-4 mr-2" />
-          {saving ? "Saving..." : "Save"}
-        </Button>
+        {isOwner && (
+          <Button onClick={handleSave} disabled={saving}>
+            <SaveIcon className="h-4 w-4 mr-2" />
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        )}
       </div>
       <div className="flex-1 flex">
         <div className="flex-1">
