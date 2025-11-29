@@ -474,54 +474,57 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
       onMapLayerChange(layer);
     }
 
-    // Re-add draw control after style change
+    // Re-add draw control and grid layers after style change
     map.current.once("style.load", () => {
       if (draw.current && map.current) {
+        // Re-add drawing features
         const features = draw.current.getAll().features;
         draw.current.deleteAll();
         features.forEach((feature) => {
           draw.current!.add(feature);
         });
 
-        // Re-add grid layers
-        if (!map.current.getSource('grid-lines')) {
-          map.current.addSource('grid-lines', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
-          });
-          map.current.addLayer({
-            id: 'grid-lines-layer',
-            type: 'line',
-            source: 'grid-lines',
-            paint: {
-              'line-color': '#ffffff',
-              'line-width': 1,
-              'line-opacity': 0.2
-            }
-          });
+        // Always re-add grid layers after style change
+        // Style change clears all sources and layers
+        map.current.addSource('grid-lines', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
 
-          map.current.addSource('grid-labels', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
-          });
-          map.current.addLayer({
-            id: 'grid-labels-layer',
-            type: 'symbol',
-            source: 'grid-labels',
-            layout: {
-              'text-field': ['get', 'label'],
-              'text-size': 10,
-              'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular']
-            },
-            paint: {
-              'text-color': '#ffffff',
-              'text-halo-color': '#000000',
-              'text-halo-width': 1
-            }
-          });
+        map.current.addLayer({
+          id: 'grid-lines-layer',
+          type: 'line',
+          source: 'grid-lines',
+          paint: {
+            'line-color': '#ffffff',
+            'line-width': 1,
+            'line-opacity': 0.2
+          }
+        });
 
-          updateGrid();
-        }
+        map.current.addSource('grid-labels', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
+
+        map.current.addLayer({
+          id: 'grid-labels-layer',
+          type: 'symbol',
+          source: 'grid-labels',
+          layout: {
+            'text-field': ['get', 'label'],
+            'text-size': 10,
+            'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular']
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#000000',
+            'text-halo-width': 1
+          }
+        });
+
+        // Update grid data after layers are added
+        updateGrid();
       }
     });
   };

@@ -8,6 +8,7 @@ import type { Farm } from "@/lib/db/schema";
 
 const analyzeSchema = z.object({
   farmId: z.string(),
+  conversationId: z.string().optional(), // Optional - will create new if not provided
   query: z.string().min(1),
   imageData: z.string(), // Base64 data URI
   mapLayer: z.string().optional(),
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();
     const body = await request.json();
-    const { farmId, query, imageData, mapLayer, zones } = analyzeSchema.parse(body);
+    const { farmId, conversationId, query, imageData, mapLayer, zones } = analyzeSchema.parse(body);
 
     // Verify farm ownership
     const farmResult = await db.execute({
@@ -34,6 +35,30 @@ export async function POST(request: NextRequest) {
     }
 
     const farm = farmResult.rows[0] as unknown as Farm;
+
+    // Get or create conversation
+    let activeConversationId = conversationId;
+    if (!activeConversationId) {
+      // Create new conversation with auto-generated title
+      const newConversationId = crypto.randomUUID();
+      const conversationTitle = query.length > 50
+        ? query.substring(0, 47) + "..."
+        : query;
+
+      await db.execute({
+        sql: `INSERT INTO ai_conversations (id, farm_id, title, created_at, updated_at)
+              VALUES (?, ?, ?, unixepoch(), unixepoch())`,
+        args: [newConversationId, farmId, conversationTitle],
+      });
+
+      activeConversationId = newConversationId;
+    } else {
+      // Update existing conversation timestamp
+      await db.execute({
+        sql: `UPDATE ai_conversations SET updated_at = unixepoch() WHERE id = ?`,
+        args: [activeConversationId],
+      });
+    }
 
     // Create analysis prompt with farm and map context
     const userPrompt = createAnalysisPrompt(
@@ -74,15 +99,35 @@ export async function POST(request: NextRequest) {
 
     const response = completion.choices[0]?.message?.content || "No response generated";
 
-    // Save analysis to database
+    // Prepare zones context as JSON
+    const zonesContext = zones ? JSON.stringify(zones) : null;
+
+    // Save analysis to database with screenshot and context
     const analysisId = crypto.randomUUID();
     await db.execute({
-      sql: `INSERT INTO ai_analyses (id, farm_id, user_query, ai_response, model)
-            VALUES (?, ?, ?, ?, ?)`,
-      args: [analysisId, farmId, query, response, FREE_VISION_MODEL],
+      sql: `INSERT INTO ai_analyses (
+              id, farm_id, conversation_id, user_query, screenshot_data,
+              map_layer, zones_context, ai_response, model, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())`,
+      args: [
+        analysisId,
+        farmId,
+        activeConversationId,
+        query,
+        imageData, // Store the base64 screenshot
+        mapLayer || "satellite",
+        zonesContext,
+        response,
+        FREE_VISION_MODEL
+      ],
     });
 
-    return Response.json({ response });
+    return Response.json({
+      response,
+      analysisId,
+      conversationId: activeConversationId,
+    });
   } catch (error) {
     console.error("AI analysis error:", error);
     if (error instanceof z.ZodError) {

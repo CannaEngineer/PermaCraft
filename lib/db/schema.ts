@@ -82,11 +82,22 @@ export interface MapSnapshot {
   created_at: number;
 }
 
+export interface AIConversation {
+  id: string;
+  farm_id: string;
+  title: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface AIAnalysis {
   id: string;
   farm_id: string;
+  conversation_id: string | null;
   user_query: string;
-  snapshot_ids: string | null; // JSON
+  screenshot_data: string | null; // Base64 image data
+  map_layer: string | null; // satellite, street, terrain
+  zones_context: string | null; // JSON array of zone info
   ai_response: string;
   model: string | null;
   created_at: number;

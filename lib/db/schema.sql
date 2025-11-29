@@ -100,16 +100,30 @@ CREATE TABLE IF NOT EXISTS map_snapshots (
   FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
 );
 
+-- AI Conversations
+CREATE TABLE IF NOT EXISTS ai_conversations (
+  id TEXT PRIMARY KEY,
+  farm_id TEXT NOT NULL,
+  title TEXT,
+  created_at INTEGER DEFAULT (unixepoch()),
+  updated_at INTEGER DEFAULT (unixepoch()),
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+
 -- AI Analyses
 CREATE TABLE IF NOT EXISTS ai_analyses (
   id TEXT PRIMARY KEY,
   farm_id TEXT NOT NULL,
+  conversation_id TEXT,
   user_query TEXT NOT NULL,
-  snapshot_ids TEXT, -- JSON array of snapshot IDs
+  screenshot_data TEXT, -- Base64 image data
+  map_layer TEXT, -- satellite, street, terrain
+  zones_context TEXT, -- JSON array of zone info at time of analysis
   ai_response TEXT NOT NULL,
   model TEXT,
   created_at INTEGER DEFAULT (unixepoch()),
-  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE,
+  FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE SET NULL
 );
 
 -- Farm Collaborators
@@ -142,7 +156,9 @@ CREATE INDEX IF NOT EXISTS idx_zones_farm_id ON zones(farm_id);
 CREATE INDEX IF NOT EXISTS idx_plantings_farm_id ON plantings(farm_id);
 CREATE INDEX IF NOT EXISTS idx_plantings_species_id ON plantings(species_id);
 CREATE INDEX IF NOT EXISTS idx_snapshots_farm_id ON map_snapshots(farm_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_farm_id ON ai_conversations(farm_id);
 CREATE INDEX IF NOT EXISTS idx_analyses_farm_id ON ai_analyses(farm_id);
+CREATE INDEX IF NOT EXISTS idx_analyses_conversation_id ON ai_analyses(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_collaborators_farm_id ON farm_collaborators(farm_id);
 CREATE INDEX IF NOT EXISTS idx_collaborators_user_id ON farm_collaborators(user_id);
 CREATE INDEX IF NOT EXISTS idx_species_layer ON species(layer);
