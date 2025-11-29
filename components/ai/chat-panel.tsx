@@ -25,6 +25,7 @@ export function ChatPanel({ farmId, onAnalyze }: ChatPanelProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to parent components
     if (!input.trim() || loading) return;
 
     const userMessage = input.trim();

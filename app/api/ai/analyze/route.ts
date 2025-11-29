@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
         climateZone: farm.climate_zone || undefined,
         rainfallInches: farm.rainfall_inches || undefined,
         soilType: farm.soil_type || undefined,
+        centerLat: farm.center_lat,
+        centerLng: farm.center_lng,
       },
       query,
       {

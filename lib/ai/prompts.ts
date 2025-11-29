@@ -81,6 +81,8 @@ export function createAnalysisPrompt(
     climateZone?: string;
     rainfallInches?: number;
     soilType?: string;
+    centerLat?: number;
+    centerLng?: number;
   },
   userQuery: string,
   mapContext?: {
@@ -97,9 +99,10 @@ export function createAnalysisPrompt(
   const context = `
 FARM CONTEXT:
 - Name: ${farmContext.name}
+${farmContext.centerLat && farmContext.centerLng ? `- Location: ${farmContext.centerLat.toFixed(4)}°N, ${Math.abs(farmContext.centerLng).toFixed(4)}°${farmContext.centerLng >= 0 ? 'E' : 'W'} (use this to identify the USDA Hardiness Zone and average annual rainfall for your recommendations)` : ""}
 ${farmContext.acres ? `- Size: ${farmContext.acres} acres (use this to validate measurements from the grid)` : ""}
-${farmContext.climateZone ? `- Climate Zone: ${farmContext.climateZone} (consider appropriate native species for this zone)` : "- Climate Zone: Unknown (ask the user for their location/USDA zone in your follow-up question)"}
-${farmContext.rainfallInches ? `- Annual Rainfall: ${farmContext.rainfallInches} inches (factor into water management recommendations)` : "- Annual Rainfall: Unknown (consider asking about precipitation patterns)"}
+${farmContext.climateZone ? `- Climate Zone: ${farmContext.climateZone} (consider appropriate native species for this zone)` : `- Climate Zone: Unknown (IMPORTANT: Look up the USDA Hardiness Zone based on the coordinates ${farmContext.centerLat && farmContext.centerLng ? 'provided above' : 'visible in the map'}. State it in your response.)`}
+${farmContext.rainfallInches ? `- Annual Rainfall: ${farmContext.rainfallInches} inches (factor into water management recommendations)` : `- Annual Rainfall: Unknown (IMPORTANT: Estimate the average annual rainfall based on the location ${farmContext.centerLat && farmContext.centerLng ? 'coordinates' : 'visible in the map'}. State it in your response.)`}
 ${farmContext.soilType ? `- Soil Type: ${farmContext.soilType} (design around these soil characteristics)` : "- Soil Type: Unknown (recommend soil testing in your response)"}
 
 MAP VIEW:
