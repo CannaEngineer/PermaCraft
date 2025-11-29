@@ -8,7 +8,10 @@ export function CompassRose() {
         height="60"
         viewBox="0 0 60 60"
         className="drop-shadow-lg"
+        role="img"
+        aria-label="Compass rose showing cardinal directions"
       >
+        <title>Compass Rose</title>
         {/* Background circle */}
         <circle
           cx="30"
@@ -23,7 +26,7 @@ export function CompassRose() {
         {/* North arrow */}
         <polygon
           points="30,8 26,20 34,20"
-          fill="#dc2626"
+          className="fill-red-600"
         />
 
         {/* Cardinal directions */}
