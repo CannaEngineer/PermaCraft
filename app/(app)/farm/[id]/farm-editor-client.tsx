@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FarmMap } from "@/components/map/farm-map";
-import { ChatPanel } from "@/components/ai/chat-panel";
+import { EnhancedChatPanel } from "@/components/ai/enhanced-chat-panel";
 import { Button } from "@/components/ui/button";
 import { SaveIcon } from "lucide-react";
 import type { Farm, Zone } from "@/lib/db/schema";
@@ -81,7 +81,7 @@ export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClie
     setHasUnsavedChanges(true);
   };
 
-  const handleAnalyze = async (query: string): Promise<string> => {
+  const handleAnalyze = useCallback(async (query: string, conversationId?: string): Promise<{ response: string; conversationId: string; analysisId: string }> => {
     // Capture screenshot from map container
     if (!mapContainerRef.current || !mapRef.current) {
       throw new Error("Map not ready");
@@ -120,6 +120,7 @@ export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClie
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         farmId: farm.id,
+        conversationId,
         query,
         imageData: screenshotData,
         mapLayer: currentMapLayer,
@@ -134,9 +135,13 @@ export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClie
       throw new Error("Analysis failed");
     }
 
-    const { response } = await analyzeRes.json();
-    return response;
-  };
+    const data = await analyzeRes.json();
+    return {
+      response: data.response,
+      conversationId: data.conversationId,
+      analysisId: data.analysisId,
+    };
+  }, [farm.id, currentMapLayer, zones, mapContainerRef, mapRef]);
 
   return (
     <div className="h-screen flex flex-col">
@@ -177,7 +182,7 @@ export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClie
           />
         </div>
         <div className="w-full md:w-96 border-t md:border-t-0 md:border-l max-h-[400px] md:max-h-none overflow-y-auto">
-          <ChatPanel farmId={farm.id} onAnalyze={handleAnalyze} />
+          <EnhancedChatPanel farmId={farm.id} onAnalyze={handleAnalyze} />
         </div>
       </div>
     </div>
