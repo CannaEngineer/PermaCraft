@@ -5,6 +5,7 @@ import maplibregl from "maplibre-gl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { CompassRose } from "./compass-rose";
 
 interface LocationPickerProps {
   onLocationSelect: (lat: number, lng: number, zoom: number) => void;
@@ -217,6 +218,8 @@ export function LocationPicker({
           Selected: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
         </p>
       )}
+
+      <CompassRose />
     </div>
   );
 }
