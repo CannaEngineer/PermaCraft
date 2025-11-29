@@ -109,21 +109,57 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
       },
       defaultMode: "simple_select",
       styles: [
-        // Polygon fill
+        // Farm boundary - distinct blue color
+        {
+          id: "gl-draw-polygon-fill-boundary",
+          type: "fill",
+          filter: ["all",
+            ["==", "$type", "Polygon"],
+            ["==", "user_zone_type", "farm_boundary"],
+            ["!=", "mode", "static"]
+          ],
+          paint: {
+            "fill-color": "#2563eb",
+            "fill-opacity": 0.1,
+          },
+        },
+        {
+          id: "gl-draw-polygon-stroke-boundary",
+          type: "line",
+          filter: ["all",
+            ["==", "$type", "Polygon"],
+            ["==", "user_zone_type", "farm_boundary"],
+            ["!=", "mode", "static"]
+          ],
+          paint: {
+            "line-color": "#2563eb",
+            "line-width": 3,
+            "line-dasharray": [2, 2]
+          },
+        },
+        // Regular polygon fill
         {
           id: "gl-draw-polygon-fill",
           type: "fill",
-          filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
+          filter: ["all",
+            ["==", "$type", "Polygon"],
+            ["!=", "user_zone_type", "farm_boundary"],
+            ["!=", "mode", "static"]
+          ],
           paint: {
             "fill-color": "#16a34a",
             "fill-opacity": 0.3,
           },
         },
-        // Polygon outline
+        // Regular polygon outline
         {
           id: "gl-draw-polygon-stroke",
           type: "line",
-          filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
+          filter: ["all",
+            ["==", "$type", "Polygon"],
+            ["!=", "user_zone_type", "farm_boundary"],
+            ["!=", "mode", "static"]
+          ],
           paint: {
             "line-color": "#16a34a",
             "line-width": 3,
@@ -331,12 +367,17 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
           ? JSON.parse(zone.properties || "{}")
           : (zone.properties || {});
 
-        draw.current!.add({
+        const feature = {
           id: zone.id,
-          type: "Feature",
+          type: "Feature" as const,
           geometry: geometry,
-          properties: properties,
-        });
+          properties: {
+            ...properties,
+            user_zone_type: zone.zone_type
+          },
+        };
+
+        draw.current!.add(feature);
       } catch (error) {
         console.error("Failed to parse zone data:", error, zone);
       }
