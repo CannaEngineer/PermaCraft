@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,11 @@ export default function NewFarmPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleBoundaryComplete = (feature: Feature<Polygon>, areaAcres: number) => {
+  const handleBoundaryComplete = useCallback((feature: Feature<Polygon>, areaAcres: number) => {
     setBoundary({ feature, areaAcres });
     // Auto-fill acres if not entered
-    if (!acres) {
-      setAcres(areaAcres.toFixed(1));
-    }
-  };
+    setAcres((currentAcres) => currentAcres || areaAcres.toFixed(1));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +128,7 @@ export default function NewFarmPage() {
             <CardDescription>Draw the boundary of your property</CardDescription>
           </CardHeader>
           <CardContent>
-            <BoundaryDrawer onBoundaryComplete={handleBoundaryComplete} />
+            <BoundaryDrawer key="farm-boundary-drawer" onBoundaryComplete={handleBoundaryComplete} />
           </CardContent>
         </Card>
 

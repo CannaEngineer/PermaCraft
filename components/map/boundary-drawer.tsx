@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { area } from "@turf/area";
@@ -12,7 +12,7 @@ interface BoundaryDrawerProps {
   onBoundaryComplete: (boundary: Feature<Polygon>, areaAcres: number) => void;
 }
 
-export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
+function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
@@ -371,3 +371,5 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
     </div>
   );
 }
+
+export const BoundaryDrawer = memo(BoundaryDrawerComponent);
