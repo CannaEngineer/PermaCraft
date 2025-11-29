@@ -124,8 +124,8 @@ export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClie
         imageData: screenshotData,
         mapLayer: currentMapLayer,
         zones: zones.map(zone => ({
-          type: zone.geometry?.type || zone.type,
-          name: zone.properties?.name || 'Unlabeled',
+          type: zone.zone_type,
+          name: zone.name || (zone.properties ? JSON.parse(zone.properties).name : null) || 'Unlabeled',
         })),
       }),
     });
