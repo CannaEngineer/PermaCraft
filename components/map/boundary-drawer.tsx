@@ -19,6 +19,9 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
   const [areaAcres, setAreaAcres] = useState<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [gridUnit, setGridUnit] = useState<'imperial' | 'metric'>('imperial');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const updateGrid = () => {
     if (!map.current) return;
@@ -52,6 +55,51 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
         type: 'FeatureCollection',
         features: labels
       });
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || !map.current) return;
+
+    setSearching(true);
+    setSearchError(null);
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`,
+        {
+          headers: {
+            'User-Agent': 'PermaCraft Farm Planner'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Search service unavailable');
+      }
+
+      const results = await response.json();
+
+      if (results && results.length > 0) {
+        const { lat, lon } = results[0];
+
+        // Fly to the location
+        map.current.flyTo({
+          center: [parseFloat(lon), parseFloat(lat)],
+          zoom: 15,
+          duration: 2000
+        });
+
+        setSearchError(null);
+      } else {
+        setSearchError('Location not found. Try a different search term.');
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchError('Search failed. Please try again.');
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -244,6 +292,34 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
   return (
     <div className="relative">
       <div ref={mapContainer} className="h-[400px] w-full rounded-lg overflow-hidden" />
+
+      {/* Search box */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+        <form onSubmit={handleSearch} className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for your location..."
+              className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded shadow text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500"
+              disabled={searching}
+            />
+            <button
+              type="submit"
+              disabled={searching || !searchQuery.trim()}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded shadow text-sm font-medium transition-colors"
+            >
+              {searching ? "Searching..." : "Search"}
+            </button>
+          </div>
+          {searchError && (
+            <div className="bg-red-100 text-red-700 text-xs px-3 py-2 rounded shadow">
+              {searchError}
+            </div>
+          )}
+        </form>
+      </div>
 
       {/* Grid unit toggle */}
       <div className="absolute top-4 right-4 z-10">

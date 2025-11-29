@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BoundaryDrawer } from "@/components/map/boundary-drawer";
 import type { Feature, Polygon } from "geojson";
+
+const BoundaryDrawer = dynamic(
+  () => import("@/components/map/boundary-drawer").then((mod) => mod.BoundaryDrawer),
+  { ssr: false }
+);
 
 export default function NewFarmPage() {
   const [name, setName] = useState("");

@@ -1,12 +1,12 @@
 import { betterAuth } from "better-auth";
-import { db } from "@/lib/db";
+import Database from "better-sqlite3";
+import path from "path";
+
+// Use local SQLite for Better Auth (simpler than Turso)
+const db = new Database(path.join(process.cwd(), "auth.db"));
 
 export const auth = betterAuth({
-  database: {
-    provider: "sqlite",
-    db: db as any,
-    type: "libsql",
-  },
+  database: db,
   emailAndPassword: {
     enabled: true,
   },

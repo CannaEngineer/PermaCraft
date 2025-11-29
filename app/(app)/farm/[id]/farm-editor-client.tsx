@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FarmMap } from "@/components/map/farm-map";
 import { ChatPanel } from "@/components/ai/chat-panel";
 import { Button } from "@/components/ui/button";
 import { SaveIcon } from "lucide-react";
 import type { Farm, Zone } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
+import { toPng } from 'html-to-image';
 
 interface FarmEditorClientProps {
   farm: Farm;
@@ -15,11 +16,17 @@ interface FarmEditorClientProps {
 }
 
 export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClientProps) {
-  const [zones, setZones] = useState<any[]>([]);
+  const [zones, setZones] = useState<any[]>(initialZones);
   const [saving, setSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [currentMapLayer, setCurrentMapLayer] = useState<string>("satellite");
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleSave = async () => {
+  const handleSave = async (showAlert = true) => {
+    if (zones.length === 0) return;
+
     setSaving(true);
 
     try {
@@ -33,49 +40,93 @@ export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClie
         throw new Error("Failed to save zones");
       }
 
-      alert("Zones saved successfully!");
+      setHasUnsavedChanges(false);
+      if (showAlert) {
+        alert("Zones saved successfully!");
+      }
     } catch (error) {
-      alert("Failed to save zones");
+      if (showAlert) {
+        alert("Failed to save zones");
+      }
       console.error(error);
     } finally {
       setSaving(false);
     }
   };
 
+  // Auto-save effect
+  useEffect(() => {
+    if (zones.length > 0 && hasUnsavedChanges) {
+      // Clear existing timer
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+
+      // Auto-save after 2 seconds of inactivity
+      autoSaveTimer.current = setTimeout(() => {
+        handleSave(false);
+      }, 2000);
+    }
+
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [zones, hasUnsavedChanges]);
+
+  // Handle zones change with unsaved flag
+  const handleZonesChange = (newZones: any[]) => {
+    setZones(newZones);
+    setHasUnsavedChanges(true);
+  };
+
   const handleAnalyze = async (query: string): Promise<string> => {
-    // Capture screenshot from map
-    if (!mapRef.current) {
+    // Capture screenshot from map container
+    if (!mapContainerRef.current || !mapRef.current) {
       throw new Error("Map not ready");
     }
 
-    const canvas = mapRef.current.getCanvas();
-    const screenshotData = canvas.toDataURL('image/png');
-
-    // Upload screenshot
-    const uploadRes = await fetch("/api/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        farmId: farm.id,
-        imageData: screenshotData,
-        snapshotType: "design",
-      }),
+    // Wait for map to be fully loaded and idle
+    await new Promise<void>((resolve) => {
+      if (mapRef.current!.loaded()) {
+        // Add small delay to ensure rendering is complete
+        setTimeout(() => resolve(), 100);
+      } else {
+        mapRef.current!.once('idle', () => {
+          setTimeout(() => resolve(), 100);
+        });
+      }
     });
 
-    if (!uploadRes.ok) {
-      throw new Error("Failed to upload screenshot");
+    let screenshotData: string;
+    try {
+      // Use html-to-image to capture the entire map element (bypasses CORS issues)
+      // Lower quality and resolution to reduce memory pressure
+      screenshotData = await toPng(mapContainerRef.current, {
+        quality: 0.6, // Reduced from 0.8 to save memory
+        pixelRatio: 0.75, // Reduced from 1 to save memory
+        skipFonts: true, // Skip font embedding to avoid errors
+        cacheBust: true, // Prevent caching issues
+      });
+    } catch (error) {
+      console.error('Screenshot capture error:', error);
+      throw new Error('Failed to capture map screenshot. Try again in a moment.');
     }
 
-    const { url } = await uploadRes.json();
-
-    // Get AI analysis
+    // Get AI analysis - send image data, zones, and map layer context
     const analyzeRes = await fetch("/api/ai/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         farmId: farm.id,
         query,
-        screenshotUrl: url,
+        imageData: screenshotData,
+        mapLayer: currentMapLayer,
+        zones: zones.map(zone => ({
+          type: zone.geometry?.type || zone.type,
+          name: zone.properties?.name || 'Unlabeled',
+        })),
       }),
     });
 
@@ -91,30 +142,41 @@ export function FarmEditorClient({ farm, initialZones, isOwner }: FarmEditorClie
     <div className="h-screen flex flex-col">
       <div className="bg-card border-b p-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">{farm.name}</h1>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            {farm.name}
+            {hasUnsavedChanges && (
+              <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded">
+                Unsaved changes
+              </span>
+            )}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {farm.description || "No description"}
           </p>
         </div>
         {isOwner && (
-          <Button onClick={handleSave} disabled={saving}>
-            <SaveIcon className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {saving && <span className="text-sm text-muted-foreground">Auto-saving...</span>}
+            <Button onClick={() => handleSave(true)} disabled={saving}>
+              <SaveIcon className="h-4 w-4 mr-2" />
+              {saving ? "Saving..." : "Save Now"}
+            </Button>
+          </div>
         )}
       </div>
-      <div className="flex-1 flex">
-        <div className="flex-1">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <div ref={mapContainerRef} className="flex-1 min-h-[400px] md:min-h-0">
           <FarmMap
             farm={farm}
-            zones={initialZones}
-            onZonesChange={setZones}
+            zones={zones}
+            onZonesChange={handleZonesChange}
             onMapReady={(map) => {
               mapRef.current = map;
             }}
+            onMapLayerChange={setCurrentMapLayer}
           />
         </div>
-        <div className="w-96 border-l">
+        <div className="w-full md:w-96 border-t md:border-t-0 md:border-l max-h-[400px] md:max-h-none overflow-y-auto">
           <ChatPanel farmId={farm.id} onAnalyze={handleAnalyze} />
         </div>
       </div>

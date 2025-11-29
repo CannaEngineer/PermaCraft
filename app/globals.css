@@ -1,3 +1,6 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
+@import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -66,4 +69,150 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Ensure MapboxDraw controls are clickable and visible */
+.mapboxgl-ctrl-group,
+.maplibregl-ctrl-group {
+  z-index: 50 !important;
+  pointer-events: auto !important;
+  background: white !important;
+}
+
+.mapboxgl-ctrl-group button,
+.maplibregl-ctrl-group button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  background: white !important;
+  border: none !important;
+}
+
+.mapboxgl-ctrl-group button:hover,
+.maplibregl-ctrl-group button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Style the drawing control buttons specifically */
+.mapbox-gl-draw_ctrl-draw-btn,
+.mapbox-gl-draw_trash,
+.mapbox-gl-draw_point,
+.mapbox-gl-draw_line,
+.mapbox-gl-draw_polygon {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  width: 30px !important;
+  height: 30px !important;
+  display: block !important;
+  background-size: 20px 20px !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  border: 1px solid #d1d5db !important;
+  margin: 0 !important;
+}
+
+.mapbox-gl-draw_ctrl-draw-btn:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Active drawing tool */
+.mapbox-gl-draw_ctrl-draw-btn.active {
+  background-color: #3b82f6 !important;
+  border-color: #2563eb !important;
+}
+
+/* Add text labels to buttons for visibility */
+.mapbox-gl-draw_point::after {
+  content: "•" !important;
+  font-size: 24px !important;
+  color: #374151 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+.mapbox-gl-draw_point.active::after {
+  color: white !important;
+}
+
+.mapbox-gl-draw_line::after {
+  content: "⎯" !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  color: #374151 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+.mapbox-gl-draw_line.active::after {
+  color: white !important;
+}
+
+.mapbox-gl-draw_polygon::after {
+  content: "⬡" !important;
+  font-size: 18px !important;
+  color: #374151 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+.mapbox-gl-draw_polygon.active::after {
+  color: white !important;
+}
+
+.mapbox-gl-draw_trash {
+  background-color: white !important;
+}
+
+.mapbox-gl-draw_trash:hover {
+  background-color: #fee2e2 !important;
+}
+
+.mapbox-gl-draw_trash::after {
+  content: "🗑" !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  filter: grayscale(0%) !important;
+}
+
+/* Ensure cursor changes when drawing */
+.mode-draw_point,
+.mode-draw_point * {
+  cursor: crosshair !important;
+}
+
+.mode-draw_line_string,
+.mode-draw_line_string * {
+  cursor: crosshair !important;
+}
+
+.mode-draw_polygon,
+.mode-draw_polygon * {
+  cursor: crosshair !important;
+}
+
+.mode-simple_select {
+  cursor: default !important;
+}
+
+/* Override the default grab cursor when in drawing mode */
+.mode-draw_point .maplibregl-canvas,
+.mode-draw_line_string .maplibregl-canvas,
+.mode-draw_polygon .maplibregl-canvas {
+  cursor: crosshair !important;
+}
+
+/* Ensure the MapLibre navigation controls work too */
+.maplibregl-ctrl-zoom-in,
+.maplibregl-ctrl-zoom-out,
+.maplibregl-ctrl-compass {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }

@@ -9,14 +9,19 @@ import type { Farm } from "@/lib/db/schema";
 const analyzeSchema = z.object({
   farmId: z.string(),
   query: z.string().min(1),
-  screenshotUrl: z.string().url(),
+  imageData: z.string(), // Base64 data URI
+  mapLayer: z.string().optional(),
+  zones: z.array(z.object({
+    type: z.string(),
+    name: z.string(),
+  })).optional(),
 });
 
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();
     const body = await request.json();
-    const { farmId, query, screenshotUrl } = analyzeSchema.parse(body);
+    const { farmId, query, imageData, mapLayer, zones } = analyzeSchema.parse(body);
 
     // Verify farm ownership
     const farmResult = await db.execute({
@@ -30,7 +35,27 @@ export async function POST(request: NextRequest) {
 
     const farm = farmResult.rows[0] as unknown as Farm;
 
-    // Create analysis prompt
+    // Build context about zones
+    let zoneContext = "";
+    if (zones && zones.length > 0) {
+      zoneContext = "\n\nDRAWN ZONES ON MAP:\n" + zones.map(z =>
+        `- ${z.name} (${z.type})`
+      ).join("\n");
+    }
+
+    // Build context about map layer
+    let mapContext = "";
+    if (mapLayer) {
+      const layerDescriptions: Record<string, string> = {
+        satellite: "showing satellite/aerial imagery",
+        terrain: "showing terrain and topographic features",
+        topo: "showing detailed topographic contours and elevation",
+        street: "showing street-level map view"
+      };
+      mapContext = `\n\nMAP VIEW: ${layerDescriptions[mapLayer] || mapLayer}`;
+    }
+
+    // Create analysis prompt with additional context
     const userPrompt = createAnalysisPrompt(
       {
         name: farm.name,
@@ -40,9 +65,9 @@ export async function POST(request: NextRequest) {
         soilType: farm.soil_type || undefined,
       },
       query
-    );
+    ) + mapContext + zoneContext;
 
-    // Call OpenRouter
+    // Call OpenRouter with base64 image data
     const completion = await openrouter.chat.completions.create({
       model: FREE_VISION_MODEL,
       messages: [
@@ -54,7 +79,7 @@ export async function POST(request: NextRequest) {
           role: "user",
           content: [
             { type: "text", text: userPrompt },
-            { type: "image_url", image_url: { url: screenshotUrl } },
+            { type: "image_url", image_url: { url: imageData } },
           ],
         },
       ],

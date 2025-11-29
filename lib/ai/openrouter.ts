@@ -13,4 +13,5 @@ export const openrouter = new OpenAI({
   },
 });
 
-export const FREE_VISION_MODEL = "meta-llama/llama-3.2-90b-vision-instruct:free";
+// Using xAI's Grok 4.1 Fast - free vision model with 2M context window on OpenRouter
+export const FREE_VISION_MODEL = "x-ai/grok-4.1-fast:free";
