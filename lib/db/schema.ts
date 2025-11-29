@@ -34,9 +34,9 @@ export interface Zone {
   id: string;
   farm_id: string;
   name: string | null;
-  zone_type: string;
+  zone_type: string; // 'farm_boundary' | 'zone' | 'feature'
   geometry: string; // GeoJSON
-  properties: string | null; // JSON
+  properties: string | null; // JSON - for farm_boundary: { name, area_acres, area_hectares }
   created_at: number;
   updated_at: number;
 }
