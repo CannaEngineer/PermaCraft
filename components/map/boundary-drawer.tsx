@@ -58,9 +58,7 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent bubbling to parent form
+  const handleSearchClick = async () => {
     if (!searchQuery.trim() || !map.current) return;
 
     setSearching(true);
@@ -101,6 +99,14 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
       setSearchError('Search failed. Please try again.');
     } finally {
       setSearching(false);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleSearchClick();
     }
   };
 
@@ -296,18 +302,20 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
 
       {/* Search box */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-        <form onSubmit={handleSearch} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <div className="flex gap-2">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search for your location..."
               className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded shadow text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500"
               disabled={searching}
             />
             <button
-              type="submit"
+              type="button"
+              onClick={handleSearchClick}
               disabled={searching || !searchQuery.trim()}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded shadow text-sm font-medium transition-colors"
             >
@@ -319,7 +327,7 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
               {searchError}
             </div>
           )}
-        </form>
+        </div>
       </div>
 
       {/* Grid unit toggle */}
