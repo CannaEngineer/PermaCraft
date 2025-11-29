@@ -7,6 +7,8 @@ import type { Farm, Zone } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { Layers, Tag, HelpCircle } from "lucide-react";
 import { CompassRose } from "./compass-rose";
+import { generateGridLines, type GridUnit } from '@/lib/map/measurement-grid';
+import type { FeatureCollection, LineString, Point } from 'geojson';
 
 interface FarmMapProps {
   farm: Farm;
@@ -23,6 +25,7 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
   const [mapLayer, setMapLayer] = useState<MapLayer>("satellite");
+  const [gridUnit, setGridUnit] = useState<'imperial' | 'metric'>('imperial');
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [zoneLabel, setZoneLabel] = useState("");
@@ -166,6 +169,65 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
     // Add navigation controls
     map.current.addControl(new maplibregl.NavigationControl(), "top-right");
 
+    // Add grid source and layers
+    map.current.on('load', () => {
+      if (!map.current) return;
+
+      // Add grid line source
+      map.current.addSource('grid-lines', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
+      });
+
+      // Add grid line layer
+      map.current.addLayer({
+        id: 'grid-lines-layer',
+        type: 'line',
+        source: 'grid-lines',
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 1,
+          'line-opacity': 0.2
+        }
+      });
+
+      // Add grid label source
+      map.current.addSource('grid-labels', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
+      });
+
+      // Add grid label layer
+      map.current.addLayer({
+        id: 'grid-labels-layer',
+        type: 'symbol',
+        source: 'grid-labels',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-size': 10,
+          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular']
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#000000',
+          'text-halo-width': 1
+        }
+      });
+
+      // Initial grid update
+      updateGrid();
+    });
+
+    // Update grid on zoom/move end
+    map.current.on('moveend', updateGrid);
+    map.current.on('zoomend', updateGrid);
+
     // Listen for drawing changes
     const handleCreate = (e: any) => {
       const features = draw.current!.getAll().features;
@@ -233,6 +295,8 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
         draw.current = null;
       }
       if (map.current) {
+        map.current.off('moveend', updateGrid);
+        map.current.off('zoomend', updateGrid);
         map.current.remove();
         map.current = null;
       }
@@ -278,6 +342,11 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
       }
     });
   }, [zones]);
+
+  // Update grid when unit changes
+  useEffect(() => {
+    updateGrid();
+  }, [gridUnit]);
 
   const changeMapLayer = (layer: MapLayer) => {
     if (!map.current) return;
@@ -372,6 +441,46 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
         features.forEach((feature) => {
           draw.current!.add(feature);
         });
+
+        // Re-add grid layers
+        if (!map.current.getSource('grid-lines')) {
+          map.current.addSource('grid-lines', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+          });
+          map.current.addLayer({
+            id: 'grid-lines-layer',
+            type: 'line',
+            source: 'grid-lines',
+            paint: {
+              'line-color': '#ffffff',
+              'line-width': 1,
+              'line-opacity': 0.2
+            }
+          });
+
+          map.current.addSource('grid-labels', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+          });
+          map.current.addLayer({
+            id: 'grid-labels-layer',
+            type: 'symbol',
+            source: 'grid-labels',
+            layout: {
+              'text-field': ['get', 'label'],
+              'text-size': 10,
+              'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular']
+            },
+            paint: {
+              'text-color': '#ffffff',
+              'text-halo-color': '#000000',
+              'text-halo-width': 1
+            }
+          });
+
+          updateGrid();
+        }
       }
     });
   };
@@ -384,6 +493,41 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
       feature.properties = { ...feature.properties, name: zoneLabel };
       draw.current.add(feature);
       onZonesChangeRef.current(draw.current.getAll().features);
+    }
+  };
+
+  const updateGrid = () => {
+    if (!map.current) return;
+
+    const bounds = map.current.getBounds();
+    const zoom = map.current.getZoom();
+
+    const { lines, labels } = generateGridLines(
+      {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      },
+      zoom,
+      gridUnit
+    );
+
+    const gridLineSource = map.current.getSource('grid-lines') as maplibregl.GeoJSONSource;
+    const gridLabelSource = map.current.getSource('grid-labels') as maplibregl.GeoJSONSource;
+
+    if (gridLineSource) {
+      gridLineSource.setData({
+        type: 'FeatureCollection',
+        features: lines
+      });
+    }
+
+    if (gridLabelSource) {
+      gridLabelSource.setData({
+        type: 'FeatureCollection',
+        features: labels
+      });
     }
   };
 
@@ -445,6 +589,18 @@ export function FarmMap({ farm, zones, onZonesChange, onMapReady, onMapLayerChan
             </button>
           </div>
         )}
+      </div>
+
+      {/* Grid Unit Toggle */}
+      <div className="absolute top-20 left-4 z-10">
+        <Button
+          onClick={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
+          variant="secondary"
+          size="sm"
+          className="bg-white shadow-lg"
+        >
+          {gridUnit === 'imperial' ? 'Feet' : 'Meters'} ⟷
+        </Button>
       </div>
 
       {/* Drawing Tools Help - positioned at bottom right */}
