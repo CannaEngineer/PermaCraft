@@ -9,21 +9,35 @@ interface GridInterval {
 
 /**
  * Get appropriate grid interval based on zoom level and unit system
+ * Values are half the original size for more accurate spatial identification
  */
 export function getGridInterval(zoom: number, unit: GridUnit): GridInterval {
   if (unit === 'imperial') {
-    if (zoom >= 19) return { value: 50, unit: 'ft' };
-    if (zoom >= 17) return { value: 100, unit: 'ft' };
-    if (zoom >= 15) return { value: 250, unit: 'ft' };
-    if (zoom >= 13) return { value: 500, unit: 'ft' };
-    return { value: 1000, unit: 'ft' };
+    if (zoom >= 19) return { value: 25, unit: 'ft' };
+    if (zoom >= 17) return { value: 50, unit: 'ft' };
+    if (zoom >= 15) return { value: 125, unit: 'ft' };
+    if (zoom >= 13) return { value: 250, unit: 'ft' };
+    return { value: 500, unit: 'ft' };
   } else {
-    if (zoom >= 19) return { value: 25, unit: 'm' };
-    if (zoom >= 17) return { value: 50, unit: 'm' };
-    if (zoom >= 15) return { value: 100, unit: 'm' };
-    if (zoom >= 13) return { value: 250, unit: 'm' };
-    return { value: 500, unit: 'm' };
+    if (zoom >= 19) return { value: 12.5, unit: 'm' };
+    if (zoom >= 17) return { value: 25, unit: 'm' };
+    if (zoom >= 15) return { value: 50, unit: 'm' };
+    if (zoom >= 13) return { value: 125, unit: 'm' };
+    return { value: 250, unit: 'm' };
   }
+}
+
+/**
+ * Convert column index to letter label (0→A, 1→B, ..., 25→Z, 26→AA, etc.)
+ */
+function getColumnLabel(index: number): string {
+  let label = '';
+  let num = index;
+  while (num >= 0) {
+    label = String.fromCharCode(65 + (num % 26)) + label;
+    num = Math.floor(num / 26) - 1;
+  }
+  return label;
 }
 
 /**
@@ -79,7 +93,11 @@ export function generateGridLines(
   const lines: Feature<LineString>[] = [];
   const labels: Feature<Point>[] = [];
 
-  // Generate latitude lines (horizontal)
+  // Collect grid line coordinates for labeling
+  const latLines: number[] = [];
+  const lngLines: number[] = [];
+
+  // Generate latitude lines (horizontal) - these are rows
   let count = 0;
   for (let lat = Math.floor(south / latStep) * latStep; lat <= north && count < 50; lat += latStep) {
     lines.push({
@@ -90,10 +108,11 @@ export function generateGridLines(
         coordinates: [[west, lat], [east, lat]]
       }
     });
+    latLines.push(lat);
     count++;
   }
 
-  // Generate longitude lines (vertical)
+  // Generate longitude lines (vertical) - these are columns
   count = 0;
   for (let lng = Math.floor(west / lngStep) * lngStep; lng <= east && count < 50; lng += lngStep) {
     lines.push({
@@ -104,25 +123,27 @@ export function generateGridLines(
         coordinates: [[lng, south], [lng, north]]
       }
     });
+    lngLines.push(lng);
     count++;
   }
 
-  // Generate labels at grid intersections (only at major intervals)
-  const majorInterval = interval.value * 2;
-  const majorLatStep = latStep * 2;
-  const majorLngStep = lngStep * 2;
-
+  // Generate alphanumeric labels at grid intersections
+  // Columns are labeled A, B, C, etc. (west to east)
+  // Rows are labeled 1, 2, 3, etc. (south to north)
   count = 0;
-  for (let lat = Math.floor(south / majorLatStep) * majorLatStep; lat <= north && count < 25; lat += majorLatStep) {
-    for (let lng = Math.floor(west / majorLngStep) * majorLngStep; lng <= east && count < 25; lng += majorLngStep) {
+  for (let rowIndex = 0; rowIndex < latLines.length && count < 100; rowIndex++) {
+    for (let colIndex = 0; colIndex < lngLines.length && count < 100; colIndex++) {
+      const rowLabel = rowIndex + 1; // Start from 1
+      const colLabel = getColumnLabel(colIndex);
+
       labels.push({
         type: 'Feature',
         properties: {
-          label: `${majorInterval} ${interval.unit}`
+          label: `${colLabel}${rowLabel}`
         },
         geometry: {
           type: 'Point',
-          coordinates: [lng, lat]
+          coordinates: [lngLines[colIndex], latLines[rowIndex]]
         }
       });
       count++;
