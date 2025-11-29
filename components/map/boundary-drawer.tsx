@@ -60,6 +60,7 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent bubbling to parent form
     if (!searchQuery.trim() || !map.current) return;
 
     setSearching(true);
@@ -324,6 +325,7 @@ export function BoundaryDrawer({ onBoundaryComplete }: BoundaryDrawerProps) {
       {/* Grid unit toggle */}
       <div className="absolute top-4 right-4 z-10">
         <button
+          type="button"
           onClick={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
           className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded shadow text-sm font-medium"
         >
