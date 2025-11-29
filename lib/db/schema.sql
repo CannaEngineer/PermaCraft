@@ -4,7 +4,10 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   name TEXT,
   image TEXT,
-  created_at INTEGER DEFAULT (unixepoch())
+  password TEXT,
+  emailVerified INTEGER DEFAULT 0,
+  created_at INTEGER DEFAULT (unixepoch()),
+  updated_at INTEGER DEFAULT (unixepoch())
 );
 
 -- Sessions (managed by Better Auth)

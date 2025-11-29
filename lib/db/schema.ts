@@ -1,0 +1,111 @@
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  created_at: number;
+}
+
+export interface Session {
+  id: string;
+  user_id: string;
+  expires_at: number;
+  created_at: number;
+}
+
+export interface Farm {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  acres: number | null;
+  climate_zone: string | null;
+  rainfall_inches: number | null;
+  soil_type: string | null;
+  center_lat: number;
+  center_lng: number;
+  zoom_level: number;
+  is_public: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface Zone {
+  id: string;
+  farm_id: string;
+  name: string | null;
+  zone_type: string;
+  geometry: string; // GeoJSON
+  properties: string | null; // JSON
+  created_at: number;
+  updated_at: number;
+}
+
+export interface Species {
+  id: string;
+  common_name: string;
+  scientific_name: string;
+  layer: string;
+  native_regions: string | null; // JSON
+  is_native: number;
+  years_to_maturity: number | null;
+  mature_height_ft: number | null;
+  mature_width_ft: number | null;
+  sun_requirements: string | null;
+  water_requirements: string | null;
+  hardiness_zones: string | null;
+  description: string | null;
+  contributed_by: string | null;
+  created_at: number;
+}
+
+export interface Planting {
+  id: string;
+  farm_id: string;
+  zone_id: string | null;
+  species_id: string;
+  name: string | null;
+  lat: number;
+  lng: number;
+  planted_year: number | null;
+  current_year: number;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface MapSnapshot {
+  id: string;
+  farm_id: string;
+  snapshot_type: string;
+  url: string;
+  created_at: number;
+}
+
+export interface AIAnalysis {
+  id: string;
+  farm_id: string;
+  user_query: string;
+  snapshot_ids: string | null; // JSON
+  ai_response: string;
+  model: string | null;
+  created_at: number;
+}
+
+export interface FarmCollaborator {
+  id: string;
+  farm_id: string;
+  user_id: string;
+  role: string;
+  created_at: number;
+}
+
+export interface RegionalKnowledge {
+  id: string;
+  region: string;
+  climate_zone: string | null;
+  knowledge_type: string;
+  content: string;
+  contributed_by: string | null;
+  created_at: number;
+}

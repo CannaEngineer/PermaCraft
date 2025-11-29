@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
+    "better-auth": "^1.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.263.0",
