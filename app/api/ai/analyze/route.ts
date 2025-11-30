@@ -11,7 +11,10 @@ const analyzeSchema = z.object({
   farmId: z.string(),
   conversationId: z.string().optional(), // Optional - will create new if not provided
   query: z.string().min(1),
-  imageData: z.string(), // Base64 data URI
+  screenshots: z.array(z.object({
+    type: z.string(), // 'satellite', 'usgs', 'topo', etc.
+    data: z.string(), // Base64 data URI
+  })),
   mapLayer: z.string().optional(),
   zones: z.array(z.object({
     type: z.string(),
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();
     const body = await request.json();
-    const { farmId, conversationId, query, imageData, mapLayer, zones } = analyzeSchema.parse(body);
+    const { farmId, conversationId, query, screenshots, mapLayer, zones } = analyzeSchema.parse(body);
 
     // Verify farm ownership
     const farmResult = await db.execute({
@@ -78,38 +81,50 @@ export async function POST(request: NextRequest) {
       query,
       {
         layer: mapLayer,
+        screenshots: screenshots,
         zones: zones,
       }
     );
 
-    // Upload screenshot to R2 storage
-    let screenshotUrl: string;
+    // Upload screenshots to R2 storage
+    const screenshotUrls: string[] = [];
     try {
-      console.log("Uploading screenshot to R2...", {
-        hasImageData: !!imageData,
-        imageDataLength: imageData.length,
-        imageDataStart: imageData.substring(0, 50),
+      console.log("Uploading screenshots to R2...", {
+        screenshotCount: screenshots.length,
+        types: screenshots.map(s => s.type),
         hasR2PublicUrl: !!process.env.R2_PUBLIC_URL,
       });
-      screenshotUrl = await uploadScreenshot(farmId, imageData, mapLayer || "satellite");
-      console.log("Screenshot uploaded successfully:", {
-        url: screenshotUrl.substring(0, 100),
-        isBase64: screenshotUrl.startsWith('data:'),
-      });
+
+      for (let i = 0; i < screenshots.length; i++) {
+        const screenshot = screenshots[i];
+        try {
+          const url = await uploadScreenshot(
+            farmId,
+            screenshot.data,
+            `${screenshot.type}-${i}`
+          );
+          screenshotUrls.push(url);
+          console.log(`Screenshot ${i + 1} (${screenshot.type}) uploaded:`, url.substring(0, 100));
+        } catch (error) {
+          console.error(`Failed to upload screenshot ${i + 1} to R2:`, error);
+          // Fallback: use base64 data if R2 upload fails
+          screenshotUrls.push(screenshot.data);
+          console.log(`Using base64 fallback for screenshot ${i + 1}`);
+        }
+      }
     } catch (error) {
-      console.error("Failed to upload screenshot to R2:", error);
-      // Fallback: use base64 data if R2 upload fails
-      screenshotUrl = imageData;
-      console.log("Using base64 fallback for screenshot storage");
+      console.error("Failed to upload screenshots:", error);
+      // Fallback: use base64 data for all screenshots
+      screenshots.forEach(s => screenshotUrls.push(s.data));
     }
 
     // Verify image data is present
     console.log("AI Analysis Request:", {
       farmId,
       query: query.substring(0, 50) + "...",
-      hasImage: !!imageData,
-      imageSize: imageData.length,
-      screenshotUrl: screenshotUrl.substring(0, 100),
+      screenshotCount: screenshots.length,
+      screenshotTypes: screenshots.map(s => s.type),
+      screenshotUrls: screenshotUrls.map(url => url.substring(0, 100)),
       zonesCount: zones?.length || 0,
       mapLayer,
     });
@@ -123,6 +138,17 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`Attempting AI analysis with model: ${model}`);
 
+        // Build content array with text + multiple images
+        const userContent: any[] = [{ type: "text", text: userPrompt }];
+
+        // Add all screenshot images
+        screenshots.forEach((screenshot, idx) => {
+          userContent.push({
+            type: "image_url",
+            image_url: { url: screenshot.data },
+          });
+        });
+
         completion = await openrouter.chat.completions.create({
           model: model,
           messages: [
@@ -132,10 +158,7 @@ export async function POST(request: NextRequest) {
             },
             {
               role: "user",
-              content: [
-                { type: "text", text: userPrompt },
-                { type: "image_url", image_url: { url: imageData } },
-              ],
+              content: userContent,
             },
           ],
           max_tokens: 4000,
@@ -182,7 +205,7 @@ export async function POST(request: NextRequest) {
     // Prepare zones context as JSON
     const zonesContext = zones ? JSON.stringify(zones) : null;
 
-    // Save analysis to database with R2 URL (not base64 data)
+    // Save analysis to database with R2 URLs as JSON array
     const analysisId = crypto.randomUUID();
     await db.execute({
       sql: `INSERT INTO ai_analyses (
@@ -195,7 +218,7 @@ export async function POST(request: NextRequest) {
         farmId,
         activeConversationId,
         query,
-        screenshotUrl, // Store R2 URL instead of base64
+        JSON.stringify(screenshotUrls), // Store array of R2 URLs as JSON
         mapLayer || "satellite",
         zonesContext,
         response,

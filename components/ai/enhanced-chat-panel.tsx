@@ -20,7 +20,7 @@ import type { AIConversation, AIAnalysis } from "@/lib/db/schema";
 interface Message {
   role: "user" | "assistant";
   content: string;
-  screenshot?: string | null;
+  screenshots?: string[] | null;
 }
 
 interface ChatPanelProps {
@@ -109,10 +109,24 @@ export function EnhancedChatPanel({ farmId, onAnalyze }: ChatPanelProps) {
             role: "user",
             content: analysis.user_query,
           });
+
+          // Parse screenshot_data - it could be a single URL or JSON array
+          let screenshots: string[] | null = null;
+          if (analysis.screenshot_data) {
+            try {
+              // Try to parse as JSON array
+              const parsed = JSON.parse(analysis.screenshot_data);
+              screenshots = Array.isArray(parsed) ? parsed : [parsed];
+            } catch {
+              // If parsing fails, it's a single URL string
+              screenshots = [analysis.screenshot_data];
+            }
+          }
+
           msgs.push({
             role: "assistant",
             content: analysis.ai_response,
-            screenshot: analysis.screenshot_data,
+            screenshots: screenshots,
           });
         });
 
@@ -172,12 +186,12 @@ export function EnhancedChatPanel({ farmId, onAnalyze }: ChatPanelProps) {
         loadConversations().catch(err => console.error("Failed to reload conversations:", err));
       }
 
-      // Add AI response with screenshot
+      // Add AI response with screenshot (convert single screenshot to array for consistency)
       setMessages((prev) => {
         console.log("[Chat] Adding AI response, current count:", prev.length);
         return [
           ...prev,
-          { role: "assistant", content: result.response, screenshot: result.screenshot },
+          { role: "assistant", content: result.response, screenshots: result.screenshot ? [result.screenshot] : null },
         ];
       });
     } catch (error) {
@@ -360,18 +374,23 @@ export function EnhancedChatPanel({ farmId, onAnalyze }: ChatPanelProps) {
                         {msg.content}
                       </ReactMarkdown>
                     </div>
-                    {msg.screenshot && (
-                      <Button
-                        onClick={() =>
-                          setSelectedScreenshot(msg.screenshot || null)
-                        }
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 gap-2"
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                        View Map Screenshot
-                      </Button>
+                    {msg.screenshots && msg.screenshots.length > 0 && (
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        {msg.screenshots.map((screenshot, idx) => (
+                          <Button
+                            key={idx}
+                            onClick={() => setSelectedScreenshot(screenshot)}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                          >
+                            <ImageIcon className="h-4 w-4" />
+                            {msg.screenshots!.length > 1
+                              ? `View ${idx === 0 ? 'Primary' : 'Topo'} Map`
+                              : 'View Map Screenshot'}
+                          </Button>
+                        ))}
+                      </div>
                     )}
                   </>
                 )}

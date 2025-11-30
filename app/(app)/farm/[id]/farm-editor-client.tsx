@@ -33,6 +33,9 @@ export function FarmEditorClient({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const mapComponentCallbacksRef = useRef<{
+    changeMapLayer?: (layer: string) => void;
+  }>({});
 
   useEffect(() => {
     const handleCloseChat = () => {
@@ -99,6 +102,219 @@ export function FarmEditorClient({
     setHasUnsavedChanges(true);
   };
 
+  // Helper function to capture a single screenshot
+  const captureMapScreenshot = useCallback(async (): Promise<string> => {
+    if (!mapContainerRef.current || !mapRef.current) {
+      throw new Error("Map not ready");
+    }
+
+    // Wait for map to be fully loaded and ALL tiles rendered
+    await new Promise<void>((resolve) => {
+      let tilesLoaded = false;
+      let idleCount = 0;
+
+      const checkReady = () => {
+        // Check if all source tiles are loaded
+        const style = mapRef.current!.getStyle();
+        const sourcesLoaded = Object.keys(style.sources).every(sourceId => {
+          const source = mapRef.current!.getSource(sourceId);
+          // @ts-ignore - MapLibre internal property
+          return !source || !source._tiles || Object.keys(source._tiles).length === 0 ||
+                 // @ts-ignore
+                 Object.values(source._tiles).every((tile: any) => tile.state === 'loaded');
+        });
+
+        if (sourcesLoaded && mapRef.current!.loaded() && !mapRef.current!.isMoving()) {
+          idleCount++;
+          console.log(`Map ready check ${idleCount}/3, tiles loaded: ${sourcesLoaded}`);
+
+          // Wait for 3 consecutive idle+loaded checks
+          if (idleCount >= 3) {
+            tilesLoaded = true;
+            console.log("Map is fully ready for screenshot");
+            setTimeout(() => resolve(), 500); // Final delay
+          } else {
+            setTimeout(checkReady, 200);
+          }
+        } else {
+          idleCount = 0;
+          mapRef.current!.once("idle", checkReady);
+        }
+      };
+
+      checkReady();
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        if (!tilesLoaded) {
+          console.warn("Map screenshot timeout - capturing anyway");
+          resolve();
+        }
+      }, 10000);
+    });
+
+    let screenshotData: string;
+    try {
+      console.log("Starting screenshot capture - will capture on next render...");
+
+      if (!mapContainerRef.current || !mapRef.current) {
+        throw new Error("Map container not available");
+      }
+
+      const canvas = mapRef.current.getCanvas();
+
+      const captureCanvasOnRender = (): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          let captured = false;
+
+          const captureHandler = () => {
+            if (captured) return;
+            captured = true;
+
+            // Capture immediately during this render frame
+            try {
+              const dataUrl = canvas.toDataURL("image/png", 1.0);
+              console.log("Canvas captured on render:", {
+                width: canvas.width,
+                height: canvas.height,
+                dataSize: dataUrl.length,
+                isBlank: dataUrl.length < 50000,
+              });
+
+              if (dataUrl.length < 50000) {
+                reject(new Error("Canvas is still blank after render"));
+              } else {
+                resolve(dataUrl);
+              }
+            } catch (error) {
+              reject(error);
+            }
+          };
+
+          // Trigger a render and capture on the very next render event
+          mapRef.current!.once('render', captureHandler);
+          mapRef.current!.triggerRepaint();
+
+          // Timeout after 3 seconds
+          setTimeout(() => {
+            if (!captured) {
+              captured = true;
+              reject(new Error("Screenshot capture timed out"));
+            }
+          }, 3000);
+        });
+      };
+
+      const canvasDataUrl = await captureCanvasOnRender();
+
+      console.log("Canvas successfully captured!");
+
+      // Create a temporary image element to hold the canvas content
+      const tempImg = document.createElement('img');
+      tempImg.src = canvasDataUrl;
+      tempImg.style.position = 'absolute';
+      tempImg.style.top = '0';
+      tempImg.style.left = '0';
+      tempImg.style.width = '100%';
+      tempImg.style.height = '100%';
+      tempImg.style.pointerEvents = 'none';
+      tempImg.style.zIndex = '0';
+      tempImg.className = 'temp-screenshot-canvas';
+
+      // Wait for image to load
+      await new Promise((resolve) => {
+        tempImg.onload = resolve;
+        tempImg.onerror = resolve;
+      });
+
+      // Insert the temp image
+      const mapCanvas = mapContainerRef.current.querySelector('canvas');
+      if (mapCanvas && mapCanvas.parentElement) {
+        mapCanvas.parentElement.insertBefore(tempImg, mapCanvas);
+        (mapCanvas as HTMLElement).style.opacity = '0';
+      }
+
+      console.log("Capturing composite with overlays...");
+
+      // Temporarily show legend for screenshot (for LLM context)
+      const legendContent = mapContainerRef.current.querySelector('[data-legend-content]') as HTMLElement;
+      const wasLegendHidden = legendContent && legendContent.style.display === 'none';
+      if (legendContent && wasLegendHidden) {
+        legendContent.style.display = 'block';
+      }
+
+      // Capture the entire container with html-to-image
+      screenshotData = await toPng(mapContainerRef.current, {
+        quality: 0.9,
+        pixelRatio: 1,
+        cacheBust: false,
+        skipFonts: true,
+        filter: (node) => {
+          if (node.classList) {
+            if (node.classList.contains('temp-screenshot-canvas')) return true;
+            return !node.classList.contains('maplibregl-ctrl') &&
+                   !node.classList.contains('mapboxgl-ctrl');
+          }
+          return true;
+        },
+      });
+
+      // Clean up
+      tempImg.remove();
+      if (mapCanvas) {
+        (mapCanvas as HTMLElement).style.opacity = '1';
+      }
+
+      // Restore legend state
+      if (legendContent && wasLegendHidden) {
+        legendContent.style.display = 'none';
+      }
+
+      console.log("Cleanup complete");
+
+      // Verify screenshot
+      if (!screenshotData || screenshotData === "data:,") {
+        throw new Error("Screenshot is empty");
+      }
+
+      const base64Length = screenshotData.replace(/^data:image\/\w+;base64,/, "").length;
+
+      console.log("Screenshot captured successfully:", {
+        totalSize: screenshotData.length,
+        base64Size: base64Length,
+        preview: screenshotData.substring(0, 100),
+      });
+
+      if (base64Length < 1000) {
+        throw new Error("Screenshot appears to be blank.");
+      }
+
+      return screenshotData;
+
+    } catch (error) {
+      console.error("Screenshot capture error:", error);
+      // Clean up in case of error
+      const tempImg = mapContainerRef.current?.querySelector('.temp-screenshot-canvas');
+      if (tempImg) tempImg.remove();
+      const mapCanvas = mapContainerRef.current?.querySelector('canvas');
+      if (mapCanvas) (mapCanvas as HTMLElement).style.opacity = '1';
+
+      // Restore legend state even on error
+      const legendContent = mapContainerRef.current?.querySelector('[data-legend-content]') as HTMLElement;
+      if (legendContent && legendContent.style.display === 'block') {
+        // Check if it should be hidden (data-collapsed attribute)
+        const legendContainer = mapContainerRef.current?.querySelector('[data-legend-container]');
+        if (legendContainer?.getAttribute('data-collapsed') === 'true') {
+          legendContent.style.display = 'none';
+        }
+      }
+
+      throw new Error(
+        "Failed to capture map screenshot. Please ensure the map is fully loaded and try again."
+      );
+    }
+  }, [mapContainerRef, mapRef]);
+
   const handleAnalyze = useCallback(
     async (
       query: string,
@@ -109,216 +325,102 @@ export function FarmEditorClient({
       analysisId: string;
       screenshot: string;
     }> => {
-      // Capture screenshot from map container
       if (!mapContainerRef.current || !mapRef.current) {
         throw new Error("Map not ready");
       }
 
-      // Wait for map to be fully loaded and ALL tiles rendered
-      await new Promise<void>((resolve) => {
-        let tilesLoaded = false;
-        let idleCount = 0;
+      console.log("=== DUAL SCREENSHOT CAPTURE START ===");
 
-        const checkReady = () => {
-          // Check if all source tiles are loaded
-          const style = mapRef.current!.getStyle();
-          const sourcesLoaded = Object.keys(style.sources).every(sourceId => {
-            const source = mapRef.current!.getSource(sourceId);
-            // @ts-ignore - MapLibre internal property
-            return !source || !source._tiles || Object.keys(source._tiles).length === 0 ||
-                   // @ts-ignore
-                   Object.values(source._tiles).every((tile: any) => tile.state === 'loaded');
-          });
+      // Step 1: Capture current layer screenshot
+      console.log(`Capturing screenshot 1: ${currentMapLayer} layer`);
+      const currentLayerScreenshot = await captureMapScreenshot();
 
-          if (sourcesLoaded && mapRef.current!.loaded() && !mapRef.current!.isMoving()) {
-            idleCount++;
-            console.log(`Map ready check ${idleCount}/3, tiles loaded: ${sourcesLoaded}`);
+      // Step 2: Determine best topo layer (use USGS for now, could add geo-based logic later)
+      const topoLayer = "usgs";
+      const originalLayer = currentMapLayer;
 
-            // Wait for 3 consecutive idle+loaded checks
-            if (idleCount >= 3) {
-              tilesLoaded = true;
-              console.log("Map is fully ready for screenshot");
-              setTimeout(() => resolve(), 500); // Final delay
-            } else {
-              setTimeout(checkReady, 200);
-            }
-          } else {
-            idleCount = 0;
-            mapRef.current!.once("idle", checkReady);
-          }
-        };
+      let topoScreenshot: string;
 
-        checkReady();
+      // Only capture second screenshot if we're not already on a topo layer
+      if (originalLayer !== "usgs" && originalLayer !== "topo") {
+        console.log(`Switching to ${topoLayer} layer for second screenshot...`);
 
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          if (!tilesLoaded) {
-            console.warn("Map screenshot timeout - capturing anyway");
-            resolve();
-          }
-        }, 10000);
-      });
+        // Step 3: Get the changeMapLayer callback from FarmMap component
+        // We'll need to pass this via a ref/callback
+        // For now, we'll use a direct map style change approach
 
-      let screenshotData: string;
-      try {
-        console.log("Starting screenshot capture - will capture on next render...");
+        // Store current style
+        const currentStyle = mapRef.current.getStyle();
 
-        if (!mapContainerRef.current || !mapRef.current) {
-          throw new Error("Map container not available");
-        }
-
-        // NEW APPROACH: Capture canvas immediately after render event
-        // preserveDrawingBuffer doesn't work reliably, so we capture during the render cycle
-        const canvas = mapRef.current.getCanvas();
-
-        const captureCanvasOnRender = (): Promise<string> => {
-          return new Promise((resolve, reject) => {
-            let captured = false;
-
-            const captureHandler = () => {
-              if (captured) return;
-              captured = true;
-
-              // Capture immediately during this render frame
-              try {
-                const dataUrl = canvas.toDataURL("image/png", 1.0);
-                console.log("Canvas captured on render:", {
-                  width: canvas.width,
-                  height: canvas.height,
-                  dataSize: dataUrl.length,
-                  isBlank: dataUrl.length < 50000,
-                });
-
-                if (dataUrl.length < 50000) {
-                  reject(new Error("Canvas is still blank after render"));
-                } else {
-                  resolve(dataUrl);
-                }
-              } catch (error) {
-                reject(error);
-              }
-            };
-
-            // Trigger a render and capture on the very next render event
-            mapRef.current!.once('render', captureHandler);
-            mapRef.current!.triggerRepaint();
-
-            // Timeout after 3 seconds
-            setTimeout(() => {
-              if (!captured) {
-                captured = true;
-                reject(new Error("Screenshot capture timed out"));
-              }
-            }, 3000);
-          });
-        };
-
-        const canvasDataUrl = await captureCanvasOnRender();
-
-        console.log("Canvas successfully captured!");
-
-        // Step 2: Create a temporary image element to hold the canvas content
-        const tempImg = document.createElement('img');
-        tempImg.src = canvasDataUrl;
-        tempImg.style.position = 'absolute';
-        tempImg.style.top = '0';
-        tempImg.style.left = '0';
-        tempImg.style.width = '100%';
-        tempImg.style.height = '100%';
-        tempImg.style.pointerEvents = 'none';
-        tempImg.style.zIndex = '0';
-        tempImg.className = 'temp-screenshot-canvas';
-
-        // Wait for image to load
-        await new Promise((resolve) => {
-          tempImg.onload = resolve;
-          tempImg.onerror = resolve;
-        });
-
-        // Insert the temp image
-        const mapCanvas = mapContainerRef.current.querySelector('canvas');
-        if (mapCanvas && mapCanvas.parentElement) {
-          mapCanvas.parentElement.insertBefore(tempImg, mapCanvas);
-          (mapCanvas as HTMLElement).style.opacity = '0';
-        }
-
-        console.log("Capturing composite with overlays...");
-
-        // Temporarily show legend for screenshot (for LLM context)
-        const legendContent = mapContainerRef.current.querySelector('[data-legend-content]') as HTMLElement;
-        const wasLegendHidden = legendContent && legendContent.style.display === 'none';
-        if (legendContent && wasLegendHidden) {
-          legendContent.style.display = 'block';
-        }
-
-        // Step 3: Capture the entire container with html-to-image
-        screenshotData = await toPng(mapContainerRef.current, {
-          quality: 0.9,
-          pixelRatio: 1,
-          cacheBust: false,
-          skipFonts: true,
-          filter: (node) => {
-            if (node.classList) {
-              if (node.classList.contains('temp-screenshot-canvas')) return true;
-              return !node.classList.contains('maplibregl-ctrl') &&
-                     !node.classList.contains('mapboxgl-ctrl');
-            }
-            return true;
+        // Create USGS style
+        const usgsStyle = {
+          version: 8 as const,
+          sources: {
+            usgs: {
+              type: "raster" as const,
+              tiles: [
+                "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+              ],
+              tileSize: 256,
+              maxzoom: 16,
+            },
           },
-        });
+          layers: [{ id: "usgs", type: "raster" as const, source: "usgs" }],
+        };
 
-        // Step 4: Clean up
-        tempImg.remove();
-        if (mapCanvas) {
-          (mapCanvas as HTMLElement).style.opacity = '1';
-        }
+        // Change to USGS style
+        mapRef.current.setStyle(usgsStyle);
 
-        // Restore legend state
-        if (legendContent && wasLegendHidden) {
-          legendContent.style.display = 'none';
-        }
+        // Wait for style to load and tiles to render
+        await new Promise<void>((resolve) => {
+          const onStyleData = () => {
+            console.log("USGS style loaded, waiting for tiles...");
+            mapRef.current!.once("idle", () => {
+              console.log("USGS tiles idle");
+              // Extra delay to ensure tiles are fully rendered
+              setTimeout(() => resolve(), 1000);
+            });
+          };
 
-        console.log("Cleanup complete");
-
-        // Verify screenshot
-        if (!screenshotData || screenshotData === "data:,") {
-          throw new Error("Screenshot is empty");
-        }
-
-        const base64Length = screenshotData.replace(/^data:image\/\w+;base64,/, "").length;
-
-        console.log("Screenshot captured successfully:", {
-          totalSize: screenshotData.length,
-          base64Size: base64Length,
-          preview: screenshotData.substring(0, 100),
-        });
-
-        if (base64Length < 1000) {
-          throw new Error("Screenshot appears to be blank.");
-        }
-
-      } catch (error) {
-        console.error("Screenshot capture error:", error);
-        // Clean up in case of error
-        const tempImg = mapContainerRef.current?.querySelector('.temp-screenshot-canvas');
-        if (tempImg) tempImg.remove();
-        const mapCanvas = mapContainerRef.current?.querySelector('canvas');
-        if (mapCanvas) (mapCanvas as HTMLElement).style.opacity = '1';
-
-        // Restore legend state even on error
-        const legendContent = mapContainerRef.current?.querySelector('[data-legend-content]') as HTMLElement;
-        if (legendContent && legendContent.style.display === 'block') {
-          // Check if it should be hidden (data-collapsed attribute)
-          const legendContainer = mapContainerRef.current?.querySelector('[data-legend-container]');
-          if (legendContainer?.getAttribute('data-collapsed') === 'true') {
-            legendContent.style.display = 'none';
+          if (mapRef.current!.isStyleLoaded()) {
+            onStyleData();
+          } else {
+            mapRef.current!.once("styledata", onStyleData);
           }
-        }
 
-        throw new Error(
-          "Failed to capture map screenshot. Please ensure the map is fully loaded and try again."
-        );
+          // Timeout after 15 seconds
+          setTimeout(() => {
+            console.warn("USGS style load timeout");
+            resolve();
+          }, 15000);
+        });
+
+        // Step 4: Capture topo screenshot
+        console.log("Capturing screenshot 2: USGS topo layer");
+        topoScreenshot = await captureMapScreenshot();
+
+        // Step 5: Restore original style
+        console.log(`Restoring original layer: ${originalLayer}`);
+        mapRef.current.setStyle(currentStyle);
+
+        // Wait for original style to restore
+        await new Promise<void>((resolve) => {
+          mapRef.current!.once("styledata", () => {
+            mapRef.current!.once("idle", () => {
+              setTimeout(() => resolve(), 500);
+            });
+          });
+
+          // Timeout after 10 seconds
+          setTimeout(() => resolve(), 10000);
+        });
+      } else {
+        // Already on a topo layer, just use current screenshot for both
+        console.log("Already on topo layer, using same screenshot for both views");
+        topoScreenshot = currentLayerScreenshot;
       }
+
+      console.log("=== DUAL SCREENSHOT CAPTURE COMPLETE ===");
 
       // Calculate farm bounds for grid coordinate calculations
       const allCoords: number[][] = [];
@@ -345,7 +447,7 @@ export function FarmEditorClient({
         west: farm.center_lng - 0.001,
       };
 
-      // Get AI analysis - send image data, zones with grid coordinates, and map layer context
+      // Get AI analysis - send BOTH screenshots, zones with grid coordinates, and map layer context
       const analyzeRes = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -353,7 +455,10 @@ export function FarmEditorClient({
           farmId: farm.id,
           conversationId,
           query,
-          imageData: screenshotData,
+          screenshots: [
+            { type: originalLayer, data: currentLayerScreenshot },
+            { type: topoLayer, data: topoScreenshot },
+          ],
           mapLayer: currentMapLayer,
           zones: zones.map((zone) => {
             const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
@@ -383,10 +488,10 @@ export function FarmEditorClient({
         response: data.response,
         conversationId: data.conversationId,
         analysisId: data.analysisId,
-        screenshot: screenshotData,
+        screenshot: currentLayerScreenshot, // Return primary screenshot for display in chat
       };
     },
-    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef]
+    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot]
   );
 
   return (

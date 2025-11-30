@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MapLegendProps {
-  mapLayer: "satellite" | "terrain" | "topo" | "street";
+  mapLayer: "satellite" | "terrain" | "topo" | "usgs" | "street";
   gridUnit: "imperial" | "metric";
   zones: any[]; // Array of zones on the map
   isCollapsed?: boolean;
@@ -18,7 +18,8 @@ export function MapLegend({ mapLayer, gridUnit, zones, isCollapsed = false, onTo
   const layerNames = {
     satellite: "Satellite Imagery",
     terrain: "Terrain Map",
-    topo: "Topographic Map",
+    topo: "OpenTopoMap",
+    usgs: "USGS Topographic",
     street: "Street Map",
   };
 

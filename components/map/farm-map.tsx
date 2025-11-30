@@ -52,7 +52,7 @@ interface FarmMapProps {
   onMapLayerChange?: (layer: string) => void;
 }
 
-type MapLayer = "satellite" | "street" | "terrain" | "topo";
+type MapLayer = "satellite" | "street" | "terrain" | "topo" | "usgs";
 
 export function FarmMap({
   farm,
@@ -934,6 +934,23 @@ export function FarmMap({
           layers: [{ id: "topo", type: "raster", source: "topo" }],
         };
         break;
+      case "usgs":
+        style = {
+          version: 8,
+          sources: {
+            usgs: {
+              type: "raster",
+              tiles: [
+                "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+              ],
+              tileSize: 256,
+              maxzoom: 16,
+              attribution: '&copy; <a href="https://www.usgs.gov/">USGS</a>',
+            },
+          },
+          layers: [{ id: "usgs", type: "raster", source: "usgs" }],
+        };
+        break;
       case "street":
       default:
         style = "https://tiles.openfreemap.org/styles/liberty";
@@ -1529,7 +1546,8 @@ export function FarmMap({
           {mapLayer === "satellite" && "Satellite"}
           {mapLayer === "street" && "Street"}
           {mapLayer === "terrain" && "Terrain"}
-          {mapLayer === "topo" && "Topographic"}
+          {mapLayer === "topo" && "OpenTopoMap"}
+          {mapLayer === "usgs" && "USGS Topo"}
         </Button>
 
         {showLayerMenu && (
@@ -1556,7 +1574,15 @@ export function FarmMap({
                 mapLayer === "topo" ? "bg-accent font-medium" : ""
               }`}
             >
-              Topographic
+              OpenTopoMap
+            </button>
+            <button
+              onClick={() => changeMapLayer("usgs")}
+              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                mapLayer === "usgs" ? "bg-accent font-medium" : ""
+              }`}
+            >
+              USGS Topo
             </button>
             <button
               onClick={() => changeMapLayer("street")}
