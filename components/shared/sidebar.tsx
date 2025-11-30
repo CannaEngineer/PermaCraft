@@ -20,11 +20,11 @@ export function Sidebar({ userName }: { userName: string }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-card border-r">
+    <div className="flex flex-col h-full bg-card border-r border-border">
       <div className="p-6">
         <div className="flex items-center space-x-2">
           <MapIcon className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">PermaCraft</span>
+          <span className="text-xl font-serif font-bold">PermaCraft</span>
         </div>
       </div>
 
@@ -49,9 +49,11 @@ export function Sidebar({ userName }: { userName: string }) {
         })}
       </nav>
 
-      <div className="p-4 border-t">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium truncate">{userName}</span>
+      <div className="p-4 border-t border-border">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-medium text-foreground truncate">
+            {userName}
+          </span>
         </div>
         <Button
           variant="outline"

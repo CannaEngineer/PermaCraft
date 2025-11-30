@@ -32,25 +32,45 @@ export async function POST(
       return Response.json({ error: "Farm not found" }, { status: 404 });
     }
 
-    // Upsert zones using batch transaction
-    const statements = zones.map((zone) => {
-      const zoneId = zone.id || crypto.randomUUID();
-      const geometry = JSON.stringify(zone.geometry);
-      const properties = JSON.stringify(zone.properties || {});
+    // Get existing farm_boundary zones before deletion (to preserve their IDs and zone_type)
+    const farmBoundaryResult = await db.execute({
+      sql: "SELECT id FROM zones WHERE farm_id = ? AND zone_type = 'farm_boundary'",
+      args: [farmId],
+    });
+    const farmBoundaryIds = new Set(farmBoundaryResult.rows.map(row => row.id as string));
 
-      return {
-        sql: `INSERT INTO zones (id, farm_id, zone_type, geometry, properties)
-              VALUES (?, ?, ?, ?, ?)
-              ON CONFLICT(id) DO UPDATE SET
-                geometry = excluded.geometry,
-                properties = excluded.properties,
-                updated_at = unixepoch()`,
-        args: [zoneId, farmId, "polygon", geometry, properties],
-      };
+    // Delete all existing zones for this farm first
+    await db.execute({
+      sql: "DELETE FROM zones WHERE farm_id = ?",
+      args: [farmId],
     });
 
-    // Execute all upserts in a batch transaction
-    if (statements.length > 0) {
+    // Insert new zones using batch transaction
+    if (zones.length > 0) {
+      const statements = zones.map((zone) => {
+        const zoneId = zone.id || crypto.randomUUID();
+        const geometry = JSON.stringify(zone.geometry);
+        const properties = JSON.stringify(zone.properties || {});
+
+        // Preserve farm_boundary zone_type - if this zone ID was a farm_boundary, keep it as farm_boundary
+        // Otherwise, extract zone_type from properties
+        const isFarmBoundary = farmBoundaryIds.has(zoneId);
+        const zoneType = isFarmBoundary ? "farm_boundary" : (zone.properties?.user_zone_type || "other");
+
+        console.log(`Saving zone ${zoneId}:`, {
+          zoneType,
+          properties: zone.properties,
+          hasUserZoneType: !!zone.properties?.user_zone_type,
+          isFarmBoundary
+        });
+
+        return {
+          sql: `INSERT INTO zones (id, farm_id, zone_type, geometry, properties)
+                VALUES (?, ?, ?, ?, ?)`,
+          args: [zoneId, farmId, zoneType, geometry, properties],
+        };
+      });
+
       await db.batch(statements);
     }
 

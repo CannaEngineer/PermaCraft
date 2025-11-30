@@ -8,22 +8,14 @@ interface GridInterval {
 }
 
 /**
- * Get appropriate grid interval based on zoom level and unit system
- * Values are half the original size for more accurate spatial identification
+ * Get fixed grid interval for the farm (independent of zoom level)
+ * This creates a consistent reference grid that doesn't change as you zoom
  */
-export function getGridInterval(zoom: number, unit: GridUnit): GridInterval {
+export function getFixedGridInterval(unit: GridUnit): GridInterval {
   if (unit === 'imperial') {
-    if (zoom >= 19) return { value: 25, unit: 'ft' };
-    if (zoom >= 17) return { value: 50, unit: 'ft' };
-    if (zoom >= 15) return { value: 125, unit: 'ft' };
-    if (zoom >= 13) return { value: 250, unit: 'ft' };
-    return { value: 500, unit: 'ft' };
+    return { value: 50, unit: 'ft' }; // Fixed 50 ft grid
   } else {
-    if (zoom >= 19) return { value: 12.5, unit: 'm' };
-    if (zoom >= 17) return { value: 25, unit: 'm' };
-    if (zoom >= 15) return { value: 50, unit: 'm' };
-    if (zoom >= 13) return { value: 125, unit: 'm' };
-    return { value: 250, unit: 'm' };
+    return { value: 25, unit: 'm' }; // Fixed 25 m grid
   }
 }
 
@@ -59,7 +51,8 @@ function metersToDegreesLng(meters: number, latitude: number): number {
 }
 
 /**
- * Generate grid lines for map bounds
+ * Generate fixed grid lines for farm bounds
+ * Grid stays in the same geographic location regardless of zoom level
  */
 export function generateGridLines(
   bounds: {
@@ -68,10 +61,9 @@ export function generateGridLines(
     east: number;
     west: number;
   },
-  zoom: number,
   unit: GridUnit
-): { lines: Feature<LineString>[], labels: Feature<Point>[] } {
-  const interval = getGridInterval(zoom, unit);
+): { lines: Feature<LineString>[], labels: Feature<Point>[], latLines: number[], lngLines: number[] } {
+  const interval = getFixedGridInterval(unit);
   const intervalMeters = unit === 'imperial'
     ? feetToMeters(interval.value)
     : interval.value;
@@ -81,9 +73,9 @@ export function generateGridLines(
   const latStep = metersToDegreesLat(intervalMeters);
   const lngStep = metersToDegreesLng(intervalMeters, centerLat);
 
-  // Add 20% buffer
-  const latBuffer = (bounds.north - bounds.south) * 0.2;
-  const lngBuffer = (bounds.east - bounds.west) * 0.2;
+  // Add small buffer to ensure grid covers entire farm
+  const latBuffer = latStep * 2;
+  const lngBuffer = lngStep * 2;
 
   const north = bounds.north + latBuffer;
   const south = bounds.south - latBuffer;
@@ -150,5 +142,111 @@ export function generateGridLines(
     }
   }
 
-  return { lines, labels };
+  return { lines, labels, latLines, lngLines };
+}
+
+/**
+ * Generate viewport-specific labels ensuring labels are visible in current view
+ * This provides context for AI screenshot analysis
+ * Label density adjusts based on zoom level for readability
+ */
+export function generateViewportLabels(
+  farmBounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  },
+  viewportBounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  },
+  unit: GridUnit,
+  zoom: number
+): Feature<Point>[] {
+  const interval = getFixedGridInterval(unit);
+  const intervalMeters = unit === 'imperial'
+    ? feetToMeters(interval.value)
+    : interval.value;
+
+  const centerLat = (farmBounds.north + farmBounds.south) / 2;
+  const latStep = metersToDegreesLat(intervalMeters);
+  const lngStep = metersToDegreesLng(intervalMeters, centerLat);
+
+  // Find which grid lines intersect the viewport
+  const visibleLabels: Feature<Point>[] = [];
+
+  // Calculate grid origin (southwest corner of farm)
+  const farmSouth = farmBounds.south - latStep * 2;
+  const farmWest = farmBounds.west - lngStep * 2;
+
+  // Find latitude lines in viewport
+  const vpLatLines: number[] = [];
+  for (let lat = Math.floor(farmSouth / latStep) * latStep; lat <= viewportBounds.north; lat += latStep) {
+    if (lat >= viewportBounds.south) {
+      vpLatLines.push(lat);
+    }
+  }
+
+  // Find longitude lines in viewport
+  const vpLngLines: number[] = [];
+  for (let lng = Math.floor(farmWest / lngStep) * lngStep; lng <= viewportBounds.east; lng += lngStep) {
+    if (lng >= viewportBounds.west) {
+      vpLngLines.push(lng);
+    }
+  }
+
+  // Calculate row/column indices based on farm origin
+  const originLat = Math.floor(farmSouth / latStep) * latStep;
+  const originLng = Math.floor(farmWest / lngStep) * lngStep;
+
+  // Determine label skip interval based on zoom level
+  // Much fewer labels when zoomed out for better readability and AI context
+  let skipInterval = 1;
+  if (zoom < 12) {
+    skipInterval = 20; // Extremely sparse - show every 20th label
+  } else if (zoom < 13) {
+    skipInterval = 12; // Very sparse - show every 12th label
+  } else if (zoom < 14) {
+    skipInterval = 8; // Sparse - show every 8th label
+  } else if (zoom < 15) {
+    skipInterval = 6; // Moderate - show every 6th label
+  } else if (zoom < 16) {
+    skipInterval = 4; // Show every 4th label
+  } else if (zoom < 17) {
+    skipInterval = 2; // Show every 2nd label
+  } else {
+    skipInterval = 1; // Show all labels when very zoomed in
+  }
+
+  // Generate labels for visible grid intersections
+  for (const lat of vpLatLines) {
+    for (const lng of vpLngLines) {
+      const rowIndex = Math.round((lat - originLat) / latStep);
+      const colIndex = Math.round((lng - originLng) / lngStep);
+
+      // Skip labels based on zoom level for better readability
+      if (rowIndex % skipInterval !== 0 || colIndex % skipInterval !== 0) {
+        continue;
+      }
+
+      const rowLabel = rowIndex + 1;
+      const colLabel = getColumnLabel(colIndex);
+
+      visibleLabels.push({
+        type: 'Feature',
+        properties: {
+          label: `${colLabel}${rowLabel}`
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [lng, lat]
+        }
+      });
+    }
+  }
+
+  return visibleLabels;
 }

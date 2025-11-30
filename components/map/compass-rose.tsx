@@ -1,13 +1,18 @@
 "use client";
 
-export function CompassRose() {
+interface CompassRoseProps {
+  bearing?: number; // Map rotation in degrees (0 = north)
+}
+
+export function CompassRose({ bearing = 0 }: CompassRoseProps) {
   return (
     <div className="absolute bottom-4 left-4 z-10 pointer-events-none">
       <svg
         width="60"
         height="60"
         viewBox="0 0 60 60"
-        className="drop-shadow-lg"
+        className="drop-shadow-lg transition-transform duration-100"
+        style={{ transform: `rotate(${-bearing}deg)` }}
         role="img"
         aria-label="Compass rose showing cardinal directions"
       >

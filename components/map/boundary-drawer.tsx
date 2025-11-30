@@ -27,7 +27,6 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
     if (!map.current) return;
 
     const bounds = map.current.getBounds();
-    const zoom = map.current.getZoom();
 
     const { lines, labels } = generateGridLines(
       {
@@ -36,7 +35,6 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         east: bounds.getEast(),
         west: bounds.getWest()
       },
-      zoom,
       gridUnit
     );
 

@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth/session";
-import { Sidebar } from "@/components/shared/sidebar";
+import AppLayoutClient from "./app-layout-client";
 
 export default async function AppLayout({
   children,
@@ -9,13 +9,8 @@ export default async function AppLayout({
   const session = await requireAuth();
 
   return (
-    <div className="h-screen flex">
-      <div className="w-64 flex-shrink-0">
-        <Sidebar userName={session.user.name || session.user.email} />
-      </div>
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <AppLayoutClient userName={session.user.name || session.user.email}>
+      {children}
+    </AppLayoutClient>
   );
 }

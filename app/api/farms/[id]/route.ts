@@ -1,82 +1,71 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { NextRequest } from "next/server";
-import { z } from "zod";
 
-export async function GET(
+export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuth();
-    const { id } = await context.params;
+    const { id: farmId } = await context.params;
 
-    const result = await db.execute({
-      sql: "SELECT * FROM farms WHERE id = ? AND user_id = ?",
-      args: [id, session.user.id],
-    });
-
-    if (result.rows.length === 0) {
-      return Response.json({ error: "Farm not found" }, { status: 404 });
-    }
-
-    return Response.json(result.rows[0]);
-  } catch (error) {
-    return Response.json({ error: "Failed to fetch farm" }, { status: 500 });
-  }
-}
-
-const updateFarmSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  description: z.string().nullable().optional(),
-  is_public: z.number().min(0).max(1).optional(),
-  climate_zone: z.string().nullable().optional(),
-  rainfall_inches: z.number().positive().nullable().optional(),
-  soil_type: z.string().nullable().optional(),
-});
-
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await requireAuth();
-    const { id } = await context.params;
-    const body = await request.json();
-    const updates = updateFarmSchema.parse(body);
-
-    if (Object.keys(updates).length === 0) {
-      return Response.json({ error: "No fields to update" }, { status: 400 });
-    }
-
-    // Verify ownership
+    // Verify farm ownership
     const farmResult = await db.execute({
-      sql: "SELECT id FROM farms WHERE id = ? AND user_id = ?",
-      args: [id, session.user.id],
+      sql: "SELECT id, user_id FROM farms WHERE id = ? AND user_id = ?",
+      args: [farmId, session.user.id],
     });
 
     if (farmResult.rows.length === 0) {
-      return Response.json({ error: "Farm not found" }, { status: 404 });
+      return Response.json({ error: "Farm not found or access denied" }, { status: 404 });
     }
 
-    // Build update query
-    const updateFields = Object.entries(updates)
-      .map(([key, _]) => `${key} = ?`)
-      .join(", ");
-
-    const values = [...Object.values(updates), id];
-
+    // Delete all related data in correct order (respecting foreign key constraints)
+    // 1. Delete AI analyses
     await db.execute({
-      sql: `UPDATE farms SET ${updateFields}, updated_at = unixepoch() WHERE id = ?`,
-      args: values,
+      sql: "DELETE FROM ai_analyses WHERE farm_id = ?",
+      args: [farmId],
     });
 
-    return Response.json({ success: true });
+    // 2. Delete AI conversations
+    await db.execute({
+      sql: "DELETE FROM ai_conversations WHERE farm_id = ?",
+      args: [farmId],
+    });
+
+    // 3. Delete map snapshots
+    await db.execute({
+      sql: "DELETE FROM map_snapshots WHERE farm_id = ?",
+      args: [farmId],
+    });
+
+    // 4. Delete plantings
+    await db.execute({
+      sql: "DELETE FROM plantings WHERE farm_id = ?",
+      args: [farmId],
+    });
+
+    // 5. Delete zones
+    await db.execute({
+      sql: "DELETE FROM zones WHERE farm_id = ?",
+      args: [farmId],
+    });
+
+    // 6. Delete farm collaborators
+    await db.execute({
+      sql: "DELETE FROM farm_collaborators WHERE farm_id = ?",
+      args: [farmId],
+    });
+
+    // 7. Finally delete the farm itself
+    await db.execute({
+      sql: "DELETE FROM farms WHERE id = ?",
+      args: [farmId],
+    });
+
+    return Response.json({ success: true, message: "Farm deleted successfully" });
   } catch (error) {
-    console.error("Update farm error:", error);
-    if (error instanceof z.ZodError) {
-      return Response.json({ error: "Invalid input" }, { status: 400 });
-    }
-    return Response.json({ error: "Failed to update farm" }, { status: 500 });
+    console.error("Delete farm error:", error);
+    return Response.json({ error: "Failed to delete farm" }, { status: 500 });
   }
 }

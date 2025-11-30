@@ -7,58 +7,48 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-  }
-
-  .dark {
-    --background: 0 0% 3.9%;
+    --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
   }
 }
 
@@ -68,6 +58,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
   }
 }
 
@@ -76,110 +70,63 @@
 .maplibregl-ctrl-group {
   z-index: 50 !important;
   pointer-events: auto !important;
-  background: white !important;
+  background-color: hsl(var(--card)) !important;
+  border-radius: var(--radius) !important;
 }
 
 .mapboxgl-ctrl-group button,
 .maplibregl-ctrl-group button {
   pointer-events: auto !important;
   cursor: pointer !important;
-  background: white !important;
+  background-color: hsl(var(--card)) !important;
   border: none !important;
+  color: hsl(var(--card-foreground)) !important;
+  width: 32px !important;
+  height: 32px !important;
 }
 
 .mapboxgl-ctrl-group button:hover,
 .maplibregl-ctrl-group button:hover {
-  background-color: #f3f4f6 !important;
+  background-color: hsl(var(--accent)) !important;
 }
 
-/* Style the drawing control buttons specifically */
-.mapbox-gl-draw_ctrl-draw-btn,
-.mapbox-gl-draw_trash,
-.mapbox-gl-draw_point,
-.mapbox-gl-draw_line,
-.mapbox-gl-draw_polygon {
-  pointer-events: auto !important;
-  cursor: pointer !important;
-  width: 30px !important;
-  height: 30px !important;
-  display: block !important;
+.mapbox-gl-draw_ctrl-draw-btn {
   background-size: 20px 20px !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
-  border: 1px solid #d1d5db !important;
-  margin: 0 !important;
+  border: 1px solid hsl(var(--border)) !important;
 }
 
-.mapbox-gl-draw_ctrl-draw-btn:hover {
-  background-color: #f3f4f6 !important;
+.mapbox-gl-draw_point {
+  background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path fill="%23fafafa" d="m10 2c-3.3 0-6 2.7-6 6s6 9 6 9 6-5.7 6-9-2.7-6-6-6zm0 2c2.1 0 3.8 1.7 3.8 3.8 0 1.5-1.8 3.9-2.9 5.2h-1.7c-1.1-1.4-2.9-3.8-2.9-5.2-.1-2.1 1.6-3.8 3.7-3.8z"/></svg>') !important;
+}
+
+.mapbox-gl-draw_line {
+  background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path fill="%23fafafa" d="m13.5 3.5c-1.4 0-2.5 1.1-2.5 2.5 0 .3 0 .6.2.9l-3.8 3.8c-.3-.1-.6-.2-.9-.2-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5c0-.3 0-.6-.2-.9l3.8-3.8c.3.1.6.2.9.2 1.4 0 2.5-1.1 2.5-2.5s-1.1-2.5-2.5-2.5z"/></svg>') !important;
+}
+
+.mapbox-gl-draw_polygon {
+  background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path fill="%23fafafa" d="m15 12.3v-4.6c.6-.3 1-1 1-1.7 0-1.1-.9-2-2-2-.7 0-1.4.4-1.7 1h-4.6c-.3-.6-1-1-1.7-1-1.1 0-2 .9-2 2 0 .7.4 1.4 1 1.7v4.6c-.6.3-1 1-1 1.7 0 1.1.9 2 2 2 .7 0 1.4-.4 1.7-1h4.6c.3.6 1 1 1.7 1 1.1 0 2-.9 2-2 0-.7-.4-1.4-1-1.7zm-8-.3v-4l1-1h4l1 1v4l-1 1h-4z"/></svg>') !important;
+}
+
+.mapbox-gl-draw_trash {
+  background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path fill="%23fafafa" d="M10,3.4 c-0.8,0-1.5,0.5-1.8,1.2H5l-1,1v1h12v-1l-1-1h-3.2C11.5,3.9,10.8,3.4,10,3.4z M5,8v7c0,1,1,2,2,2h6c1,0,2-1,2-2V8h-2v5.5h-1.5V8h-3 v5.5H7V8H5z"/></svg>') !important;
 }
 
 /* Active drawing tool */
 .mapbox-gl-draw_ctrl-draw-btn.active {
-  background-color: #3b82f6 !important;
-  border-color: #2563eb !important;
+  background-color: hsl(var(--accent)) !important;
 }
 
-/* Add text labels to buttons for visibility */
-.mapbox-gl-draw_point::after {
-  content: "•" !important;
-  font-size: 24px !important;
-  color: #374151 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 100% !important;
-}
 
-.mapbox-gl-draw_point.active::after {
-  color: white !important;
-}
-
-.mapbox-gl-draw_line::after {
-  content: "⎯" !important;
-  font-size: 20px !important;
-  font-weight: bold !important;
-  color: #374151 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 100% !important;
-}
-
-.mapbox-gl-draw_line.active::after {
-  color: white !important;
-}
-
-.mapbox-gl-draw_polygon::after {
-  content: "⬡" !important;
-  font-size: 18px !important;
-  color: #374151 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 100% !important;
-}
-
-.mapbox-gl-draw_polygon.active::after {
-  color: white !important;
-}
-
+/* Trash icon */
 .mapbox-gl-draw_trash {
-  background-color: white !important;
+  background-color: hsl(var(--card)) !important;
 }
 
 .mapbox-gl-draw_trash:hover {
-  background-color: #fee2e2 !important;
-}
-
-.mapbox-gl-draw_trash::after {
-  content: "🗑" !important;
-  font-size: 18px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 100% !important;
-  filter: grayscale(0%) !important;
+  background-color: hsl(var(--destructive)) !important;
+  color: hsl(var(--destructive-foreground)) !important;
 }
 
 /* Ensure cursor changes when drawing */
