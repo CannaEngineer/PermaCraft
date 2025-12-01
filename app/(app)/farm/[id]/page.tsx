@@ -7,11 +7,13 @@ import { FarmFeedClient } from "@/components/feed/farm-feed-client";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ refresh?: string }>;
 }
 
-export default async function FarmPage({ params }: PageProps) {
+export default async function FarmPage({ params, searchParams }: PageProps) {
   const session = await requireAuth();
   const { id } = await params;
+  const { refresh } = await searchParams;
 
   // First try to fetch farm as owner
   let farmResult = await db.execute({

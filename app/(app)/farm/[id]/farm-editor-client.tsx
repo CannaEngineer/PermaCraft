@@ -34,7 +34,6 @@ export function FarmEditorClient({
   const [currentMapLayer, setCurrentMapLayer] = useState<string>("satellite");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [postRefreshKey, setPostRefreshKey] = useState(0);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -677,7 +676,7 @@ export function FarmEditorClient({
       {isOwner && (
         <CreatePostFAB
           farmId={farm.id}
-          onPostCreated={() => setPostRefreshKey((k) => k + 1)}
+          onPostCreated={() => router.refresh()}
         />
       )}
     </div>
