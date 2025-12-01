@@ -1,32 +1,121 @@
+/**
+ * Zone Grid Calculator
+ *
+ * Calculates which alphanumeric grid cells (A1, B2, C3, etc.) a zone intersects.
+ * This enables the AI to reference precise locations when making recommendations.
+ *
+ * Grid Coordinate System:
+ * - Origin: Southwest corner of farm bounds (padded by 2 grid cells)
+ * - Columns: A, B, C, ... (west to east)
+ * - Rows: 1, 2, 3, ... (south to north)
+ * - Spacing: 50 feet (imperial) or 25 meters (metric)
+ *
+ * Example:
+ * ```
+ *     A    B    C    D
+ *  4  A4   B4   C4   D4
+ *  3  A3   B3   C3   D3
+ *  2  A2   B2   C2   D2
+ *  1  A1   B1   C1   D1
+ * ```
+ *
+ * Algorithm:
+ * 1. Convert grid spacing to lat/lng degrees (accounts for earth curvature)
+ * 2. Determine grid origin (southwest corner)
+ * 3. For each zone geometry:
+ *    - Point: Calculate which cell contains it
+ *    - Line: Sample cells along the line
+ *    - Polygon: Find bounding box, test which cells intersect
+ * 4. Return sorted array of cell labels (e.g., ["A1", "A2", "B1"])
+ *
+ * Why This Matters:
+ * - AI can say "plant at grid D5" instead of vague locations
+ * - Users can correlate AI recommendations with map
+ * - Provides precise communication between AI and user
+ *
+ * Technical Notes:
+ * - Uses ray casting for point-in-polygon test
+ * - Tests cell center + 4 corners for polygon intersection
+ * - Handles earth curvature (lng spacing varies by latitude)
+ * - Matches grid spacing from measurement-grid.ts exactly
+ */
+
 import type { GridUnit } from './measurement-grid';
 
 /**
- * Convert column index to letter label (0→A, 1→B, ..., 25→Z, 26→AA, etc.)
+ * Convert Column Index to Letter Label
+ *
+ * Excel-style column labeling:
+ * - 0 → A
+ * - 25 → Z
+ * - 26 → AA
+ * - 27 → AB
+ * - 701 → ZZ
+ * - 702 → AAA
+ *
+ * Algorithm:
+ * - Convert base-10 number to base-26 using letters
+ * - Similar to decimal to hexadecimal conversion
+ * - Handles multi-letter columns for large farms
+ *
+ * @param index - Zero-based column index
+ * @returns Letter label (A, B, ..., Z, AA, AB, ...)
  */
 function getColumnLabel(index: number): string {
   let label = '';
   let num = index;
   while (num >= 0) {
-    label = String.fromCharCode(65 + (num % 26)) + label;
+    label = String.fromCharCode(65 + (num % 26)) + label; // 65 = 'A' in ASCII
     num = Math.floor(num / 26) - 1;
   }
   return label;
 }
 
 /**
- * Convert feet to meters
+ * Convert Feet to Meters
+ *
+ * Standard conversion factor: 1 foot = 0.3048 meters exactly
  */
 function feetToMeters(feet: number): number {
   return feet * 0.3048;
 }
 
 /**
- * Calculate degrees of latitude/longitude for given distance in meters
+ * Calculate Latitude Degrees for Given Distance in Meters
+ *
+ * Earth's circumference: ~40,075 km at equator
+ * 1 degree latitude = 40,075 km / 360 = ~111.32 km = 111,320 meters
+ *
+ * This is constant at all latitudes (latitude lines are parallel).
+ *
+ * @param meters - Distance in meters
+ * @returns Equivalent degrees of latitude
  */
 function metersToDegreesLat(meters: number): number {
   return meters / 111320; // 1 degree latitude ≈ 111.32km
 }
 
+/**
+ * Calculate Longitude Degrees for Given Distance in Meters
+ *
+ * Longitude lines converge at poles, so 1 degree longitude varies by latitude.
+ *
+ * Formula: degrees_lng = meters / (111.32km * cos(latitude))
+ *
+ * Examples:
+ * - At equator (0°): 1° longitude ≈ 111.32 km
+ * - At 45°N: 1° longitude ≈ 78.71 km (cos(45°) ≈ 0.707)
+ * - At 60°N: 1° longitude ≈ 55.66 km (cos(60°) = 0.5)
+ * - At poles (90°): 1° longitude ≈ 0 km (cos(90°) = 0)
+ *
+ * Why this matters:
+ * - Grid cell width (in degrees) must account for latitude
+ * - Otherwise cells would appear stretched on east-west axis
+ *
+ * @param meters - Distance in meters
+ * @param latitude - Latitude in degrees
+ * @returns Equivalent degrees of longitude at that latitude
+ */
 function metersToDegreesLng(meters: number, latitude: number): number {
   return meters / (111320 * Math.cos(latitude * Math.PI / 180));
 }

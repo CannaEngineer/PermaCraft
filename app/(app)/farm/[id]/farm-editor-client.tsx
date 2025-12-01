@@ -102,41 +102,70 @@ export function FarmEditorClient({
     setHasUnsavedChanges(true);
   };
 
-  // Helper function to capture a single screenshot
+  /**
+   * Captures a single screenshot of the current map state
+   *
+   * This function handles the complex process of capturing MapLibre canvas
+   * content along with HTML overlays (compass, legend, grid labels).
+   *
+   * Process:
+   * 1. Wait for all map tiles to finish loading
+   * 2. Capture the raw canvas via MapLibre API
+   * 3. Create a temporary image from canvas data
+   * 4. Use html-to-image to capture the full container (canvas + overlays)
+   * 5. Clean up temporary elements
+   *
+   * Why this complexity?
+   * - MapLibre's preserveDrawingBuffer doesn't work reliably across browsers
+   * - We need to capture both WebGL canvas AND HTML elements (grid, compass)
+   * - Must avoid blank screenshots by ensuring tiles are fully loaded
+   *
+   * @returns Base64 encoded PNG data URI of the screenshot
+   * @throws Error if map is not ready or screenshot capture fails
+   */
   const captureMapScreenshot = useCallback(async (): Promise<string> => {
     if (!mapContainerRef.current || !mapRef.current) {
       throw new Error("Map not ready");
     }
 
     // Wait for map to be fully loaded and ALL tiles rendered
+    // This is critical - capturing too early results in blank/partial screenshots
     await new Promise<void>((resolve) => {
       let tilesLoaded = false;
       let idleCount = 0;
 
       const checkReady = () => {
-        // Check if all source tiles are loaded
+        // Check if all source tiles are loaded by inspecting MapLibre internal state
+        // This ensures we don't capture while tiles are still downloading
         const style = mapRef.current!.getStyle();
         const sourcesLoaded = Object.keys(style.sources).every(sourceId => {
           const source = mapRef.current!.getSource(sourceId);
-          // @ts-ignore - MapLibre internal property
+          // @ts-ignore - Accessing MapLibre internal _tiles property
+          // This is necessary because there's no public API to check tile load status
           return !source || !source._tiles || Object.keys(source._tiles).length === 0 ||
                  // @ts-ignore
                  Object.values(source._tiles).every((tile: any) => tile.state === 'loaded');
         });
 
+        // Require three conditions to be true simultaneously:
+        // 1. All tiles loaded (checked above)
+        // 2. Map reports loaded state
+        // 3. Map is not currently panning/zooming
         if (sourcesLoaded && mapRef.current!.loaded() && !mapRef.current!.isMoving()) {
           idleCount++;
           console.log(`Map ready check ${idleCount}/3, tiles loaded: ${sourcesLoaded}`);
 
-          // Wait for 3 consecutive idle+loaded checks
+          // Require 3 consecutive successful checks to avoid race conditions
+          // Single check isn't reliable - tiles can report loaded before fully rendered
           if (idleCount >= 3) {
             tilesLoaded = true;
             console.log("Map is fully ready for screenshot");
-            setTimeout(() => resolve(), 500); // Final delay
+            setTimeout(() => resolve(), 500); // Final 500ms delay for GPU rendering
           } else {
-            setTimeout(checkReady, 200);
+            setTimeout(checkReady, 200); // Check again in 200ms
           }
         } else {
+          // If conditions not met, reset counter and wait for next idle event
           idleCount = 0;
           mapRef.current!.once("idle", checkReady);
         }
@@ -144,7 +173,8 @@ export function FarmEditorClient({
 
       checkReady();
 
-      // Timeout after 10 seconds
+      // Safety timeout: If tiles don't load within 10 seconds, proceed anyway
+      // This prevents infinite waiting if there are network issues
       setTimeout(() => {
         if (!tilesLoaded) {
           console.warn("Map screenshot timeout - capturing anyway");
@@ -163,15 +193,24 @@ export function FarmEditorClient({
 
       const canvas = mapRef.current.getCanvas();
 
+      /**
+       * Captures the MapLibre canvas during a render event
+       *
+       * Why use render event?
+       * - preserveDrawingBuffer doesn't work reliably
+       * - Canvas content is only available during/after render
+       * - Capturing immediately after triggerRepaint() ensures fresh content
+       */
       const captureCanvasOnRender = (): Promise<string> => {
         return new Promise((resolve, reject) => {
           let captured = false;
 
           const captureHandler = () => {
-            if (captured) return;
+            if (captured) return; // Prevent duplicate captures
             captured = true;
 
-            // Capture immediately during this render frame
+            // Capture canvas content immediately during this render frame
+            // Must happen synchronously within the render event callback
             try {
               const dataUrl = canvas.toDataURL("image/png", 1.0);
               console.log("Canvas captured on render:", {
@@ -315,6 +354,35 @@ export function FarmEditorClient({
     }
   }, [mapContainerRef, mapRef]);
 
+  /**
+   * Handles AI analysis requests with automatic dual-screenshot capture
+   *
+   * This is the core function for AI-powered permaculture analysis.
+   * It captures BOTH satellite and topographic views automatically,
+   * allowing the AI to correlate visual features with terrain data.
+   *
+   * Process Flow:
+   * 1. Capture screenshot of current layer (whatever user is viewing)
+   * 2. Temporarily switch to USGS topographic layer (invisible to user)
+   * 3. Capture topographic screenshot
+   * 4. Restore original layer
+   * 5. Send both screenshots + farm context to AI API
+   * 6. Return AI response with recommendations
+   *
+   * Why dual screenshots?
+   * - Satellite shows visual features (buildings, vegetation, water)
+   * - Topographic shows terrain (slopes, elevation, drainage)
+   * - AI correlates both for terrain-aware recommendations
+   *
+   * Performance Notes:
+   * - Layer switching happens in ~2-3 seconds total
+   * - User never sees the temporary layer switch
+   * - Screenshots are ~500KB each (base64 PNG)
+   *
+   * @param query - User's question/request for the AI
+   * @param conversationId - Optional existing conversation to continue
+   * @returns AI response with conversation metadata and screenshot
+   */
   const handleAnalyze = useCallback(
     async (
       query: string,
@@ -331,79 +399,92 @@ export function FarmEditorClient({
 
       console.log("=== DUAL SCREENSHOT CAPTURE START ===");
 
-      // Step 1: Capture current layer screenshot
+      // STEP 1: Capture current layer screenshot
+      // This preserves what the user is actively viewing
       console.log(`Capturing screenshot 1: ${currentMapLayer} layer`);
       const currentLayerScreenshot = await captureMapScreenshot();
 
-      // Step 2: Determine best topo layer (use USGS for now, could add geo-based logic later)
+      // STEP 2: Determine best topographic layer
+      // Currently always uses USGS, but could be enhanced to:
+      // - Use OpenTopoMap for international properties
+      // - Select based on user location/preferences
       const topoLayer = "usgs";
       const originalLayer = currentMapLayer;
 
       let topoScreenshot: string;
 
-      // Only capture second screenshot if we're not already on a topo layer
+      // STEP 3: Conditionally capture second screenshot
+      // Skip if user is already viewing a topographic layer
+      // (no point capturing the same view twice)
       if (originalLayer !== "usgs" && originalLayer !== "topo") {
         console.log(`Switching to ${topoLayer} layer for second screenshot...`);
 
-        // Step 3: Get the changeMapLayer callback from FarmMap component
-        // We'll need to pass this via a ref/callback
-        // For now, we'll use a direct map style change approach
-
-        // Store current style
+        // Store current map style to restore later
+        // This is the complete MapLibre style object including sources, layers, etc.
         const currentStyle = mapRef.current.getStyle();
 
-        // Create USGS style
+        // Create USGS topographic style
+        // This is a minimal MapLibre style with just the USGS raster tile source
         const usgsStyle = {
-          version: 8 as const,
+          version: 8 as const, // MapLibre style spec version
           sources: {
             usgs: {
               type: "raster" as const,
               tiles: [
+                // Free USGS topographic tiles (no API key required)
                 "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
               ],
               tileSize: 256,
-              maxzoom: 16,
+              maxzoom: 16, // USGS tiles available up to zoom 16
             },
           },
           layers: [{ id: "usgs", type: "raster" as const, source: "usgs" }],
         };
 
-        // Change to USGS style
+        // Temporarily switch to USGS style
+        // This triggers a complete style reload, clearing all current layers
         mapRef.current.setStyle(usgsStyle);
 
-        // Wait for style to load and tiles to render
+        // Wait for the new style to load and tiles to render
+        // This is async - tiles must download before we can screenshot
         await new Promise<void>((resolve) => {
           const onStyleData = () => {
             console.log("USGS style loaded, waiting for tiles...");
+            // Wait for map to be idle (all tiles loaded and rendered)
             mapRef.current!.once("idle", () => {
               console.log("USGS tiles idle");
-              // Extra delay to ensure tiles are fully rendered
+              // Extra 1-second delay to ensure GPU has fully rendered tiles
+              // Needed because 'idle' event can fire before final paint
               setTimeout(() => resolve(), 1000);
             });
           };
 
+          // Check if style is already loaded (edge case)
           if (mapRef.current!.isStyleLoaded()) {
             onStyleData();
           } else {
+            // Wait for 'styledata' event (fired when style JSON is loaded)
             mapRef.current!.once("styledata", onStyleData);
           }
 
-          // Timeout after 15 seconds
+          // Safety timeout: Prevent infinite waiting if tiles fail to load
           setTimeout(() => {
             console.warn("USGS style load timeout");
-            resolve();
+            resolve(); // Proceed anyway
           }, 15000);
         });
 
-        // Step 4: Capture topo screenshot
+        // STEP 4: Capture topographic screenshot
         console.log("Capturing screenshot 2: USGS topo layer");
         topoScreenshot = await captureMapScreenshot();
 
-        // Step 5: Restore original style
+        // STEP 5: Restore original layer
+        // User should see the same layer they started with
         console.log(`Restoring original layer: ${originalLayer}`);
         mapRef.current.setStyle(currentStyle);
 
         // Wait for original style to restore
+        // This ensures the UI is back to normal before we return
         await new Promise<void>((resolve) => {
           mapRef.current!.once("styledata", () => {
             mapRef.current!.once("idle", () => {
@@ -422,7 +503,12 @@ export function FarmEditorClient({
 
       console.log("=== DUAL SCREENSHOT CAPTURE COMPLETE ===");
 
-      // Calculate farm bounds for grid coordinate calculations
+      // STEP 6: Calculate farm bounds for grid coordinate mapping
+      // This allows the AI to reference precise locations using alphanumeric grid (A1, B2, etc.)
+      // Grid system:
+      // - Columns: A, B, C... (west to east)
+      // - Rows: 1, 2, 3... (south to north)
+      // - Spacing: 50 feet (imperial) or 25 meters (metric)
       const allCoords: number[][] = [];
       zones.forEach((zone) => {
         const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;

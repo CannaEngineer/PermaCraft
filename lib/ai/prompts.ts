@@ -1,3 +1,78 @@
+/**
+ * AI Prompts for Permaculture Analysis
+ *
+ * This file contains the core prompts that define how the AI analyzes farm terrain
+ * and provides permaculture recommendations.
+ *
+ * Two-Prompt Strategy:
+ * 1. PERMACULTURE_SYSTEM_PROMPT: Sets AI persona, capabilities, and instructions
+ *    - Sent as "system" message (defines overall behavior)
+ *    - Tells AI it's a permaculture expert
+ *    - Teaches terrain interpretation (contours, slopes, drainage)
+ *    - Sets response guidelines (simple vs complex questions)
+ *
+ * 2. createAnalysisPrompt(): Builds user message with farm context
+ *    - Sent as "user" message with screenshots attached
+ *    - Includes farm data (acres, climate, soil)
+ *    - Lists zones with grid coordinates
+ *    - Contains user's actual question
+ *
+ * Why This Approach?
+ * - System prompt is reusable across all analyses
+ * - User prompt is customized per farm and query
+ * - Separates "who you are" from "what you're analyzing"
+ *
+ * Key Innovations:
+ * - Multi-view analysis (satellite + topographic)
+ * - Grid coordinate integration for precise location references
+ * - Terrain interpretation guide (how to read contour maps)
+ * - Adaptive response depth (simple question = simple answer)
+ *
+ * Prompt Engineering Notes:
+ * - Very specific instructions reduce hallucination
+ * - Examples show desired behavior
+ * - Constraints prevent common errors (like guessing coordinates)
+ * - Tone guidance makes responses more natural
+ */
+
+/**
+ * System Prompt - Defines AI Persona and Capabilities
+ *
+ * This prompt is sent as the "system" message in every API call.
+ * It establishes:
+ * - Role: Expert permaculture designer (warm, conversational)
+ * - Capabilities: Multi-view terrain analysis with grid references
+ * - Constraints: Must use provided coordinates, never guess
+ * - Guidelines: Match response depth to question complexity
+ *
+ * Critical Sections:
+ *
+ * 1. MULTI-VIEW ANALYSIS
+ *    - Teaches AI it receives TWO screenshots (satellite + topo)
+ *    - Explains what each view shows
+ *    - Requires correlation between views using grid coordinates
+ *
+ * 2. TERRAIN INTERPRETATION GUIDE
+ *    - How to read contour lines (spacing = slope)
+ *    - How to determine aspect (sun exposure)
+ *    - How to identify drainage patterns
+ *    - Where to place swales and terraces
+ *
+ * 3. GRID COORDINATE SYSTEM
+ *    - Explains alphanumeric grid (A1, B2, etc.)
+ *    - Provides pre-calculated coordinates for zones
+ *    - Prevents AI from guessing locations
+ *
+ * 4. RESPONSE GUIDELINES
+ *    - Simple questions: 1-3 sentences
+ *    - Design questions: Natural flowing format with terrain analysis
+ *    - Complex requests: Structured with headings
+ *
+ * Length: ~1,500 words
+ * - Long prompts work better for vision models
+ * - Detailed instructions reduce errors
+ * - Examples demonstrate desired behavior
+ */
 export const PERMACULTURE_SYSTEM_PROMPT = `You are an expert permaculture designer having a natural conversation with a farmer or land manager. You have deep knowledge of regenerative agriculture, native ecosystems, and sustainable land management.
 
 CRITICAL: You are receiving MULTIPLE SCREENSHOT IMAGES of the farm. You MUST analyze ALL images together to provide comprehensive, terrain-aware recommendations.
@@ -115,6 +190,62 @@ You're a friendly expert having coffee with a farmer. Be:
 
 Remember: Match your answer to the question. A simple question deserves a simple, helpful answer. A complex design request deserves a thorough, structured response.`;
 
+/**
+ * Create Analysis Prompt - Builds User Message with Farm Context
+ *
+ * This function constructs the "user" message that accompanies the screenshots
+ * in the vision API call. It provides all the context the AI needs to analyze
+ * this specific farm.
+ *
+ * Structure:
+ * 1. Farm metadata (name, size, location, climate, soil)
+ * 2. Map layer description (what view user is seeing)
+ * 3. Zone data with accurate grid coordinates
+ * 4. Grid system explanation
+ * 5. User's question
+ * 6. Screenshot descriptions (type and purpose)
+ * 7. Analysis instructions (correlate views)
+ *
+ * Key Features:
+ * - Pre-calculated grid coordinates for zones (prevents AI guessing)
+ * - Conditional climate info (use zone if available, else infer from lat/lng)
+ * - Screenshot type descriptions (helps AI understand what it's seeing)
+ * - Emphasis on multi-view correlation
+ *
+ * Why This Works:
+ * - Provides ALL context up front (no need to ask follow-ups)
+ * - Grid coordinates enable precise location references
+ * - Screenshot descriptions prime AI for what to look for
+ * - Farm context allows climate-appropriate recommendations
+ *
+ * Example Output:
+ * ```
+ * FARM: Sunset Valley Farm
+ * LOCATION: 37.5432°N, 122.1234°W
+ * SIZE: 5 acres
+ * CLIMATE: USDA Zone 9b
+ * RAINFALL: 25 inches/year
+ * SOIL: Clay loam
+ *
+ * MAP VIEW: satellite/aerial imagery
+ *
+ * ZONES ON THE MAP:
+ *   • "North Garden" (Polygon) - Located at grid A4-C6
+ *   • "Pond" (Polygon) - Located at grid D2-E3
+ *
+ * USER QUESTION: "Where should I plant fruit trees?"
+ *
+ * **Screenshot 1**: satellite view with grid overlay
+ * **Screenshot 2**: USGS topographic view
+ *
+ * ANALYZE BOTH IMAGES TOGETHER...
+ * ```
+ *
+ * @param farmContext - Farm metadata (name, size, climate, location, soil)
+ * @param userQuery - User's actual question
+ * @param mapContext - Current map state (layer, zones, screenshots)
+ * @returns Formatted prompt string for vision API
+ */
 export function createAnalysisPrompt(
   farmContext: {
     name: string;
@@ -133,11 +264,17 @@ export function createAnalysisPrompt(
       type: string;
       name: string;
       geometryType?: string;
-      gridCoordinates?: string;
-      gridCells?: string[];
+      gridCoordinates?: string; // Pre-calculated: "A1-B3"
+      gridCells?: string[];     // Pre-calculated: ["A1", "A2", "B1"]
     }>;
   }
 ): string {
+  /**
+   * Layer Descriptions
+   *
+   * Human-readable descriptions of each map layer type.
+   * Helps the AI understand what it's viewing in the screenshot.
+   */
   const layerDescriptions: Record<string, string> = {
     satellite: "satellite/aerial imagery showing actual terrain, vegetation, and structures",
     street: "street map view showing roads and boundaries",

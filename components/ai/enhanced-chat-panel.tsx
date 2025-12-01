@@ -1,3 +1,50 @@
+/**
+ * Enhanced Chat Panel - AI Analysis Interface
+ *
+ * This component provides the chat interface for AI-powered permaculture analysis.
+ * It manages conversation history, message display, and integrates with the dual
+ * screenshot capture system.
+ *
+ * Architecture:
+ *
+ * 1. Conversation Management
+ *    - Lists all conversations for this farm (sidebar)
+ *    - Loads messages when conversation selected
+ *    - Creates new conversations on first message
+ *
+ * 2. Message Flow
+ *    - User types query → onAnalyze() → API call with screenshots
+ *    - Optimistic update (show message immediately)
+ *    - Database reload after response (ensures consistency)
+ *
+ * 3. Screenshot Integration
+ *    - Assistant messages include screenshot array
+ *    - Displays screenshot buttons for each view
+ *    - Modal viewer for full-size screenshots
+ *
+ * 4. State Management
+ *    - conversations: List of all conversations for this farm
+ *    - currentConversationId: Active conversation (null = new conversation)
+ *    - messages: Chat history for current conversation
+ *    - isSubmittingRef: Prevents duplicate loads during submit
+ *
+ * Data Flow:
+ * ```
+ * User submits query
+ *   → Optimistic update (add user message)
+ *   → onAnalyze() captures screenshots
+ *   → API call with dual screenshots
+ *   → Optimistic update (add assistant response)
+ *   → Reload messages from database
+ *   → Update conversation list
+ * ```
+ *
+ * Why Optimistic Updates + Reload?
+ * - Optimistic: Instant feedback (no waiting for API)
+ * - Reload: Ensures UI matches database (prevents drift)
+ * - isSubmittingRef: Prevents reload mid-submit (would cause duplicates)
+ */
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -17,12 +64,35 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { AIConversation, AIAnalysis } from "@/lib/db/schema";
 
+/**
+ * Message Interface
+ *
+ * Represents a single chat message (user or assistant).
+ *
+ * - role: "user" for user queries, "assistant" for AI responses
+ * - content: The actual message text (markdown for assistant)
+ * - screenshots: Array of screenshot URLs (only on assistant messages)
+ *                Can be R2 URLs or base64 data URIs
+ *
+ * Why optional screenshots?
+ * - User messages don't have screenshots
+ * - Some analyses might not store screenshots (legacy or failed uploads)
+ */
 interface Message {
   role: "user" | "assistant";
   content: string;
   screenshots?: string[] | null;
 }
 
+/**
+ * Chat Panel Props
+ *
+ * - farmId: Current farm being analyzed
+ * - onAnalyze: Callback to parent (FarmEditorClient) that:
+ *   1. Captures dual screenshots (satellite + topo)
+ *   2. Calls /api/ai/analyze
+ *   3. Returns AI response with metadata
+ */
 interface ChatPanelProps {
   farmId: string;
   onAnalyze: (
@@ -32,11 +102,28 @@ interface ChatPanelProps {
     response: string;
     conversationId: string;
     analysisId: string;
-    screenshot: string;
+    screenshot: string; // Primary screenshot for display
   }>;
 }
 
 export function EnhancedChatPanel({ farmId, onAnalyze }: ChatPanelProps) {
+  /**
+   * State Management
+   *
+   * conversations: All conversations for this farm (for sidebar list)
+   * currentConversationId: Active conversation (null = new conversation)
+   * messages: Chat history for current conversation
+   * input: Current user input in text field
+   * loading: True during AI analysis (shows spinner)
+   * showConversations: Toggle sidebar visibility
+   * selectedScreenshot: Screenshot URL for modal viewer
+   * isSubmittingRef: Prevents message reload during submit
+   *
+   * Why ref for isSubmitting?
+   * - Doesn't trigger re-renders (useState would)
+   * - Accessed in useEffect dependency-free
+   * - Prevents race conditions between submit and reload
+   */
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null

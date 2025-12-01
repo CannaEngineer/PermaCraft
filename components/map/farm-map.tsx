@@ -13,7 +13,30 @@ import { generateGridLines, generateViewportLabels, type GridUnit } from "@/lib/
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
 import type { FeatureCollection, LineString, Point } from "geojson";
 
-// Create color expressions for dynamic zone type styling
+/**
+ * MapLibre Style Expression Generators
+ *
+ * These functions create MapLibre GL expressions that dynamically style zones
+ * based on their `user_zone_type` property. MapLibre expressions are JSON arrays
+ * that define conditional logic for paint properties.
+ *
+ * Why use expressions instead of hardcoded colors?
+ * - Single layer can render all zone types with different colors
+ * - No need to create 20+ separate layers for each zone type
+ * - Performance: MapLibre evaluates expressions on GPU
+ *
+ * Expression format: ["case", condition1, value1, condition2, value2, ..., defaultValue]
+ * Example: ["case", ["==", ["get", "zone_type"], "pond"], "#3b82f6", "#gray"]
+ */
+
+/**
+ * Creates a MapLibre expression for zone fill colors
+ *
+ * Returns different fill colors based on the zone's `user_zone_type` property.
+ * Each zone type (pond, garden, etc.) has its own distinct color.
+ *
+ * @returns MapLibre expression array for fill-color paint property
+ */
 const createFillColorExpression = () => {
   const expression: any = ["case"];
   Object.entries(ZONE_TYPES).forEach(([type, config]) => {
@@ -24,6 +47,11 @@ const createFillColorExpression = () => {
   return expression;
 };
 
+/**
+ * Creates a MapLibre expression for zone stroke (border) colors
+ *
+ * @returns MapLibre expression array for line-color paint property
+ */
 const createStrokeColorExpression = () => {
   const expression: any = ["case"];
   Object.entries(ZONE_TYPES).forEach(([type, config]) => {
@@ -34,6 +62,14 @@ const createStrokeColorExpression = () => {
   return expression;
 };
 
+/**
+ * Creates a MapLibre expression for zone fill opacity
+ *
+ * Different zone types have different transparency levels.
+ * For example, ponds are more transparent than gardens.
+ *
+ * @returns MapLibre expression array for fill-opacity paint property
+ */
 const createFillOpacityExpression = () => {
   const expression: any = ["case"];
   Object.entries(ZONE_TYPES).forEach(([type, config]) => {
@@ -140,13 +176,39 @@ export function FarmMap({
     };
   }, [circleCenter, circleMode]);
 
-  // Setup grid layers - needs to be called after map style changes
+  /**
+   * Setup Grid Layers
+   *
+   * Creates the alphanumeric grid system (A1, B2, C3, etc.) that overlays the map.
+   * This grid serves two purposes:
+   * 1. Visual reference for users
+   * 2. Location system for AI recommendations (e.g., "plant at grid D4")
+   *
+   * Why recreate after style changes?
+   * - MapLibre `setStyle()` clears ALL sources and layers
+   * - Grid must be re-added each time user switches map layer
+   *
+   * Grid System:
+   * - Lines: Yellow lines forming grid cells (50ft or 25m spacing)
+   * - Labels: Alphanumeric coordinates at intersections
+   * - Opacity: Increases with zoom level (barely visible when zoomed out)
+   *
+   * Performance Note:
+   * - Grid is generated dynamically based on farm bounds
+   * - Labels only generated for VISIBLE viewport (not entire farm)
+   * - This prevents thousands of labels from being rendered
+   */
   const setupGridLayers = useCallback(() => {
     if (!map.current) return;
 
     console.log("setupGridLayers called");
 
-    // Add grid sources and layers (always re-add after style changes)
+    /**
+     * Grid Lines Source
+     *
+     * GeoJSON source containing all grid lines (vertical and horizontal).
+     * Starts empty and is populated by updateGrid() function.
+     */
     if (!map.current.getSource("grid-lines")) {
       console.log("Adding grid-lines source");
       map.current.addSource("grid-lines", {
@@ -157,6 +219,17 @@ export function FarmMap({
       console.log("grid-lines source already exists");
     }
 
+    /**
+     * Grid Lines Layer
+     *
+     * Renders yellow grid lines with zoom-dependent opacity.
+     * Uses MapLibre interpolate expression for smooth transitions.
+     *
+     * Opacity mapping:
+     * - Zoom 10: 0.15 (subtle)
+     * - Zoom 15: 0.4 (moderate)
+     * - Zoom 20: 0.6 (prominent)
+     */
     if (!map.current.getLayer("grid-lines-layer")) {
       console.log("Adding grid-lines-layer");
       map.current.addLayer({
@@ -164,10 +237,10 @@ export function FarmMap({
         type: "line",
         source: "grid-lines",
         paint: {
-          "line-color": "#ffff00",
+          "line-color": "#ffff00", // Yellow for visibility on satellite imagery
           "line-width": 1,
           "line-opacity": [
-            "interpolate",
+            "interpolate", // Smooth transition between zoom levels
             ["linear"],
             ["zoom"],
             10, 0.15,
@@ -180,6 +253,12 @@ export function FarmMap({
       });
     }
 
+    /**
+     * Grid Labels Source
+     *
+     * GeoJSON point features with label text (A1, B2, etc.).
+     * Updated dynamically as viewport changes.
+     */
     if (!map.current.getSource("grid-labels")) {
       console.log("Adding grid-labels source");
       map.current.addSource("grid-labels", {
@@ -190,6 +269,21 @@ export function FarmMap({
       console.log("grid-labels source already exists");
     }
 
+    /**
+     * Grid Labels Layer
+     *
+     * Renders alphanumeric grid coordinates (A1, B2, etc.) at grid intersections.
+     *
+     * Text Styling:
+     * - Yellow text with black halo for readability on any background
+     * - Size increases with zoom (7px at zoom 10, 15px at zoom 20)
+     * - text-allow-overlap: true - Labels don't hide when crowded
+     *
+     * Why allow overlap?
+     * - Grid coordinates are critical for AI analysis
+     * - Better to have crowded labels than missing references
+     * - At higher zooms, labels naturally space out
+     */
     if (!map.current.getLayer("grid-labels-layer")) {
       console.log("Adding grid-labels-layer");
       map.current.addLayer({
@@ -197,24 +291,24 @@ export function FarmMap({
         type: "symbol",
         source: "grid-labels",
         layout: {
-          "text-field": ["get", "label"],
+          "text-field": ["get", "label"], // Label text from GeoJSON feature property
           "text-size": [
             "interpolate",
             ["linear"],
             ["zoom"],
-            10, 7,
+            10, 7,  // Tiny labels when zoomed out
             14, 9,
             16, 11,
             18, 13,
-            20, 15
+            20, 15  // Readable labels when zoomed in
           ],
           "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-          "text-allow-overlap": true,
+          "text-allow-overlap": true, // Show all labels even if crowded
           "text-ignore-placement": false,
         },
         paint: {
-          "text-color": "#ffff00",
-          "text-halo-color": "#000000",
+          "text-color": "#ffff00", // Yellow (matches grid lines)
+          "text-halo-color": "#000000", // Black outline for readability
           "text-halo-width": 2,
           "text-halo-blur": 1,
           "text-opacity": [
@@ -235,11 +329,43 @@ export function FarmMap({
     console.log("setupGridLayers completed");
   }, []);
 
+  /**
+   * Map Initialization Effect
+   *
+   * This effect runs once on component mount and sets up:
+   * 1. MapLibre GL JS map instance
+   * 2. MapboxDraw drawing tools
+   * 3. Custom colored zone layers
+   * 4. Grid system (alphanumeric coordinates)
+   * 5. Event handlers for drawing and editing
+   * 6. Farm boundary protection logic
+   *
+   * Why run only once (empty dependency array)?
+   * - MapLibre map instances should never be re-created
+   * - All updates happen through refs and event handlers
+   * - Re-creating the map would lose all state and cause memory leaks
+   *
+   * Architecture:
+   * - Base map layer (satellite/topo/etc.) from external tile sources
+   * - MapboxDraw layers for interactive editing
+   * - Custom GeoJSON layers for colored zones (above MapboxDraw)
+   * - Grid lines and labels (topmost layer for AI reference)
+   */
   useEffect(() => {
     if (map.current) return; // Initialize map only once
 
     try {
-      // Initialize map with satellite view
+      /**
+       * Initialize MapLibre Map
+       *
+       * MapLibre style format is JSON with:
+       * - version: Always 8 (MapLibre style spec version)
+       * - sources: Tile sources (raster, vector, geojson)
+       * - layers: Visual layers that reference sources
+       *
+       * We start with satellite imagery from ESRI ArcGIS Online.
+       * This is a free tile source with no API key required.
+       */
       map.current = new maplibregl.Map({
         container: mapContainer.current!,
         style: {
@@ -250,7 +376,7 @@ export function FarmMap({
               tiles: [
                 "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
               ],
-              tileSize: 256,
+              tileSize: 256, // Standard web mercator tile size
               attribution: 'Tiles &copy; Esri',
             },
           },
@@ -264,22 +390,49 @@ export function FarmMap({
         },
         center: [farm.center_lng, farm.center_lat],
         zoom: farm.zoom_level,
-        maxZoom: 20,
+        maxZoom: 20, // Satellite imagery available up to zoom 20
         minZoom: 1,
         // @ts-ignore - preserveDrawingBuffer is valid but missing from type definitions
-        preserveDrawingBuffer: true, // Required for screenshots
+        preserveDrawingBuffer: true, // Attempts to preserve canvas for screenshots (unreliable)
       });
 
+      /**
+       * Initialize MapboxDraw
+       *
+       * MapboxDraw is a drawing plugin that adds interactive tools for creating
+       * and editing GeoJSON features. It provides:
+       * - Drawing tools UI (point, line, polygon buttons)
+       * - Modes for creating, editing, and selecting features
+       * - Customizable styles for features
+       *
+       * Why customize styles?
+       * - Default MapboxDraw styles are bright blue - conflicts with our zone colors
+       * - We want farm boundaries to look distinct (purple with dashed outline)
+       * - We use CUSTOM LAYERS for zone colors (see below), so we make MapboxDraw
+       *   layers transparent (opacity: 0) to avoid double-rendering
+       *
+       * Custom Layer Strategy:
+       * - MapboxDraw handles EDITING (vertices, selection)
+       * - Custom GeoJSON layers handle COLORS (based on zone type)
+       * - This separation allows dynamic colors without modifying MapboxDraw internals
+       */
       draw.current = new MapboxDraw({
-        displayControlsDefault: false,
+        displayControlsDefault: false, // Don't show default control panel (we customize it)
         controls: {
           point: true,
           line_string: true,
           polygon: true,
           trash: true,
         },
-        defaultMode: "simple_select",
+        defaultMode: "simple_select", // Start in selection mode, not drawing mode
         styles: [
+          /**
+           * Farm Boundary Styles
+           *
+           * Farm boundaries are rendered with a distinct purple color (#9333ea)
+           * and dashed white outline. This makes them easily distinguishable from
+           * other zones and indicates they're immutable (can't be edited/deleted).
+           */
           // Farm boundary - distinct purple color with white outline
           {
             id: "gl-draw-polygon-fill-boundary",
@@ -880,11 +1033,52 @@ export function FarmMap({
     }
   }, [circleMode]);
 
+  /**
+   * Change Map Layer (Satellite, Topo, Street, etc.)
+   *
+   * Switches the base map tile source while preserving all user-drawn features.
+   *
+   * Process:
+   * 1. Save current features from MapboxDraw
+   * 2. Remove MapboxDraw control
+   * 3. Load new style via setStyle() - THIS CLEARS ALL LAYERS AND SOURCES
+   * 4. Wait for styledata and idle events
+   * 5. Re-initialize MapboxDraw
+   * 6. Re-add all custom layers (colored zones, grid)
+   * 7. Restore saved features
+   *
+   * Why is this so complex?
+   * - MapLibre's setStyle() is a nuclear option - it wipes everything
+   * - We must manually restore our entire layer stack
+   * - Must wait for proper events or risk adding layers to missing style
+   *
+   * Common Pitfall:
+   * - Adding layers too early (before 'idle') causes "source not found" errors
+   * - Must ensure base style is fully loaded before adding custom layers
+   *
+   * @param layer - New map layer to display (satellite, usgs, topo, etc.)
+   */
   const changeMapLayer = (layer: MapLayer) => {
     if (!map.current) return;
 
+    // STEP 1: Save all features before style change
+    // setStyle() will destroy MapboxDraw, so we must preserve the data
     const features = draw.current?.getAll();
 
+    /**
+     * Build new style object for selected layer
+     *
+     * Each style is a minimal MapLibre style spec with:
+     * - version: 8 (required)
+     * - sources: Tile source definition
+     * - layers: Single raster layer
+     *
+     * Free tile sources used:
+     * - ESRI ArcGIS Online (satellite, terrain)
+     * - USGS National Map (topographic)
+     * - OpenTopoMap (topographic)
+     * - OpenFreeMap (street)
+     */
     let style: any;
     switch (layer) {
       case "satellite":
@@ -1482,12 +1676,46 @@ export function FarmMap({
     };
   };
 
+  /**
+   * Update Grid Lines and Labels
+   *
+   * Regenerates the grid overlay based on current farm bounds, viewport, and zoom level.
+   *
+   * Called when:
+   * - Map moves (pan)
+   * - Map zooms
+   * - Grid unit changes (feet ↔ meters)
+   * - Zones change (farm boundary updated)
+   *
+   * Two-tier approach:
+   * 1. Grid LINES: Generated for entire farm bounds
+   *    - Always covers the whole property
+   *    - Performance: ~100-200 lines even for large farms
+   *
+   * 2. Grid LABELS: Generated only for visible viewport
+   *    - Prevents rendering thousands of labels
+   *    - Density adjusts with zoom (fewer labels when zoomed out)
+   *    - Critical for AI analysis - labels must be visible in screenshots
+   *
+   * Performance Optimization:
+   * - Uses GeoJSON setData() to update existing sources (no layer recreation)
+   * - Label generation is viewport-aware (only visible area)
+   * - MapLibre culls off-screen features automatically
+   *
+   * Grid Coordinate System:
+   * - Columns: A, B, C, ... (west to east)
+   * - Rows: 1, 2, 3, ... (south to north)
+   * - Spacing: 50 feet (imperial) or 25 meters (metric)
+   * - Example: "D4" refers to column D, row 4
+   */
   const updateGrid = () => {
     if (!map.current) return;
 
+    // Get farm bounds (from farm_boundary zone or all zones)
     const farmBounds = getFarmBounds();
     if (!farmBounds) return;
 
+    // Get current viewport bounds
     const viewportBounds = map.current.getBounds();
     const viewport = {
       north: viewportBounds.getNorth(),
@@ -1498,13 +1726,30 @@ export function FarmMap({
 
     const zoom = map.current.getZoom();
 
-    // Generate grid lines for entire farm
+    /**
+     * Generate grid lines for ENTIRE farm
+     *
+     * Lines span the full property from west to east and north to south.
+     * This ensures the grid is always visible regardless of pan/zoom.
+     */
     const { lines } = generateGridLines(farmBounds, gridUnit);
 
-    // Generate labels only for visible viewport (for AI context)
-    // Label density adjusts based on zoom level
+    /**
+     * Generate labels ONLY for visible viewport
+     *
+     * This is a performance optimization. Without viewport filtering,
+     * a large farm could have thousands of labels, causing:
+     * - Slow rendering
+     * - Memory issues
+     * - Crowded screenshots
+     *
+     * Zoom-based density:
+     * - Low zoom: Sparse labels (every 4th intersection)
+     * - High zoom: Dense labels (every intersection)
+     */
     const viewportLabels = generateViewportLabels(farmBounds, viewport, gridUnit, zoom);
 
+    // Update GeoJSON sources with new data
     const gridLineSource = map.current.getSource(
       "grid-lines"
     ) as maplibregl.GeoJSONSource;
