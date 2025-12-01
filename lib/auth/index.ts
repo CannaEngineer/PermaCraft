@@ -1,7 +1,6 @@
 import { betterAuth } from "better-auth";
-import { libsqlDialect } from "@libsql/kysely-libsql";
 import { Kysely } from "kysely";
-import { createClient } from "@libsql/client";
+import { LibsqlDialect } from "@libsql/kysely-libsql";
 
 // Verify required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -14,18 +13,12 @@ if (!process.env.TURSO_DATABASE_URL) {
   throw new Error("TURSO_DATABASE_URL is required");
 }
 
-// Create Turso client
-console.log('[AUTH INIT] Creating Turso client with URL:', process.env.TURSO_DATABASE_URL?.substring(0, 30) + '...');
-const libsqlClient = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
-
-// Create Kysely instance with libsql dialect
-console.log('[AUTH INIT] Creating Kysely instance with libsql dialect');
-const db = new Kysely({
-  dialect: libsqlDialect({
-    client: libsqlClient,
+// Create Kysely instance with libsql dialect for Turso
+console.log('[AUTH INIT] Creating Kysely instance with Turso connection');
+const db = new Kysely<any>({
+  dialect: new LibsqlDialect({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
   }),
 });
 
