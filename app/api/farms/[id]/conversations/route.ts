@@ -4,16 +4,16 @@ import { NextRequest } from "next/server";
 import type { AIConversation, AIAnalysis } from "@/lib/db/schema";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-// GET /api/farms/[id]/conversations - Get all conversations for a farm
+// GET /api/farms/[id]/conversations - Get all conversations for a farm with message preview
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth();
-    const farmId = params.id;
+    const { id: farmId } = await params;
 
     // Verify farm ownership
     const farmResult = await db.execute({
@@ -27,13 +27,34 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get all conversations for this farm, ordered by most recent
     const conversationsResult = await db.execute({
-      sql: `SELECT * FROM ai_conversations
+      sql: `SELECT id, created_at, updated_at
+            FROM ai_conversations
             WHERE farm_id = ?
-            ORDER BY updated_at DESC`,
+            ORDER BY created_at DESC
+            LIMIT 50`,
       args: [farmId],
     });
 
-    const conversations = conversationsResult.rows as unknown as AIConversation[];
+    // Get first message from each conversation for preview
+    const conversations = await Promise.all(
+      conversationsResult.rows.map(async (conv: any) => {
+        const messagesResult = await db.execute({
+          sql: `SELECT user_query FROM ai_analyses
+                WHERE conversation_id = ?
+                ORDER BY created_at ASC
+                LIMIT 1`,
+          args: [conv.id],
+        });
+
+        const firstMessage = messagesResult.rows[0] as any;
+
+        return {
+          id: conv.id,
+          created_at: conv.created_at,
+          preview: firstMessage?.user_query?.substring(0, 100) || 'No messages',
+        };
+      })
+    );
 
     return Response.json({ conversations });
   } catch (error) {
@@ -46,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth();
-    const farmId = params.id;
+    const { id: farmId } = await params;
     const body = await request.json();
     const { title } = body;
 
