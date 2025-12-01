@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Farm, Zone } from "@/lib/db/schema";
 import { FarmEditorClient } from "./farm-editor-client";
 import { FarmFeedClient } from "@/components/feed/farm-feed-client";
+import { FarmPublicView } from "@/components/farm/farm-public-view";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -35,6 +36,14 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   if (!farm) {
     notFound();
   }
+
+  // Get farm owner information
+  const ownerResult = await db.execute({
+    sql: "SELECT name, image FROM users WHERE id = ?",
+    args: [farm.user_id],
+  });
+
+  const farmOwner = ownerResult.rows[0] as unknown as { name: string; image: string | null };
 
   // Get zones
   const zonesResult = await db.execute({
@@ -85,6 +94,18 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     has_more: posts.length === 21,
   };
 
+  // If visitor (not owner), show public view
+  if (!isOwner) {
+    return (
+      <FarmPublicView
+        farm={farm}
+        farmOwner={farmOwner}
+        initialFeedData={initialFeedData}
+      />
+    );
+  }
+
+  // If owner, show full editor dashboard (current behavior)
   return (
     <div>
       <FarmEditorClient
