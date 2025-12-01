@@ -15,18 +15,21 @@ if (!process.env.TURSO_DATABASE_URL) {
 }
 
 // Create Turso client
+console.log('[AUTH INIT] Creating Turso client with URL:', process.env.TURSO_DATABASE_URL?.substring(0, 30) + '...');
 const libsqlClient = createClient({
   url: process.env.TURSO_DATABASE_URL,
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
 // Create Kysely instance with libsql dialect
+console.log('[AUTH INIT] Creating Kysely instance with libsql dialect');
 const db = new Kysely({
   dialect: libsqlDialect({
     client: libsqlClient,
   }),
 });
 
+console.log('[AUTH INIT] Initializing Better Auth');
 export const auth = betterAuth({
   database: db as any,
   secret: process.env.BETTER_AUTH_SECRET,
@@ -39,3 +42,4 @@ export const auth = betterAuth({
   trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
 });
+console.log('[AUTH INIT] Better Auth initialized successfully');

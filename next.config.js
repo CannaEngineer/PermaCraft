@@ -8,11 +8,20 @@ const nextConfig = {
       },
     ],
   },
+  // Transpile libsql packages for compatibility
+  transpilePackages: ['@libsql/client', '@libsql/kysely-libsql', 'kysely'],
+
   webpack: (config, { isServer }) => {
     // Exclude non-JS files from webpack processing
     config.module.rules.push({
-      test: /\.(md|txt)$/,
+      test: /\.(md|txt|d\.ts)$/,
       type: 'asset/source',
+    });
+
+    // Ignore TypeScript declaration files
+    config.module.rules.push({
+      test: /\.d\.ts$/,
+      use: 'ignore-loader',
     });
 
     return config;
