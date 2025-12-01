@@ -44,6 +44,9 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   });
 
   const farmOwner = ownerResult.rows[0] as unknown as { name: string; image: string | null };
+  if (!farmOwner) {
+    notFound(); // Farm has no valid owner
+  }
 
   // Get zones
   const zonesResult = await db.execute({
