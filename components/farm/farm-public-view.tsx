@@ -5,6 +5,26 @@ import { FarmFeedClient } from '@/components/feed/farm-feed-client';
 import type { Farm } from '@/lib/db/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+interface Post {
+  id: string;
+  farm_id: string;
+  type: 'text' | 'photo' | 'ai_insight';
+  content: string | null;
+  media_urls: string[] | null;
+  tagged_zones: string[] | null;
+  hashtags: string[] | null;
+  author: {
+    id: string;
+    name: string;
+    image: string | null;
+  };
+  reaction_count: number;
+  comment_count: number;
+  view_count: number;
+  created_at: number;
+  user_reaction: string | null;
+}
+
 interface FarmPublicViewProps {
   farm: Farm;
   farmOwner: {
@@ -12,7 +32,7 @@ interface FarmPublicViewProps {
     image: string | null;
   };
   initialFeedData: {
-    posts: any[];
+    posts: Post[];
     next_cursor: string | null;
     has_more: boolean;
   };
@@ -33,7 +53,7 @@ export function FarmPublicView({
             <Avatar className="h-16 w-16">
               <AvatarImage src={farmOwner.image || undefined} />
               <AvatarFallback className="text-lg">
-                {farmOwner.name[0]?.toUpperCase()}
+                {farmOwner.name[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
 
