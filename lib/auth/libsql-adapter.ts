@@ -19,7 +19,7 @@ export function libsqlAdapter(client: Client): Adapter {
         args: values,
       });
 
-      return data;
+      return data as any;
     },
 
     async findOne({ model, where }) {
@@ -74,12 +74,51 @@ export function libsqlAdapter(client: Client): Adapter {
 
     async delete({ model, where }) {
       const whereClause = buildWhere(model, where);
-      await client.execute(whereClause);
+      const sql = `DELETE FROM ${model} WHERE ${whereClause.sql.split("WHERE")[1]}`;
+      await client.execute({ sql, args: whereClause.args });
     },
 
     async deleteMany({ model, where }) {
       const whereClause = buildWhere(model, where);
-      await client.execute(whereClause);
+      const sql = `DELETE FROM ${model} WHERE ${whereClause.sql.split("WHERE")[1]}`;
+      const result = await client.execute({ sql, args: whereClause.args });
+      return result.rowsAffected || 0;
+    },
+
+    async count({ model, where }) {
+      let sql = `SELECT COUNT(*) as count FROM ${model}`;
+      let args: any[] = [];
+
+      if (where) {
+        const whereClause = buildWhere(model, where);
+        sql += ` WHERE ${whereClause.sql.split("WHERE")[1]}`;
+        args = whereClause.args;
+      }
+
+      const result = await client.execute({ sql, args });
+      return (result.rows[0] as any).count || 0;
+    },
+
+    async updateMany({ model, where, update }) {
+      const setColumns = Object.keys(update);
+      const setValues = Object.values(update);
+      const setClause = setColumns.map((col) => `${col} = ?`).join(", ");
+
+      const whereClause = buildWhere(model, where);
+      const sql = `UPDATE ${model} SET ${setClause} WHERE ${whereClause.sql.split("WHERE")[1]}`;
+      const args = [...setValues, ...whereClause.args];
+
+      const result = await client.execute({ sql, args });
+      return result.rowsAffected || 0;
+    },
+
+    // Simple ID generation for Better Auth
+    id: "custom-libsql-adapter",
+
+    // Transaction support - simplified for now
+    // LibSQL/Turso supports transactions but we'll execute without transaction wrapper
+    async transaction(callback) {
+      return await callback(this);
     },
   };
 }
