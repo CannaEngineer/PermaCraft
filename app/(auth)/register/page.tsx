@@ -28,22 +28,15 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    const { data, error } = await authClient.signUp.email({
-      email,
-      password,
-      name,
-    }, {
-      onSuccess: () => {
-        router.push("/dashboard");
-        router.refresh();
-      },
-      onError: (ctx) => {
-        setError(ctx.error.message || "Failed to create account");
-      },
-      onSettled: () => {
-        setLoading(false);
-      }
-    });
+    try {
+      await authClient.register({ name, email, password });
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
