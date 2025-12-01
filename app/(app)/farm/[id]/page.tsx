@@ -37,6 +37,10 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     notFound();
   }
 
+  // Security note: Private farms are already restricted at this point
+  // The SQL query above only fetches public farms (is_public = 1) for non-owners
+  // This means private farms automatically return notFound() for visitors
+
   // Get farm owner information
   const ownerResult = await db.execute({
     sql: "SELECT name, image FROM users WHERE id = ?",
