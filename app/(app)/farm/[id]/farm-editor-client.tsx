@@ -12,6 +12,7 @@ import { calculateGridCoordinates, formatGridRange } from "@/lib/map/zone-grid-c
 import { toPng } from "html-to-image";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
+import { CreatePostFAB } from "@/components/farm/create-post-fab";
 
 interface FarmEditorClientProps {
   farm: Farm;
@@ -33,6 +34,7 @@ export function FarmEditorClient({
   const [currentMapLayer, setCurrentMapLayer] = useState<string>("satellite");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [postRefreshKey, setPostRefreshKey] = useState(0);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -670,6 +672,14 @@ export function FarmEditorClient({
           router.push("/dashboard");
         }}
       />
+
+      {/* Floating Action Button for Post Creation */}
+      {isOwner && (
+        <CreatePostFAB
+          farmId={farm.id}
+          onPostCreated={() => setPostRefreshKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }
