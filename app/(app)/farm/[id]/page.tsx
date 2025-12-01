@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import type { Farm, Zone } from "@/lib/db/schema";
 import { FarmEditorClient } from "./farm-editor-client";
+import { FarmFeedClient } from "@/components/feed/farm-feed-client";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -41,5 +42,54 @@ export default async function FarmPage({ params }: PageProps) {
 
   const zones = zonesResult.rows as unknown as Zone[];
 
-  return <FarmEditorClient farm={farm} initialZones={zones} isOwner={isOwner} />;
+  // Get feed posts
+  const feedResult = await db.execute({
+    sql: `SELECT p.*,
+                 u.name as author_name,
+                 u.image as author_image,
+                 (SELECT reaction_type FROM post_reactions
+                  WHERE post_id = p.id AND user_id = ?) as user_reaction
+          FROM farm_posts p
+          JOIN users u ON p.author_id = u.id
+          WHERE p.farm_id = ? AND p.is_published = 1
+          ORDER BY p.created_at DESC
+          LIMIT 21`,
+    args: [session.user.id, id],
+  });
+
+  const posts = feedResult.rows.map((post: any) => ({
+    id: post.id,
+    farm_id: post.farm_id,
+    type: post.post_type,
+    content: post.content,
+    media_urls: post.media_urls ? JSON.parse(post.media_urls) : null,
+    tagged_zones: post.tagged_zones ? JSON.parse(post.tagged_zones) : null,
+    hashtags: post.hashtags ? JSON.parse(post.hashtags) : null,
+    author: {
+      id: post.author_id,
+      name: post.author_name,
+      image: post.author_image,
+    },
+    reaction_count: post.reaction_count,
+    comment_count: post.comment_count,
+    view_count: post.view_count,
+    created_at: post.created_at,
+    user_reaction: post.user_reaction,
+  }));
+
+  const initialFeedData = {
+    posts: posts.slice(0, 20),
+    next_cursor: posts.length === 21 ? posts[19].id : null,
+    has_more: posts.length === 21,
+  };
+
+  return (
+    <div>
+      <FarmEditorClient farm={farm} initialZones={zones} isOwner={isOwner} />
+      <div className="mt-8 px-4 pb-8">
+        <h2 className="text-2xl font-bold mb-4 text-center">Farm Feed</h2>
+        <FarmFeedClient farmId={id} initialData={initialFeedData} />
+      </div>
+    </div>
+  );
 }
