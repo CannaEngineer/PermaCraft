@@ -1,6 +1,11 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { NextRequest } from "next/server";
+import { z } from "zod";
+
+const updateFarmSchema = z.object({
+  is_public: z.union([z.literal(0), z.literal(1)]),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -24,7 +29,17 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { is_public } = body;
+
+    // Validate input
+    const validationResult = updateFarmSchema.safeParse(body);
+    if (!validationResult.success) {
+      return Response.json(
+        { error: "Invalid input", details: validationResult.error.errors },
+        { status: 400 }
+      );
+    }
+
+    const { is_public } = validationResult.data;
 
     await db.execute({
       sql: "UPDATE farms SET is_public = ?, updated_at = unixepoch() WHERE id = ?",
