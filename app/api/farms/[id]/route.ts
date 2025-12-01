@@ -2,6 +2,45 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { NextRequest } from "next/server";
 
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireAuth();
+    const { id: farmId } = await context.params;
+
+    // Verify ownership
+    const farmResult = await db.execute({
+      sql: "SELECT * FROM farms WHERE id = ? AND user_id = ?",
+      args: [farmId, session.user.id],
+    });
+
+    if (farmResult.rows.length === 0) {
+      return Response.json(
+        { error: "Farm not found or you don't have permission" },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const { is_public } = body;
+
+    await db.execute({
+      sql: "UPDATE farms SET is_public = ?, updated_at = unixepoch() WHERE id = ?",
+      args: [is_public, farmId],
+    });
+
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error("Farm update error:", error);
+    return Response.json(
+      { error: "Failed to update farm" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }

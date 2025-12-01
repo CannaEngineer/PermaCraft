@@ -85,7 +85,12 @@ export default async function FarmPage({ params }: PageProps) {
 
   return (
     <div>
-      <FarmEditorClient farm={farm} initialZones={zones} isOwner={isOwner} />
+      <FarmEditorClient
+        farm={farm}
+        initialZones={zones}
+        isOwner={isOwner}
+        initialIsPublic={!!farm.is_public}
+      />
       <div className="mt-8 px-4 pb-8">
         <h2 className="text-2xl font-bold mb-4 text-center">Farm Feed</h2>
         <FarmFeedClient farmId={id} initialData={initialFeedData} />

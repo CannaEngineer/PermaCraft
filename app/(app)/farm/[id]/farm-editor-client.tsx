@@ -11,17 +11,20 @@ import type maplibregl from "maplibre-gl";
 import { calculateGridCoordinates, formatGridRange } from "@/lib/map/zone-grid-calculator";
 import { toPng } from "html-to-image";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
+import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
 
 interface FarmEditorClientProps {
   farm: Farm;
   initialZones: Zone[];
   isOwner: boolean;
+  initialIsPublic: boolean;
 }
 
 export function FarmEditorClient({
   farm,
   initialZones,
   isOwner,
+  initialIsPublic,
 }: FarmEditorClientProps) {
   const router = useRouter();
   const [zones, setZones] = useState<any[]>(initialZones);
@@ -608,6 +611,10 @@ export function FarmEditorClient({
                 <SaveIcon className="h-4 w-4 mr-2" />
                 {saving ? "Saving..." : "Save Now"}
               </Button>
+              <FarmSettingsButton
+                farmId={farm.id}
+                initialIsPublic={initialIsPublic}
+              />
               <Button
                 variant="destructive"
                 size="sm"
