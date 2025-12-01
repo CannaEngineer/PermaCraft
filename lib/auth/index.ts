@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
-import { Kysely } from "kysely";
-import { LibsqlDialect } from "@libsql/kysely-libsql";
+import { db } from "@/lib/db";
+import { libsqlAdapter } from "./libsql-adapter";
 
 // Verify required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -9,22 +9,10 @@ if (!process.env.BETTER_AUTH_SECRET) {
   );
 }
 
-if (!process.env.TURSO_DATABASE_URL) {
-  throw new Error("TURSO_DATABASE_URL is required");
-}
+console.log('[AUTH INIT] Initializing Better Auth with libSQL adapter');
 
-// Create Kysely instance with libsql dialect for Turso
-console.log('[AUTH INIT] Creating Kysely instance with Turso connection');
-const db = new Kysely<any>({
-  dialect: new LibsqlDialect({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  }),
-});
-
-console.log('[AUTH INIT] Initializing Better Auth');
 export const auth = betterAuth({
-  database: db as any,
+  database: libsqlAdapter(db),
   secret: process.env.BETTER_AUTH_SECRET,
   emailAndPassword: {
     enabled: true,
@@ -35,4 +23,5 @@ export const auth = betterAuth({
   trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
 });
+
 console.log('[AUTH INIT] Better Auth initialized successfully');
