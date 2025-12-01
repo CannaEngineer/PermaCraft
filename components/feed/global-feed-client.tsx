@@ -5,7 +5,6 @@ import { PostCard } from './post-card';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 
 interface Post {
   id: string;
@@ -88,18 +87,23 @@ export function GlobalFeedClient({ initialData }: GlobalFeedClientProps) {
         <>
           {posts.map((post) => (
             <div key={post.id} className="space-y-2">
-              {/* Farm context header */}
-              <Link href={`/farm/${post.farm_id}`}>
-                <Button variant="ghost" className="w-full justify-start">
-                  <div className="text-left">
-                    <p className="font-semibold">{post.farm_name}</p>
-                    {post.farm_description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">
-                        {post.farm_description}
-                      </p>
-                    )}
+              {/* Farm context header - updated design */}
+              <Link href={`/farm/${post.farm_id}`} className="block">
+                <div className="bg-accent hover:bg-accent/80 transition-colors rounded-lg p-4 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <p className="font-semibold text-lg">{post.farm_name}</p>
+                      {post.farm_description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {post.farm_description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Visit Farm →
+                    </div>
                   </div>
-                </Button>
+                </div>
               </Link>
 
               {/* Post card */}
