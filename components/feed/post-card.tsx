@@ -8,6 +8,7 @@ import { SparklesIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { PostActions } from './post-actions';
+import { CommentSection } from './comment-section';
 
 interface Author {
   id: string;
@@ -135,6 +136,22 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
           onReactionUpdate={handleReactionUpdate}
         />
       </CardFooter>
+
+      {/* Comments */}
+      {showComments && (
+        <div className="border-t">
+          <CommentSection
+            postId={post.id}
+            farmId={post.farm_id}
+            onCommentCountChange={(count) => {
+              setCommentCount(count);
+              if (onUpdate) {
+                onUpdate({ ...post, comment_count: count });
+              }
+            }}
+          />
+        </div>
+      )}
     </Card>
   );
 }
