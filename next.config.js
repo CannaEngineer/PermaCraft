@@ -8,6 +8,15 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    // Exclude non-JS files from webpack processing
+    config.module.rules.push({
+      test: /\.(md|txt)$/,
+      type: 'asset/source',
+    });
+
+    return config;
+  },
 };
 
 module.exports = nextConfig;
