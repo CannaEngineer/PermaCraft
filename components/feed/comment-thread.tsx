@@ -82,9 +82,9 @@ export function CommentThread({
             </span>
           </div>
 
-          <ReactMarkdown className="text-sm prose prose-sm dark:prose-invert max-w-none">
-            {comment.content}
-          </ReactMarkdown>
+          <div className="text-sm prose prose-sm dark:prose-invert max-w-none">
+            <ReactMarkdown>{comment.content}</ReactMarkdown>
+          </div>
 
           <div className="flex gap-3 text-xs">
             <button className="text-muted-foreground hover:text-foreground">

@@ -97,12 +97,11 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
       {/* Content */}
       <CardContent className="pt-4">
         {post.content && (
-          <ReactMarkdown
-            className="prose prose-sm max-w-none dark:prose-invert"
-            remarkPlugins={[remarkGfm]}
-          >
-            {post.content}
-          </ReactMarkdown>
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {post.content}
+            </ReactMarkdown>
+          </div>
         )}
 
         {/* Tagged zones */}
