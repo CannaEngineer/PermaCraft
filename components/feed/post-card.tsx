@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SparklesIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { PostActions } from './post-actions';
 
 interface Author {
   id: string;
@@ -35,6 +37,11 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onUpdate }: PostCardProps) {
+  const [showComments, setShowComments] = useState(false);
+  const [reactionCount, setReactionCount] = useState(post.reaction_count);
+  const [userReaction, setUserReaction] = useState(post.user_reaction);
+  const [commentCount, setCommentCount] = useState(post.comment_count);
+
   const formatRelativeTime = (timestamp: number) => {
     const seconds = Math.floor(Date.now() / 1000 - timestamp);
 
@@ -43,6 +50,14 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
     return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
+  const handleReactionUpdate = (newReaction: string | null, newCount: number) => {
+    setUserReaction(newReaction);
+    setReactionCount(newCount);
+    if (onUpdate) {
+      onUpdate({ ...post, user_reaction: newReaction, reaction_count: newCount });
+    }
   };
 
   return (
@@ -108,9 +123,17 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
         </div>
       </CardContent>
 
-      {/* Actions (placeholder for now) */}
+      {/* Actions */}
       <CardFooter className="border-t pt-3">
-        <p className="text-sm text-muted-foreground">Actions coming soon...</p>
+        <PostActions
+          postId={post.id}
+          farmId={post.farm_id}
+          userReaction={userReaction}
+          reactionCount={reactionCount}
+          commentCount={commentCount}
+          onCommentClick={() => setShowComments(!showComments)}
+          onReactionUpdate={handleReactionUpdate}
+        />
       </CardFooter>
     </Card>
   );
