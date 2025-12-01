@@ -120,3 +120,88 @@ export interface RegionalKnowledge {
   contributed_by: string | null;
   created_at: number;
 }
+
+// Social Feed Types
+
+export interface FarmPost {
+  id: string;
+  farm_id: string;
+  author_id: string;
+  post_type: 'text' | 'photo' | 'ai_insight';
+
+  content: string | null;
+  media_urls: string | null; // JSON array
+
+  ai_conversation_id: string | null;
+  ai_response_excerpt: string | null;
+
+  tagged_zones: string | null; // JSON array
+  hashtags: string | null; // JSON array
+
+  view_count: number;
+  reaction_count: number;
+  comment_count: number;
+
+  is_published: number;
+  is_draft: number;
+
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  parent_comment_id: string | null;
+  author_id: string;
+
+  content: string;
+  reaction_count: number;
+
+  is_deleted: number;
+  is_flagged: number;
+
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PostReaction {
+  id: string;
+  post_id: string | null;
+  comment_id: string | null;
+  user_id: string;
+
+  reaction_type: 'heart' | 'seedling' | 'bulb' | 'fire';
+
+  created_at: number;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+
+  notification_type: 'comment' | 'reply' | 'reaction' | 'mention';
+
+  post_id: string | null;
+  comment_id: string | null;
+  triggered_by_user_id: string | null;
+
+  content_preview: string | null;
+  is_read: number;
+
+  created_at: number;
+}
+
+export interface SavedPost {
+  id: string;
+  user_id: string;
+  post_id: string;
+  created_at: number;
+}
+
+export interface PostView {
+  id: string;
+  post_id: string;
+  user_id: string | null;
+  created_at: number;
+}
