@@ -38,32 +38,4 @@ export const auth = betterAuth({
   },
   trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-  // Map our existing table/column names to Better Auth's expectations
-  databaseHooks: {
-    user: {
-      create: {
-        async before(user) {
-          // Map createdAt/updatedAt to created_at/updated_at
-          return {
-            ...user,
-            created_at: user.createdAt || Date.now(),
-            updated_at: user.updatedAt || Date.now(),
-          };
-        },
-      },
-    },
-    session: {
-      create: {
-        async before(session) {
-          // Map expiresAt to expires_at and userId to user_id
-          return {
-            ...session,
-            expires_at: session.expiresAt,
-            user_id: session.userId,
-            created_at: session.createdAt || Date.now(),
-          };
-        },
-      },
-    },
-  },
 });
