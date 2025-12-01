@@ -69,9 +69,9 @@ export function GlobalFeedClient({ initialData }: GlobalFeedClientProps) {
     loading,
   });
 
-  const handlePostUpdate = useCallback((updatedPost: Post) => {
+  const handlePostUpdate = useCallback((updatedPost: any) => {
     setPosts((prev) =>
-      prev.map((p) => (p.id === updatedPost.id ? updatedPost : p))
+      prev.map((p) => (p.id === updatedPost.id ? { ...p, ...updatedPost } : p))
     );
   }, []);
 
