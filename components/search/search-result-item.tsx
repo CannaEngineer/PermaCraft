@@ -1,0 +1,232 @@
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import {
+  Map,
+  FileText,
+  Sparkles,
+  Sprout,
+  MapPin,
+  User,
+  MessageSquare,
+} from "lucide-react";
+
+interface SearchResultItemProps {
+  type: "farm" | "post" | "species" | "zone" | "user" | "ai_conversation";
+  data: any;
+  query: string;
+  isHighlighted: boolean;
+  onClick: () => void;
+}
+
+/**
+ * Helper function to highlight matched text in search results
+ * Wraps matched portions in <strong> tags for visual emphasis
+ */
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query.trim() || !text) return text;
+
+  const parts = text.split(new RegExp(`(${query})`, "gi"));
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <strong key={i}>{part}</strong>
+    ) : (
+      part
+    )
+  );
+}
+
+/**
+ * Helper function to format timestamps as relative time
+ * Shows "just now", "5m ago", "2h ago", "3d ago", or full date
+ */
+function formatRelativeTime(timestamp: number): string {
+  const seconds = Math.floor((Date.now() - timestamp * 1000) / 1000);
+
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+
+  return new Date(timestamp * 1000).toLocaleDateString();
+}
+
+/**
+ * SearchResultItem - Renders individual search results with type-specific formatting
+ *
+ * Features:
+ * - Type-specific icons and layouts
+ * - Query text highlighting
+ * - Keyboard navigation support (highlighted state)
+ * - Optional thumbnails for farms and users
+ * - Responsive touch-friendly design (min-height 44px)
+ */
+export function SearchResultItem({
+  type,
+  data,
+  query,
+  isHighlighted,
+  onClick,
+}: SearchResultItemProps) {
+  // Render type-specific icon
+  const renderIcon = () => {
+    const iconClass = "h-5 w-5";
+
+    switch (type) {
+      case "farm":
+        return <Map className={iconClass} />;
+      case "post":
+        return data.type === "ai_insight" ? (
+          <Sparkles className={iconClass} />
+        ) : (
+          <FileText className={iconClass} />
+        );
+      case "species":
+        return <Sprout className={iconClass} />;
+      case "zone":
+        return <MapPin className={iconClass} />;
+      case "user":
+        return null; // User type uses Avatar component instead
+      case "ai_conversation":
+        return <MessageSquare className={iconClass} />;
+      default:
+        return null;
+    }
+  };
+
+  // Render type-specific content with title and subtitle
+  const renderContent = () => {
+    switch (type) {
+      case "farm":
+        return (
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {data.image_url && (
+              <img
+                src={data.image_url}
+                alt={data.name}
+                className="w-12 h-12 rounded object-cover flex-shrink-0"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-foreground truncate">
+                {highlightMatch(data.name, query)}
+              </div>
+              <div className="text-sm text-muted-foreground truncate">
+                by {data.owner_name}
+                {data.acres && ` • ${data.acres.toFixed(1)} acres`}
+              </div>
+            </div>
+          </div>
+        );
+
+      case "post":
+        return (
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-foreground line-clamp-2">
+                {highlightMatch(
+                  data.content_preview || data.content || "",
+                  query
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                by {data.author_name} •{" "}
+                {data.created_at ? formatRelativeTime(data.created_at) : ""}
+              </div>
+            </div>
+            {data.ai_screenshot && (
+              <img
+                src={data.ai_screenshot}
+                alt="Post screenshot"
+                className="w-12 h-12 rounded object-cover flex-shrink-0"
+              />
+            )}
+          </div>
+        );
+
+      case "species":
+        return (
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-foreground">
+              {highlightMatch(data.common_name, query)}
+            </div>
+            <div className="text-sm text-muted-foreground italic truncate">
+              {data.scientific_name}
+            </div>
+            {data.layer && (
+              <div className="text-xs text-muted-foreground mt-1 capitalize">
+                {data.layer}
+              </div>
+            )}
+          </div>
+        );
+
+      case "zone":
+        return (
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-foreground truncate">
+              {highlightMatch(data.name || data.zone_type, query)}
+            </div>
+            <div className="text-sm text-muted-foreground truncate">
+              {data.farm_name} • {data.zone_type}
+            </div>
+          </div>
+        );
+
+      case "user":
+        return (
+          <>
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarImage src={data.image || undefined} />
+              <AvatarFallback>
+                {data.name?.[0]?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-foreground truncate">
+                {highlightMatch(data.name, query)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {data.farm_count} {data.farm_count === 1 ? "farm" : "farms"}
+              </div>
+            </div>
+          </>
+        );
+
+      case "ai_conversation":
+        return (
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-foreground truncate">
+              {highlightMatch(data.title, query)}
+            </div>
+            <div className="text-sm text-muted-foreground truncate">
+              {data.farm_name}
+              {data.created_at && ` • ${formatRelativeTime(data.created_at)}`}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors min-h-[44px] w-full text-left",
+        "hover:bg-accent/50",
+        isHighlighted && "bg-accent"
+      )}
+    >
+      {type !== "user" && (
+        <span className="text-muted-foreground flex-shrink-0">
+          {renderIcon()}
+        </span>
+      )}
+      {renderContent()}
+    </button>
+  );
+}
