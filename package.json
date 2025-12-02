@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "AI-powered permaculture design platform with interactive mapping and terrain analysis",
   "author": "PermaCraft Contributors",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/yourusername/permacraft.git"
@@ -26,7 +26,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
@@ -74,6 +75,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.15"
   }
 }
