@@ -137,7 +137,7 @@ export function SearchResultItem({
       case "farm":
         return <Map className={iconClass} />;
       case "post":
-        return data.type === "ai_insight" ? (
+        return (data as PostData).type === "ai_insight" ? (
           <Sparkles className={iconClass} />
         ) : (
           <FileText className={iconClass} />
@@ -158,47 +158,50 @@ export function SearchResultItem({
   // Render type-specific content with title and subtitle
   const renderContent = () => {
     switch (type) {
-      case "farm":
+      case "farm": {
+        const farmData = data as FarmData;
         return (
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            {data.image_url && (
+            {farmData.image_url && (
               <img
-                src={data.image_url}
-                alt={data.name}
+                src={farmData.image_url}
+                alt={farmData.name}
                 loading="lazy"
                 className="w-12 h-12 rounded object-cover flex-shrink-0"
               />
             )}
             <div className="flex-1 min-w-0">
               <div className="font-medium text-foreground truncate">
-                {highlightMatch(data.name, query)}
+                {highlightMatch(farmData.name, query)}
               </div>
               <div className="text-sm text-muted-foreground truncate">
-                by {data.owner_name}
-                {data.acres && ` • ${data.acres.toFixed(1)} acres`}
+                by {farmData.owner_name}
+                {farmData.acres && ` • ${farmData.acres.toFixed(1)} acres`}
               </div>
             </div>
           </div>
         );
+      }
 
-      case "post":
+      case "post": {
+        const postData = data as PostData;
         return (
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="flex-1 min-w-0">
               <div className="text-sm text-foreground line-clamp-2">
                 {highlightMatch(
-                  data.content_preview || data.content || "",
+                  postData.content_preview || postData.content || "",
                   query
                 )}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                by {data.author_name} •{" "}
-                {data.created_at ? formatRelativeTime(data.created_at) : ""}
+                by {postData.author_name} •{" "}
+                {postData.created_at ? formatRelativeTime(postData.created_at) : ""}
               </div>
             </div>
-            {data.ai_screenshot && (
+            {postData.ai_screenshot && (
               <img
-                src={data.ai_screenshot}
+                src={postData.ai_screenshot}
                 alt="Post preview"
                 loading="lazy"
                 className="w-12 h-12 rounded object-cover flex-shrink-0"
@@ -206,68 +209,77 @@ export function SearchResultItem({
             )}
           </div>
         );
+      }
 
-      case "species":
+      case "species": {
+        const speciesData = data as SpeciesData;
         return (
           <div className="flex-1 min-w-0">
             <div className="font-medium text-foreground">
-              {highlightMatch(data.common_name, query)}
+              {highlightMatch(speciesData.common_name, query)}
             </div>
             <div className="text-sm text-muted-foreground italic truncate">
-              {data.scientific_name}
+              {speciesData.scientific_name}
             </div>
-            {data.layer && (
+            {speciesData.layer && (
               <div className="text-xs text-muted-foreground mt-1 capitalize">
-                {data.layer}
+                {speciesData.layer}
               </div>
             )}
           </div>
         );
+      }
 
-      case "zone":
+      case "zone": {
+        const zoneData = data as ZoneData;
         return (
           <div className="flex-1 min-w-0">
             <div className="font-medium text-foreground truncate">
-              {highlightMatch(data.name || data.zone_type, query)}
+              {highlightMatch(zoneData.name || zoneData.zone_type, query)}
             </div>
             <div className="text-sm text-muted-foreground truncate">
-              {data.farm_name} • {data.zone_type}
+              {zoneData.farm_name} • {zoneData.zone_type}
             </div>
           </div>
         );
+      }
 
-      case "user":
+      case "user": {
+        const userData = data as UserData;
         return (
           <>
             <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarImage src={data.image || undefined} />
+              <AvatarImage src={userData.image || undefined} />
               <AvatarFallback>
-                {data.name?.[0]?.toUpperCase() || "U"}
+                {userData.name?.[0]?.toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="font-medium text-foreground truncate">
-                {highlightMatch(data.name, query)}
+                {highlightMatch(userData.name, query)}
               </div>
               <div className="text-sm text-muted-foreground">
-                {data.farm_count} {data.farm_count === 1 ? "farm" : "farms"}
+                {userData.farm_count} {userData.farm_count === 1 ? "farm" : "farms"}
               </div>
             </div>
           </>
         );
+      }
 
-      case "ai_conversation":
+      case "ai_conversation": {
+        const conversationData = data as AIConversationData;
         return (
           <div className="flex-1 min-w-0">
             <div className="font-medium text-foreground truncate">
-              {highlightMatch(data.title, query)}
+              {highlightMatch(conversationData.title, query)}
             </div>
             <div className="text-sm text-muted-foreground truncate">
-              {data.farm_name}
-              {data.created_at && ` • ${formatRelativeTime(data.created_at)}`}
+              {conversationData.farm_name}
+              {conversationData.created_at && ` • ${formatRelativeTime(conversationData.created_at)}`}
             </div>
           </div>
         );
+      }
 
       default:
         return null;
@@ -294,3 +306,14 @@ export function SearchResultItem({
     </button>
   );
 }
+
+// Export types for use in parent components
+export type {
+  FarmData,
+  PostData,
+  SpeciesData,
+  ZoneData,
+  UserData,
+  AIConversationData,
+  SearchResultData,
+};

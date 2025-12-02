@@ -6,6 +6,7 @@ import { Search, X, Loader2 } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 import { SearchResultsDropdown } from "./search-results-dropdown";
 import { cn } from "@/lib/utils";
+import type { SearchResultData } from "./search-result-item";
 
 /**
  * UniversalSearch - Main search component with keyboard shortcuts and navigation
@@ -51,14 +52,17 @@ export function UniversalSearch({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Flatten results for keyboard navigation
-  const allResults = [
-    ...results.farms.slice(0, 3).map((f) => ({ type: "farm", data: f })),
-    ...results.posts.slice(0, 3).map((p) => ({ type: "post", data: p })),
-    ...results.species.slice(0, 3).map((s) => ({ type: "species", data: s })),
-    ...results.zones.slice(0, 3).map((z) => ({ type: "zone", data: z })),
-    ...results.users.slice(0, 3).map((u) => ({ type: "user", data: u })),
+  const allResults: Array<{
+    type: "farm" | "post" | "species" | "zone" | "user" | "ai_conversation";
+    data: SearchResultData;
+  }> = [
+    ...results.farms.slice(0, 3).map((f) => ({ type: "farm" as const, data: f })),
+    ...results.posts.slice(0, 3).map((p) => ({ type: "post" as const, data: p })),
+    ...results.species.slice(0, 3).map((s) => ({ type: "species" as const, data: s })),
+    ...results.zones.slice(0, 3).map((z) => ({ type: "zone" as const, data: z })),
+    ...results.users.slice(0, 3).map((u) => ({ type: "user" as const, data: u })),
     ...results.ai_conversations.slice(0, 3).map((c) => ({
-      type: "ai_conversation",
+      type: "ai_conversation" as const,
       data: c,
     })),
   ];
@@ -75,29 +79,35 @@ export function UniversalSearch({
   /**
    * Navigate to result based on type
    */
-  const getResultUrl = (type: string, data: any): string => {
+  function getResultUrl(
+    type: "farm" | "post" | "species" | "zone" | "user" | "ai_conversation",
+    data: SearchResultData
+  ): string {
     switch (type) {
       case "farm":
         return `/farm/${data.id}`;
       case "post":
-        return `/farm/${data.farm_id}/posts/${data.id}`;
+        return `/farm/${(data as any).farm_id}/posts/${data.id}`;
       case "species":
         return `/species/${data.id}`;
       case "zone":
-        return `/farm/${data.farm_id}#zone-${data.id}`;
+        return `/farm/${(data as any).farm_id}#zone-${data.id}`;
       case "user":
         return `/user/${data.id}`;
       case "ai_conversation":
-        return `/farm/${data.farm_id}/ai?conversation=${data.id}`;
+        return `/farm/${(data as any).farm_id}/ai?conversation=${data.id}`;
       default:
         return "/";
     }
-  };
+  }
 
   /**
    * Handle result click - navigate and close dropdown
    */
-  const handleResultClick = (result: any, type: string) => {
+  const handleResultClick = (
+    result: SearchResultData,
+    type: "farm" | "post" | "species" | "zone" | "user" | "ai_conversation"
+  ) => {
     const url = getResultUrl(type, result);
     router.push(url);
     setIsOpen(false);
@@ -131,7 +141,7 @@ export function UniversalSearch({
 
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
         break;
 
       case "Enter":
@@ -205,7 +215,9 @@ export function UniversalSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={() => query.length >= 3 && setIsOpen(true)}
           placeholder={defaultPlaceholder}
+          aria-label={placeholder || defaultPlaceholder}
           className={cn(
             "h-11 w-full px-4 py-2 pl-10 pr-10",
             "border border-border rounded-lg",

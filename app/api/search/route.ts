@@ -23,7 +23,14 @@ export async function GET(request: NextRequest) {
     }
 
     const searchQuery = `%${query.replace(/[%_]/g, '\\$&')}%`;
-    const results = {
+    const results: {
+      farms: any[];
+      posts: any[];
+      species: any[];
+      zones: any[];
+      users: any[];
+      ai_conversations: any[];
+    } = {
       farms: [],
       posts: [],
       species: [],

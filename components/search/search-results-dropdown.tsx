@@ -4,13 +4,17 @@ import { useMemo } from "react";
 import { SearchResultItem } from "./search-result-item";
 import { SearchResult } from "@/hooks/use-search";
 import { cn } from "@/lib/utils";
+import type { SearchResultData } from "./search-result-item";
 
 interface SearchResultsDropdownProps {
   results: SearchResult;
   query: string;
   isOpen: boolean;
   highlightedIndex: number;
-  onResultClick: (result: any, type: string) => void;
+  onResultClick: (
+    result: SearchResultData,
+    type: "farm" | "post" | "species" | "zone" | "user" | "ai_conversation"
+  ) => void;
   onClose: () => void;
 }
 
@@ -52,7 +56,10 @@ interface SearchSectionProps {
   query: string;
   flattenedResults: Array<{ type: string; data: any }>;
   highlightedIndex: number;
-  onResultClick: (result: any, type: string) => void;
+  onResultClick: (
+    result: SearchResultData,
+    type: "farm" | "post" | "species" | "zone" | "user" | "ai_conversation"
+  ) => void;
 }
 
 function SearchSection({
@@ -82,7 +89,7 @@ function SearchSection({
             data={result}
             query={query}
             isHighlighted={flatIndex === highlightedIndex}
-            onClick={() => onResultClick(result, type)}
+            onClick={() => onResultClick(result, type as "farm" | "post" | "species" | "zone" | "user" | "ai_conversation")}
           />
         );
       })}
@@ -133,6 +140,7 @@ export function SearchResultsDropdown({
 
   return (
     <div
+      id="search-results"
       className={cn(
         "absolute top-full left-0 right-0 mt-2 z-50",
         "bg-card border border-border rounded-lg shadow-lg",
