@@ -1,26 +1,11 @@
-import { NextRequest } from "next/server";
-import Database from "better-sqlite3";
-import path from "path";
+import { deleteSession } from "@/lib/auth/session";
 
-const db = new Database(path.join(process.cwd(), "auth.db"));
-
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    const sessionToken = request.cookies.get("session")?.value;
+    // Delete JWT session cookie
+    await deleteSession();
 
-    if (sessionToken) {
-      // Delete session from database
-      db.prepare("DELETE FROM session WHERE token = ?").run(sessionToken);
-    }
-
-    // Clear cookie
-    const response = Response.json({ success: true });
-    response.headers.set(
-      "Set-Cookie",
-      "session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
-    );
-
-    return response;
+    return Response.json({ success: true });
   } catch (error) {
     console.error("Sign-out error:", error);
     return Response.json({ error: "Sign-out failed" }, { status: 500 });
