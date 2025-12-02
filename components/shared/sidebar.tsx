@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MapIcon, LayoutDashboard, ImageIcon, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UniversalSearch } from "@/components/search/universal-search";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -27,6 +28,15 @@ export function Sidebar({ userName }: { userName: string }) {
           <MapIcon className="h-8 w-8 text-primary" />
           <span className="text-xl font-serif font-bold text-foreground">PermaCraft</span>
         </div>
+      </div>
+
+      {/* Global Search */}
+      <div className="px-4 pt-4 pb-2">
+        <UniversalSearch
+          context="global"
+          placeholder="Search everything..."
+          className="w-full"
+        />
       </div>
 
       {/* Navigation */}
