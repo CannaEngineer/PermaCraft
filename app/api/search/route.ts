@@ -7,8 +7,9 @@ export async function GET(request: NextRequest) {
     const session = await requireAuth();
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("q");
-    const context = searchParams.get("context") || "global";
-    const limit = parseInt(searchParams.get("limit") || "15");
+    const contextParam = searchParams.get("context") || "global";
+    const validContexts = ["my-farms", "community", "global"] as const;
+    const context = validContexts.includes(contextParam as any) ? contextParam : "global";
 
     if (!query || query.length < 3) {
       return Response.json({
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const searchQuery = `%${query}%`;
+    const searchQuery = `%${query.replace(/[%_]/g, '\\$&')}%`;
     const results = {
       farms: [],
       posts: [],
@@ -52,7 +53,9 @@ export async function GET(request: NextRequest) {
           try {
             const urls = JSON.parse(row.latest_screenshot_json);
             imageUrl = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
-          } catch (e) {}
+          } catch (e) {
+            console.error('Failed to parse screenshot JSON:', e);
+          }
         }
         return {
           id: row.id,
@@ -86,7 +89,9 @@ export async function GET(request: NextRequest) {
           try {
             const urls = JSON.parse(row.latest_screenshot_json);
             imageUrl = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
-          } catch (e) {}
+          } catch (e) {
+            console.error('Failed to parse screenshot JSON:', e);
+          }
         }
         return {
           id: row.id,
@@ -121,7 +126,9 @@ export async function GET(request: NextRequest) {
           try {
             const urls = JSON.parse(row.latest_screenshot_json);
             imageUrl = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
-          } catch (e) {}
+          } catch (e) {
+            console.error('Failed to parse screenshot JSON:', e);
+          }
         }
         return {
           id: row.id,
@@ -161,6 +168,7 @@ export async function GET(request: NextRequest) {
             const urls = JSON.parse(post.ai_screenshot);
             aiScreenshot = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
           } catch (e) {
+            console.error('Failed to parse screenshot JSON:', e);
             aiScreenshot = post.ai_screenshot;
           }
         }
