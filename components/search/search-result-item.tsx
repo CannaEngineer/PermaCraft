@@ -12,9 +12,66 @@ import {
   MessageSquare,
 } from "lucide-react";
 
+// Type definitions for each search result entity
+interface FarmData {
+  id: string;
+  name: string;
+  owner_name: string;
+  owner_image?: string;
+  image_url?: string | null;
+  acres?: number;
+}
+
+interface PostData {
+  id: string;
+  content?: string;
+  content_preview?: string;
+  author_name: string;
+  author_image?: string | null;
+  type: string;
+  created_at?: number;
+  ai_screenshot?: string | null;
+}
+
+interface SpeciesData {
+  id: string;
+  common_name: string;
+  scientific_name?: string;
+  layer?: string;
+}
+
+interface ZoneData {
+  id: string;
+  name: string;
+  farm_name: string;
+  zone_type: string;
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  image?: string | null;
+  farm_count?: number;
+}
+
+interface AIConversationData {
+  id: string;
+  title: string;
+  farm_name: string;
+  created_at?: number;
+}
+
+type SearchResultData =
+  | FarmData
+  | PostData
+  | SpeciesData
+  | ZoneData
+  | UserData
+  | AIConversationData;
+
 interface SearchResultItemProps {
   type: "farm" | "post" | "species" | "zone" | "user" | "ai_conversation";
-  data: any;
+  data: SearchResultData;
   query: string;
   isHighlighted: boolean;
   onClick: () => void;
@@ -23,11 +80,14 @@ interface SearchResultItemProps {
 /**
  * Helper function to highlight matched text in search results
  * Wraps matched portions in <strong> tags for visual emphasis
+ * Escapes special regex characters to prevent regex injection
  */
 function highlightMatch(text: string, query: string): React.ReactNode {
   if (!query.trim() || !text) return text;
 
-  const parts = text.split(new RegExp(`(${query})`, "gi"));
+  // Escape special regex characters to prevent regex injection
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = text.split(new RegExp(`(${escapedQuery})`, "gi"));
   return parts.map((part, i) =>
     part.toLowerCase() === query.toLowerCase() ? (
       <strong key={i}>{part}</strong>
@@ -105,6 +165,7 @@ export function SearchResultItem({
               <img
                 src={data.image_url}
                 alt={data.name}
+                loading="lazy"
                 className="w-12 h-12 rounded object-cover flex-shrink-0"
               />
             )}
@@ -138,7 +199,8 @@ export function SearchResultItem({
             {data.ai_screenshot && (
               <img
                 src={data.ai_screenshot}
-                alt="Post screenshot"
+                alt="Post preview"
+                loading="lazy"
                 className="w-12 h-12 rounded object-cover flex-shrink-0"
               />
             )}
@@ -215,6 +277,8 @@ export function SearchResultItem({
   return (
     <button
       onClick={onClick}
+      role="option"
+      aria-selected={isHighlighted}
       className={cn(
         "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors min-h-[44px] w-full text-left",
         "hover:bg-accent/50",
