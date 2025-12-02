@@ -32,10 +32,28 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     });
   }
 
-  const farm = farmResult.rows[0] as unknown as Farm;
-  if (!farm) {
+  const farmRow = farmResult.rows[0] as any;
+  if (!farmRow) {
     notFound();
   }
+
+  // Convert to plain object for client component
+  const farm: Farm = {
+    id: farmRow.id,
+    user_id: farmRow.user_id,
+    name: farmRow.name,
+    description: farmRow.description,
+    acres: farmRow.acres,
+    climate_zone: farmRow.climate_zone,
+    rainfall_inches: farmRow.rainfall_inches,
+    soil_type: farmRow.soil_type,
+    center_lat: farmRow.center_lat,
+    center_lng: farmRow.center_lng,
+    zoom_level: farmRow.zoom_level,
+    is_public: farmRow.is_public,
+    created_at: farmRow.created_at,
+    updated_at: farmRow.updated_at,
+  };
 
   // Security note: Private farms are already restricted at this point
   // The SQL query above only fetches public farms (is_public = 1) for non-owners
@@ -47,10 +65,15 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     args: [farm.user_id],
   });
 
-  const farmOwner = ownerResult.rows[0] as unknown as { name: string; image: string | null };
-  if (!farmOwner) {
+  const ownerRow = ownerResult.rows[0] as any;
+  if (!ownerRow) {
     notFound(); // Farm has no valid owner
   }
+
+  const farmOwner = {
+    name: ownerRow.name as string,
+    image: ownerRow.image as string | null,
+  };
 
   // Get zones
   const zonesResult = await db.execute({
@@ -65,35 +88,53 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     sql: `SELECT p.*,
                  u.name as author_name,
                  u.image as author_image,
+                 ai.screenshot_data as ai_screenshot,
                  (SELECT reaction_type FROM post_reactions
                   WHERE post_id = p.id AND user_id = ?) as user_reaction
           FROM farm_posts p
           JOIN users u ON p.author_id = u.id
+          LEFT JOIN ai_analyses ai ON p.ai_analysis_id = ai.id
           WHERE p.farm_id = ? AND p.is_published = 1
           ORDER BY p.created_at DESC
           LIMIT 21`,
     args: [session.user.id, id],
   });
 
-  const posts = feedResult.rows.map((post: any) => ({
-    id: post.id,
-    farm_id: post.farm_id,
-    type: post.post_type,
-    content: post.content,
-    media_urls: post.media_urls ? JSON.parse(post.media_urls) : null,
-    tagged_zones: post.tagged_zones ? JSON.parse(post.tagged_zones) : null,
-    hashtags: post.hashtags ? JSON.parse(post.hashtags) : null,
-    author: {
-      id: post.author_id,
-      name: post.author_name,
-      image: post.author_image,
-    },
-    reaction_count: post.reaction_count,
-    comment_count: post.comment_count,
-    view_count: post.view_count,
-    created_at: post.created_at,
-    user_reaction: post.user_reaction,
-  }));
+  const posts = feedResult.rows.map((post: any) => {
+    // Parse ai_screenshot JSON array and get first URL
+    let aiScreenshot = null;
+    if (post.ai_screenshot) {
+      try {
+        const urls = JSON.parse(post.ai_screenshot);
+        aiScreenshot = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
+      } catch (e) {
+        // If not JSON, use as-is (fallback for base64)
+        aiScreenshot = post.ai_screenshot;
+      }
+    }
+
+    return {
+      id: post.id,
+      farm_id: post.farm_id,
+      type: post.post_type,
+      content: post.content,
+      media_urls: post.media_urls ? JSON.parse(post.media_urls) : null,
+      ai_response_excerpt: post.ai_response_excerpt,
+      ai_screenshot: aiScreenshot,
+      tagged_zones: post.tagged_zones ? JSON.parse(post.tagged_zones) : null,
+      hashtags: post.hashtags ? JSON.parse(post.hashtags) : null,
+      author: {
+        id: post.author_id,
+        name: post.author_name,
+        image: post.author_image,
+      },
+      reaction_count: post.reaction_count,
+      comment_count: post.comment_count,
+      view_count: post.view_count,
+      created_at: post.created_at,
+      user_reaction: post.user_reaction,
+    };
+  });
 
   const initialFeedData = {
     posts: posts.slice(0, 20),
@@ -101,12 +142,32 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     has_more: posts.length === 21,
   };
 
+  // Get latest screenshot for cover image
+  const screenshotResult = await db.execute({
+    sql: `SELECT screenshot_data FROM ai_analyses
+          WHERE farm_id = ? AND screenshot_data IS NOT NULL
+          ORDER BY created_at DESC LIMIT 1`,
+    args: [id],
+  });
+
+  let latestScreenshot = null;
+  if (screenshotResult.rows.length > 0) {
+    const screenshotJson = (screenshotResult.rows[0] as any).screenshot_data;
+    try {
+      const urls = JSON.parse(screenshotJson);
+      latestScreenshot = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
+    } catch (e) {
+      console.error('Failed to parse screenshot JSON:', e);
+    }
+  }
+
   // If visitor (not owner), show public view
   if (!isOwner) {
     return (
       <FarmPublicView
         farm={farm}
         farmOwner={farmOwner}
+        latestScreenshot={latestScreenshot}
         initialFeedData={initialFeedData}
       />
     );

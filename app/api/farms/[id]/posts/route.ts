@@ -33,6 +33,7 @@ const createPostSchema = z.object({
   content: z.string().optional(),
   media_urls: z.array(z.string()).optional(),
   ai_conversation_id: z.string().optional(),
+  ai_analysis_id: z.string().optional(),
   ai_response_excerpt: z.string().optional(),
   tagged_zones: z.array(z.string()).optional(),
   hashtags: z.array(z.string()).optional(),
@@ -78,23 +79,51 @@ export async function POST(
       }
     }
 
+    // For text/photo posts, automatically attach the most recent farm screenshot
+    let mediaUrls = validatedData.media_urls || [];
+    if (validatedData.type === 'text' && (!mediaUrls || mediaUrls.length === 0)) {
+      // Get most recent screenshot for text posts
+      const screenshotResult = await db.execute({
+        sql: `SELECT screenshot_data FROM ai_analyses
+              WHERE farm_id = ? AND screenshot_data IS NOT NULL
+              ORDER BY created_at DESC LIMIT 1`,
+        args: [farmId],
+      });
+
+      if (screenshotResult.rows.length > 0) {
+        const screenshotJson = (screenshotResult.rows[0] as any).screenshot_data;
+        try {
+          // Parse JSON array of R2 URLs
+          const urls = JSON.parse(screenshotJson);
+          if (Array.isArray(urls) && urls.length > 0) {
+            mediaUrls = [urls[0]]; // Use first screenshot URL
+          }
+        } catch (e) {
+          // Fallback for base64 data
+          const dataUri = screenshotJson.startsWith('data:') ? screenshotJson : `data:image/png;base64,${screenshotJson}`;
+          mediaUrls = [dataUri];
+        }
+      }
+    }
+
     // Create post
     const postId = crypto.randomUUID();
     await db.execute({
       sql: `INSERT INTO farm_posts (
               id, farm_id, author_id, post_type,
-              content, media_urls, ai_conversation_id, ai_response_excerpt,
+              content, media_urls, ai_conversation_id, ai_analysis_id, ai_response_excerpt,
               tagged_zones, hashtags, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
       args: [
         postId,
         farmId,
         session.user.id,
         validatedData.type,
         validatedData.content || null,
-        validatedData.media_urls ? JSON.stringify(validatedData.media_urls) : null,
+        mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : null,
         validatedData.ai_conversation_id || null,
+        validatedData.ai_analysis_id || null,
         validatedData.ai_response_excerpt || null,
         validatedData.tagged_zones ? JSON.stringify(validatedData.tagged_zones) : null,
         validatedData.hashtags ? JSON.stringify(validatedData.hashtags) : null,

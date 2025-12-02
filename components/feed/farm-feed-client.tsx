@@ -11,6 +11,8 @@ interface Post {
   type: 'text' | 'photo' | 'ai_insight';
   content: string | null;
   media_urls: string[] | null;
+  ai_response_excerpt: string | null;
+  ai_screenshot: string | null;
   tagged_zones: string[] | null;
   hashtags: string[] | null;
   author: {

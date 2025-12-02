@@ -133,6 +133,7 @@ export interface FarmPost {
   media_urls: string | null; // JSON array
 
   ai_conversation_id: string | null;
+  ai_analysis_id: string | null;
   ai_response_excerpt: string | null;
 
   tagged_zones: string | null; // JSON array

@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
+  darkMode: ["selector", '[data-theme="dark"]'],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -50,8 +50,42 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
+        sans: [
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "sans-serif",
+        ],
+        serif: ["Georgia", "Times New Roman", "serif"],
+      },
+      fontSize: {
+        // Mobile-first responsive typography
+        base: ["1rem", { lineHeight: "1.6" }], // 16px, comfortable reading
+        sm: ["0.875rem", { lineHeight: "1.5" }], // 14px, never below this
+        xs: ["0.75rem", { lineHeight: "1.4" }],
+        lg: ["1.125rem", { lineHeight: "1.6" }], // 18px for desktop body
+        xl: ["1.25rem", { lineHeight: "1.5" }],
+        "2xl": ["1.5rem", { lineHeight: "1.4" }],
+        "3xl": ["1.875rem", { lineHeight: "1.3" }],
+        "4xl": ["2.25rem", { lineHeight: "1.2" }],
+      },
+      spacing: {
+        // Consistent spacing system
+        xs: "0.25rem", // 4px
+        sm: "0.5rem", // 8px
+        md: "1rem", // 16px (mobile default)
+        lg: "1.5rem", // 24px (desktop default)
+        xl: "2rem", // 32px
+        "2xl": "3rem", // 48px
+      },
+      minHeight: {
+        touch: "44px", // Minimum touch target
+        "touch-lg": "48px", // Preferred button height
+      },
+      minWidth: {
+        touch: "44px",
       },
     },
   },

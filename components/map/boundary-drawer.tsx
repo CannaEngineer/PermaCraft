@@ -308,7 +308,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search for your location..."
-              className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded shadow text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded shadow text-sm w-64 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
               disabled={searching}
             />
             <button
@@ -333,7 +333,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         <button
           type="button"
           onClick={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
-          className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded shadow text-sm font-medium"
+          className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded shadow text-sm font-medium text-gray-900 hover:bg-white transition-colors"
         >
           {gridUnit === 'imperial' ? 'Feet' : 'Meters'} ⟷
         </button>

@@ -30,6 +30,8 @@ interface Post {
   view_count: number;
   created_at: number;
   user_reaction: string | null;
+  ai_response_excerpt: string | null;
+  ai_screenshot: string | null;
 }
 
 interface PostCardProps {
@@ -94,6 +96,21 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
         </div>
       )}
 
+      {/* AI Screenshot for AI Insight posts */}
+      {post.type === 'ai_insight' && post.ai_screenshot && (
+        <div className="relative w-full aspect-video bg-muted">
+          <img
+            src={post.ai_screenshot}
+            alt="AI analysis screenshot"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error('Failed to load AI screenshot:', post.ai_screenshot);
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+
       {/* Content */}
       <CardContent className="pt-4">
         {post.content && (
@@ -101,6 +118,21 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {post.content}
             </ReactMarkdown>
+          </div>
+        )}
+
+        {/* AI Response Excerpt for AI Insight posts */}
+        {post.type === 'ai_insight' && post.ai_response_excerpt && (
+          <div className="mt-4 p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
+            <div className="flex items-center gap-2 mb-2">
+              <SparklesIcon className="w-4 h-4 text-primary" />
+              <p className="text-sm font-semibold text-primary">AI Response</p>
+            </div>
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {post.ai_response_excerpt}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
 

@@ -17,14 +17,29 @@ export default async function DashboardPage() {
              FROM ai_analyses
              WHERE farm_id = f.id AND screenshot_data IS NOT NULL
              ORDER BY created_at DESC
-             LIMIT 1) as latest_screenshot
+             LIMIT 1) as latest_screenshot_json
           FROM farms f
           WHERE f.user_id = ?
           ORDER BY f.updated_at DESC`,
     args: [session.user.id],
   });
 
-  const farms = result.rows as unknown as any[];
+  // Parse screenshot JSON arrays and extract first URL
+  const farms = result.rows.map((row: any) => {
+    let latestScreenshot = null;
+    if (row.latest_screenshot_json) {
+      try {
+        const urls = JSON.parse(row.latest_screenshot_json);
+        latestScreenshot = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
+      } catch (e) {
+        console.error('Failed to parse screenshot JSON:', e);
+      }
+    }
+    return {
+      ...row,
+      latest_screenshot: latestScreenshot,
+    };
+  });
 
   return (
     <div className="p-4 md:p-8">

@@ -11,6 +11,8 @@ interface Post {
   type: 'text' | 'photo' | 'ai_insight';
   content: string | null;
   media_urls: string[] | null;
+  ai_response_excerpt: string | null;
+  ai_screenshot: string | null;
   tagged_zones: string[] | null;
   hashtags: string[] | null;
   author: {
@@ -31,6 +33,7 @@ interface FarmPublicViewProps {
     name: string;
     image: string | null;
   };
+  latestScreenshot: string | null;
   initialFeedData: {
     posts: Post[];
     next_cursor: string | null;
@@ -41,10 +44,23 @@ interface FarmPublicViewProps {
 export function FarmPublicView({
   farm,
   farmOwner,
+  latestScreenshot,
   initialFeedData,
 }: FarmPublicViewProps) {
   return (
     <div className="min-h-screen bg-background">
+      {/* Hero/Cover Image */}
+      {latestScreenshot && (
+        <div className="relative w-full h-64 md:h-96 bg-muted">
+          <img
+            src={latestScreenshot}
+            alt={`${farm.name} overview`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
+        </div>
+      )}
+
       {/* Farm Header */}
       <div className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-6">

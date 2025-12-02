@@ -588,10 +588,10 @@ export function FarmEditorClient({
     <div className="h-screen flex flex-col">
       <div className="bg-card border-b border-border p-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-serif font-bold flex items-center gap-2">
+          <h1 className="text-xl font-serif font-bold flex items-center gap-2 text-foreground">
             {farm.name}
             {hasUnsavedChanges && (
-              <span className="text-xs bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full">
+              <span className="text-xs bg-accent text-accent-foreground px-2 py-1 rounded-full border border-border">
                 Unsaved changes
               </span>
             )}

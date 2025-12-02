@@ -20,15 +20,17 @@ export function Sidebar({ userName }: { userName: string }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-card border-r border-border">
-      <div className="p-6">
+    <div className="flex flex-col h-full bg-card">
+      {/* Logo/Brand */}
+      <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-2">
           <MapIcon className="h-8 w-8 text-primary" />
-          <span className="text-xl font-serif font-bold">PermaCraft</span>
+          <span className="text-xl font-serif font-bold text-foreground">PermaCraft</span>
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-4 space-y-2">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -36,29 +38,29 @@ export function Sidebar({ userName }: { userName: string }) {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors min-h-touch",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  : "text-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-5 w-5 flex-shrink-0" />
               <span>{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
+      {/* User section */}
       <div className="p-4 border-t border-border">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center mb-3">
           <span className="text-sm font-medium text-foreground truncate">
             {userName}
           </span>
         </div>
         <Button
           variant="outline"
-          size="sm"
-          className="w-full"
+          className="w-full justify-start"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4 mr-2" />
