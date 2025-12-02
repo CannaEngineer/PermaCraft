@@ -88,15 +88,18 @@ export function UniversalSearch({
       case "farm":
         return `/farm/${data.id}`;
       case "post":
-        return `/farm/${(data as any).farm_id}/posts/${data.id}`;
+        // Posts don't have dedicated pages - navigate to the farm where the post was created
+        return `/farm/${(data as any).farm_id}`;
       case "species":
         return `/species/${data.id}`;
       case "zone":
+        // Navigate to farm with zone hash - farm map should zoom to this zone
         return `/farm/${(data as any).farm_id}#zone-${data.id}`;
       case "user":
         return `/user/${data.id}`;
       case "ai_conversation":
-        return `/farm/${(data as any).farm_id}/ai?conversation=${data.id}`;
+        // Navigate to farm with chat panel open and specific conversation loaded
+        return `/farm/${(data as any).farm_id}?chat=open&conversation=${data.id}`;
       default:
         return "/";
     }

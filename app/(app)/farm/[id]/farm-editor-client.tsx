@@ -34,6 +34,7 @@ export function FarmEditorClient({
   const [currentMapLayer, setCurrentMapLayer] = useState<string>("satellite");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [initialConversationId, setInitialConversationId] = useState<string | undefined>(undefined);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -49,6 +50,29 @@ export function FarmEditorClient({
     return () => {
       window.removeEventListener("close-chat", handleCloseChat);
     };
+  }, []);
+
+  // Handle URL parameters for deep linking (from search results)
+  useEffect(() => {
+    // Check if chat should be opened via query parameter
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('chat') === 'open') {
+      setIsChatOpen(true);
+
+      // Check if specific conversation should be loaded
+      const conversationId = params.get('conversation');
+      if (conversationId) {
+        setInitialConversationId(conversationId);
+      }
+    }
+
+    // Check if we should zoom to a specific zone via hash
+    const hash = window.location.hash;
+    if (hash.startsWith('#zone-')) {
+      const zoneId = hash.substring(6); // Remove '#zone-' prefix
+      // TODO: Implement zone zoom functionality when map is ready
+      console.log('TODO: Zoom to zone:', zoneId);
+    }
   }, []);
 
   const handleSave = async (showAlert = true) => {
@@ -657,7 +681,11 @@ export function FarmEditorClient({
               : "translate-x-full md:translate-x-0"
           } fixed md:static top-0 right-0 h-full bg-card z-50`}
         >
-          <EnhancedChatPanel farmId={farm.id} onAnalyze={handleAnalyze} />
+          <EnhancedChatPanel
+            farmId={farm.id}
+            initialConversationId={initialConversationId}
+            onAnalyze={handleAnalyze}
+          />
         </div>
       </div>
 

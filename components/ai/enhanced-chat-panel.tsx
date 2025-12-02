@@ -95,6 +95,7 @@ interface Message {
  */
 interface ChatPanelProps {
   farmId: string;
+  initialConversationId?: string; // Optional: Load specific conversation on mount (from URL)
   onAnalyze: (
     query: string,
     conversationId?: string
@@ -106,7 +107,7 @@ interface ChatPanelProps {
   }>;
 }
 
-export function EnhancedChatPanel({ farmId, onAnalyze }: ChatPanelProps) {
+export function EnhancedChatPanel({ farmId, initialConversationId, onAnalyze }: ChatPanelProps) {
   /**
    * State Management
    *
@@ -141,6 +142,13 @@ export function EnhancedChatPanel({ farmId, onAnalyze }: ChatPanelProps) {
   useEffect(() => {
     loadConversations();
   }, [farmId]);
+
+  // Set initial conversation from URL (from search results)
+  useEffect(() => {
+    if (initialConversationId) {
+      setCurrentConversationId(initialConversationId);
+    }
+  }, [initialConversationId]);
 
   // Load messages when conversation changes
   useEffect(() => {
