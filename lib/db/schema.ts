@@ -46,17 +46,32 @@ export interface Species {
   common_name: string;
   scientific_name: string;
   layer: string;
-  native_regions: string | null; // JSON
+  native_regions: string | null; // JSON (deprecated, use broad_regions)
   is_native: number;
   years_to_maturity: number | null;
   mature_height_ft: number | null;
   mature_width_ft: number | null;
   sun_requirements: string | null;
   water_requirements: string | null;
-  hardiness_zones: string | null;
+  hardiness_zones: string | null; // Deprecated, use min/max
   description: string | null;
   contributed_by: string | null;
   created_at: number;
+
+  // New permaculture fields
+  permaculture_functions: string | null; // JSON array
+  companion_plants: string | null; // JSON array
+  zone_placement_notes: string | null;
+  edible_parts: string | null; // JSON object
+  sourcing_notes: string | null;
+
+  // New geographic fields
+  broad_regions: string | null; // JSON array
+  min_hardiness_zone: string | null;
+  max_hardiness_zone: string | null;
+  min_rainfall_inches: number | null;
+  max_rainfall_inches: number | null;
+  ai_generated: number;
 }
 
 export interface Planting {
