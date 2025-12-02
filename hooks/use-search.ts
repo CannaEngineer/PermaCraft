@@ -55,11 +55,13 @@ export function useSearch({
           ai_conversations: [],
         });
         setIsOpen(false);
+        setIsLoading(false); // Explicitly clear loading state
         return;
       }
 
       // Create new abort controller
-      abortControllerRef.current = new AbortController();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       try {
         setIsLoading(true);
@@ -67,7 +69,7 @@ export function useSearch({
 
         const response = await fetch(
           `/api/search?q=${encodeURIComponent(searchQuery)}&context=${context}&limit=15`,
-          { signal: abortControllerRef.current.signal }
+          { signal: controller.signal }
         );
 
         if (!response.ok) {
@@ -75,16 +77,26 @@ export function useSearch({
         }
 
         const data = await response.json();
-        setResults(data);
-        setIsOpen(true);
-        setHighlightedIndex(-1);
+
+        // Only update if this request is still the current one
+        if (controller === abortControllerRef.current) {
+          setResults(data);
+          setIsOpen(true);
+          setHighlightedIndex(-1);
+        }
       } catch (err: any) {
         if (err.name !== "AbortError") {
           console.error("Search error:", err);
-          setError("Search failed. Please try again.");
+          // Only update error if this request is still current
+          if (controller === abortControllerRef.current) {
+            setError("Search failed. Please try again.");
+          }
         }
       } finally {
-        setIsLoading(false);
+        // Only update loading state if this request is still current
+        if (controller === abortControllerRef.current) {
+          setIsLoading(false);
+        }
       }
     },
     [context, minChars]
@@ -112,6 +124,7 @@ export function useSearch({
         ai_conversations: [],
       });
       setIsOpen(false);
+      setError(null); // Clear error state when query is empty
     }
 
     // Cleanup
@@ -120,7 +133,8 @@ export function useSearch({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [query, performSearch, debounceMs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, debounceMs]); // Only depend on query and debounceMs
 
   // Cleanup abort controller on unmount
   useEffect(() => {
