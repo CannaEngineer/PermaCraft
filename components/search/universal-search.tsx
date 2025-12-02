@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, X, Loader2 } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 import { SearchResultsDropdown } from "./search-results-dropdown";
+import { SearchShortcutHint } from "./search-shortcut-hint";
 import { cn } from "@/lib/utils";
 import type { SearchResultData } from "./search-result-item";
 
@@ -232,19 +233,22 @@ export function UniversalSearch({
           aria-autocomplete="list"
         />
 
-        {/* Clear Button (X) */}
-        {query && (
-          <button
-            onClick={() => {
-              setQuery("");
-              setIsOpen(false);
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Clear search"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+        {/* Right Side Icons */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          {query && !isLoading && (
+            <button
+              onClick={() => {
+                setQuery("");
+                setIsOpen(false);
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          {!query && !isLoading && <SearchShortcutHint />}
+        </div>
       </div>
 
       {/* Dropdown */}
