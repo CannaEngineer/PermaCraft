@@ -28,6 +28,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
 
     const bounds = map.current.getBounds();
 
+    const zoom = map.current.getZoom();
     const { lines, labels } = generateGridLines(
       {
         north: bounds.getNorth(),
@@ -35,7 +36,9 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         east: bounds.getEast(),
         west: bounds.getWest()
       },
-      gridUnit
+      gridUnit,
+      zoom,
+      'auto' // Use auto grid density
     );
 
     const gridLineSource = map.current.getSource('grid-lines') as maplibregl.GeoJSONSource;
@@ -135,7 +138,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
       },
       center: [-98.5795, 39.8283], // Center of US
       zoom: 4,
-      maxZoom: 20,
+      maxZoom: 18, // Max zoom to ensure tile availability across all layers
       minZoom: 1,
     });
 
@@ -247,6 +250,22 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
 
         setAreaAcres(acres);
         setIsComplete(true);
+
+        // Auto-zoom for small urban plots
+        // If plot is less than 0.25 acres (~10,000 sq ft), zoom in close for better detail
+        if (acres < 0.25 && map.current) {
+          // Calculate center of polygon
+          const coords = feature.geometry.coordinates[0];
+          const centerLng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+          const centerLat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+
+          // Zoom to level 18 for small plots (max available across all tile sources)
+          map.current.flyTo({
+            center: [centerLng, centerLat],
+            zoom: 18,
+            duration: 1500
+          });
+        }
         onBoundaryComplete(feature, acres);
 
         // Zoom to fit boundary

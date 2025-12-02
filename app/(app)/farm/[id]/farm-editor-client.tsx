@@ -42,6 +42,40 @@ export function FarmEditorClient({
     changeMapLayer?: (layer: string) => void;
   }>({});
 
+  /**
+   * Build legend context text for AI
+   * Returns structured text describing map configuration and zones
+   */
+  const buildLegendContext = useCallback(() => {
+    const layerNames: Record<string, string> = {
+      satellite: "Satellite Imagery",
+      terrain: "Terrain Map",
+      topo: "OpenTopoMap",
+      usgs: "USGS Topographic",
+      street: "Street Map",
+    };
+
+    const zonesList = zones
+      .map((z) => {
+        const name = z.name || (z.properties ? JSON.parse(z.properties).name : null) || "Unlabeled";
+        const type = z.zone_type || "other";
+        return `  - ${name}: ${type}`;
+      })
+      .join("\n");
+
+    return `
+Map Configuration:
+- Layer: ${layerNames[currentMapLayer as keyof typeof layerNames] || currentMapLayer}
+- Grid System: A1, B2, C3 (columns west-to-east, rows south-to-north)
+- Grid Spacing: 50ft (imperial) / 25m (metric)
+
+Farm Boundary: Purple dashed outline (immutable)
+
+Zones on map:
+${zonesList || "  - No zones labeled yet"}
+    `.trim();
+  }, [currentMapLayer, zones]);
+
   useEffect(() => {
     const handleCloseChat = () => {
       setIsChatOpen(false);
@@ -303,11 +337,17 @@ export function FarmEditorClient({
 
       console.log("Capturing composite with overlays...");
 
-      // Temporarily show legend for screenshot (for LLM context)
-      const legendContent = mapContainerRef.current.querySelector('[data-legend-content]') as HTMLElement;
-      const wasLegendHidden = legendContent && legendContent.style.display === 'none';
-      if (legendContent && wasLegendHidden) {
-        legendContent.style.display = 'block';
+      // Collapse legend before screenshot (legend data will be sent as text to AI)
+      const legendContainer = mapContainerRef.current.querySelector('[data-legend-container]') as HTMLElement;
+      const wasLegendExpanded = legendContainer && legendContainer.getAttribute('data-collapsed') !== 'true';
+
+      if (legendContainer && wasLegendExpanded) {
+        // Temporarily collapse legend for clean screenshot
+        legendContainer.setAttribute('data-collapsed', 'true');
+        const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
+        if (legendContent) {
+          legendContent.style.display = 'none';
+        }
       }
 
       // Capture the entire container with html-to-image
@@ -333,8 +373,12 @@ export function FarmEditorClient({
       }
 
       // Restore legend state
-      if (legendContent && wasLegendHidden) {
-        legendContent.style.display = 'none';
+      if (legendContainer && wasLegendExpanded) {
+        legendContainer.setAttribute('data-collapsed', 'false');
+        const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
+        if (legendContent) {
+          legendContent.style.display = 'block';
+        }
       }
 
       console.log("Cleanup complete");
@@ -367,12 +411,13 @@ export function FarmEditorClient({
       if (mapCanvas) (mapCanvas as HTMLElement).style.opacity = '1';
 
       // Restore legend state even on error
-      const legendContent = mapContainerRef.current?.querySelector('[data-legend-content]') as HTMLElement;
-      if (legendContent && legendContent.style.display === 'block') {
-        // Check if it should be hidden (data-collapsed attribute)
-        const legendContainer = mapContainerRef.current?.querySelector('[data-legend-container]');
-        if (legendContainer?.getAttribute('data-collapsed') === 'true') {
-          legendContent.style.display = 'none';
+      const legendContainer = mapContainerRef.current?.querySelector('[data-legend-container]') as HTMLElement;
+      if (legendContainer) {
+        // Restore original collapsed state
+        const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
+        const shouldBeCollapsed = legendContainer.getAttribute('data-collapsed') === 'true';
+        if (legendContent) {
+          legendContent.style.display = shouldBeCollapsed ? 'none' : 'block';
         }
       }
 
@@ -561,7 +606,7 @@ export function FarmEditorClient({
         west: farm.center_lng - 0.001,
       };
 
-      // Get AI analysis - send BOTH screenshots, zones with grid coordinates, and map layer context
+      // Get AI analysis - send BOTH screenshots, zones with grid coordinates, map layer context, and legend context
       const analyzeRes = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -574,6 +619,7 @@ export function FarmEditorClient({
             { type: topoLayer, data: topoScreenshot },
           ],
           mapLayer: currentMapLayer,
+          legendContext: buildLegendContext(), // Include legend data as text
           zones: zones.map((zone) => {
             const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
             const gridCells = calculateGridCoordinates(geom, farmBounds, 'imperial');

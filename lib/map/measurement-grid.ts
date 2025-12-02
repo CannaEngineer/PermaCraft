@@ -1,6 +1,7 @@
 import type { Feature, LineString, Point } from 'geojson';
 
 export type GridUnit = 'imperial' | 'metric';
+export type GridDensity = 'auto' | 'sparse' | 'normal' | 'dense' | 'off';
 
 interface GridInterval {
   value: number;
@@ -8,8 +9,44 @@ interface GridInterval {
 }
 
 /**
+ * Get grid interval based on zoom level and user preference
+ * Adaptive grid that adjusts to zoom level unless user overrides
+ */
+export function getGridInterval(zoom: number, unit: GridUnit, density: GridDensity = 'auto'): GridInterval {
+  // If user turned off grid
+  if (density === 'off') {
+    return { value: 0, unit: unit === 'imperial' ? 'ft' : 'm' };
+  }
+
+  // User-specified density overrides
+  if (density === 'sparse') {
+    return unit === 'imperial' ? { value: 200, unit: 'ft' } : { value: 100, unit: 'm' };
+  }
+  if (density === 'normal') {
+    return unit === 'imperial' ? { value: 100, unit: 'ft' } : { value: 50, unit: 'm' };
+  }
+  if (density === 'dense') {
+    return unit === 'imperial' ? { value: 50, unit: 'ft' } : { value: 25, unit: 'm' };
+  }
+
+  // Auto mode - adapt to zoom level
+  if (unit === 'imperial') {
+    if (zoom < 14) return { value: 200, unit: 'ft' }; // Very sparse for overview
+    if (zoom < 17) return { value: 100, unit: 'ft' }; // Moderate for planning
+    if (zoom < 20) return { value: 50, unit: 'ft' };  // Detailed work
+    return { value: 25, unit: 'ft' }; // Ultra-detailed for urban plots
+  } else {
+    if (zoom < 14) return { value: 100, unit: 'm' }; // Very sparse for overview
+    if (zoom < 17) return { value: 50, unit: 'm' };  // Moderate for planning
+    if (zoom < 20) return { value: 25, unit: 'm' };  // Detailed work
+    return { value: 10, unit: 'm' }; // Ultra-detailed for urban plots
+  }
+}
+
+/**
  * Get fixed grid interval for the farm (independent of zoom level)
  * This creates a consistent reference grid that doesn't change as you zoom
+ * @deprecated Use getGridInterval() instead for adaptive grids
  */
 export function getFixedGridInterval(unit: GridUnit): GridInterval {
   if (unit === 'imperial') {
@@ -61,9 +98,17 @@ export function generateGridLines(
     east: number;
     west: number;
   },
-  unit: GridUnit
+  unit: GridUnit,
+  zoom: number = 15,
+  density: GridDensity = 'auto'
 ): { lines: Feature<LineString>[], labels: Feature<Point>[], latLines: number[], lngLines: number[] } {
-  const interval = getFixedGridInterval(unit);
+  const interval = getGridInterval(zoom, unit, density);
+
+  // If grid is off, return empty
+  if (interval.value === 0) {
+    return { lines: [], labels: [], latLines: [], lngLines: [] };
+  }
+
   const intervalMeters = unit === 'imperial'
     ? feetToMeters(interval.value)
     : interval.value;
@@ -164,9 +209,16 @@ export function generateViewportLabels(
     west: number;
   },
   unit: GridUnit,
-  zoom: number
+  zoom: number,
+  density: GridDensity = 'auto'
 ): Feature<Point>[] {
-  const interval = getFixedGridInterval(unit);
+  const interval = getGridInterval(zoom, unit, density);
+
+  // If grid is off, return empty
+  if (interval.value === 0) {
+    return [];
+  }
+
   const intervalMeters = unit === 'imperial'
     ? feetToMeters(interval.value)
     : interval.value;

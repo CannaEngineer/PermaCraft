@@ -1,0 +1,35 @@
+/**
+ * MapboxDraw Icon Contrast Overrides
+ *
+ * MapboxDraw uses background-image SVGs for icons (white fill)
+ * We need dark button backgrounds so white icons are visible
+ */
+
+/* All draw buttons get dark background - use multiple selectors for specificity */
+.mapboxgl-ctrl button.mapbox-gl-draw_ctrl-draw-btn,
+.mapbox-gl-draw_ctrl-draw-btn,
+button.mapbox-gl-draw_ctrl-draw-btn {
+  background-color: #334155 !important;
+  border: 1px solid #475569 !important;
+}
+
+.mapboxgl-ctrl button.mapbox-gl-draw_ctrl-draw-btn:hover,
+.mapbox-gl-draw_ctrl-draw-btn:hover,
+button.mapbox-gl-draw_ctrl-draw-btn:hover {
+  background-color: #475569 !important;
+  border-color: #64748b !important;
+}
+
+.mapboxgl-ctrl button.mapbox-gl-draw_ctrl-draw-btn.active,
+.mapbox-gl-draw_ctrl-draw-btn.active,
+button.mapbox-gl-draw_ctrl-draw-btn.active {
+  background-color: #10b981 !important;
+  border-color: #059669 !important;
+}
+
+/* Don't override navigation controls - keep them white */
+.maplibregl-ctrl-group button,
+.mapboxgl-ctrl-group button {
+  background-color: white !important;
+  border: 1px solid #cbd5e1 !important;
+}

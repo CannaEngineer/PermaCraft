@@ -9,9 +9,10 @@ import { Layers, Tag, HelpCircle, Circle } from "lucide-react";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapLegend } from "./map-legend";
-import { generateGridLines, generateViewportLabels, type GridUnit } from "@/lib/map/measurement-grid";
+import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
 import type { FeatureCollection, LineString, Point } from "geojson";
+import "../../app/mapbox-draw-override.css";
 
 /**
  * MapLibre Style Expression Generators
@@ -88,7 +89,7 @@ interface FarmMapProps {
   onMapLayerChange?: (layer: string) => void;
 }
 
-type MapLayer = "satellite" | "street" | "terrain" | "topo" | "usgs";
+type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
 
 export function FarmMap({
   farm,
@@ -102,15 +103,19 @@ export function FarmMap({
   const draw = useRef<MapboxDraw | null>(null);
   const [mapLayer, setMapLayer] = useState<MapLayer>("satellite");
   const [gridUnit, setGridUnit] = useState<"imperial" | "metric">("imperial");
+  const [gridDensity, setGridDensity] = useState<GridDensity>("auto");
   const [showLayerMenu, setShowLayerMenu] = useState(false);
+  const [showGridMenu, setShowGridMenu] = useState(false);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [zoneLabel, setZoneLabel] = useState("");
   const [zoneType, setZoneType] = useState<string>("other");
   const [showHelp, setShowHelp] = useState(false);
   const [bearing, setBearing] = useState(0);
+  const [pitch, setPitch] = useState(0);
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [circleMode, setCircleMode] = useState(false);
   const [circleCenter, setCircleCenter] = useState<[number, number] | null>(null);
+  const [terrainEnabled, setTerrainEnabled] = useState(false);
   const circleCenterMarker = useRef<maplibregl.Marker | null>(null);
 
   // Helper function to ensure custom layers are always on top
@@ -243,11 +248,11 @@ export function FarmMap({
             "interpolate", // Smooth transition between zoom levels
             ["linear"],
             ["zoom"],
-            10, 0.15,
-            13, 0.25,
-            15, 0.4,
-            17, 0.5,
-            20, 0.6
+            10, 0.05,  // Nearly invisible when zoomed out
+            13, 0.12,
+            15, 0.20,  // Subtle at medium zoom
+            17, 0.28,
+            20, 0.35   // Visible but not dominant when zoomed in
           ],
         },
       });
@@ -390,7 +395,7 @@ export function FarmMap({
         },
         center: [farm.center_lng, farm.center_lat],
         zoom: farm.zoom_level,
-        maxZoom: 20, // Satellite imagery available up to zoom 20
+        maxZoom: 18, // Max zoom to ensure tile availability across all layers
         minZoom: 1,
         // @ts-ignore - preserveDrawingBuffer is valid but missing from type definitions
         preserveDrawingBuffer: true, // Attempts to preserve canvas for screenshots (unreliable)
@@ -605,7 +610,10 @@ export function FarmMap({
       });
 
       map.current.addControl(draw.current as any, "top-right");
-      map.current.addControl(new maplibregl.NavigationControl(), "top-right");
+
+      // Add navigation control
+      const nav = new maplibregl.NavigationControl();
+      map.current.addControl(nav, "top-right");
 
       // Add custom circle button to the draw control panel
       setTimeout(() => {
@@ -618,7 +626,11 @@ export function FarmMap({
           circleButton.className = 'mapbox-gl-draw_ctrl-draw-btn mapbox-gl-draw_circle';
           circleButton.id = 'draw-circle-btn';
           circleButton.setAttribute('title', 'Circle tool (c)');
-          circleButton.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+          // Match MapboxDraw's background-image pattern with inline SVG for consistency
+          const circleSvg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="6" fill="none" stroke="white" stroke-width="2"/></svg>');
+          circleButton.style.backgroundImage = `url('data:image/svg+xml;utf8,${circleSvg}')`;
+          circleButton.style.backgroundRepeat = 'no-repeat';
+          circleButton.style.backgroundPosition = 'center';
 
           // Insert after polygon button (3rd button)
           const polygonBtn = drawControlGroup.parentElement.children[2];
@@ -632,14 +644,18 @@ export function FarmMap({
             setCircleMode(prev => !prev);
             setCircleCenter(null);
 
+            // Switch draw to simple_select to deactivate other tools
+            if (draw.current) {
+              draw.current.changeMode('simple_select');
+            }
+
             // Deactivate other draw tools
             document.querySelectorAll('.mapbox-gl-draw_ctrl-draw-btn').forEach(btn => {
               btn.classList.remove('active');
             });
 
-            if (draw.current) {
-              draw.current.changeMode('simple_select');
-            }
+            // Activate circle button
+            circleButton.classList.add('active');
           });
         }
       }, 100);
@@ -902,6 +918,13 @@ export function FarmMap({
         }
       });
 
+      // Update pitch when map tilts
+      map.current.on("pitch", () => {
+        if (map.current) {
+          setPitch(map.current.getPitch());
+        }
+      });
+
       // Prevent farm boundary from being edited or moved
       map.current.on("draw.selectionchange", (e: any) => {
         if (e.features && e.features.length > 0) {
@@ -933,8 +956,20 @@ export function FarmMap({
         }
       });
 
-      // Prevent farm boundary from entering edit mode
+      // Handle mode changes for both circle deselection and farm boundary protection
       map.current.on("draw.modechange", (e: any) => {
+        // Deactivate circle mode when switching to other draw tools
+        // Modes: draw_point, draw_line_string, draw_polygon, simple_select, direct_select
+        if (e.mode && (e.mode === 'draw_point' || e.mode === 'draw_line_string' || e.mode === 'draw_polygon')) {
+          setCircleMode(false);
+          setCircleCenter(null);
+          const circleBtn = document.getElementById('draw-circle-btn');
+          if (circleBtn) {
+            circleBtn.classList.remove('active');
+          }
+        }
+
+        // Prevent farm boundary from entering edit mode
         if (e.mode === "direct_select" && draw.current) {
           const selectedFeatures = draw.current.getSelected().features;
           if (selectedFeatures.length > 0) {
@@ -958,10 +993,6 @@ export function FarmMap({
       }
     };
   }, []); // Empty dependency array to run only once
-
-  useEffect(() => {
-    updateGrid();
-  }, [gridUnit]);
 
   // Circle drawing click handler - separate useEffect to avoid stale closure
   useEffect(() => {
@@ -1097,6 +1128,68 @@ export function FarmMap({
           layers: [{ id: "satellite", type: "raster", source: "satellite" }],
         };
         break;
+      case "mapbox-satellite":
+        // Note: Requires MAPBOX_ACCESS_TOKEN in environment variables
+        // Free tier: 200,000 tile requests/month
+        const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+        if (!mapboxToken) {
+          console.warn("Mapbox token not found, falling back to ESRI satellite");
+          // Fall back to ESRI if no token
+          style = {
+            version: 8,
+            sources: {
+              satellite: {
+                type: "raster",
+                tiles: [
+                  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                ],
+                tileSize: 256,
+                attribution: 'Tiles &copy; Esri',
+              },
+            },
+            layers: [{ id: "satellite", type: "raster", source: "satellite" }],
+          };
+        } else {
+          style = {
+            version: 8,
+            sources: {
+              'mapbox-satellite': {
+                type: "raster",
+                tiles: [
+                  `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg?access_token=${mapboxToken}`,
+                ],
+                tileSize: 256,
+                attribution: '© <a href="https://www.mapbox.com/">Mapbox</a>',
+              },
+            },
+            layers: [{ id: "mapbox-satellite", type: "raster", source: "mapbox-satellite" }],
+          };
+        }
+        break;
+      case "terrain-3d":
+        // 3D terrain with satellite overlay
+        const mapboxToken3d = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+        style = {
+          version: 8,
+          sources: {
+            satellite: {
+              type: "raster",
+              tiles: [
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+              ],
+              tileSize: 256,
+            },
+            'terrain-dem': {
+              type: 'raster-dem',
+              url: mapboxToken3d
+                ? `https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=${mapboxToken3d}`
+                : 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+              tileSize: 256,
+            },
+          },
+          layers: [{ id: "satellite", type: "raster", source: "satellite" }],
+        };
+        break;
       case "terrain":
         style = {
           version: 8,
@@ -1157,6 +1250,10 @@ export function FarmMap({
     draw.current = null; // Clear the old draw instance
 
     map.current.setStyle(style);
+
+    // setStyle resets map options, so re-enforce maxZoom to prevent "map data not available" errors
+    map.current.setMaxZoom(18);
+
     setMapLayer(layer);
     setShowLayerMenu(false);
 
@@ -1174,6 +1271,22 @@ export function FarmMap({
         if (!map.current) return;
 
         console.log("Map idle, re-adding custom layers...");
+
+        // Enable 3D terrain if on terrain-3d layer
+        if (layer === "terrain-3d" && map.current.getSource('terrain-dem')) {
+          map.current.setTerrain({
+            source: 'terrain-dem',
+            exaggeration: 1.5 // Amplify terrain for permaculture slope analysis
+          });
+          setTerrainEnabled(true);
+          console.log("3D terrain enabled");
+        } else {
+          // Disable terrain for other layers
+          if (map.current.getTerrain()) {
+            map.current.setTerrain(null);
+          }
+          setTerrainEnabled(false);
+        }
 
         // Re-initialize MapboxDraw after style load
         draw.current = new MapboxDraw({
@@ -1365,7 +1478,10 @@ export function FarmMap({
           ],
         });
         map.current.addControl(draw.current as any, "top-right");
-        map.current.addControl(new maplibregl.NavigationControl(), "top-right");
+
+        // Re-add navigation control (setStyle removes all controls)
+        const nav = new maplibregl.NavigationControl();
+        map.current.addControl(nav, "top-right");
 
         // Re-add custom circle button to the draw control panel
         setTimeout(() => {
@@ -1378,7 +1494,11 @@ export function FarmMap({
             circleButton.className = 'mapbox-gl-draw_ctrl-draw-btn mapbox-gl-draw_circle';
             circleButton.id = 'draw-circle-btn';
             circleButton.setAttribute('title', 'Circle tool (c)');
-            circleButton.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+            // Match MapboxDraw's background-image pattern with inline SVG for consistency
+            const circleSvg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="6" fill="none" stroke="white" stroke-width="2"/></svg>');
+            circleButton.style.backgroundImage = `url('data:image/svg+xml;utf8,${circleSvg}')`;
+            circleButton.style.backgroundRepeat = 'no-repeat';
+            circleButton.style.backgroundPosition = 'center';
 
             // Insert after polygon button (3rd button)
             const polygonBtn = drawControlGroup.parentElement.children[2];
@@ -1392,14 +1512,18 @@ export function FarmMap({
               setCircleMode(prev => !prev);
               setCircleCenter(null);
 
+              // Switch draw to simple_select to deactivate other tools
+              if (draw.current) {
+                draw.current.changeMode('simple_select');
+              }
+
               // Deactivate other draw tools
               document.querySelectorAll('.mapbox-gl-draw_ctrl-draw-btn').forEach(btn => {
                 btn.classList.remove('active');
               });
 
-              if (draw.current) {
-                draw.current.changeMode('simple_select');
-              }
+              // Activate circle button
+              circleButton.classList.add('active');
             });
           }
         }, 100);
@@ -1708,7 +1832,7 @@ export function FarmMap({
    * - Spacing: 50 feet (imperial) or 25 meters (metric)
    * - Example: "D4" refers to column D, row 4
    */
-  const updateGrid = () => {
+  const updateGrid = useCallback(() => {
     if (!map.current) return;
 
     // Get farm bounds (from farm_boundary zone or all zones)
@@ -1731,8 +1855,9 @@ export function FarmMap({
      *
      * Lines span the full property from west to east and north to south.
      * This ensures the grid is always visible regardless of pan/zoom.
+     * Now adaptive - spacing adjusts with zoom level and user preference.
      */
-    const { lines } = generateGridLines(farmBounds, gridUnit);
+    const { lines } = generateGridLines(farmBounds, gridUnit, zoom, gridDensity);
 
     /**
      * Generate labels ONLY for visible viewport
@@ -1747,7 +1872,7 @@ export function FarmMap({
      * - Low zoom: Sparse labels (every 4th intersection)
      * - High zoom: Dense labels (every intersection)
      */
-    const viewportLabels = generateViewportLabels(farmBounds, viewport, gridUnit, zoom);
+    const viewportLabels = generateViewportLabels(farmBounds, viewport, gridUnit, zoom, gridDensity);
 
     // Update GeoJSON sources with new data
     const gridLineSource = map.current.getSource(
@@ -1770,7 +1895,14 @@ export function FarmMap({
         features: viewportLabels,
       });
     }
-  };
+  }, [gridUnit, gridDensity]);
+
+  // Trigger grid update when density or unit changes
+  useEffect(() => {
+    if (map.current) {
+      updateGrid();
+    }
+  }, [gridDensity, gridUnit, updateGrid]);
 
   return (
     <div className="relative h-full w-full">
@@ -1789,6 +1921,8 @@ export function FarmMap({
         >
           <Layers className="h-4 w-4 mr-2" />
           {mapLayer === "satellite" && "Satellite"}
+          {mapLayer === "mapbox-satellite" && "Mapbox Sat"}
+          {mapLayer === "terrain-3d" && "3D Terrain"}
           {mapLayer === "street" && "Street"}
           {mapLayer === "terrain" && "Terrain"}
           {mapLayer === "topo" && "OpenTopoMap"}
@@ -1796,22 +1930,39 @@ export function FarmMap({
         </Button>
 
         {showLayerMenu && (
-          <div className="absolute top-full mt-2 bg-card rounded shadow-lg p-2 space-y-1 min-w-[140px] z-50">
+          <div className="absolute top-full mt-2 bg-card rounded shadow-lg p-2 space-y-1 min-w-[160px] z-50">
             <button
               onClick={() => changeMapLayer("satellite")}
               className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
                 mapLayer === "satellite" ? "bg-accent font-medium" : ""
               }`}
             >
-              Satellite
+              Satellite (ESRI)
             </button>
+            <button
+              onClick={() => changeMapLayer("mapbox-satellite")}
+              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                mapLayer === "mapbox-satellite" ? "bg-accent font-medium" : ""
+              }`}
+            >
+              Mapbox Satellite
+            </button>
+            <button
+              onClick={() => changeMapLayer("terrain-3d")}
+              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                mapLayer === "terrain-3d" ? "bg-accent font-medium" : ""
+              }`}
+            >
+              3D Terrain
+            </button>
+            <div className="border-t border-border my-1"></div>
             <button
               onClick={() => changeMapLayer("terrain")}
               className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
                 mapLayer === "terrain" ? "bg-accent font-medium" : ""
               }`}
             >
-              Terrain
+              Terrain Map
             </button>
             <button
               onClick={() => changeMapLayer("topo")}
@@ -1835,14 +1986,14 @@ export function FarmMap({
                 mapLayer === "street" ? "bg-accent font-medium" : ""
               }`}
             >
-              Street
+              Street Map
             </button>
           </div>
         )}
       </div>
 
-      {/* Grid Unit Toggle */}
-      <div className="absolute top-20 left-4 z-10">
+      {/* Grid Controls */}
+      <div className="absolute top-20 left-4 z-10 flex gap-2">
         <Button
           onClick={() =>
             setGridUnit(gridUnit === "imperial" ? "metric" : "imperial")
@@ -1853,8 +2004,130 @@ export function FarmMap({
         >
           {gridUnit === "imperial" ? "Feet" : "Meters"} ⟷
         </Button>
+
+        <div className="relative">
+          <Button
+            onClick={() => {
+              setShowGridMenu(!showGridMenu);
+              setShowLayerMenu(false);
+              setShowHelp(false);
+            }}
+            variant="secondary"
+            size="sm"
+            className="bg-card text-card-foreground shadow-lg"
+          >
+            Grid: {gridDensity === "auto" ? "Auto" : gridDensity.charAt(0).toUpperCase() + gridDensity.slice(1)} ▾
+          </Button>
+
+          {showGridMenu && (
+            <div className="absolute top-full mt-2 bg-card rounded shadow-lg p-2 space-y-1 min-w-[140px] z-50">
+              <button
+                onClick={() => {
+                  setGridDensity("auto");
+                  setShowGridMenu(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                  gridDensity === "auto" ? "bg-accent font-medium" : ""
+                }`}
+              >
+                Auto
+              </button>
+              <button
+                onClick={() => {
+                  setGridDensity("sparse");
+                  setShowGridMenu(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                  gridDensity === "sparse" ? "bg-accent font-medium" : ""
+                }`}
+              >
+                Sparse
+              </button>
+              <button
+                onClick={() => {
+                  setGridDensity("normal");
+                  setShowGridMenu(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                  gridDensity === "normal" ? "bg-accent font-medium" : ""
+                }`}
+              >
+                Normal
+              </button>
+              <button
+                onClick={() => {
+                  setGridDensity("dense");
+                  setShowGridMenu(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                  gridDensity === "dense" ? "bg-accent font-medium" : ""
+                }`}
+              >
+                Dense
+              </button>
+              <button
+                onClick={() => {
+                  setGridDensity("off");
+                  setShowGridMenu(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
+                  gridDensity === "off" ? "bg-accent font-medium" : ""
+                }`}
+              >
+                Off
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
+
+      {/* 3D Terrain Controls - positioned at bottom right when terrain enabled */}
+      {terrainEnabled && (
+        <div className="absolute bottom-20 right-4 z-10 flex flex-col gap-2">
+          <Button
+            onClick={() => {
+              if (map.current) {
+                const currentPitch = map.current.getPitch();
+                map.current.easeTo({ pitch: currentPitch >= 60 ? 0 : currentPitch + 15, duration: 500 });
+              }
+            }}
+            variant="secondary"
+            size="sm"
+            className="bg-card text-card-foreground shadow-lg"
+            title="Tilt up (increase pitch)"
+          >
+            ⬆️ Tilt
+          </Button>
+          <Button
+            onClick={() => {
+              if (map.current) {
+                const currentPitch = map.current.getPitch();
+                map.current.easeTo({ pitch: Math.max(0, currentPitch - 15), duration: 500 });
+              }
+            }}
+            variant="secondary"
+            size="sm"
+            className="bg-card text-card-foreground shadow-lg"
+            title="Tilt down (decrease pitch)"
+          >
+            ⬇️ Flat
+          </Button>
+          <Button
+            onClick={() => {
+              if (map.current) {
+                map.current.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+              }
+            }}
+            variant="secondary"
+            size="sm"
+            className="bg-card text-card-foreground shadow-lg"
+            title="Reset view to north-up, flat"
+          >
+            🧭 Reset
+          </Button>
+        </div>
+      )}
 
       {/* Drawing Tools Help - positioned at bottom right */}
       <div className="absolute bottom-4 right-4 z-10">
