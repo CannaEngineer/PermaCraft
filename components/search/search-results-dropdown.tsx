@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { SearchResultItem } from "./search-result-item";
 import { SearchResult } from "@/hooks/use-search";
 import { cn } from "@/lib/utils";
@@ -113,17 +114,20 @@ export function SearchResultsDropdown({
 
   // Flatten results for keyboard navigation
   // This creates a single array that maps highlightedIndex to specific items
-  const flattenedResults: Array<{ type: string; data: any }> = [
-    ...results.farms.map((f) => ({ type: "farm", data: f })),
-    ...results.posts.map((p) => ({ type: "post", data: p })),
-    ...results.species.map((s) => ({ type: "species", data: s })),
-    ...results.zones.map((z) => ({ type: "zone", data: z })),
-    ...results.users.map((u) => ({ type: "user", data: u })),
-    ...results.ai_conversations.map((c) => ({
-      type: "ai_conversation",
-      data: c,
-    })),
-  ];
+  // Only include the displayed items (max 3 per section) to match what's rendered
+  const flattenedResults = useMemo(() => {
+    return [
+      ...results.farms.slice(0, 3).map((f) => ({ type: "farm", data: f })),
+      ...results.posts.slice(0, 3).map((p) => ({ type: "post", data: p })),
+      ...results.species.slice(0, 3).map((s) => ({ type: "species", data: s })),
+      ...results.zones.slice(0, 3).map((z) => ({ type: "zone", data: z })),
+      ...results.users.slice(0, 3).map((u) => ({ type: "user", data: u })),
+      ...results.ai_conversations.slice(0, 3).map((c) => ({
+        type: "ai_conversation",
+        data: c,
+      })),
+    ];
+  }, [results]);
 
   const hasResults = flattenedResults.length > 0;
 
