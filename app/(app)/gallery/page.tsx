@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { GlobalFeedClient } from "@/components/feed/global-feed-client";
+import { UniversalSearch } from "@/components/search/universal-search";
 
 export default async function GalleryPage() {
   const session = await requireAuth();
@@ -77,6 +78,15 @@ export default async function GalleryPage() {
           <p className="text-muted-foreground mt-2">
             Discover farms and permaculture designs from the community
           </p>
+        </div>
+
+        {/* Search Community Content */}
+        <div className="mb-2">
+          <UniversalSearch
+            context="community"
+            placeholder="Search public farms and posts..."
+            className="w-full"
+          />
         </div>
 
         <GlobalFeedClient initialData={initialFeedData} />
