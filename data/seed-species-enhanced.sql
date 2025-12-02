@@ -26,9 +26,9 @@ UPDATE species SET
 WHERE id = 'sp-serviceberry';
 
 UPDATE species SET
-  permaculture_functions = '["nitrogen_fixer","spring_flowers","pollinator_support"]',
+  permaculture_functions = '["spring_flowers","pollinator_support","ornamental"]',
   companion_plants = '["Serviceberry","Elderberry"]',
-  zone_placement_notes = 'Great for Zone 1-2 as ornamental and nitrogen source.',
+  zone_placement_notes = 'Great for Zone 1-2 as ornamental tree. Beautiful spring blooms.',
   edible_parts = '{}',
   sourcing_notes = 'Common at nurseries. Grows quickly.',
   broad_regions = '["Northeast","Mid_Atlantic","Southeast","Midwest"]',
