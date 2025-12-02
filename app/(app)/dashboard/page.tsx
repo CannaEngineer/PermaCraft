@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlusIcon, MapIcon } from "lucide-react";
 import { FarmCard } from "@/components/dashboard/farm-card";
+import { UniversalSearch } from "@/components/search/universal-search";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -56,6 +57,15 @@ export default async function DashboardPage() {
             New Farm
           </Link>
         </Button>
+      </div>
+
+      {/* Search My Farms */}
+      <div className="mb-6">
+        <UniversalSearch
+          context="my-farms"
+          placeholder="Search your farms, zones, and conversations..."
+          className="max-w-2xl"
+        />
       </div>
 
       {farms.length === 0 ? (
