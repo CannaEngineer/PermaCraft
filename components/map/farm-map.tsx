@@ -9,6 +9,7 @@ import { Layers, Tag, HelpCircle, Circle } from "lucide-react";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapLegend } from "./map-legend";
+import { PlantingMarker } from "./planting-marker";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
 import type { FeatureCollection, LineString, Point } from "geojson";
@@ -118,6 +119,11 @@ export function FarmMap({
   const [terrainEnabled, setTerrainEnabled] = useState(false);
   const circleCenterMarker = useRef<maplibregl.Marker | null>(null);
 
+  // Planting mode state
+  const [plantingMode, setPlantingMode] = useState(false);
+  const [selectedSpecies, setSelectedSpecies] = useState<any>(null);
+  const [plantings, setPlantings] = useState<any[]>([]);
+
   // Helper function to ensure custom layers are always on top
   const ensureCustomLayersOnTop = useCallback(() => {
     if (!map.current) return;
@@ -152,6 +158,51 @@ export function FarmMap({
       console.warn("Missing layers (not yet added):", missingLayers);
     }
   }, []);
+
+  // Load plantings from API
+  const loadPlantings = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/plantings`);
+      const data = await response.json();
+      setPlantings(data.plantings || []);
+    } catch (error) {
+      console.error('Failed to load plantings:', error);
+    }
+  }, [farm.id]);
+
+  // Load plantings on mount
+  useEffect(() => {
+    if (farm.id && map.current) {
+      loadPlantings();
+    }
+  }, [farm.id, loadPlantings]);
+
+  // Handle planting click in planting mode
+  const handlePlantingClick = useCallback(async (e: any) => {
+    if (!plantingMode || !selectedSpecies || !map.current) return;
+
+    const { lng, lat } = e.lngLat;
+
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/plantings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          species_id: selectedSpecies.id,
+          lat,
+          lng,
+          planted_year: new Date().getFullYear()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPlantings(prev => [...prev, data.planting]);
+      }
+    } catch (error) {
+      console.error('Failed to create planting:', error);
+    }
+  }, [plantingMode, selectedSpecies, farm.id]);
 
   // Manage circle center marker
   useEffect(() => {
@@ -994,11 +1045,18 @@ export function FarmMap({
     };
   }, []); // Empty dependency array to run only once
 
-  // Circle drawing click handler - separate useEffect to avoid stale closure
+  // Circle drawing and planting click handler - separate useEffect to avoid stale closure
   useEffect(() => {
     if (!map.current) return;
 
     const handleMapClick = (e: maplibregl.MapMouseEvent) => {
+      // Handle planting mode first
+      if (plantingMode) {
+        handlePlantingClick(e);
+        return;
+      }
+
+      // Handle circle mode
       if (!circleMode || !draw.current) return;
 
       if (!circleCenter) {
@@ -1050,7 +1108,7 @@ export function FarmMap({
         map.current.off("click", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, onZonesChange]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {
@@ -2081,6 +2139,17 @@ export function FarmMap({
         </div>
       </div>
 
+      {/* Planting Mode Button */}
+      <div className="absolute top-36 left-4 z-10">
+        <Button
+          onClick={() => setPlantingMode(!plantingMode)}
+          variant={plantingMode ? 'default' : 'outline'}
+          size="sm"
+          className={plantingMode ? 'bg-green-600' : 'bg-card text-card-foreground shadow-lg'}
+        >
+          {plantingMode ? 'Exit Planting Mode' : 'Add Plantings'}
+        </Button>
+      </div>
 
       {/* 3D Terrain Controls - positioned at bottom right when terrain enabled */}
       {terrainEnabled && (
@@ -2311,6 +2380,19 @@ export function FarmMap({
         isCollapsed={legendCollapsed}
         onToggle={() => setLegendCollapsed(!legendCollapsed)}
       />
+
+      {/* Render planting markers */}
+      {map.current && plantings.map(planting => (
+        <PlantingMarker
+          key={planting.id}
+          planting={planting}
+          map={map.current!}
+          onClick={(p) => {
+            console.log('Clicked planting:', p);
+            // TODO: Show detail popup
+          }}
+        />
+      ))}
     </div>
   );
 }
