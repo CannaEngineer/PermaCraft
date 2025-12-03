@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { SpeciesCard } from '@/components/species/species-card';
 import { SpeciesFilterSidebar } from '@/components/species/species-filter-sidebar';
+import { SpeciesDetailModal } from '@/components/species/species-detail-modal';
 import type { Species } from '@/lib/db/schema';
 import { Search } from 'lucide-react';
 
@@ -15,6 +16,7 @@ export default function PlantsPage() {
   const [nativeFilter, setNativeFilter] = useState<'all' | 'native' | 'naturalized'>('all');
   const [layerFilter, setLayerFilter] = useState<string[]>([]);
   const [functionFilter, setFunctionFilter] = useState<string[]>([]);
+  const [selectedSpeciesId, setSelectedSpeciesId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSpecies();
@@ -119,10 +121,7 @@ export default function PlantsPage() {
                   <SpeciesCard
                     key={s.id}
                     species={s}
-                    onClick={() => {
-                      // TODO: Open detail modal
-                      console.log('View species:', s.id);
-                    }}
+                    onClick={() => setSelectedSpeciesId(s.id)}
                   />
                 ))}
               </div>
@@ -130,6 +129,12 @@ export default function PlantsPage() {
           )}
         </div>
       </div>
+
+      {/* Species Detail Modal */}
+      <SpeciesDetailModal
+        speciesId={selectedSpeciesId}
+        onClose={() => setSelectedSpeciesId(null)}
+      />
     </div>
   );
 }
