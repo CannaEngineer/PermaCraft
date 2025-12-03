@@ -752,7 +752,7 @@ IMPORTANT: When suggesting new plantings:
         screenshot: currentLayerScreenshot, // Return primary screenshot for display in chat
       };
     },
-    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot]
+    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, buildLegendContext, buildNativeSpeciesContext, buildPlantingsContext]
   );
 
   return (
