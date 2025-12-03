@@ -284,10 +284,11 @@ export async function POST(request: NextRequest) {
         const userContent: any[] = [{ type: "text", text: userPrompt }];
 
         // Add all screenshot images to the content array
+        // Use R2 URLs if available, otherwise use base64 data
         screenshots.forEach((screenshot, idx) => {
           userContent.push({
             type: "image_url",
-            image_url: { url: screenshot.data }, // Can be base64 or URL
+            image_url: { url: screenshotUrls[idx] }, // R2 URL or base64 fallback
           });
         });
 
@@ -325,6 +326,10 @@ export async function POST(request: NextRequest) {
          * - Free models have aggressive limits (often 1-5 requests/minute)
          * - Try next model - often succeeds immediately
          *
+         * Payload Too Large (413):
+         * - Model has smaller context window or payload limits
+         * - Try next model which may support larger payloads
+         *
          * Model Not Found (404):
          * - Model is no longer available or name has changed
          * - Try next model in the list
@@ -340,6 +345,7 @@ export async function POST(request: NextRequest) {
          * - These won't be fixed by trying another model
          */
         const isRateLimited = error?.status === 429 || error?.code === 429;
+        const isPayloadTooLarge = error?.status === 413 || error?.code === 413;
         const isNotFound = error?.status === 404 || error?.code === 404;
         const isUnsupported = error?.error?.message?.includes('unsupported') ||
                              error?.error?.message?.includes('does not support') ||
@@ -347,6 +353,9 @@ export async function POST(request: NextRequest) {
 
         if (isRateLimited) {
           console.log(`Rate limited on ${model}, trying next model...`);
+          continue; // Try next model
+        } else if (isPayloadTooLarge) {
+          console.log(`Payload too large for ${model}, trying next model...`);
           continue; // Try next model
         } else if (isNotFound) {
           console.log(`Model ${model} not found or unavailable, trying next model...`);
