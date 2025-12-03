@@ -119,12 +119,15 @@ When suggesting plants, prioritize these natives and explain their permaculture 
     const currentYear = new Date().getFullYear();
 
     const plantingsList = plantings.map(p => {
-      const age = currentYear - p.planted_year;
+      const age = currentYear - (p.planted_year || currentYear);
       const customName = p.name ? ` "${p.name}"` : '';
       const size = p.mature_height_ft ? ` (mature: ${p.mature_height_ft}ft high)` : '';
       const notes = p.notes ? ` - Notes: ${p.notes}` : '';
+      const commonName = p.common_name || 'Unknown plant';
+      const scientificName = p.scientific_name || 'Unknown species';
+      const layer = p.layer || 'unknown';
 
-      return `  - ${p.common_name}${customName} (${p.scientific_name}): ${p.layer} layer, planted ${p.planted_year} (${age} years old)${size}, at ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}${notes}`;
+      return `  - ${commonName}${customName} (${scientificName}): ${layer} layer, planted ${p.planted_year || currentYear} (${age} years old)${size}, at ${(p.lat || 0).toFixed(6)}, ${(p.lng || 0).toFixed(6)}${notes}`;
     }).join('\n');
 
     return `
