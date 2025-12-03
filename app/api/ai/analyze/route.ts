@@ -325,6 +325,10 @@ export async function POST(request: NextRequest) {
          * - Free models have aggressive limits (often 1-5 requests/minute)
          * - Try next model - often succeeds immediately
          *
+         * Model Not Found (404):
+         * - Model is no longer available or name has changed
+         * - Try next model in the list
+         *
          * Unsupported Vision:
          * - Some models advertised as vision-capable don't actually support it
          * - Check error message for 'unsupported' or 'does not support'
@@ -336,12 +340,16 @@ export async function POST(request: NextRequest) {
          * - These won't be fixed by trying another model
          */
         const isRateLimited = error?.status === 429 || error?.code === 429;
+        const isNotFound = error?.status === 404 || error?.code === 404;
         const isUnsupported = error?.error?.message?.includes('unsupported') ||
                              error?.error?.message?.includes('does not support') ||
                              error?.error?.message?.includes('vision');
 
         if (isRateLimited) {
           console.log(`Rate limited on ${model}, trying next model...`);
+          continue; // Try next model
+        } else if (isNotFound) {
+          console.log(`Model ${model} not found or unavailable, trying next model...`);
           continue; // Try next model
         } else if (isUnsupported) {
           console.log(`Model ${model} doesn't support vision, trying next model...`);
