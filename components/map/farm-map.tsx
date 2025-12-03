@@ -10,7 +10,10 @@ import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapLegend } from "./map-legend";
 import { PlantingMarker } from "./planting-marker";
+import { SpeciesPickerPanel } from "./species-picker-panel";
+import { PlantingForm } from "./planting-form";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
+import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
 import type { FeatureCollection, LineString, Point } from "geojson";
 import "../../app/mapbox-draw-override.css";
@@ -121,8 +124,11 @@ export function FarmMap({
 
   // Planting mode state
   const [plantingMode, setPlantingMode] = useState(false);
-  const [selectedSpecies, setSelectedSpecies] = useState<any>(null);
+  const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [plantings, setPlantings] = useState<any[]>([]);
+  const [showSpeciesPicker, setShowSpeciesPicker] = useState(false);
+  const [showPlantingForm, setShowPlantingForm] = useState(false);
+  const [plantingClickPos, setPlantingClickPos] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
 
   // Helper function to ensure custom layers are always on top
   const ensureCustomLayersOnTop = useCallback(() => {
@@ -177,11 +183,31 @@ export function FarmMap({
     }
   }, [farm.id, loadPlantings]);
 
-  // Handle planting click in planting mode
-  const handlePlantingClick = useCallback(async (e: any) => {
+  // Handle planting click in planting mode - show form
+  const handlePlantingClick = useCallback((e: any) => {
     if (!plantingMode || !selectedSpecies || !map.current) return;
 
     const { lng, lat } = e.lngLat;
+    const point = map.current.project([lng, lat]);
+
+    // Show planting form at click position
+    setPlantingClickPos({
+      x: point.x,
+      y: point.y,
+      lat,
+      lng
+    });
+    setShowPlantingForm(true);
+  }, [plantingMode, selectedSpecies]);
+
+  // Handle planting form submission
+  const handlePlantingSubmit = useCallback(async (formData: {
+    custom_name?: string;
+    planted_year: number;
+    zone_id?: string;
+    notes?: string;
+  }) => {
+    if (!selectedSpecies || !plantingClickPos) return;
 
     try {
       const response = await fetch(`/api/farms/${farm.id}/plantings`, {
@@ -189,20 +215,27 @@ export function FarmMap({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           species_id: selectedSpecies.id,
-          lat,
-          lng,
-          planted_year: new Date().getFullYear()
+          lat: plantingClickPos.lat,
+          lng: plantingClickPos.lng,
+          ...formData
         })
       });
 
       if (response.ok) {
         const data = await response.json();
         setPlantings(prev => [...prev, data.planting]);
+
+        // Close form
+        setShowPlantingForm(false);
+        setPlantingClickPos(null);
+
+        // Keep planting mode active for multiple plantings
+        // User can click again to place another of the same species
       }
     } catch (error) {
       console.error('Failed to create planting:', error);
     }
-  }, [plantingMode, selectedSpecies, farm.id]);
+  }, [selectedSpecies, plantingClickPos, farm.id]);
 
   // Manage circle center marker
   useEffect(() => {
@@ -1964,7 +1997,11 @@ export function FarmMap({
 
   return (
     <div className="relative h-full w-full">
-      <div ref={mapContainer} className="h-full w-full" />
+      <div
+        ref={mapContainer}
+        className="h-full w-full"
+        style={{ cursor: plantingMode && selectedSpecies ? 'crosshair' : 'default' }}
+      />
 
       {/* Map Layer Selector */}
       <div className="absolute top-4 left-4 z-10">
@@ -2142,7 +2179,19 @@ export function FarmMap({
       {/* Planting Mode Button */}
       <div className="absolute top-36 left-4 z-10">
         <Button
-          onClick={() => setPlantingMode(!plantingMode)}
+          onClick={() => {
+            if (plantingMode) {
+              // Exit planting mode
+              setPlantingMode(false);
+              setSelectedSpecies(null);
+              setShowSpeciesPicker(false);
+              setShowPlantingForm(false);
+              setPlantingClickPos(null);
+            } else {
+              // Enter planting mode - show species picker
+              setShowSpeciesPicker(true);
+            }
+          }}
           variant={plantingMode ? 'default' : 'outline'}
           size="sm"
           className={plantingMode ? 'bg-green-600' : 'bg-card text-card-foreground shadow-lg'}
@@ -2150,6 +2199,15 @@ export function FarmMap({
           {plantingMode ? 'Exit Planting Mode' : 'Add Plantings'}
         </Button>
       </div>
+
+      {/* Selected Species Indicator */}
+      {plantingMode && selectedSpecies && !showSpeciesPicker && (
+        <div className="absolute top-52 left-4 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="text-xs font-medium">Planting:</div>
+          <div className="font-semibold">{selectedSpecies.common_name}</div>
+          <div className="text-xs opacity-90 italic">{selectedSpecies.scientific_name}</div>
+        </div>
+      )}
 
       {/* 3D Terrain Controls - positioned at bottom right when terrain enabled */}
       {terrainEnabled && (
@@ -2393,6 +2451,38 @@ export function FarmMap({
           }}
         />
       ))}
+
+      {/* Species Picker Panel */}
+      {showSpeciesPicker && (
+        <SpeciesPickerPanel
+          farmId={farm.id}
+          onSelectSpecies={(species) => {
+            setSelectedSpecies(species);
+            setPlantingMode(true);
+            setShowSpeciesPicker(false);
+          }}
+          onClose={() => {
+            setShowSpeciesPicker(false);
+            if (!selectedSpecies) {
+              setPlantingMode(false);
+            }
+          }}
+        />
+      )}
+
+      {/* Planting Form */}
+      {showPlantingForm && selectedSpecies && plantingClickPos && (
+        <PlantingForm
+          species={selectedSpecies}
+          position={{ x: plantingClickPos.x, y: plantingClickPos.y }}
+          zones={zones}
+          onSubmit={handlePlantingSubmit}
+          onCancel={() => {
+            setShowPlantingForm(false);
+            setPlantingClickPos(null);
+          }}
+        />
+      )}
     </div>
   );
 }
