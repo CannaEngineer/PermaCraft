@@ -269,6 +269,7 @@ export function createAnalysisPrompt(
     }>;
     legendContext?: string;
     nativeSpeciesContext?: string;
+    plantingsContext?: string;
   }
 ): string {
   /**
@@ -307,6 +308,7 @@ ${farmContext.soilType ? `SOIL: ${farmContext.soilType}` : ""}
 MAP VIEW: ${mapContext?.layer ? layerDescriptions[mapContext.layer] || mapContext.layer : "satellite imagery"}
 ${zonesInfo}
 ${mapContext?.nativeSpeciesContext ? `\n${mapContext.nativeSpeciesContext}\n` : ""}
+${mapContext?.plantingsContext ? `\n${mapContext.plantingsContext}\n` : ""}
 GRID: Yellow grid lines visible in screenshot. 50ft spacing (imperial). Columns = A,B,C... (west to east), Rows = 1,2,3... (south to north)
 
 USER QUESTION:
