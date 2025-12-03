@@ -182,12 +182,8 @@ export function FarmMap({
     }
   }, [farm.id]);
 
-  // Load plantings on mount
-  useEffect(() => {
-    if (farm.id && map.current) {
-      loadPlantings();
-    }
-  }, [farm.id, loadPlantings]);
+  // Note: Initial planting load is handled in map "load" event
+  // This ensures plantings are loaded after map is fully initialized
 
   // Handle planting click in planting mode - show form
   const handlePlantingClick = useCallback((e: any) => {
@@ -919,6 +915,9 @@ export function FarmMap({
         setTimeout(() => {
           addColoredZoneLayers();
         }, 100);
+
+        // Load plantings from API
+        loadPlantings();
 
         // Load initial zones
         if (draw.current && zones.length > 0) {
