@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, ImageIcon, LogOut } from "lucide-react";
+import { MapIcon, LayoutDashboard, ImageIcon, Leaf, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Gallery", href: "/gallery", icon: ImageIcon },
+  { name: "Plants", href: "/plants", icon: Leaf },
 ];
 
 export function Sidebar({ userName }: { userName: string }) {
