@@ -8,11 +8,35 @@ interface MapLegendProps {
   mapLayer: "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
   gridUnit: "imperial" | "metric";
   zones: any[]; // Array of zones on the map
+  plantings?: any[]; // Array of plantings on the map
   isCollapsed?: boolean;
   onToggle?: () => void;
 }
 
-export function MapLegend({ mapLayer, gridUnit, zones, isCollapsed = false, onToggle }: MapLegendProps) {
+// Planting layer colors (matches PlantingMarker.tsx)
+const LAYER_COLORS: Record<string, string> = {
+  canopy: '#166534',
+  understory: '#16a34a',
+  shrub: '#22c55e',
+  herbaceous: '#84cc16',
+  groundcover: '#a3e635',
+  vine: '#a855f7',
+  root: '#78350f',
+  aquatic: '#0284c7'
+};
+
+const LAYER_LABELS: Record<string, string> = {
+  canopy: 'Canopy',
+  understory: 'Understory',
+  shrub: 'Shrub',
+  herbaceous: 'Herbaceous',
+  groundcover: 'Groundcover',
+  vine: 'Vine',
+  root: 'Root',
+  aquatic: 'Aquatic'
+};
+
+export function MapLegend({ mapLayer, gridUnit, zones, plantings = [], isCollapsed = false, onToggle }: MapLegendProps) {
   const gridSpacing = gridUnit === "imperial" ? "50 ft" : "25 m";
 
   const layerNames = {
@@ -36,6 +60,18 @@ export function MapLegend({ mapLayer, gridUnit, zones, isCollapsed = false, onTo
 
   // Convert to sorted array for display
   const displayZoneTypes = Array.from(usedZoneTypes).sort();
+
+  // Get unique planting layers actually used on the map
+  const usedPlantingLayers = new Set<string>();
+  plantings.forEach((planting) => {
+    if (planting.layer) {
+      usedPlantingLayers.add(planting.layer);
+    }
+  });
+
+  // Convert to sorted array for display (in order of canopy -> aquatic)
+  const layerOrder = ['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'];
+  const displayPlantingLayers = layerOrder.filter(layer => usedPlantingLayers.has(layer));
 
   if (isCollapsed) {
     return (
@@ -118,9 +154,9 @@ export function MapLegend({ mapLayer, gridUnit, zones, isCollapsed = false, onTo
       </div>
 
       {/* Zone Colors */}
-      <div>
+      <div className="mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
         <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">
-          Zone Types (examples)
+          Zone Types
         </div>
         <div className="grid grid-cols-2 gap-x-2 gap-y-1">
           {displayZoneTypes.map((type) => {
@@ -150,6 +186,33 @@ export function MapLegend({ mapLayer, gridUnit, zones, isCollapsed = false, onTo
           </div>
         )}
       </div>
+
+      {/* Plantings */}
+      {displayPlantingLayers.length > 0 && (
+        <div>
+          <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">
+            Plantings ({plantings.length})
+          </div>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+            {displayPlantingLayers.map((layer) => {
+              const count = plantings.filter(p => p.layer === layer).length;
+              return (
+                <div key={layer} className="flex items-center gap-1.5">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full border-2 border-white flex-shrink-0 shadow-sm"
+                    style={{
+                      backgroundColor: LAYER_COLORS[layer],
+                    }}
+                  />
+                  <span className="text-[9px] text-slate-700 dark:text-slate-300 truncate">
+                    {LAYER_LABELS[layer]} ({count})
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

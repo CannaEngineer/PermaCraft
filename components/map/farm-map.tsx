@@ -5,13 +5,14 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Farm, Zone } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
-import { Layers, Tag, HelpCircle, Circle } from "lucide-react";
+import { Layers, Tag, HelpCircle, Circle, Leaf } from "lucide-react";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapLegend } from "./map-legend";
 import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
+import { PlantingDetailPopup } from "./planting-detail-popup";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
@@ -130,6 +131,11 @@ export function FarmMap({
   const [showPlantingForm, setShowPlantingForm] = useState(false);
   const [plantingClickPos, setPlantingClickPos] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
 
+  // Planting filter and detail state
+  const [plantingFilters, setPlantingFilters] = useState<string[]>([]); // Empty = show all
+  const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
+  const [showPlantingMenu, setShowPlantingMenu] = useState(false);
+
   // Helper function to ensure custom layers are always on top
   const ensureCustomLayersOnTop = useCallback(() => {
     if (!map.current) return;
@@ -236,6 +242,35 @@ export function FarmMap({
       console.error('Failed to create planting:', error);
     }
   }, [selectedSpecies, plantingClickPos, farm.id]);
+
+  // Handle planting deletion
+  const handleDeletePlanting = useCallback(async (plantingId: string) => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/plantings/${plantingId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setPlantings(prev => prev.filter(p => p.id !== plantingId));
+      }
+    } catch (error) {
+      console.error('Failed to delete planting:', error);
+    }
+  }, [farm.id]);
+
+  // Filter plantings by layer
+  const filteredPlantings = plantingFilters.length === 0
+    ? plantings
+    : plantings.filter(p => plantingFilters.includes(p.layer));
+
+  // Toggle layer filter
+  const toggleLayerFilter = (layer: string) => {
+    setPlantingFilters(prev =>
+      prev.includes(layer)
+        ? prev.filter(l => l !== layer)
+        : [...prev, layer]
+    );
+  };
 
   // Manage circle center marker
   useEffect(() => {
@@ -2209,6 +2244,63 @@ export function FarmMap({
         </div>
       )}
 
+      {/* Planting Filter Menu */}
+      {plantings.length > 0 && !plantingMode && (
+        <div className="absolute top-52 left-4 z-10">
+          <Button
+            onClick={() => {
+              setShowPlantingMenu(!showPlantingMenu);
+              setShowLayerMenu(false);
+              setShowHelp(false);
+            }}
+            variant="secondary"
+            size="sm"
+            className="bg-card text-card-foreground shadow-lg"
+          >
+            <Leaf className="h-4 w-4 mr-2" />
+            Filter Plants ({filteredPlantings.length}/{plantings.length})
+          </Button>
+
+          {showPlantingMenu && (
+            <div className="absolute top-full mt-2 bg-card rounded shadow-lg p-2 space-y-1 min-w-[180px] z-50">
+              <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border">
+                Show by Layer
+              </div>
+              {['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'].map(layer => {
+                const layerCount = plantings.filter(p => p.layer === layer).length;
+                if (layerCount === 0) return null;
+
+                return (
+                  <button
+                    key={layer}
+                    onClick={() => toggleLayerFilter(layer)}
+                    className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent flex items-center justify-between ${
+                      plantingFilters.length === 0 || plantingFilters.includes(layer)
+                        ? 'bg-accent/50 font-medium'
+                        : 'opacity-50'
+                    }`}
+                  >
+                    <span className="capitalize">{layer}</span>
+                    <span className="text-xs text-muted-foreground">{layerCount}</span>
+                  </button>
+                );
+              })}
+              {plantingFilters.length > 0 && (
+                <>
+                  <div className="border-t border-border my-1"></div>
+                  <button
+                    onClick={() => setPlantingFilters([])}
+                    className="w-full text-left px-3 py-2 rounded text-sm hover:bg-accent text-muted-foreground"
+                  >
+                    Show All
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 3D Terrain Controls - positioned at bottom right when terrain enabled */}
       {terrainEnabled && (
         <div className="absolute bottom-20 right-4 z-10 flex flex-col gap-2">
@@ -2435,19 +2527,19 @@ export function FarmMap({
         mapLayer={mapLayer}
         gridUnit={gridUnit}
         zones={zones}
+        plantings={plantings}
         isCollapsed={legendCollapsed}
         onToggle={() => setLegendCollapsed(!legendCollapsed)}
       />
 
       {/* Render planting markers */}
-      {map.current && plantings.map(planting => (
+      {map.current && filteredPlantings.map(planting => (
         <PlantingMarker
           key={planting.id}
           planting={planting}
           map={map.current!}
           onClick={(p) => {
-            console.log('Clicked planting:', p);
-            // TODO: Show detail popup
+            setSelectedPlanting(p);
           }}
         />
       ))}
@@ -2481,6 +2573,15 @@ export function FarmMap({
             setShowPlantingForm(false);
             setPlantingClickPos(null);
           }}
+        />
+      )}
+
+      {/* Planting Detail Popup */}
+      {selectedPlanting && (
+        <PlantingDetailPopup
+          planting={selectedPlanting}
+          onClose={() => setSelectedPlanting(null)}
+          onDelete={handleDeletePlanting}
         />
       )}
     </div>
