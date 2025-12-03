@@ -36,6 +36,7 @@ export function FarmEditorClient({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [initialConversationId, setInitialConversationId] = useState<string | undefined>(undefined);
   const [nativeSpecies, setNativeSpecies] = useState<any[]>([]);
+  const [plantings, setPlantings] = useState<any[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -106,10 +107,50 @@ When suggesting plants, prioritize these natives and explain their permaculture 
     `.trim();
   }, [nativeSpecies]);
 
+  /**
+   * Build plantings context text for AI
+   * Returns structured text describing existing plantings on the farm
+   */
+  const buildPlantingsContext = useCallback(() => {
+    if (plantings.length === 0) {
+      return 'No plantings added to this farm yet.';
+    }
+
+    const currentYear = new Date().getFullYear();
+
+    const plantingsList = plantings.map(p => {
+      const age = currentYear - p.planted_year;
+      const customName = p.name ? ` "${p.name}"` : '';
+      const size = p.mature_height_ft ? ` (mature: ${p.mature_height_ft}ft high)` : '';
+      const notes = p.notes ? ` - Notes: ${p.notes}` : '';
+
+      return `  - ${p.common_name}${customName} (${p.scientific_name}): ${p.layer} layer, planted ${p.planted_year} (${age} years old)${size}, at ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}${notes}`;
+    }).join('\n');
+
+    return `
+Existing Plantings on This Farm (${plantings.length} total):
+${plantingsList}
+
+IMPORTANT: When suggesting new plantings:
+- DO NOT suggest duplicates of species already planted
+- Consider spacing requirements relative to existing plantings
+- Suggest companion plants that work well with what's already there
+- Consider the mature size and spacing of existing plants
+- Recommend guild arrangements around established plantings
+    `.trim();
+  }, [plantings]);
+
   // Load native species for AI context
   useEffect(() => {
     if (farm?.id) {
       loadNativeSpecies();
+    }
+  }, [farm?.id]);
+
+  // Load plantings for AI context
+  useEffect(() => {
+    if (farm?.id) {
+      loadPlantings();
     }
   }, [farm?.id]);
 
@@ -121,6 +162,16 @@ When suggesting plants, prioritize these natives and explain their permaculture 
       setNativeSpecies(data.perfect_match?.slice(0, 10) || []);
     } catch (error) {
       console.error('Failed to load native species:', error);
+    }
+  };
+
+  const loadPlantings = async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/plantings`);
+      const data = await response.json();
+      setPlantings(data.plantings || []);
+    } catch (error) {
+      console.error('Failed to load plantings:', error);
     }
   };
 
@@ -654,7 +705,7 @@ When suggesting plants, prioritize these natives and explain their permaculture 
         west: farm.center_lng - 0.001,
       };
 
-      // Get AI analysis - send BOTH screenshots, zones with grid coordinates, map layer context, legend context, and native species
+      // Get AI analysis - send BOTH screenshots, zones with grid coordinates, map layer context, legend context, native species, and existing plantings
       const analyzeRes = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -669,6 +720,7 @@ When suggesting plants, prioritize these natives and explain their permaculture 
           mapLayer: currentMapLayer,
           legendContext: buildLegendContext(), // Include legend data as text
           nativeSpeciesContext: buildNativeSpeciesContext(), // Include native species recommendations
+          plantingsContext: buildPlantingsContext(), // Include existing plantings context
           zones: zones.map((zone) => {
             const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
             const gridCells = calculateGridCoordinates(geom, farmBounds, 'imperial');
