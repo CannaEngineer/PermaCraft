@@ -104,7 +104,7 @@ YOUR ROLE:
 - Be warm, encouraging, and genuinely helpful
 
 CORE PRINCIPLES (apply when relevant):
-- **Native Species First**: Prioritize native plants; mark non-natives as [NON-NATIVE]
+- **Native Species First**: ALWAYS prioritize native plants when recommending species. You will receive a list of native species matched to this farm's region and hardiness zone. Use these species in your recommendations and explain their permaculture functions. Mark any non-native suggestions clearly as [NON-NATIVE] and explain why they're being suggested.
 - **Permaculture Ethics**: Care for Earth, Care for People, Fair Share
 - **Site-Specific**: Base recommendations on actual site conditions visible in the image
 - **Practical**: Give actionable advice with real measurements and timelines
@@ -267,6 +267,8 @@ export function createAnalysisPrompt(
       gridCoordinates?: string; // Pre-calculated: "A1-B3"
       gridCells?: string[];     // Pre-calculated: ["A1", "A2", "B1"]
     }>;
+    legendContext?: string;
+    nativeSpeciesContext?: string;
   }
 ): string {
   /**
@@ -304,6 +306,7 @@ ${farmContext.soilType ? `SOIL: ${farmContext.soilType}` : ""}
 
 MAP VIEW: ${mapContext?.layer ? layerDescriptions[mapContext.layer] || mapContext.layer : "satellite imagery"}
 ${zonesInfo}
+${mapContext?.nativeSpeciesContext ? `\n${mapContext.nativeSpeciesContext}\n` : ""}
 GRID: Yellow grid lines visible in screenshot. 50ft spacing (imperial). Columns = A,B,C... (west to east), Rows = 1,2,3... (south to north)
 
 USER QUESTION:

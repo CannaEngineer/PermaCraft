@@ -35,6 +35,7 @@ export function FarmEditorClient({
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [initialConversationId, setInitialConversationId] = useState<string | undefined>(undefined);
+  const [nativeSpecies, setNativeSpecies] = useState<any[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -75,6 +76,53 @@ Zones on map:
 ${zonesList || "  - No zones labeled yet"}
     `.trim();
   }, [currentMapLayer, zones]);
+
+  /**
+   * Build native species context text for AI
+   * Returns structured text describing native species recommendations
+   */
+  const buildNativeSpeciesContext = useCallback(() => {
+    if (nativeSpecies.length === 0) {
+      return 'No native species data available yet.';
+    }
+
+    const speciesList = nativeSpecies.map(s => {
+      const functions = s.permaculture_functions
+        ? JSON.parse(s.permaculture_functions).join(', ')
+        : '';
+
+      const zones = s.min_hardiness_zone && s.max_hardiness_zone
+        ? `Zones ${s.min_hardiness_zone}-${s.max_hardiness_zone}`
+        : '';
+
+      return `  - ${s.common_name} (${s.scientific_name}): ${s.layer}, ${s.mature_height_ft}ft, ${zones}, functions: ${functions}`;
+    }).join('\n');
+
+    return `
+Native Species Available for This Farm (Perfect Matches):
+${speciesList}
+
+When suggesting plants, prioritize these natives and explain their permaculture functions.
+    `.trim();
+  }, [nativeSpecies]);
+
+  // Load native species for AI context
+  useEffect(() => {
+    if (farm?.id) {
+      loadNativeSpecies();
+    }
+  }, [farm?.id]);
+
+  const loadNativeSpecies = async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/native-species`);
+      const data = await response.json();
+      // Get top 10 perfect matches for AI context
+      setNativeSpecies(data.perfect_match?.slice(0, 10) || []);
+    } catch (error) {
+      console.error('Failed to load native species:', error);
+    }
+  };
 
   useEffect(() => {
     const handleCloseChat = () => {
@@ -606,7 +654,7 @@ ${zonesList || "  - No zones labeled yet"}
         west: farm.center_lng - 0.001,
       };
 
-      // Get AI analysis - send BOTH screenshots, zones with grid coordinates, map layer context, and legend context
+      // Get AI analysis - send BOTH screenshots, zones with grid coordinates, map layer context, legend context, and native species
       const analyzeRes = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -620,6 +668,7 @@ ${zonesList || "  - No zones labeled yet"}
           ],
           mapLayer: currentMapLayer,
           legendContext: buildLegendContext(), // Include legend data as text
+          nativeSpeciesContext: buildNativeSpeciesContext(), // Include native species recommendations
           zones: zones.map((zone) => {
             const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
             const gridCells = calculateGridCoordinates(geom, farmBounds, 'imperial');

@@ -67,6 +67,8 @@ const analyzeSchema = z.object({
     data: z.string(), // Base64 data URI
   })),
   mapLayer: z.string().optional(),
+  legendContext: z.string().optional(),
+  nativeSpeciesContext: z.string().optional(),
   zones: z.array(z.object({
     type: z.string(),
     name: z.string(),
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // STEP 2: Validate request body
     const body = await request.json();
-    const { farmId, conversationId, query, screenshots, mapLayer, zones } = analyzeSchema.parse(body);
+    const { farmId, conversationId, query, screenshots, mapLayer, legendContext, nativeSpeciesContext, zones } = analyzeSchema.parse(body);
 
     /**
      * STEP 3: Verify farm ownership
@@ -158,6 +160,8 @@ export async function POST(request: NextRequest) {
         layer: mapLayer,
         screenshots: screenshots,
         zones: zones,
+        legendContext: legendContext,
+        nativeSpeciesContext: nativeSpeciesContext,
       }
     );
 

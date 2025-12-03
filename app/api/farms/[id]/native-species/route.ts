@@ -18,7 +18,7 @@ export async function GET(
       args: [farmId, session.user.id]
     });
 
-    const farm = farmResult.rows[0] as Farm;
+    const farm = farmResult.rows[0] as unknown as Farm;
 
     if (!farm) {
       return Response.json(
