@@ -76,13 +76,13 @@ export function PlantingMarker({ planting, map, currentYear, onClick }: Planting
         type: 'circle',
         source: sourceId,
         paint: {
-          'circle-radius': {
-            stops: [
-              [0, 0],
-              [22, radiusMeters * 10] // Scale for zoom
-            ],
-            base: 2
-          },
+          'circle-radius': [
+            'interpolate',
+            ['exponential', 2],
+            ['zoom'],
+            0, 0,
+            22, radiusMeters * 10
+          ] as any,
           'circle-color': LAYER_COLORS[planting.layer] || '#16a34a',
           'circle-opacity': 0.2,
           'circle-stroke-width': 1,

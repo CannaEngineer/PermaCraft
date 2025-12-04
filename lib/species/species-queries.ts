@@ -31,7 +31,7 @@ export async function getAllSpecies(filters?: {
   sql += ' ORDER BY common_name ASC';
 
   const result = await db.execute({ sql, args });
-  return result.rows as Species[];
+  return result.rows as unknown as Species[];
 }
 
 /**
@@ -43,7 +43,7 @@ export async function getSpeciesById(id: string): Promise<Species | null> {
     args: [id]
   });
 
-  return result.rows[0] as Species || null;
+  return (result.rows[0] as unknown as Species) || null;
 }
 
 /**
@@ -58,7 +58,7 @@ export async function getSpeciesByIds(ids: string[]): Promise<Species[]> {
     args: ids
   });
 
-  return result.rows as Species[];
+  return result.rows as unknown as Species[];
 }
 
 /**
@@ -75,5 +75,5 @@ export async function searchSpecies(query: string, limit: number = 10): Promise<
     args: [searchParam, searchParam, limit]
   });
 
-  return result.rows as Species[];
+  return result.rows as unknown as Species[];
 }
