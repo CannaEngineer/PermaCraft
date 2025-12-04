@@ -186,16 +186,16 @@ export function TimeMachineOverlay({
 
         {/* Year Display */}
         <div className="flex flex-col items-center gap-1 py-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <div className="text-2xl font-bold text-primary tabular-nums -rotate-0">
+          <Clock className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
+          <div className="text-2xl md:text-3xl font-bold text-primary tabular-nums -rotate-0">
             {currentYear}
           </div>
         </div>
 
         {/* Vertical Slider Container */}
-        <div className="relative h-64 w-12 flex items-center justify-center">
+        <div className="relative h-64 md:h-96 w-12 md:w-16 flex items-center justify-center">
           {/* Year ticks */}
-          <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-muted-foreground pr-1">
+          <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] md:text-xs text-muted-foreground pr-1 md:pr-2">
             {Array.from({ length: 5 }, (_, i) => {
               const year = maxYear - Math.floor((yearRange * i) / 4);
               return (
@@ -213,7 +213,7 @@ export function TimeMachineOverlay({
             max={maxYear}
             value={currentYear}
             onChange={handleSliderChange}
-            className="vertical-slider h-full w-3 appearance-none cursor-pointer"
+            className="vertical-slider h-full w-3 md:w-4 appearance-none cursor-pointer"
             style={{
               background: `linear-gradient(to top, hsl(var(--primary)) ${progressPercent}%, hsl(var(--muted)) ${progressPercent}%)`,
             } as React.CSSProperties}
@@ -226,7 +226,7 @@ export function TimeMachineOverlay({
         </div>
 
         {/* Range Labels */}
-        <div className="flex flex-col items-center gap-1 text-[10px] text-muted-foreground">
+        <div className="flex flex-col items-center gap-1 text-[10px] md:text-xs text-muted-foreground">
           <span className="tabular-nums">{minYear}</span>
           <span>-</span>
           <span className="tabular-nums">{maxYear}</span>

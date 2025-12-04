@@ -73,146 +73,125 @@ export function MapLegend({ mapLayer, gridUnit, zones, plantings = [], isCollaps
   const layerOrder = ['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'];
   const displayPlantingLayers = layerOrder.filter(layer => usedPlantingLayers.has(layer));
 
-  if (isCollapsed) {
-    return (
-      <div
-        className="absolute bottom-[140px] md:bottom-4 right-4 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-colors"
-        data-legend-container
-        data-collapsed={isCollapsed}
-        onClick={onToggle}
-      >
-        <div className="p-2 md:p-3 flex items-center gap-2">
-          <ChevronUp className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-            Legend
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
-      className="absolute bottom-[140px] md:bottom-4 right-4 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 text-xs max-w-[240px] z-10"
+      className={`absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20 transition-all duration-300 ${
+        isCollapsed ? 'translate-y-full' : 'translate-y-0'
+      }`}
       data-legend-container
       data-collapsed={isCollapsed}
     >
-      <div className="flex items-center justify-between p-3 pb-2">
-        <div className="font-serif font-semibold text-sm text-slate-900 dark:text-slate-100">
-          Map Legend
+      {/* Toggle Bar - Always Visible */}
+      <div
+        className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-accent/50 transition-colors border-b border-border"
+        onClick={onToggle}
+      >
+        <div className="flex items-center gap-2">
+          <div className="font-semibold text-sm">Legend</div>
+          <div className="text-xs text-muted-foreground">
+            {layerNames[mapLayer]} • {gridSpacing}
+          </div>
         </div>
-        {onToggle && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggle}
-            className="h-6 w-6 p-0"
-            title="Collapse legend"
-          >
-            <ChevronDown className="h-3 w-3" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          title={isCollapsed ? "Show legend" : "Hide legend"}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
+      {/* Expanded Content */}
       <div
-        className="px-3 pb-3"
+        className={`px-4 py-3 ${isCollapsed ? 'hidden' : 'block'}`}
         data-legend-content
-        style={{ display: isCollapsed ? 'none' : 'block' }}
       >
 
-      {/* Map Layer */}
-      <div className="mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
-        <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">
-          Map Layer
-        </div>
-        <div className="text-slate-900 dark:text-slate-100 text-[10px]">
-          {layerNames[mapLayer]}
-        </div>
-      </div>
+        {/* Horizontal Layout for Desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Farm Boundary */}
+          <div>
+            <div className="text-muted-foreground font-medium mb-2 text-xs">
+              Farm Boundary
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-0.5 bg-background border-2 border-purple-600 rounded"></div>
+              <span className="text-[10px] text-muted-foreground">
+                Purple
+              </span>
+            </div>
+          </div>
 
-      {/* Grid System */}
-      <div className="mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
-        <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">
-          Grid System
-        </div>
-        <div className="text-slate-900 dark:text-slate-100 text-[10px]">
-          {gridSpacing} spacing • A1, B2 labels
-        </div>
-      </div>
+          {/* Zone Colors */}
+          <div>
+            <div className="text-muted-foreground font-medium mb-2 text-xs">
+              Zone Types
+            </div>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+              {displayZoneTypes.map((type) => {
+                const config = ZONE_TYPES[type];
+                if (!config) return null;
 
-      {/* Farm Boundary */}
-      <div className="mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
-        <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">
-          Farm Boundary
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-0.5 bg-white border-2 border-purple-600 rounded"></div>
-          <span className="text-[9px] text-slate-600 dark:text-slate-400">
-            Purple outline
-          </span>
-        </div>
-      </div>
-
-      {/* Zone Colors */}
-      <div className="mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
-        <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">
-          Zone Types
-        </div>
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-          {displayZoneTypes.map((type) => {
-            const config = ZONE_TYPES[type];
-            if (!config) return null;
-
-            return (
-              <div key={type} className="flex items-center gap-1.5">
-                <div
-                  className="w-2.5 h-2.5 rounded-sm border flex-shrink-0"
-                  style={{
-                    backgroundColor: config.fillColor,
-                    opacity: config.fillOpacity + 0.5,
-                    borderColor: config.strokeColor,
-                  }}
-                />
-                <span className="text-[9px] text-slate-700 dark:text-slate-300 truncate">
-                  {config.label.replace(/\s*\(.*?\)\s*/g, '')}
-                </span>
+                return (
+                  <div key={type} className="flex items-center gap-1.5">
+                    <div
+                      className="w-3 h-3 rounded-sm border flex-shrink-0"
+                      style={{
+                        backgroundColor: config.fillColor,
+                        opacity: config.fillOpacity + 0.5,
+                        borderColor: config.strokeColor,
+                      }}
+                    />
+                    <span className="text-[10px] truncate">
+                      {config.label.replace(/\s*\(.*?\)\s*/g, '')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {displayZoneTypes.length === 0 && (
+              <div className="text-[10px] text-muted-foreground italic">
+                No zones yet
               </div>
-            );
-          })}
-        </div>
-        {displayZoneTypes.length === 0 && (
-          <div className="text-[9px] text-slate-500 dark:text-slate-400 italic">
-            No zones labeled yet
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Plantings */}
-      {displayPlantingLayers.length > 0 && (
-        <div>
-          <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">
-            Plantings ({plantings.length})
-          </div>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-            {displayPlantingLayers.map((layer) => {
-              const count = plantings.filter(p => p.layer === layer).length;
-              return (
-                <div key={layer} className="flex items-center gap-1.5">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full border-2 border-white flex-shrink-0 shadow-sm"
-                    style={{
-                      backgroundColor: LAYER_COLORS[layer],
-                    }}
-                  />
-                  <span className="text-[9px] text-slate-700 dark:text-slate-300 truncate">
-                    {LAYER_LABELS[layer]} ({count})
-                  </span>
-                </div>
-              );
-            })}
+          {/* Plantings */}
+          <div className="md:col-span-2">
+            <div className="text-muted-foreground font-medium mb-2 text-xs">
+              Plantings ({plantings.length})
+            </div>
+            {displayPlantingLayers.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1.5">
+                {displayPlantingLayers.map((layer) => {
+                  const count = plantings.filter(p => p.layer === layer).length;
+                  return (
+                    <div key={layer} className="flex items-center gap-1.5">
+                      <div
+                        className="w-3 h-3 rounded-full border-2 border-background flex-shrink-0 shadow-sm"
+                        style={{
+                          backgroundColor: LAYER_COLORS[layer],
+                        }}
+                      />
+                      <span className="text-[10px] truncate">
+                        {LAYER_LABELS[layer]} ({count})
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-[10px] text-muted-foreground italic">
+                No plantings yet
+              </div>
+            )}
           </div>
         </div>
-      )}
       </div>
     </div>
   );
