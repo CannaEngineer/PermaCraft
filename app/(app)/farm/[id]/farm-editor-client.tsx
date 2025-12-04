@@ -802,7 +802,6 @@ IMPORTANT: When suggesting new plantings:
           )}
           <Button
             variant="outline"
-            className="md:hidden"
             onClick={() => setIsChatOpen(!isChatOpen)}
           >
             <MessageSquare className="h-4 w-4" />
@@ -832,8 +831,8 @@ IMPORTANT: When suggesting new plantings:
           className={`w-full md:w-96 border-t md:border-t-0 md:border-l border-border max-h-[400px] md:max-h-none overflow-y-auto transition-transform duration-300 ease-in-out ${
             isChatOpen
               ? "translate-x-0"
-              : "translate-x-full md:translate-x-0"
-          } fixed md:static top-0 right-0 h-full bg-card z-50`}
+              : "translate-x-full"
+          } fixed top-0 right-0 h-full bg-card z-[35]`}
         >
           <EnhancedChatPanel
             farmId={farm.id}

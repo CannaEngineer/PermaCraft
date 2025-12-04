@@ -55,7 +55,7 @@ export function FAB({
   };
 
   return (
-    <div className={cn("fixed bottom-[88px] right-6 z-40 md:bottom-24 md:right-8", className)}>
+    <div className={cn("fixed bottom-[88px] right-6 z-[45] md:bottom-24 md:right-8", className)}>
       {/* Expanded Action Menu (Speed Dial) */}
       {actions && actions.length > 0 && isExpanded && (
         <div className="absolute bottom-[72px] right-0 flex flex-col gap-3 mb-4">
