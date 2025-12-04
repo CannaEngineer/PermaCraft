@@ -10,7 +10,7 @@ import { UniversalSearch } from "@/components/search/universal-search";
 export default async function DashboardPage() {
   const session = await requireAuth();
 
-  // Get farms with their most recent screenshot from AI analyses
+  // Get farms with their most recent screenshot and planting counts from AI analyses
   const result = await db.execute({
     sql: `SELECT
             f.*,
@@ -18,7 +18,10 @@ export default async function DashboardPage() {
              FROM ai_analyses
              WHERE farm_id = f.id AND screenshot_data IS NOT NULL
              ORDER BY created_at DESC
-             LIMIT 1) as latest_screenshot_json
+             LIMIT 1) as latest_screenshot_json,
+            (SELECT COUNT(*)
+             FROM plantings
+             WHERE farm_id = f.id) as planting_count
           FROM farms f
           WHERE f.user_id = ?
           ORDER BY f.updated_at DESC`,
@@ -26,7 +29,7 @@ export default async function DashboardPage() {
   });
 
   // Parse screenshot JSON arrays and extract first URL
-  const farms = result.rows.map((row: any) => {
+  const farms = await Promise.all(result.rows.map(async (row: any) => {
     let latestScreenshot = null;
     if (row.latest_screenshot_json) {
       try {
@@ -36,11 +39,26 @@ export default async function DashboardPage() {
         console.error('Failed to parse screenshot JSON:', e);
       }
     }
+
+    // Fetch plantings with species data for vitals
+    const plantingsResult = await db.execute({
+      sql: `SELECT
+              p.id,
+              p.species_id,
+              s.common_name,
+              s.permaculture_functions
+            FROM plantings p
+            JOIN species s ON p.species_id = s.id
+            WHERE p.farm_id = ?`,
+      args: [row.id],
+    });
+
     return {
       ...row,
       latest_screenshot: latestScreenshot,
+      plantings: plantingsResult.rows,
     };
-  });
+  }));
 
   return (
     <div className="p-4 md:p-8">

@@ -13,6 +13,7 @@ import { toPng } from "html-to-image";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
 import { CreatePostFAB } from "@/components/farm/create-post-fab";
+import { FarmVitalsWidget } from "@/components/farm/farm-vitals-widget";
 
 interface FarmEditorClientProps {
   farm: Farm;
@@ -809,6 +810,10 @@ IMPORTANT: When suggesting new plantings:
           </Button>
         </div>
       </div>
+
+      {/* Farm Vitals Widget - Collapsible */}
+      <FarmVitalsWidget plantings={plantings} />
+
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div
           ref={mapContainerRef}

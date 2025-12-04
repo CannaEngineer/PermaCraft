@@ -10,9 +10,18 @@ import {
 } from "@/components/ui/card";
 import { MapIcon } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
+import { FarmVitals } from "@/components/farm/farm-vitals";
+
+interface PlantingWithSpecies {
+  id: string;
+  species_id: string;
+  common_name?: string;
+  permaculture_functions?: string | null;
+}
 
 interface FarmWithScreenshot extends Farm {
   latest_screenshot?: string | null;
+  plantings?: PlantingWithSpecies[];
 }
 
 interface FarmCardProps {
@@ -48,9 +57,19 @@ export function FarmCard({ farm }: FarmCardProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
             {farm.description || "No description"}
           </p>
+
+          {/* Farm Vitals - Compact View */}
+          {farm.plantings && farm.plantings.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="text-xs font-medium text-muted-foreground mb-2">
+                Farm Vitals
+              </div>
+              <FarmVitals plantings={farm.plantings} compact />
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

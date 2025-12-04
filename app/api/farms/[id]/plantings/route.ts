@@ -23,7 +23,8 @@ export async function GET(
     // Get all plantings with species data
     const result = await db.execute({
       sql: `SELECT p.*, s.common_name, s.scientific_name, s.layer,
-                   s.mature_width_ft, s.mature_height_ft, s.years_to_maturity
+                   s.mature_width_ft, s.mature_height_ft, s.years_to_maturity,
+                   s.permaculture_functions
             FROM plantings p
             JOIN species s ON p.species_id = s.id
             WHERE p.farm_id = ?
@@ -94,7 +95,8 @@ export async function POST(
     // Fetch created planting with species data
     const result = await db.execute({
       sql: `SELECT p.*, s.common_name, s.scientific_name, s.layer,
-                   s.mature_width_ft, s.mature_height_ft, s.years_to_maturity
+                   s.mature_width_ft, s.mature_height_ft, s.years_to_maturity,
+                   s.permaculture_functions
             FROM plantings p
             JOIN species s ON p.species_id = s.id
             WHERE p.id = ?`,

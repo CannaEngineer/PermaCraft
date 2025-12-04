@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { Planting } from '@/lib/db/schema';
 
@@ -23,20 +23,13 @@ const LAYER_COLORS: Record<string, string> = {
 };
 
 export function PlantingMarker({ planting, map, currentYear, onClick }: PlantingMarkerProps) {
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const layerId = `planting-circle-${planting.id}`;
+  const sourceId = `planting-${planting.id}`;
+
+  // Initialize marker and layer once
   useEffect(() => {
-    // Calculate current size based on years since planting
-    const yearsSincePlanting = (currentYear || planting.current_year) - planting.planted_year;
-    const yearsToMaturity = planting.years_to_maturity || 10;
-    const growthFraction = Math.min(yearsSincePlanting / yearsToMaturity, 1);
-
-    // Sigmoid growth curve
-    const sigmoid = (x: number) => 1 / (1 + Math.exp(-8 * (x - 0.5)));
-    const sizeFraction = sigmoid(growthFraction);
-
-    const currentWidth = (planting.mature_width_ft || 10) * sizeFraction;
-    const radiusMeters = (currentWidth / 2) * 0.3048; // feet to meters
-
-    // Create circle element
+    // Create marker dot
     const el = document.createElement('div');
     el.className = 'planting-marker';
     el.style.width = '12px';
@@ -51,13 +44,11 @@ export function PlantingMarker({ planting, map, currentYear, onClick }: Planting
       el.addEventListener('click', () => onClick(planting));
     }
 
-    const marker = new maplibregl.Marker({ element: el })
+    markerRef.current = new maplibregl.Marker({ element: el })
       .setLngLat([planting.lng, planting.lat])
       .addTo(map);
 
-    // Add circle for mature size visualization
-    const sourceId = `planting-${planting.id}`;
-
+    // Add circle layer for canopy visualization
     if (!map.getSource(sourceId)) {
       map.addSource(sourceId, {
         type: 'geojson',
@@ -70,19 +61,19 @@ export function PlantingMarker({ planting, map, currentYear, onClick }: Planting
           properties: {}
         }
       });
+    }
 
+    if (!map.getLayer(layerId)) {
       map.addLayer({
-        id: `planting-circle-${planting.id}`,
+        id: layerId,
         type: 'circle',
         source: sourceId,
         paint: {
-          'circle-radius': [
-            'interpolate',
-            ['exponential', 2],
-            ['zoom'],
-            0, 0,
-            22, radiusMeters * 10
-          ] as any,
+          'circle-radius': 0, // Will be updated by the growth effect
+          'circle-radius-transition': {
+            duration: 600, // 600ms smooth transition
+            delay: 0
+          },
           'circle-color': LAYER_COLORS[planting.layer] || '#16a34a',
           'circle-opacity': 0.2,
           'circle-stroke-width': 1,
@@ -93,15 +84,50 @@ export function PlantingMarker({ planting, map, currentYear, onClick }: Planting
     }
 
     return () => {
-      marker.remove();
-      if (map.getLayer(`planting-circle-${planting.id}`)) {
-        map.removeLayer(`planting-circle-${planting.id}`);
+      if (markerRef.current) {
+        markerRef.current.remove();
+      }
+      if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
       }
       if (map.getSource(sourceId)) {
         map.removeSource(sourceId);
       }
     };
-  }, [planting, map, currentYear, onClick]);
+  }, [planting.id, map, onClick]);
+
+  // Update circle size when currentYear changes
+  useEffect(() => {
+    if (!map.getLayer(layerId)) return;
+
+    // Calculate current size based on years since planting
+    const yearsSincePlanting = (currentYear || planting.current_year) - planting.planted_year;
+    const yearsToMaturity = planting.years_to_maturity || 10;
+    const growthFraction = Math.max(0, Math.min(yearsSincePlanting / yearsToMaturity, 1));
+
+    // Sigmoid growth curve
+    const sigmoid = (x: number) => 1 / (1 + Math.exp(-8 * (x - 0.5)));
+    const sizeFraction = sigmoid(growthFraction);
+
+    const currentWidth = (planting.mature_width_ft || 10) * sizeFraction;
+    const radiusMeters = (currentWidth / 2) * 0.3048; // feet to meters
+
+    // Calculate radius in pixels at different zoom levels
+    // Use MapLibre's metersToPixelsAtLatitude to get accurate scaling
+    const metersPerPixelAtZoom15 = 156543.03392 * Math.cos(planting.lat * Math.PI / 180) / Math.pow(2, 15);
+    const radiusPixelsAtZoom15 = radiusMeters / metersPerPixelAtZoom15;
+
+    // Update the circle radius with zoom interpolation
+    map.setPaintProperty(layerId, 'circle-radius', [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      10, radiusPixelsAtZoom15 / 32,  // Smaller at low zoom
+      15, radiusPixelsAtZoom15,        // Base size at zoom 15
+      20, radiusPixelsAtZoom15 * 32    // Larger at high zoom
+    ] as any);
+
+  }, [currentYear, planting.planted_year, planting.current_year, planting.years_to_maturity, planting.mature_width_ft, planting.lat, map, layerId]);
 
   return null;
 }

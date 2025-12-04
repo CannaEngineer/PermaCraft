@@ -13,6 +13,7 @@ import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
+import { TimelineSlider } from "./timeline-slider";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
@@ -135,6 +136,9 @@ export function FarmMap({
   const [plantingFilters, setPlantingFilters] = useState<string[]>([]); // Empty = show all
   const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
   const [showPlantingMenu, setShowPlantingMenu] = useState(false);
+
+  // Time Machine state - projection year for growth simulation
+  const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
 
   // Helper function to ensure custom layers are always on top
   const ensureCustomLayersOnTop = useCallback(() => {
@@ -2537,6 +2541,7 @@ export function FarmMap({
           key={planting.id}
           planting={planting}
           map={map.current!}
+          currentYear={projectionYear}
           onClick={(p) => {
             setSelectedPlanting(p);
           }}
@@ -2581,6 +2586,14 @@ export function FarmMap({
           planting={selectedPlanting}
           onClose={() => setSelectedPlanting(null)}
           onDelete={handleDeletePlanting}
+        />
+      )}
+
+      {/* Time Machine Slider - only show if there are plantings */}
+      {plantings.length > 0 && (
+        <TimelineSlider
+          currentYear={projectionYear}
+          onYearChange={setProjectionYear}
         />
       )}
     </div>
