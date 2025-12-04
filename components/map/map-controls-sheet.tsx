@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Drawer } from 'vaul';
-import { Settings, ChevronUp, Layers as LayersIcon, Grid, Filter, Leaf, Square, MessageSquare } from 'lucide-react';
+import { Settings, ChevronUp, Layers as LayersIcon, Grid, Filter, Leaf, Square, MessageSquare, Clock } from 'lucide-react';
 import { FAB } from '@/components/ui/fab';
 import type { FABAction } from '@/components/ui/fab';
 
@@ -20,6 +20,8 @@ interface MapControlsSheetProps {
   onAddPlant?: () => void;
   onDrawZone?: () => void;
   onCreatePost?: () => void;
+  onOpenTimeMachine?: () => void;
+  hasPlantings?: boolean;
   className?: string;
 }
 
@@ -65,6 +67,8 @@ export function MapControlsSheet({
   onAddPlant,
   onDrawZone,
   onCreatePost,
+  onOpenTimeMachine,
+  hasPlantings = false,
   className = '',
 }: MapControlsSheetProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -96,6 +100,16 @@ export function MapControlsSheet({
       label: "Create Post",
       onClick: onCreatePost,
       color: "bg-purple-600 text-white"
+    });
+  }
+
+  // Only show Time Machine if there are plantings
+  if (onOpenTimeMachine && hasPlantings) {
+    fabActions.push({
+      icon: <Clock className="h-5 w-5" />,
+      label: "Time Machine",
+      onClick: onOpenTimeMachine,
+      color: "bg-orange-600 text-white"
     });
   }
 

@@ -14,8 +14,9 @@ import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
-import { TimelineSlider } from "./timeline-slider";
+import { TimeMachineModal } from "./time-machine-modal";
 import { MapControlsSheet } from "./map-controls-sheet";
+import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
@@ -145,6 +146,10 @@ export function FarmMap({
 
   // Time Machine state - projection year for growth simulation
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
+  const [showTimeMachine, setShowTimeMachine] = useState(false);
+
+  // Create Post state
+  const [showCreatePost, setShowCreatePost] = useState(false);
 
   // Helper function to ensure custom layers are always on top
   const ensureCustomLayersOnTop = useCallback(() => {
@@ -2109,8 +2114,8 @@ export function FarmMap({
         style={{ cursor: plantingMode && selectedSpecies ? 'crosshair' : 'default' }}
       />
 
-      {/* Map Layer Selector - Desktop Only */}
-      <div className="hidden md:block absolute top-4 left-4 z-10">
+      {/* Map Layer Selector - REMOVED - now in FAB menu */}
+      <div className="hidden absolute top-4 left-4 z-10">
         <Button
           onClick={() => {
             setShowLayerMenu(!showLayerMenu);
@@ -2193,8 +2198,8 @@ export function FarmMap({
         )}
       </div>
 
-      {/* Grid Controls - Desktop Only */}
-      <div className="hidden md:flex absolute top-20 left-4 z-10 gap-2">
+      {/* Grid Controls - REMOVED - now in FAB menu */}
+      <div className="hidden absolute top-20 left-4 z-10 gap-2">
         <Button
           onClick={() =>
             setGridUnit(gridUnit === "imperial" ? "metric" : "imperial")
@@ -2666,13 +2671,27 @@ export function FarmMap({
         />
       )}
 
-      {/* Time Machine Slider - only show if there are plantings */}
-      {plantings.length > 0 && (
-        <TimelineSlider
-          currentYear={projectionYear}
-          onYearChange={setProjectionYear}
-        />
-      )}
+      {/* Time Machine Modal */}
+      <TimeMachineModal
+        open={showTimeMachine}
+        onOpenChange={setShowTimeMachine}
+        currentYear={projectionYear}
+        onYearChange={setProjectionYear}
+      />
+
+      {/* Create Post Modal */}
+      <CreatePostDialog
+        open={showCreatePost}
+        onOpenChange={setShowCreatePost}
+        farmId={farm.id}
+        onPostCreated={() => {
+          setShowCreatePost(false);
+          toast({
+            title: "Post Created!",
+            description: "Your farm post has been shared successfully.",
+          });
+        }}
+      />
 
       {/* Map Controls FAB - consolidates all actions and settings */}
       <MapControlsSheet
@@ -2693,13 +2712,9 @@ export function FarmMap({
             draw.current.changeMode('draw_polygon');
           }
         }}
-        onCreatePost={() => {
-          // TODO: Implement create post functionality
-          toast({
-            title: "Coming Soon",
-            description: "Create post functionality will be available soon!",
-          });
-        }}
+        onCreatePost={() => setShowCreatePost(true)}
+        onOpenTimeMachine={() => setShowTimeMachine(true)}
+        hasPlantings={plantings.length > 0}
       />
     </div>
   );
