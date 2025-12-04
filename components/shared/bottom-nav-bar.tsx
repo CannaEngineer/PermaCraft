@@ -43,7 +43,7 @@ export function BottomNavBar({ userName }: BottomNavBarProps) {
   return (
     <>
       {/* Bottom Navigation Bar - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-card border-t border-border safe-area-bottom">
         <div className="flex items-center justify-around h-16">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -101,12 +101,12 @@ export function BottomNavBar({ userName }: BottomNavBarProps) {
         <>
           {/* Backdrop */}
           <div
-            className="md:hidden fixed inset-0 bg-black/50 z-40 animate-in fade-in duration-200"
+            className="md:hidden fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
             onClick={() => setShowMenu(false)}
           />
 
           {/* Drawer */}
-          <div className="md:hidden fixed bottom-16 left-0 right-0 z-50 bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom">
+          <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom">
             <div className="p-6 space-y-4">
               {/* User Info */}
               <div className="flex items-center space-x-3 pb-4 border-b border-border">

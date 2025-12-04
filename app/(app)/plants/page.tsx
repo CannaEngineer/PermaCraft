@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { SpeciesCard } from '@/components/species/species-card';
 import { SpeciesFilterSidebar } from '@/components/species/species-filter-sidebar';
 import { SpeciesDetailModal } from '@/components/species/species-detail-modal';
 import type { Species } from '@/lib/db/schema';
-import { Search } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
+import { Drawer } from 'vaul';
 
 export default function PlantsPage() {
   const [species, setSpecies] = useState<Species[]>([]);
@@ -17,6 +19,7 @@ export default function PlantsPage() {
   const [layerFilter, setLayerFilter] = useState<string[]>([]);
   const [functionFilter, setFunctionFilter] = useState<string[]>([]);
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
     fetchSpecies();
@@ -67,10 +70,16 @@ export default function PlantsPage() {
     return true;
   });
 
+  // Count active filters for mobile badge
+  const activeFilterCount =
+    (nativeFilter !== 'all' ? 1 : 0) +
+    layerFilter.length +
+    functionFilter.length;
+
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
-      <div className="w-64 overflow-y-auto">
+      {/* Desktop Sidebar - Hidden on Mobile */}
+      <div className="hidden md:block md:w-56 lg:w-64 overflow-y-auto border-r">
         <SpeciesFilterSidebar
           nativeFilter={nativeFilter}
           onNativeFilterChange={setNativeFilter}
@@ -83,18 +92,18 @@ export default function PlantsPage() {
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6">
+        <div className="p-4 md:p-6 pb-20 md:pb-6">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-2">Plant Catalog</h1>
-            <p className="text-muted-foreground">
+          <div className="mb-4 md:mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Plant Catalog</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               Browse native and naturalized species for your permaculture design
             </p>
           </div>
 
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative">
+          {/* Search and Mobile Filter Button */}
+          <div className="mb-4 md:mb-6 flex gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
@@ -104,6 +113,20 @@ export default function PlantsPage() {
                 className="pl-10"
               />
             </div>
+            {/* Mobile Filter Button */}
+            <Button
+              variant="outline"
+              size="default"
+              className="md:hidden flex-shrink-0 relative"
+              onClick={() => setShowMobileFilters(true)}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
           </div>
 
           {/* Results */}
@@ -116,7 +139,7 @@ export default function PlantsPage() {
               <div className="mb-4 text-sm text-muted-foreground">
                 {filteredSpecies.length} species found
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredSpecies.map(s => (
                   <SpeciesCard
                     key={s.id}
@@ -129,6 +152,60 @@ export default function PlantsPage() {
           )}
         </div>
       </div>
+
+      {/* Mobile Filter Drawer */}
+      <Drawer.Root open={showMobileFilters} onOpenChange={setShowMobileFilters}>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40 md:hidden" />
+          <Drawer.Content className="md:hidden bg-card flex flex-col rounded-t-xl h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
+            {/* Handle */}
+            <div className="flex-shrink-0 p-4 border-b border-border">
+              <div className="mx-auto w-12 h-1.5 rounded-full bg-muted mb-4" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="h-5 w-5 text-primary" />
+                  <h2 className="text-lg font-semibold">Filters</h2>
+                </div>
+                {activeFilterCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setNativeFilter('all');
+                      setLayerFilter([]);
+                      setFunctionFilter([]);
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Scrollable Filter Content */}
+            <div className="flex-1 overflow-y-auto">
+              <SpeciesFilterSidebar
+                nativeFilter={nativeFilter}
+                onNativeFilterChange={setNativeFilter}
+                layerFilter={layerFilter}
+                onLayerFilterChange={setLayerFilter}
+                functionFilter={functionFilter}
+                onFunctionFilterChange={setFunctionFilter}
+              />
+            </div>
+
+            {/* Apply Button Footer */}
+            <div className="flex-shrink-0 p-4 border-t border-border">
+              <Button
+                className="w-full"
+                onClick={() => setShowMobileFilters(false)}
+              >
+                Show {filteredSpecies.length} Results
+              </Button>
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
 
       {/* Species Detail Modal */}
       <SpeciesDetailModal

@@ -59,7 +59,7 @@ export function SpeciesFilterSidebar({
   };
 
   return (
-    <div className="space-y-6 p-4 border-r bg-card">
+    <div className="space-y-6 p-4 bg-card">
       <div>
         <h3 className="font-semibold mb-3">Native Status</h3>
         <RadioGroup value={nativeFilter} onValueChange={onNativeFilterChange}>
