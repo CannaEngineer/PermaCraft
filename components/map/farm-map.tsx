@@ -14,6 +14,7 @@ import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
 import { TimelineSlider } from "./timeline-slider";
+import { MapControlsSheet } from "./map-controls-sheet";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
@@ -2044,8 +2045,8 @@ export function FarmMap({
         style={{ cursor: plantingMode && selectedSpecies ? 'crosshair' : 'default' }}
       />
 
-      {/* Map Layer Selector */}
-      <div className="absolute top-4 left-4 z-10">
+      {/* Map Layer Selector - Desktop Only */}
+      <div className="hidden md:block absolute top-4 left-4 z-10">
         <Button
           onClick={() => {
             setShowLayerMenu(!showLayerMenu);
@@ -2128,8 +2129,8 @@ export function FarmMap({
         )}
       </div>
 
-      {/* Grid Controls */}
-      <div className="absolute top-20 left-4 z-10 flex gap-2">
+      {/* Grid Controls - Desktop Only */}
+      <div className="hidden md:flex absolute top-20 left-4 z-10 gap-2">
         <Button
           onClick={() =>
             setGridUnit(gridUnit === "imperial" ? "metric" : "imperial")
@@ -2250,9 +2251,9 @@ export function FarmMap({
         </div>
       )}
 
-      {/* Planting Filter Menu */}
+      {/* Planting Filter Menu - Desktop Only */}
       {plantings.length > 0 && !plantingMode && (
-        <div className="absolute top-52 left-4 z-10">
+        <div className="hidden md:block absolute top-52 left-4 z-10">
           <Button
             onClick={() => {
               setShowPlantingMenu(!showPlantingMenu);
@@ -2307,9 +2308,9 @@ export function FarmMap({
         </div>
       )}
 
-      {/* 3D Terrain Controls - positioned at bottom right when terrain enabled */}
+      {/* 3D Terrain Controls - Desktop Only - positioned at bottom right when terrain enabled */}
       {terrainEnabled && (
-        <div className="absolute bottom-20 right-4 z-10 flex flex-col gap-2">
+        <div className="hidden md:flex absolute bottom-20 right-4 z-10 flex-col gap-2">
           <Button
             onClick={() => {
               if (map.current) {
@@ -2354,8 +2355,8 @@ export function FarmMap({
         </div>
       )}
 
-      {/* Drawing Tools Help - positioned at bottom right */}
-      <div className="absolute bottom-4 right-4 z-10">
+      {/* Drawing Tools Help - Desktop Only - positioned at bottom right */}
+      <div className="hidden md:block absolute bottom-4 right-4 z-10">
         <Button
           onClick={() => {
             setShowHelp(!showHelp);
@@ -2525,18 +2526,22 @@ export function FarmMap({
         </div>
       )}
 
-      {/* Compass Rose */}
-      <CompassRose bearing={bearing} />
+      {/* Compass Rose - Desktop Only */}
+      <div className="hidden md:block">
+        <CompassRose bearing={bearing} />
+      </div>
 
-      {/* Map Legend */}
-      <MapLegend
-        mapLayer={mapLayer}
-        gridUnit={gridUnit}
-        zones={zones}
-        plantings={plantings}
-        isCollapsed={legendCollapsed}
-        onToggle={() => setLegendCollapsed(!legendCollapsed)}
-      />
+      {/* Map Legend - Desktop Only */}
+      <div className="hidden md:block">
+        <MapLegend
+          mapLayer={mapLayer}
+          gridUnit={gridUnit}
+          zones={zones}
+          plantings={plantings}
+          isCollapsed={legendCollapsed}
+          onToggle={() => setLegendCollapsed(!legendCollapsed)}
+        />
+      </div>
 
       {/* Render planting markers */}
       {map.current && filteredPlantings.map(planting => (
@@ -2606,6 +2611,28 @@ export function FarmMap({
           onYearChange={setProjectionYear}
         />
       )}
+
+      {/* Mobile Map Controls Sheet - consolidates all controls into draggable bottom sheet */}
+      <MapControlsSheet
+        mapLayer={mapLayer}
+        onChangeLayer={changeMapLayer}
+        gridUnit={gridUnit}
+        onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
+        gridDensity={gridDensity}
+        onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
+        plantingFilters={plantingFilters}
+        onTogglePlantingFilter={toggleLayerFilter}
+        legendContent={
+          <MapLegend
+            mapLayer={mapLayer}
+            gridUnit={gridUnit}
+            zones={zones}
+            plantings={plantings}
+            isCollapsed={false}
+            onToggle={() => {}}
+          />
+        }
+      />
     </div>
   );
 }
