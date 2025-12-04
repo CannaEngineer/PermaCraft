@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SpeciesCard } from '@/components/species/species-card';
@@ -9,6 +9,7 @@ import { SpeciesDetailModal } from '@/components/species/species-detail-modal';
 import type { Species } from '@/lib/db/schema';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Drawer } from 'vaul';
+import { FAB } from '@/components/ui/fab';
 
 export default function PlantsPage() {
   const [species, setSpecies] = useState<Species[]>([]);
@@ -20,6 +21,7 @@ export default function PlantsPage() {
   const [functionFilter, setFunctionFilter] = useState<string[]>([]);
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSpecies();
@@ -106,6 +108,7 @@ export default function PlantsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search by common or scientific name..."
                 value={searchQuery}
@@ -211,6 +214,16 @@ export default function PlantsPage() {
       <SpeciesDetailModal
         speciesId={selectedSpeciesId}
         onClose={() => setSelectedSpeciesId(null)}
+      />
+
+      {/* Context-Aware FAB - Focus Search on Mobile */}
+      <FAB
+        icon={<Search className="h-6 w-6" />}
+        onAction={() => {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+        ariaLabel="Focus search"
       />
     </div>
   );

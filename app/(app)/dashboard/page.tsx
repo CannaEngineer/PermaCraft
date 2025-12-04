@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlusIcon, MapIcon } from "lucide-react";
 import { FarmCard } from "@/components/dashboard/farm-card";
 import { UniversalSearch } from "@/components/search/universal-search";
+import { DashboardClient } from "./dashboard-client";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -61,56 +62,58 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-serif font-bold">My Farms</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your permaculture designs
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/farm/new">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Farm
-          </Link>
-        </Button>
-      </div>
-
-      {/* Search My Farms */}
-      <div className="mb-6">
-        <UniversalSearch
-          context="my-farms"
-          placeholder="Search your farms, zones, and conversations..."
-          className="max-w-2xl"
-        />
-      </div>
-
-      {farms.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <MapIcon className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-serif font-semibold mb-2">
-              No farms yet
-            </h3>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              Create your first farm to start planning your permaculture design.
+    <DashboardClient>
+      <div className="p-4 md:p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-serif font-bold">My Farms</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your permaculture designs
             </p>
-            <Button asChild variant="default" size="lg">
-              <Link href="/farm/new">
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Create Your First Farm
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {farms.map((farm) => (
-            <FarmCard key={farm.id} farm={farm} />
-          ))}
+          </div>
+          <Button asChild className="hidden md:flex">
+            <Link href="/farm/new">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              New Farm
+            </Link>
+          </Button>
         </div>
-      )}
-    </div>
+
+        {/* Search My Farms */}
+        <div className="mb-6">
+          <UniversalSearch
+            context="my-farms"
+            placeholder="Search your farms, zones, and conversations..."
+            className="max-w-2xl"
+          />
+        </div>
+
+        {farms.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <MapIcon className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-xl font-serif font-semibold mb-2">
+                No farms yet
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                Create your first farm to start planning your permaculture design.
+              </p>
+              <Button asChild variant="default" size="lg">
+                <Link href="/farm/new">
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Create Your First Farm
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {farms.map((farm) => (
+              <FarmCard key={farm.id} farm={farm} />
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardClient>
   );
 }

@@ -5,7 +5,8 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Farm, Zone } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
-import { Layers, Tag, HelpCircle, Circle, Leaf } from "lucide-react";
+import { Layers, Tag, HelpCircle, Circle, Leaf, MapPin, Square } from "lucide-react";
+import { FAB } from "@/components/ui/fab";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapLegend } from "./map-legend";
@@ -2621,6 +2622,34 @@ export function FarmMap({
         plantingFilters={plantingFilters}
         onTogglePlantingFilter={toggleLayerFilter}
       />
+
+      {/* Context-Aware FAB - Mobile Only (hidden on desktop) */}
+      <div className="md:hidden">
+        <FAB
+          ariaLabel="Add elements to map"
+          actions={[
+            {
+              icon: <Leaf className="h-5 w-5" />,
+              label: "Add Plant",
+              onClick: () => {
+                setPlantingMode(true);
+                setShowSpeciesPicker(true);
+              },
+              color: "bg-green-600 text-white"
+            },
+            {
+              icon: <Square className="h-5 w-5" />,
+              label: "Draw Zone",
+              onClick: () => {
+                if (draw.current) {
+                  draw.current.changeMode('draw_polygon');
+                }
+              },
+              color: "bg-blue-600 text-white"
+            }
+          ]}
+        />
+      </div>
     </div>
   );
 }
