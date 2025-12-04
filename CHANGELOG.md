@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Switched license from MIT to GNU General Public License v3 (GPLv3)
+
 ## [0.1.0] - 2024-11-30
 
 ### 🎉 Initial Release

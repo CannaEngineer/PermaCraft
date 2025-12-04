@@ -6,7 +6,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Farm, Zone } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { Layers, Tag, HelpCircle, Circle, Leaf, MapPin, Square } from "lucide-react";
-import { FAB } from "@/components/ui/fab";
+import { useToast } from "@/hooks/use-toast";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapLegend } from "./map-legend";
@@ -106,6 +106,7 @@ export function FarmMap({
   onMapReady,
   onMapLayerChange,
 }: FarmMapProps) {
+  const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
@@ -211,7 +212,7 @@ export function FarmMap({
     setShowPlantingForm(true);
   }, [plantingMode, selectedSpecies]);
 
-  // Handle planting form submission
+  // Handle planting form submission with optimistic updates
   const handlePlantingSubmit = useCallback(async (formData: {
     custom_name?: string;
     planted_year: number;
@@ -219,6 +220,35 @@ export function FarmMap({
     notes?: string;
   }) => {
     if (!selectedSpecies || !plantingClickPos) return;
+
+    // Create optimistic planting with temporary ID
+    const optimisticPlanting = {
+      id: `temp-${Date.now()}`,
+      farm_id: farm.id,
+      species_id: selectedSpecies.id,
+      lat: plantingClickPos.lat,
+      lng: plantingClickPos.lng,
+      custom_name: formData.custom_name || null,
+      planted_year: formData.planted_year,
+      zone_id: formData.zone_id || null,
+      notes: formData.notes || null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      // Include species data for rendering
+      common_name: selectedSpecies.common_name,
+      scientific_name: selectedSpecies.scientific_name,
+      layer: selectedSpecies.layer,
+      mature_height_ft: selectedSpecies.mature_height_ft,
+      mature_width_ft: selectedSpecies.mature_width_ft,
+      years_to_maturity: selectedSpecies.years_to_maturity,
+    };
+
+    // Optimistically add to state
+    setPlantings(prev => [...prev, optimisticPlanting]);
+
+    // Close form immediately (instant feedback)
+    setShowPlantingForm(false);
+    setPlantingClickPos(null);
 
     try {
       const response = await fetch(`/api/farms/${farm.id}/plantings`, {
@@ -234,34 +264,67 @@ export function FarmMap({
 
       if (response.ok) {
         const data = await response.json();
-        setPlantings(prev => [...prev, data.planting]);
+        // Replace optimistic planting with real one
+        setPlantings(prev => prev.map(p =>
+          p.id === optimisticPlanting.id ? data.planting : p
+        ));
 
-        // Close form
-        setShowPlantingForm(false);
-        setPlantingClickPos(null);
-
-        // Keep planting mode active for multiple plantings
-        // User can click again to place another of the same species
+        toast({
+          title: "Plant added",
+          description: `${selectedSpecies.common_name} has been planted successfully.`,
+        });
+      } else {
+        throw new Error('Failed to save planting');
       }
     } catch (error) {
       console.error('Failed to create planting:', error);
-    }
-  }, [selectedSpecies, plantingClickPos, farm.id]);
 
-  // Handle planting deletion
+      // Revert optimistic update
+      setPlantings(prev => prev.filter(p => p.id !== optimisticPlanting.id));
+
+      toast({
+        title: "Failed to add plant",
+        description: "There was an error saving your planting. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [selectedSpecies, plantingClickPos, farm.id, toast]);
+
+  // Handle planting deletion with optimistic updates
   const handleDeletePlanting = useCallback(async (plantingId: string) => {
+    // Store the planting in case we need to revert
+    const deletedPlanting = plantings.find(p => p.id === plantingId);
+    if (!deletedPlanting) return;
+
+    // Optimistically remove from state
+    setPlantings(prev => prev.filter(p => p.id !== plantingId));
+
     try {
       const response = await fetch(`/api/farms/${farm.id}/plantings/${plantingId}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        setPlantings(prev => prev.filter(p => p.id !== plantingId));
+        toast({
+          title: "Plant removed",
+          description: `${deletedPlanting.common_name} has been removed from your farm.`,
+        });
+      } else {
+        throw new Error('Failed to delete planting');
       }
     } catch (error) {
       console.error('Failed to delete planting:', error);
+
+      // Revert optimistic delete
+      setPlantings(prev => [...prev, deletedPlanting]);
+
+      toast({
+        title: "Failed to remove plant",
+        description: "There was an error removing the planting. Please try again.",
+        variant: "destructive",
+      });
     }
-  }, [farm.id]);
+  }, [farm.id, plantings, toast]);
 
   // Filter plantings by layer
   const filteredPlantings = plantingFilters.length === 0
@@ -2611,7 +2674,7 @@ export function FarmMap({
         />
       )}
 
-      {/* Mobile Map Controls Sheet - consolidates all controls into draggable bottom sheet */}
+      {/* Map Controls FAB - consolidates all actions and settings */}
       <MapControlsSheet
         mapLayer={mapLayer}
         onChangeLayer={changeMapLayer}
@@ -2621,35 +2684,23 @@ export function FarmMap({
         onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
         plantingFilters={plantingFilters}
         onTogglePlantingFilter={toggleLayerFilter}
+        onAddPlant={() => {
+          setPlantingMode(true);
+          setShowSpeciesPicker(true);
+        }}
+        onDrawZone={() => {
+          if (draw.current) {
+            draw.current.changeMode('draw_polygon');
+          }
+        }}
+        onCreatePost={() => {
+          // TODO: Implement create post functionality
+          toast({
+            title: "Coming Soon",
+            description: "Create post functionality will be available soon!",
+          });
+        }}
       />
-
-      {/* Context-Aware FAB - Mobile Only (hidden on desktop) */}
-      <div className="md:hidden">
-        <FAB
-          ariaLabel="Add elements to map"
-          actions={[
-            {
-              icon: <Leaf className="h-5 w-5" />,
-              label: "Add Plant",
-              onClick: () => {
-                setPlantingMode(true);
-                setShowSpeciesPicker(true);
-              },
-              color: "bg-green-600 text-white"
-            },
-            {
-              icon: <Square className="h-5 w-5" />,
-              label: "Draw Zone",
-              onClick: () => {
-                if (draw.current) {
-                  draw.current.changeMode('draw_polygon');
-                }
-              },
-              color: "bg-blue-600 text-white"
-            }
-          ]}
-        />
-      </div>
     </div>
   );
 }

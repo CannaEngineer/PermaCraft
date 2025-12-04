@@ -2,7 +2,7 @@
 
 > AI-powered permaculture design platform combining interactive mapping with intelligent terrain analysis for regenerative agriculture planning.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 
@@ -228,7 +228,7 @@ See [GitHub Issues](https://github.com/yourusername/permacraft/issues) for curre
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3 - see the [LICENSE](LICENSE) file for details.
 
 ---
 

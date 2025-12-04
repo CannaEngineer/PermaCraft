@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/shared/sidebar";
 import { BottomNavBar } from "@/components/shared/bottom-nav-bar";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function AppLayoutClient({
   children,
@@ -24,6 +25,9 @@ export default function AppLayoutClient({
 
       {/* Mobile Bottom Navigation - hidden on desktop */}
       <BottomNavBar userName={userName} />
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 }

@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Drawer } from 'vaul';
-import { Settings, ChevronUp, Layers as LayersIcon, Grid, Filter } from 'lucide-react';
+import { Settings, ChevronUp, Layers as LayersIcon, Grid, Filter, Leaf, Square, MessageSquare } from 'lucide-react';
+import { FAB } from '@/components/ui/fab';
+import type { FABAction } from '@/components/ui/fab';
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
 
@@ -14,6 +17,9 @@ interface MapControlsSheetProps {
   onChangeGridDensity: (density: string) => void;
   plantingFilters: string[];
   onTogglePlantingFilter: (layer: string) => void;
+  onAddPlant?: () => void;
+  onDrawZone?: () => void;
+  onCreatePost?: () => void;
   className?: string;
 }
 
@@ -39,13 +45,13 @@ const PLANTING_LAYERS = [
 ];
 
 /**
- * Map Controls Bottom Sheet (Mobile Only)
+ * Map Controls Bottom Sheet
  *
- * Draggable bottom sheet that declutters the map on mobile by consolidating
- * all floating controls into an organized drawer.
+ * Expandable FAB that consolidates all map controls and actions.
+ * Primary actions (Plant, Zone, Post) expand on click.
+ * Settings action opens the full controls drawer.
  *
- * Desktop: Controls remain in their original positions
- * Mobile: All controls accessible via bottom sheet
+ * Visible on both mobile and desktop for consistent UX.
  */
 export function MapControlsSheet({
   mapLayer,
@@ -56,16 +62,45 @@ export function MapControlsSheet({
   onChangeGridDensity,
   plantingFilters,
   onTogglePlantingFilter,
+  onAddPlant,
+  onDrawZone,
+  onCreatePost,
   className = '',
 }: MapControlsSheetProps) {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Build FAB actions array
+  const fabActions: FABAction[] = [];
+
+  if (onAddPlant) {
+    fabActions.push({
+      icon: <Leaf className="h-5 w-5" />,
+      label: "Add Plant",
+      onClick: onAddPlant,
+      color: "bg-green-600 text-white"
+    });
+  }
+
+  if (onDrawZone) {
+    fabActions.push({
+      icon: <Square className="h-5 w-5" />,
+      label: "Draw Zone",
+      onClick: onDrawZone,
+      color: "bg-blue-600 text-white"
+    });
+  }
+
+  if (onCreatePost) {
+    fabActions.push({
+      icon: <MessageSquare className="h-5 w-5" />,
+      label: "Create Post",
+      onClick: onCreatePost,
+      color: "bg-purple-600 text-white"
+    });
+  }
+
   return (
-    <Drawer.Root shouldScaleBackground>
-      <Drawer.Trigger className={`md:hidden fixed bottom-[72px] right-4 z-30 bg-card border border-border rounded-full p-3 shadow-lg active:scale-95 transition-transform ${className}`}>
-        <div className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </Drawer.Trigger>
+    <Drawer.Root open={isDrawerOpen} onOpenChange={setIsDrawerOpen} shouldScaleBackground>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
         <Drawer.Content className="bg-card flex flex-col rounded-t-xl h-[70vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
@@ -174,6 +209,21 @@ export function MapControlsSheet({
           </div>
         </Drawer.Content>
       </Drawer.Portal>
+
+      {/* Expandable FAB with Settings trigger at the end */}
+      <FAB
+        ariaLabel="Map actions and settings"
+        actions={[
+          ...fabActions,
+          {
+            icon: <Settings className="h-5 w-5" />,
+            label: "Map Settings",
+            onClick: () => setIsDrawerOpen(true),
+            color: "bg-gray-600 text-white"
+          }
+        ]}
+        className={className}
+      />
     </Drawer.Root>
   );
 }
