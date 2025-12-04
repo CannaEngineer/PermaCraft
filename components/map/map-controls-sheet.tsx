@@ -1,7 +1,7 @@
 'use client';
 
 import { Drawer } from 'vaul';
-import { Settings, ChevronUp, Layers as LayersIcon, Grid, Filter, Info } from 'lucide-react';
+import { Settings, ChevronUp, Layers as LayersIcon, Grid, Filter } from 'lucide-react';
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
 
@@ -14,7 +14,6 @@ interface MapControlsSheetProps {
   onChangeGridDensity: (density: string) => void;
   plantingFilters: string[];
   onTogglePlantingFilter: (layer: string) => void;
-  legendContent: React.ReactNode;
   className?: string;
 }
 
@@ -57,12 +56,11 @@ export function MapControlsSheet({
   onChangeGridDensity,
   plantingFilters,
   onTogglePlantingFilter,
-  legendContent,
   className = '',
 }: MapControlsSheetProps) {
   return (
     <Drawer.Root shouldScaleBackground>
-      <Drawer.Trigger className={`md:hidden fixed bottom-20 right-4 z-30 bg-card border border-border rounded-full p-3 shadow-lg active:scale-95 transition-transform ${className}`}>
+      <Drawer.Trigger className={`md:hidden fixed bottom-[72px] right-4 z-30 bg-card border border-border rounded-full p-3 shadow-lg active:scale-95 transition-transform ${className}`}>
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5" />
           <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -70,7 +68,7 @@ export function MapControlsSheet({
       </Drawer.Trigger>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Drawer.Content className="bg-card flex flex-col rounded-t-xl h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
+        <Drawer.Content className="bg-card flex flex-col rounded-t-xl h-[70vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
           {/* Handle */}
           <div className="flex-shrink-0 p-4 border-b border-border">
             <div className="mx-auto w-12 h-1.5 rounded-full bg-muted mb-4" />
@@ -173,18 +171,6 @@ export function MapControlsSheet({
               </div>
             </section>
 
-            {/* Legend Section */}
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold uppercase tracking-wide">
-                  Legend
-                </h3>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-3">
-                {legendContent}
-              </div>
-            </section>
           </div>
         </Drawer.Content>
       </Drawer.Portal>

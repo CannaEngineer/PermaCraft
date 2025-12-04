@@ -2531,17 +2531,15 @@ export function FarmMap({
         <CompassRose bearing={bearing} />
       </div>
 
-      {/* Map Legend - Desktop Only */}
-      <div className="hidden md:block">
-        <MapLegend
-          mapLayer={mapLayer}
-          gridUnit={gridUnit}
-          zones={zones}
-          plantings={plantings}
-          isCollapsed={legendCollapsed}
-          onToggle={() => setLegendCollapsed(!legendCollapsed)}
-        />
-      </div>
+      {/* Map Legend - Always Visible, Collapsible */}
+      <MapLegend
+        mapLayer={mapLayer}
+        gridUnit={gridUnit}
+        zones={zones}
+        plantings={plantings}
+        isCollapsed={legendCollapsed}
+        onToggle={() => setLegendCollapsed(!legendCollapsed)}
+      />
 
       {/* Render planting markers */}
       {map.current && filteredPlantings.map(planting => (
@@ -2622,16 +2620,6 @@ export function FarmMap({
         onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
         plantingFilters={plantingFilters}
         onTogglePlantingFilter={toggleLayerFilter}
-        legendContent={
-          <MapLegend
-            mapLayer={mapLayer}
-            gridUnit={gridUnit}
-            zones={zones}
-            plantings={plantings}
-            isCollapsed={false}
-            onToggle={() => {}}
-          />
-        }
       />
     </div>
   );

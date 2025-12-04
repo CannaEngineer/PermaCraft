@@ -76,15 +76,15 @@ export function MapLegend({ mapLayer, gridUnit, zones, plantings = [], isCollaps
   if (isCollapsed) {
     return (
       <div
-        className="absolute bottom-4 right-4 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-colors"
+        className="absolute bottom-[140px] md:bottom-4 right-4 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-colors"
         data-legend-container
         data-collapsed={isCollapsed}
         onClick={onToggle}
       >
-        <div className="p-3 flex items-center gap-2">
+        <div className="p-2 md:p-3 flex items-center gap-2">
           <ChevronUp className="h-4 w-4 text-slate-600 dark:text-slate-400" />
           <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-            Show Legend
+            Legend
           </span>
         </div>
       </div>
@@ -93,7 +93,7 @@ export function MapLegend({ mapLayer, gridUnit, zones, plantings = [], isCollaps
 
   return (
     <div
-      className="absolute bottom-4 right-4 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 text-xs max-w-[240px] z-10"
+      className="absolute bottom-[140px] md:bottom-4 right-4 bg-white/95 dark:bg-slate-900/95 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 text-xs max-w-[240px] z-10"
       data-legend-container
       data-collapsed={isCollapsed}
     >
