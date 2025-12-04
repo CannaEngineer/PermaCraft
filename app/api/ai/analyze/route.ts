@@ -36,6 +36,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { openrouter, FREE_VISION_MODELS } from "@/lib/ai/openrouter";
 import { PERMACULTURE_SYSTEM_PROMPT, createAnalysisPrompt } from "@/lib/ai/prompts";
+import { manageConversationContext } from "@/lib/ai/context-manager";
 import { uploadScreenshot } from "@/lib/storage/r2";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -230,6 +231,62 @@ export async function POST(request: NextRequest) {
     });
 
     /**
+     * STEP 6.5: Fetch conversation history
+     *
+     * Load all previous messages from this conversation to provide context.
+     * This allows the AI to:
+     * - Remember previous questions and answers
+     * - Follow up on earlier topics
+     * - Build on previous recommendations
+     *
+     * Message History Structure:
+     * - Fetch all ai_analyses for this conversation_id
+     * - Build message array: [user_query, ai_response, user_query, ai_response, ...]
+     * - Newest messages first (ORDER BY created_at DESC)
+     * - Reverse to chronological order for API
+     *
+     * Note: We only attach screenshots to the CURRENT message, not historical ones
+     */
+    let conversationHistory: Array<{ role: "user" | "assistant"; content: string }> = [];
+
+    if (activeConversationId) {
+      const historyResult = await db.execute({
+        sql: `SELECT user_query, ai_response, created_at
+              FROM ai_analyses
+              WHERE conversation_id = ?
+              ORDER BY created_at ASC`,
+        args: [activeConversationId]
+      });
+
+      // Build message history (alternating user/assistant)
+      for (const row of historyResult.rows) {
+        conversationHistory.push({
+          role: "user",
+          content: row.user_query as string
+        });
+        conversationHistory.push({
+          role: "assistant",
+          content: row.ai_response as string
+        });
+      }
+
+      console.log(`Loaded ${conversationHistory.length} messages from conversation history`);
+
+      // Manage context size - compress if too large
+      const { managedHistory, wasCompressed, stats } = manageConversationContext(conversationHistory);
+      conversationHistory = managedHistory;
+
+      if (wasCompressed) {
+        console.log(`🗜️ Compressed conversation history:`, stats);
+        console.log(`  - Original: ${stats.originalMessages} messages, ~${stats.originalTokens} tokens`);
+        console.log(`  - Compressed: ${stats.finalMessages} messages, ~${stats.finalTokens} tokens`);
+        console.log(`  - Savings: ${Math.round((1 - stats.finalTokens / stats.originalTokens) * 100)}%`);
+      } else {
+        console.log(`✓ Conversation history fits within token budget (${stats.finalTokens} tokens)`);
+      }
+    }
+
+    /**
      * STEP 7: Call OpenRouter Vision API
      *
      * This is the core AI inference step. We send screenshots and prompts to
@@ -249,7 +306,8 @@ export async function POST(request: NextRequest) {
      *
      * Message Structure:
      * - System message: Permaculture expert persona and instructions
-     * - User message: Multi-part content with text + images
+     * - Conversation history: Previous user/assistant messages (text only)
+     * - Current user message: Multi-part content with text + images
      *   - Text part: Farm context + user query + grid coordinates
      *   - Image parts: Screenshots (satellite, topographic, etc.)
      *
@@ -292,19 +350,27 @@ export async function POST(request: NextRequest) {
           });
         });
 
+        // Build complete message array with conversation history
+        const messages: any[] = [
+          {
+            role: "system",
+            content: PERMACULTURE_SYSTEM_PROMPT, // Sets AI persona and instructions
+          },
+          // Include conversation history (text-only messages)
+          ...conversationHistory,
+          // Current message with screenshots
+          {
+            role: "user",
+            content: userContent, // Multi-part: text + images
+          },
+        ];
+
+        console.log(`Sending ${messages.length} messages to AI (including ${conversationHistory.length} history messages)`);
+
         // Call OpenRouter API
         completion = await openrouter.chat.completions.create({
           model: model,
-          messages: [
-            {
-              role: "system",
-              content: PERMACULTURE_SYSTEM_PROMPT, // Sets AI persona and instructions
-            },
-            {
-              role: "user",
-              content: userContent, // Multi-part: text + images
-            },
-          ],
+          messages: messages,
           max_tokens: 4000, // Allow detailed responses
         });
 
