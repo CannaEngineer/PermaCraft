@@ -137,6 +137,9 @@ export function FarmMap({
   const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
   const [showPlantingMenu, setShowPlantingMenu] = useState(false);
 
+  // Guild companion filter state
+  const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
+
   // Time Machine state - projection year for growth simulation
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
 
@@ -2552,13 +2555,16 @@ export function FarmMap({
       {showSpeciesPicker && (
         <SpeciesPickerPanel
           farmId={farm.id}
+          companionFilterFor={companionFilterFor}
           onSelectSpecies={(species) => {
             setSelectedSpecies(species);
             setPlantingMode(true);
             setShowSpeciesPicker(false);
+            setCompanionFilterFor(undefined); // Clear companion filter after selection
           }}
           onClose={() => {
             setShowSpeciesPicker(false);
+            setCompanionFilterFor(undefined); // Clear companion filter on close
             if (!selectedSpecies) {
               setPlantingMode(false);
             }
@@ -2586,6 +2592,10 @@ export function FarmMap({
           planting={selectedPlanting}
           onClose={() => setSelectedPlanting(null)}
           onDelete={handleDeletePlanting}
+          onShowCompanions={(plantCommonName) => {
+            setCompanionFilterFor(plantCommonName);
+            setShowSpeciesPicker(true);
+          }}
         />
       )}
 

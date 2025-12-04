@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Trash2, Calendar, MapPin } from 'lucide-react';
+import { X, Trash2, Calendar, MapPin, Users } from 'lucide-react';
 
 interface PlantingDetailPopupProps {
   planting: {
@@ -24,9 +24,10 @@ interface PlantingDetailPopupProps {
   };
   onClose: () => void;
   onDelete?: (plantingId: string) => void;
+  onShowCompanions?: (plantingCommonName: string) => void;
 }
 
-export function PlantingDetailPopup({ planting, onClose, onDelete }: PlantingDetailPopupProps) {
+export function PlantingDetailPopup({ planting, onClose, onDelete, onShowCompanions }: PlantingDetailPopupProps) {
   const currentYear = new Date().getFullYear();
   const plantAge = currentYear - planting.planted_year;
   const yearsToMaturity = planting.years_to_maturity || 10;
@@ -141,32 +142,51 @@ export function PlantingDetailPopup({ planting, onClose, onDelete }: PlantingDet
         </div>
 
         {/* Actions */}
-        {onDelete && (
-          <div className="p-3 bg-muted/30 border-t border-border flex gap-2">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              size="sm"
-              className="flex-1"
-            >
-              Close
-            </Button>
+        <div className="p-3 bg-muted/30 border-t border-border space-y-2">
+          {/* Guild Companions Button */}
+          {onShowCompanions && (
             <Button
               onClick={() => {
-                if (confirm('Are you sure you want to remove this planting?')) {
-                  onDelete(planting.id);
-                  onClose();
-                }
+                onShowCompanions(planting.common_name);
+                onClose();
               }}
-              variant="destructive"
+              variant="default"
               size="sm"
-              className="flex-1"
+              className="w-full bg-green-600 hover:bg-green-700"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Remove
+              <Users className="h-4 w-4 mr-2" />
+              Show Guild Companions for {planting.common_name}
             </Button>
-          </div>
-        )}
+          )}
+
+          {/* Close/Delete Actions */}
+          {onDelete && (
+            <div className="flex gap-2">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                size="sm"
+                className="flex-1"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  if (confirm('Are you sure you want to remove this planting?')) {
+                    onDelete(planting.id);
+                    onClose();
+                  }
+                }}
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Remove
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

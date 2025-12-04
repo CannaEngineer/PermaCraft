@@ -10,9 +10,10 @@ interface SpeciesPickerPanelProps {
   farmId: string;
   onSelectSpecies: (species: Species) => void;
   onClose: () => void;
+  companionFilterFor?: string; // Common name of plant to show companions for
 }
 
-export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose }: SpeciesPickerPanelProps) {
+export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companionFilterFor }: SpeciesPickerPanelProps) {
   const [nativeSpecies, setNativeSpecies] = useState<{
     perfect_match: Species[];
     good_match: Species[];
@@ -52,6 +53,23 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose }: Species
       species = [...nativeSpecies.perfect_match, ...nativeSpecies.good_match];
     }
 
+    // Filter by companion plants if requested
+    if (companionFilterFor) {
+      species = species.filter(s => {
+        if (!s.companion_plants) return false;
+        try {
+          const companions: string[] = JSON.parse(s.companion_plants);
+          // Check if this species lists the focal plant as a companion
+          return companions.some(companion =>
+            companion.toLowerCase() === companionFilterFor.toLowerCase()
+          );
+        } catch (error) {
+          console.error('Failed to parse companion_plants:', error);
+          return false;
+        }
+      });
+    }
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       species = species.filter(s =>
@@ -69,15 +87,24 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose }: Species
     <div className="absolute top-4 right-4 z-20 w-96 max-h-[80vh] bg-card rounded-lg shadow-xl border border-border overflow-hidden flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between bg-muted/50">
-        <div className="flex items-center gap-2">
-          <Leaf className="h-5 w-5 text-green-600" />
-          <h3 className="font-semibold">Select a Plant</h3>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <Leaf className="h-5 w-5 text-green-600" />
+            <h3 className="font-semibold">
+              {companionFilterFor ? 'Guild Companions' : 'Select a Plant'}
+            </h3>
+          </div>
+          {companionFilterFor && (
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              Good partners for <span className="font-medium text-green-600">{companionFilterFor}</span>
+            </p>
+          )}
         </div>
         <Button
           onClick={onClose}
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 flex-shrink-0"
         >
           <X className="h-4 w-4" />
         </Button>
