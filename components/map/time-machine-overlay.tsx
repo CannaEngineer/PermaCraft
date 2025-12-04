@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Play, Pause, RotateCcw, X } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface TimeMachineOverlayProps {
@@ -16,9 +16,8 @@ interface TimeMachineOverlayProps {
 /**
  * Time Machine Overlay Component
  *
- * Floats at the bottom of the map, allowing users to see plant growth
- * projections while manipulating the timeline. Designed to be non-intrusive
- * while providing full controls.
+ * Compact vertical control that sits on the right edge of the map.
+ * Designed to be minimally intrusive while providing full timeline controls.
  */
 export function TimeMachineOverlay({
   isOpen,
@@ -30,6 +29,7 @@ export function TimeMachineOverlay({
 }: TimeMachineOverlayProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1); // Years per second
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Auto-advance animation
   useEffect(() => {
@@ -59,11 +59,11 @@ export function TimeMachineOverlay({
       }
 
       switch (e.key) {
-        case 'ArrowLeft':
+        case 'ArrowDown':
           e.preventDefault();
           onYearChange(Math.max(minYear, currentYear - 1));
           break;
-        case 'ArrowRight':
+        case 'ArrowUp':
           e.preventDefault();
           onYearChange(Math.min(maxYear, currentYear + 1));
           break;
@@ -113,56 +113,110 @@ export function TimeMachineOverlay({
 
   return (
     <div
-      className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-2xl p-4 w-[95%] max-w-3xl"
+      className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex items-center gap-2"
       role="group"
       aria-label="Farm growth timeline"
     >
-      <div className="flex flex-col gap-3">
-        {/* Header with Year and Close Button */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h3 className="text-sm font-medium text-muted-foreground">Time Machine</h3>
-            <div className="text-3xl md:text-4xl font-bold text-primary tabular-nums">
-              {currentYear}
+      {/* Expanded Controls Panel (shows on hover or when expanded) */}
+      {isExpanded && (
+        <div className="bg-card/95 backdrop-blur-md border border-border rounded-lg shadow-xl p-3 animate-in slide-in-from-right-2 duration-200">
+          <div className="flex flex-col gap-3 min-w-[200px]">
+            {/* Controls Row */}
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleReset}
+                aria-label="Reset to current year"
+                className="h-8 w-8 p-0"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={togglePlayback}
+                aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
+                className="h-8 px-3"
+              >
+                {isPlaying ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+
+              <select
+                value={playbackSpeed}
+                onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                className="h-8 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label="Playback speed"
+              >
+                <option value={0.5}>0.5x</option>
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
+                <option value={5}>5x</option>
+                <option value={10}>10x</option>
+              </select>
+            </div>
+
+            <div className="text-xs text-muted-foreground text-center">
+              ↑↓ arrows • Space • Esc
             </div>
           </div>
+        </div>
+      )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8 rounded-full"
-            aria-label="Close time machine"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+      {/* Vertical Slider with Year Display */}
+      <div
+        className="bg-card/95 backdrop-blur-md border border-border rounded-lg shadow-xl p-2 flex flex-col items-center gap-2"
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+      >
+        {/* Close Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-7 w-7 rounded-full hover:bg-destructive/10"
+          aria-label="Close time machine"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+
+        {/* Year Display */}
+        <div className="flex flex-col items-center gap-1 py-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <div className="text-2xl font-bold text-primary tabular-nums -rotate-0">
+            {currentYear}
+          </div>
         </div>
 
-        {/* Slider */}
-        <div className="relative">
-          {/* Tick marks */}
-          <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
+        {/* Vertical Slider Container */}
+        <div className="relative h-64 w-12 flex items-center justify-center">
+          {/* Year ticks */}
+          <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-muted-foreground pr-1">
             {Array.from({ length: 5 }, (_, i) => {
-              const year = minYear + Math.floor((yearRange * i) / 4);
+              const year = maxYear - Math.floor((yearRange * i) / 4);
               return (
-                <span key={year} className="tabular-nums">
-                  {year}
+                <span key={year} className="tabular-nums leading-none">
+                  {year.toString().slice(2)}
                 </span>
               );
             })}
           </div>
 
-          {/* Range input */}
+          {/* Vertical Range Input */}
           <input
             type="range"
             min={minYear}
             max={maxYear}
             value={currentYear}
             onChange={handleSliderChange}
-            className="w-full h-3 bg-muted rounded-lg appearance-none cursor-pointer slider-thumb"
+            className="vertical-slider h-full w-3 appearance-none cursor-pointer"
             style={{
-              background: `linear-gradient(to right, hsl(var(--primary)) ${progressPercent}%, hsl(var(--muted)) ${progressPercent}%)`,
-            }}
+              background: `linear-gradient(to top, hsl(var(--primary)) ${progressPercent}%, hsl(var(--muted)) ${progressPercent}%)`,
+            } as React.CSSProperties}
             aria-label={`Year selector: ${minYear} to ${maxYear}`}
             aria-valuemin={minYear}
             aria-valuemax={maxYear}
@@ -171,111 +225,63 @@ export function TimeMachineOverlay({
           />
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {/* Reset */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleReset}
-              aria-label="Reset to current year"
-              className="hidden sm:flex"
-            >
-              <RotateCcw className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Reset</span>
-            </Button>
-
-            {/* Mobile Reset (icon only) */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleReset}
-              aria-label="Reset to current year"
-              className="sm:hidden"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-
-            {/* Play/Pause */}
-            <Button
-              size="sm"
-              onClick={togglePlayback}
-              aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Pause</span>
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Play</span>
-                </>
-              )}
-            </Button>
-
-            {/* Playback Speed */}
-            <select
-              value={playbackSpeed}
-              onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-              className="h-9 px-2 sm:px-3 rounded-md border border-input bg-background text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Playback speed"
-            >
-              <option value={0.5}>0.5x</option>
-              <option value={1}>1x</option>
-              <option value={2}>2x</option>
-              <option value={5}>5x</option>
-              <option value={10}>10x</option>
-            </select>
-          </div>
-
-          {/* Help Text - Desktop only */}
-          <div className="hidden md:block text-xs text-muted-foreground">
-            ← → arrows • Space play/pause • Esc close
-          </div>
+        {/* Range Labels */}
+        <div className="flex flex-col items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="tabular-nums">{minYear}</span>
+          <span>-</span>
+          <span className="tabular-nums">{maxYear}</span>
         </div>
       </div>
 
       <style jsx>{`
-        .slider-thumb::-webkit-slider-thumb {
+        .vertical-slider {
+          writing-mode: bt-lr;
+          -webkit-appearance: slider-vertical;
+          appearance: slider-vertical;
+        }
+
+        .vertical-slider::-webkit-slider-thumb {
           appearance: none;
-          width: 22px;
-          height: 22px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
           background: hsl(var(--primary));
-          border: 3px solid hsl(var(--background));
+          border: 2px solid hsl(var(--background));
           cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
           transition: transform 0.1s ease;
         }
 
-        .slider-thumb::-webkit-slider-thumb:hover {
-          transform: scale(1.15);
+        .vertical-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
         }
 
-        .slider-thumb::-webkit-slider-thumb:active {
-          transform: scale(0.95);
+        .vertical-slider::-webkit-slider-thumb:active {
+          transform: scale(0.9);
         }
 
-        .slider-thumb::-moz-range-thumb {
-          width: 22px;
-          height: 22px;
+        .vertical-slider::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
           background: hsl(var(--primary));
-          border: 3px solid hsl(var(--background));
+          border: 2px solid hsl(var(--background));
           cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
           transition: transform 0.1s ease;
         }
 
-        .slider-thumb::-moz-range-thumb:hover {
-          transform: scale(1.15);
+        .vertical-slider::-moz-range-thumb:hover {
+          transform: scale(1.2);
         }
 
-        .slider-thumb::-moz-range-thumb:active {
-          transform: scale(0.95);
+        .vertical-slider::-moz-range-thumb:active {
+          transform: scale(0.9);
+        }
+
+        /* Firefox vertical slider support */
+        .vertical-slider {
+          -moz-appearance: slider-vertical;
         }
       `}</style>
     </div>
