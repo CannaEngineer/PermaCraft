@@ -12,7 +12,6 @@ import { calculateGridCoordinates, formatGridRange } from "@/lib/map/zone-grid-c
 import { toPng } from "html-to-image";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
-import { CreatePostFAB } from "@/components/farm/create-post-fab";
 import { FarmVitalsWidget } from "@/components/farm/farm-vitals-widget";
 
 interface FarmEditorClientProps {
@@ -854,14 +853,6 @@ IMPORTANT: When suggesting new plantings:
           router.push("/dashboard");
         }}
       />
-
-      {/* Floating Action Button for Post Creation */}
-      {isOwner && (
-        <CreatePostFAB
-          farmId={farm.id}
-          onPostCreated={() => router.refresh()}
-        />
-      )}
     </div>
   );
 }

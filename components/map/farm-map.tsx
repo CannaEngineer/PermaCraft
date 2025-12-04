@@ -14,7 +14,7 @@ import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
-import { TimeMachineModal } from "./time-machine-modal";
+import { TimeMachineOverlay } from "./time-machine-overlay";
 import { MapControlsSheet } from "./map-controls-sheet";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
@@ -2671,10 +2671,10 @@ export function FarmMap({
         />
       )}
 
-      {/* Time Machine Modal */}
-      <TimeMachineModal
-        open={showTimeMachine}
-        onOpenChange={setShowTimeMachine}
+      {/* Time Machine Overlay */}
+      <TimeMachineOverlay
+        isOpen={showTimeMachine}
+        onClose={() => setShowTimeMachine(false)}
         currentYear={projectionYear}
         onYearChange={setProjectionYear}
       />
