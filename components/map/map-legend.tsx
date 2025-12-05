@@ -63,6 +63,23 @@ export function MapLegend({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1); // Years per second
 
+  // Auto-advance animation
+  useEffect(() => {
+    if (!isPlaying || !isTimeMachineOpen || !onYearChange) return;
+
+    const interval = setInterval(() => {
+      const next = currentYear! + 1;
+      if (next > maxYear) {
+        setIsPlaying(false);
+        onYearChange(maxYear);
+      } else {
+        onYearChange(next);
+      }
+    }, 1000 / playbackSpeed);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, isTimeMachineOpen, playbackSpeed, maxYear, currentYear, onYearChange]);
+
   const gridSpacing = gridUnit === "imperial" ? "50 ft" : "25 m";
 
   const layerNames = {
