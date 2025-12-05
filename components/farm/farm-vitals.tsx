@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Leaf, Sprout, Droplets, Bug, Flower2, Zap, TreeDeciduous, Heart, MapPin, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Drawer } from 'vaul';
 
 interface PlantingWithSpecies {
   id: string;
@@ -38,18 +40,19 @@ const VITAL_IMPORTANCE: Record<string, string> = {
  * Gamified ecological function tracker that shows the permaculture value
  * of plantings on the farm. Encourages biodiversity and functional stacking.
  *
- * Key functions tracked:
- * - Nitrogen Fixers: Legumes that improve soil
- * - Pollinator Support: Plants that attract beneficial insects
- * - Dynamic Accumulators: Deep-rooted plants that mine minerals
- * - Wildlife Habitat: Shelter and food for fauna
- * - Edible Production: Food crops
- * - Medicinal Plants: Healthcare plants
- * - Erosion Control: Soil stabilizers
- * - Water Management: Plants that help with hydrology
+ * Mobile-first design with drawer/modal for details that doesn't obscure the map.
  */
 export function FarmVitals({ plantings, className = '', compact = false, onHighlightFunction }: FarmVitalsProps) {
-  const [expandedVital, setExpandedVital] = useState<string | null>(null);
+  const [selectedVital, setSelectedVital] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile on mount
+  useMemo(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Aggregate permaculture functions from all plantings
   const vitals = useMemo(() => {
@@ -232,24 +235,109 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
     );
   }
 
-  // Full view for farm editor with expandable details
+  // Find selected vital data
+  const selectedVitalData = selectedVital
+    ? vitals.categories.find(c => c.key === selectedVital)
+    : null;
+
+  // Detail content component
+  const VitalDetailContent = selectedVitalData ? (() => {
+    const cat = selectedVitalData;
+    const Icon = cat.icon;
+    const uniquePlants = Array.from(
+      new Map(cat.plants.map(p => [p.id, p])).values()
+    );
+
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className={`p-3 rounded-lg ${cat.bgColor} ${cat.borderColor} border`}>
+            <Icon className={`h-6 w-6 ${cat.color}`} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg">{cat.label}</h3>
+            <p className="text-sm text-muted-foreground">
+              {cat.count} {cat.count === 1 ? 'plant' : 'plants'} providing this function
+            </p>
+          </div>
+        </div>
+
+        {/* Why It's Important */}
+        <div className="p-4 bg-muted/50 rounded-lg border border-border">
+          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+            <span className="text-lg">💡</span> Why This Matters
+          </h4>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {VITAL_IMPORTANCE[cat.key]}
+          </p>
+        </div>
+
+        {/* Plant List */}
+        <div>
+          <h4 className="text-sm font-semibold mb-3">Plants in this category:</h4>
+          <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-2">
+            {uniquePlants.map((plant) => (
+              <div
+                key={plant.id}
+                className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+              >
+                <Leaf className={`h-4 w-4 ${cat.color} flex-shrink-0 mt-0.5`} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm">
+                    {plant.common_name || 'Unknown'}
+                  </div>
+                  {plant.scientific_name && (
+                    <div className="text-xs text-muted-foreground italic">
+                      {plant.scientific_name}
+                    </div>
+                  )}
+                  {plant.layer && (
+                    <div className="text-xs text-muted-foreground capitalize mt-0.5">
+                      {plant.layer} layer
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Highlight on Map Button */}
+        {onHighlightFunction && (
+          <Button
+            onClick={() => {
+              onHighlightFunction(cat.key);
+              setSelectedVital(null);
+            }}
+            className="w-full"
+            variant="default"
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            Highlight on Map
+          </Button>
+        )}
+      </div>
+    );
+  }) : null;
+
+  // Full view for farm editor with drawer/modal for details
   return (
-    <div className={className}>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <>
+      <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 ${className}`}>
         {vitals.categories.map((cat) => {
           const Icon = cat.icon;
           const isZero = cat.count === 0;
-          const isExpanded = expandedVital === cat.key;
 
           return (
             <button
               key={cat.label}
-              onClick={() => setExpandedVital(isExpanded ? null : cat.key)}
+              onClick={() => !isZero && setSelectedVital(cat.key)}
               className={`rounded-lg border p-3 transition-all text-left ${
                 isZero
                   ? 'bg-muted/30 border-muted opacity-60'
                   : `${cat.bgColor} ${cat.borderColor} ${cat.hoverBg} hover:shadow-md cursor-pointer`
-              } ${isExpanded ? 'ring-2 ring-offset-2 ring-green-500' : ''}`}
+              }`}
               title={cat.tooltip}
               disabled={isZero}
             >
@@ -269,7 +357,7 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
               )}
               {!isZero && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  Click for details
+                  Tap for details
                 </div>
               )}
             </button>
@@ -277,91 +365,37 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
         })}
       </div>
 
-      {/* Expanded Detail Panel */}
-      {expandedVital && vitals.categories.find(c => c.key === expandedVital) && (() => {
-        const cat = vitals.categories.find(c => c.key === expandedVital)!;
-        const Icon = cat.icon;
-
-        // Deduplicate plants by ID
-        const uniquePlants = Array.from(
-          new Map(cat.plants.map(p => [p.id, p])).values()
-        );
-
-        return (
-          <div className={`mt-4 rounded-lg border ${cat.borderColor} ${cat.bgColor} p-4 shadow-lg`}>
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Icon className={`h-6 w-6 ${cat.color}`} />
-                <div>
-                  <h3 className="font-semibold text-lg">{cat.label}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {cat.count} {cat.count === 1 ? 'plant' : 'plants'} providing this function
-                  </p>
-                </div>
+      {/* Mobile: Drawer from bottom */}
+      {isMobile && selectedVitalData && (
+        <Drawer.Root open={!!selectedVital} onOpenChange={(open) => !open && setSelectedVital(null)}>
+          <Drawer.Portal>
+            <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
+            <Drawer.Content className="bg-card flex flex-col rounded-t-xl h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
+              {/* Handle */}
+              <div className="flex-shrink-0 p-4">
+                <div className="mx-auto w-12 h-1.5 rounded-full bg-muted mb-4" />
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setExpandedVital(null)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
 
-            {/* Why It's Important */}
-            <div className="mb-4 p-3 bg-background/50 rounded border border-border">
-              <h4 className="text-sm font-semibold mb-1">Why This Matters</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {VITAL_IMPORTANCE[cat.key]}
-              </p>
-            </div>
-
-            {/* Plant List */}
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold mb-2">Plants in this category:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                {uniquePlants.map((plant) => (
-                  <div
-                    key={plant.id}
-                    className="flex items-start gap-2 p-2 bg-background/50 rounded border border-border hover:bg-background/80 transition-colors"
-                  >
-                    <Leaf className={`h-4 w-4 ${cat.color} flex-shrink-0 mt-0.5`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm truncate">
-                        {plant.common_name || 'Unknown'}
-                      </div>
-                      {plant.scientific_name && (
-                        <div className="text-xs text-muted-foreground italic truncate">
-                          {plant.scientific_name}
-                        </div>
-                      )}
-                      {plant.layer && (
-                        <div className="text-xs text-muted-foreground capitalize">
-                          {plant.layer} layer
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-4 pb-8">
+                {VitalDetailContent && <VitalDetailContent />}
               </div>
-            </div>
+            </Drawer.Content>
+          </Drawer.Portal>
+        </Drawer.Root>
+      )}
 
-            {/* Highlight on Map Button */}
-            {onHighlightFunction && (
-              <Button
-                onClick={() => onHighlightFunction(cat.key)}
-                className={`w-full ${cat.color}`}
-                variant="outline"
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Highlight on Map
-              </Button>
-            )}
-          </div>
-        );
-      })()}
-    </div>
+      {/* Desktop: Dialog/Modal */}
+      {!isMobile && selectedVitalData && (
+        <Dialog open={!!selectedVital} onOpenChange={(open) => !open && setSelectedVital(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="sr-only">{selectedVitalData.label} Details</DialogTitle>
+            </DialogHeader>
+            {VitalDetailContent && <VitalDetailContent />}
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
