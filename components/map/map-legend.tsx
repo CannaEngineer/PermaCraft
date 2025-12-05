@@ -122,6 +122,30 @@ export function MapLegend({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isTimeMachineOpen, currentYear, minYear, maxYear, onYearChange, onCloseTimeMachine]);
 
+  const handleProgressClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!onYearChange) return;
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percent = clickX / rect.width;
+      const year = Math.round(minYear + percent * (maxYear - minYear));
+      onYearChange(Math.max(minYear, Math.min(maxYear, year)));
+    },
+    [minYear, maxYear, onYearChange]
+  );
+
+  const handleReset = useCallback(() => {
+    if (onYearChange) {
+      setIsPlaying(false);
+      onYearChange(minYear);
+    }
+  }, [minYear, onYearChange]);
+
+  const togglePlayback = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+  }, []);
+
   const gridSpacing = gridUnit === "imperial" ? "50 ft" : "25 m";
 
   const layerNames = {
@@ -157,6 +181,9 @@ export function MapLegend({
   // Convert to sorted array for display (in order of canopy -> aquatic)
   const layerOrder = ['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'];
   const displayPlantingLayers = layerOrder.filter(layer => usedPlantingLayers.has(layer));
+
+  const yearRange = maxYear - minYear;
+  const progressPercent = currentYear ? ((currentYear - minYear) / yearRange) * 100 : 0;
 
   return (
     <div
