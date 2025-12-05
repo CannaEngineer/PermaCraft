@@ -2308,33 +2308,9 @@ export function FarmMap({
         </div>
       </div>
 
-      {/* Planting Mode Button */}
-      <div className="absolute top-36 left-4 z-10">
-        <Button
-          onClick={() => {
-            if (plantingMode) {
-              // Exit planting mode
-              setPlantingMode(false);
-              setSelectedSpecies(null);
-              setShowSpeciesPicker(false);
-              setShowPlantingForm(false);
-              setPlantingClickPos(null);
-            } else {
-              // Enter planting mode - show species picker
-              setShowSpeciesPicker(true);
-            }
-          }}
-          variant={plantingMode ? 'default' : 'outline'}
-          size="sm"
-          className={plantingMode ? 'bg-green-600' : 'bg-card text-card-foreground shadow-lg'}
-        >
-          {plantingMode ? 'Exit Planting Mode' : 'Add Plantings'}
-        </Button>
-      </div>
-
-      {/* Selected Species Indicator */}
+      {/* Selected Species Indicator - Shown when planting mode active */}
       {plantingMode && selectedSpecies && !showSpeciesPicker && (
-        <div className="absolute top-52 left-4 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="absolute top-36 left-4 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="text-xs font-medium">Planting:</div>
           <div className="font-semibold">{selectedSpecies.common_name}</div>
           <div className="text-xs opacity-90 italic">{selectedSpecies.scientific_name}</div>
@@ -2343,7 +2319,7 @@ export function FarmMap({
 
       {/* Planting Filter Menu - Desktop Only */}
       {plantings.length > 0 && !plantingMode && (
-        <div className="hidden md:block absolute top-52 left-4 z-10">
+        <div className="hidden md:block absolute top-36 left-4 z-10">
           <Button
             onClick={() => {
               setShowPlantingMenu(!showPlantingMenu);

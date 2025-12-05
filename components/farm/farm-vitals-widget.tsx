@@ -57,10 +57,10 @@ export function FarmVitalsWidget({ plantings, className = '' }: FarmVitalsWidget
       {/* Collapsible Content */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
-        <div className="px-4 py-4 border-t border-border">
+        <div className="px-4 py-4 border-t border-border overflow-y-auto max-h-[750px]">
           <FarmVitals plantings={plantings} />
         </div>
       </div>

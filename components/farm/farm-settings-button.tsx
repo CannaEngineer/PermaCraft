@@ -8,9 +8,10 @@ import { FarmSettingsDialog } from './farm-settings-dialog';
 interface FarmSettingsButtonProps {
   farmId: string;
   initialIsPublic: boolean;
+  onDeleteClick?: () => void;
 }
 
-export function FarmSettingsButton({ farmId, initialIsPublic }: FarmSettingsButtonProps) {
+export function FarmSettingsButton({ farmId, initialIsPublic, onDeleteClick }: FarmSettingsButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,6 +29,7 @@ export function FarmSettingsButton({ farmId, initialIsPublic }: FarmSettingsButt
         onOpenChange={setOpen}
         farmId={farmId}
         initialIsPublic={initialIsPublic}
+        onDeleteClick={onDeleteClick}
       />
     </>
   );

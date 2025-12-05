@@ -836,17 +836,8 @@ IMPORTANT: When suggesting new plantings:
               <FarmSettingsButton
                 farmId={farm.id}
                 initialIsPublic={initialIsPublic}
+                onDeleteClick={() => setDeleteDialogOpen(true)}
               />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDeleteDialogOpen(true)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                title="Delete Farm"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Delete Farm</span>
-              </Button>
             </div>
           </div>
         )}

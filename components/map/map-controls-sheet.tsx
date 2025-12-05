@@ -85,14 +85,7 @@ export function MapControlsSheet({
     });
   }
 
-  if (onDrawZone) {
-    fabActions.push({
-      icon: <Square className="h-5 w-5" />,
-      label: "Draw Zone",
-      onClick: onDrawZone,
-      color: "bg-blue-600 text-white"
-    });
-  }
+  // Draw Zone removed - use polygon tool in map controls instead
 
   if (onCreatePost) {
     fabActions.push({

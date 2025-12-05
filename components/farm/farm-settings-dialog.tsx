@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +12,7 @@ interface FarmSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   farmId: string;
   initialIsPublic: boolean;
+  onDeleteClick?: () => void;
 }
 
 export function FarmSettingsDialog({
@@ -18,6 +20,7 @@ export function FarmSettingsDialog({
   onOpenChange,
   farmId,
   initialIsPublic,
+  onDeleteClick,
 }: FarmSettingsDialogProps) {
   const router = useRouter();
   const [isPublic, setIsPublic] = useState(initialIsPublic);
@@ -70,6 +73,30 @@ export function FarmSettingsDialog({
               {isPublic ? 'Public' : 'Private'}
             </Button>
           </div>
+
+          {/* Danger Zone */}
+          {onDeleteClick && (
+            <div className="pt-4 border-t border-destructive/20">
+              <div className="space-y-2">
+                <Label className="text-destructive">Danger Zone</Label>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete this farm and all associated data
+                </p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onDeleteClick();
+                  }}
+                  className="w-full"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Farm
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2">
