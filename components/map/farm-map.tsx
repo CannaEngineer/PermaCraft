@@ -1189,10 +1189,11 @@ export function FarmMap({
   }, []); // Empty dependency array to run only once
 
   // Circle drawing and planting click handler - separate useEffect to avoid stale closure
+  // Supports both mouse clicks (desktop) and touch events (mobile)
   useEffect(() => {
     if (!map.current) return;
 
-    const handleMapClick = (e: maplibregl.MapMouseEvent) => {
+    const handleMapClick = (e: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent) => {
       // Handle planting mode first
       if (plantingMode) {
         handlePlantingClick(e);
@@ -1244,11 +1245,15 @@ export function FarmMap({
       }
     };
 
+    // Listen to both click (desktop) and touchend (mobile) events
+    // This ensures planting works on both touch screens and mouse-based devices
     map.current.on("click", handleMapClick);
+    map.current.on("touchend", handleMapClick);
 
     return () => {
       if (map.current) {
         map.current.off("click", handleMapClick);
+        map.current.off("touchend", handleMapClick);
       }
     };
   }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange]);
