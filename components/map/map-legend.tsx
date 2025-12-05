@@ -11,6 +11,14 @@ interface MapLegendProps {
   plantings?: any[]; // Array of plantings on the map
   isCollapsed?: boolean;
   onToggle?: () => void;
+
+  // Time Machine props (new)
+  isTimeMachineOpen?: boolean;
+  onCloseTimeMachine?: () => void;
+  currentYear?: number;
+  onYearChange?: (year: number) => void;
+  minYear?: number;
+  maxYear?: number;
 }
 
 // Planting layer colors (matches PlantingMarker.tsx)
