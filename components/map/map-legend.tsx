@@ -188,42 +188,160 @@ export function MapLegend({
   return (
     <div
       className={`absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20 transition-all duration-300 ${
-        isCollapsed ? 'translate-y-full' : 'translate-y-0'
+        isCollapsed && !isTimeMachineOpen ? 'translate-y-full' : 'translate-y-0'
       }`}
       data-legend-container
       data-collapsed={isCollapsed}
     >
-      {/* Toggle Bar - Always Visible */}
-      <div
-        className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-accent/50 transition-colors border-b border-border"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-2">
-          <div className="font-semibold text-sm">Legend</div>
-          <div className="text-xs text-muted-foreground">
-            {layerNames[mapLayer]} • {gridSpacing}
+      {/* Peek Tab - Always Visible When Fully Collapsed */}
+      {isCollapsed && !isTimeMachineOpen && (
+        <div
+          className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border cursor-pointer hover:bg-accent/50 transition-colors"
+          onClick={onToggle}
+        >
+          <div className="flex items-center justify-between px-4 py-2">
+            <span className="text-sm font-semibold">Legend ▲</span>
+            <span className="text-xs text-muted-foreground">
+              {currentYear ? `${currentYear} • ` : ''}{layerNames[mapLayer]} • {gridSpacing}
+            </span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          title={isCollapsed ? "Show legend" : "Hide legend"}
-        >
-          {isCollapsed ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
+      )}
 
-      {/* Expanded Content */}
+      {/* Time Machine Strip - Shows when isTimeMachineOpen */}
+      {isTimeMachineOpen && currentYear !== undefined && onYearChange && (
+        <div className="border-b border-border">
+          {/* Futuristic Progress Bar */}
+          <div className="px-4 pt-4 pb-2">
+            <div
+              className="relative h-10 bg-muted/50 rounded-full cursor-pointer overflow-hidden"
+              onClick={handleProgressClick}
+            >
+              {/* Fill bar with glow effect */}
+              <div
+                className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-200 ${
+                  isPlaying ? 'shadow-[0_0_20px_hsl(var(--primary)/0.6)]' : 'shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
+                }`}
+                style={{ width: `${progressPercent}%` }}
+              />
+
+              {/* Year indicator */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 font-bold text-2xl tabular-nums pointer-events-none transition-all duration-200"
+                style={{
+                  left: `${progressPercent}%`,
+                  textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+                }}
+              >
+                {currentYear}
+              </div>
+
+              {/* Year markers (every 5 years) */}
+              {Array.from({ length: Math.floor(yearRange / 5) + 1 }, (_, i) => {
+                const year = minYear + i * 5;
+                if (year > maxYear) return null;
+                const position = ((year - minYear) / yearRange) * 100;
+
+                return (
+                  <div
+                    key={year}
+                    className="absolute top-0 bottom-0 w-px bg-muted-foreground/30"
+                    style={{ left: `${position}%` }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Control Buttons Strip */}
+          <div className="flex items-center justify-between px-4 py-2 border-t border-border/50">
+            <div className="flex items-center gap-2">
+              {/* Play/Pause Button */}
+              <Button
+                size="icon"
+                onClick={togglePlayback}
+                aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
+                className="h-9 w-9"
+              >
+                {isPlaying ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* Reset Button */}
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={handleReset}
+                aria-label="Reset to current year"
+                className="h-9 w-9"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+
+              {/* Speed Selector */}
+              <select
+                value={playbackSpeed}
+                onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                className="h-9 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring w-[60px]"
+                aria-label="Playback speed"
+              >
+                <option value={0.5}>0.5x</option>
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
+                <option value={5}>5x</option>
+                <option value={10}>10x</option>
+              </select>
+            </div>
+
+            {/* Close Button */}
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onCloseTimeMachine}
+              aria-label="Close time machine"
+              className="h-9 w-9"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Legend Toggle Bar - Always Visible (unless fully collapsed) */}
+      {!(isCollapsed && !isTimeMachineOpen) && (
+        <div
+          className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-accent/50 transition-colors border-b border-border"
+          onClick={onToggle}
+        >
+          <div className="flex items-center gap-2">
+            <div className="font-semibold text-sm">Legend</div>
+            <div className="text-xs text-muted-foreground">
+              {layerNames[mapLayer]} • {gridSpacing}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            title={isCollapsed ? "Show legend" : "Hide legend"}
+          >
+            {isCollapsed ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Legend Content - Existing implementation */}
       <div
         className={`px-4 py-3 ${isCollapsed ? 'hidden' : 'block'}`}
         data-legend-content
       >
-
         {/* Horizontal Layout for Desktop */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Farm Boundary */}
