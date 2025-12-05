@@ -1,6 +1,17 @@
 import { db } from '@/lib/db';
 import type { Species } from '@/lib/db/schema';
 
+export const LAYER_ORDER = [
+  'canopy',
+  'understory',
+  'shrub',
+  'herbaceous',
+  'groundcover',
+  'vine',
+  'root',
+  'aquatic'
+] as const;
+
 /**
  * Get all species with optional filters
  */
@@ -155,4 +166,19 @@ export function getGuildCompanions(
   const uniqueMap = new Map(combined.map(s => [s.id, s]));
 
   return Array.from(uniqueMap.values());
+}
+
+/**
+ * Group species by layer in display order
+ */
+export function groupSpeciesByLayer(species: Species[]): Record<string, Species[]> {
+  const grouped: Record<string, Species[]> = {};
+
+  for (const layer of LAYER_ORDER) {
+    grouped[layer] = species
+      .filter(s => s.layer === layer)
+      .sort((a, b) => a.common_name.localeCompare(b.common_name));
+  }
+
+  return grouped;
 }
