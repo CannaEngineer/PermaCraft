@@ -35,12 +35,12 @@ export function PlantingForm({ species, position, zones, onSubmit, onCancel }: P
     });
   };
 
-  // Calculate position to keep form on screen
+  // Center form in viewport
   const formStyle: React.CSSProperties = {
     position: 'fixed',
-    left: `${position.x}px`,
-    top: `${position.y}px`,
-    transform: 'translate(-50%, -100%) translateY(-10px)', // Center horizontally, place above click
+    left: '50%',
+    top: '50%',
+    transform: 'translate(-50%, -50%)', // Center in viewport
     zIndex: 1000
   };
 
