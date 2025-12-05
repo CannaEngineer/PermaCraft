@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Search, Leaf } from 'lucide-react';
 import type { Species } from '@/lib/db/schema';
-import { getGuildCompanions, groupSpeciesByLayer, LAYER_ORDER } from '@/lib/species/species-queries';
+import { getGuildCompanions, groupSpeciesByLayer, LAYER_ORDER } from '@/lib/species/species-utils';
 
 const FUNCTION_BADGE_STYLES: Record<string, string> = {
   nitrogen_fixer: 'bg-blue-100 text-blue-800 border-blue-300',
