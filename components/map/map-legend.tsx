@@ -80,6 +80,48 @@ export function MapLegend({
     return () => clearInterval(interval);
   }, [isPlaying, isTimeMachineOpen, playbackSpeed, maxYear, currentYear, onYearChange]);
 
+  // Keyboard controls (only when Time Machine is open)
+  useEffect(() => {
+    if (!isTimeMachineOpen || !onYearChange) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't capture keys if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          onYearChange(Math.max(minYear, currentYear! - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          onYearChange(Math.min(maxYear, currentYear! + 1));
+          break;
+        case ' ':
+          e.preventDefault();
+          setIsPlaying((prev) => !prev);
+          break;
+        case 'Home':
+          e.preventDefault();
+          onYearChange(minYear);
+          break;
+        case 'End':
+          e.preventDefault();
+          onYearChange(maxYear);
+          break;
+        case 'Escape':
+          e.preventDefault();
+          if (onCloseTimeMachine) onCloseTimeMachine();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isTimeMachineOpen, currentYear, minYear, maxYear, onYearChange, onCloseTimeMachine]);
+
   const gridSpacing = gridUnit === "imperial" ? "50 ft" : "25 m";
 
   const layerNames = {
