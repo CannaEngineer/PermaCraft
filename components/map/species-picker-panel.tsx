@@ -5,6 +5,49 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Search, Leaf } from 'lucide-react';
 import type { Species } from '@/lib/db/schema';
+import { getGuildCompanions, groupSpeciesByLayer, LAYER_ORDER } from '@/lib/species/species-queries';
+
+const FUNCTION_BADGE_STYLES: Record<string, string> = {
+  nitrogen_fixer: 'bg-blue-100 text-blue-800 border-blue-300',
+  pollinator_attractor: 'bg-purple-100 text-purple-800 border-purple-300',
+  dynamic_accumulator: 'bg-green-100 text-green-800 border-green-300',
+  pest_deterrent: 'bg-red-100 text-red-800 border-red-300',
+  wildlife_habitat: 'bg-amber-100 text-amber-800 border-amber-300',
+};
+
+const FUNCTION_LABELS: Record<string, string> = {
+  nitrogen_fixer: 'N-Fixer',
+  pollinator_attractor: 'Pollinator',
+  dynamic_accumulator: 'Accumulator',
+  pest_deterrent: 'Pest Control',
+  wildlife_habitat: 'Wildlife',
+};
+
+function FunctionBadges({ permacultureFunctions }: { permacultureFunctions: string | null }) {
+  if (!permacultureFunctions) return null;
+
+  try {
+    const functions: string[] = JSON.parse(permacultureFunctions);
+    // Show max 3 badges
+    const displayFunctions = functions.slice(0, 3);
+
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {displayFunctions.map((func: string) => (
+          <Badge
+            key={func}
+            variant="outline"
+            className={`text-xs px-2 py-0.5 ${FUNCTION_BADGE_STYLES[func] || 'bg-gray-100 text-gray-800'}`}
+          >
+            {FUNCTION_LABELS[func] || func.replace(/_/g, ' ')}
+          </Badge>
+        ))}
+      </div>
+    );
+  } catch {
+    return null;
+  }
+}
 
 interface SpeciesPickerPanelProps {
   farmId: string;
@@ -53,21 +96,18 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
       species = [...nativeSpecies.perfect_match, ...nativeSpecies.good_match];
     }
 
-    // Filter by companion plants if requested
+    // Filter by companion plants if requested (bidirectional)
     if (companionFilterFor) {
-      species = species.filter(s => {
-        if (!s.companion_plants) return false;
-        try {
-          const companions: string[] = JSON.parse(s.companion_plants);
-          // Check if this species lists the focal plant as a companion
-          return companions.some(companion =>
-            companion.toLowerCase() === companionFilterFor.toLowerCase()
-          );
-        } catch (error) {
-          console.error('Failed to parse companion_plants:', error);
-          return false;
-        }
-      });
+      // Find the focal plant species to get its companion list
+      const focalPlantSpecies = species.find(s =>
+        s.common_name.toLowerCase() === companionFilterFor.toLowerCase()
+      );
+
+      species = getGuildCompanions(
+        companionFilterFor,
+        focalPlantSpecies?.companion_plants || null,
+        species
+      );
     }
 
     if (searchQuery) {
@@ -82,6 +122,11 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
   };
 
   const filteredSpecies = getFilteredSpecies();
+
+  // Group by layer when showing companions
+  const groupedByLayer = companionFilterFor
+    ? groupSpeciesByLayer(filteredSpecies)
+    : null;
 
   return (
     <div className="absolute top-4 right-4 z-20 w-96 max-h-[80vh] bg-card rounded-lg shadow-xl border border-border overflow-hidden flex flex-col">
@@ -165,10 +210,75 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
             Loading plants...
           </div>
         ) : filteredSpecies.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            {searchQuery ? 'No plants found matching your search.' : 'No plants available.'}
+          companionFilterFor ? (
+            /* Empty state for no companions */
+            <div className="text-center py-12 space-y-4">
+              <div className="text-muted-foreground">
+                No guild companions found for <span className="font-semibold">{companionFilterFor}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This plant may work well on its own, or companion data needs to be added.
+              </p>
+              <Button
+                onClick={onClose}
+                variant="outline"
+                size="sm"
+              >
+                Browse All Plants
+              </Button>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground">
+              {searchQuery ? 'No plants found matching your search.' : 'No plants available.'}
+            </div>
+          )
+        ) : companionFilterFor && groupedByLayer ? (
+          /* Layer-grouped view for companions */
+          <div className="p-4">
+            {LAYER_ORDER.map(layer => {
+              const layerSpecies = groupedByLayer[layer];
+              if (layerSpecies.length === 0) return null;
+
+              return (
+                <div key={layer} className="mb-6">
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-3 capitalize">
+                    {layer} Layer ({layerSpecies.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {layerSpecies.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => onSelectSpecies(s)}
+                        className="w-full text-left p-3 rounded-lg border hover:bg-accent transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">
+                              {s.common_name}
+                            </div>
+                            <div className="text-xs text-muted-foreground italic truncate">
+                              {s.scientific_name}
+                            </div>
+                            {s.is_native === 1 && (
+                              <Badge variant="default" className="mt-1 text-xs bg-green-600">
+                                Native
+                              </Badge>
+                            )}
+                            <FunctionBadges permacultureFunctions={s.permaculture_functions} />
+                          </div>
+                          <Badge variant="secondary" className="text-xs capitalize shrink-0">
+                            {s.layer}
+                          </Badge>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
+          /* Existing flat list view */
           <div className="p-2 space-y-1">
             {filteredSpecies.map((species) => (
               <button
