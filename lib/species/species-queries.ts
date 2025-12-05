@@ -77,3 +77,40 @@ export async function searchSpecies(query: string, limit: number = 10): Promise<
 
   return result.rows as unknown as Species[];
 }
+
+/**
+ * Fuzzy match two plant names (case-insensitive, word-order independent)
+ */
+export function fuzzyMatchPlantName(name1: string, name2: string): boolean {
+  const normalize = (str: string) => str.toLowerCase().trim();
+  const words1 = normalize(name1).split(/\s+/);
+  const words2 = normalize(name2).split(/\s+/);
+
+  // Match if all words from either name appear in the other
+  return words1.every(w1 => words2.some(w2 => w2.includes(w1))) ||
+         words2.every(w2 => words1.some(w1 => w1.includes(w2)));
+}
+
+/**
+ * Find species by fuzzy matching common names
+ */
+export function fuzzyMatchSpeciesByNames(
+  companionNames: string[],
+  allSpecies: Species[]
+): Species[] {
+  const matched: Species[] = [];
+
+  for (const companionName of companionNames) {
+    const found = allSpecies.find(species =>
+      fuzzyMatchPlantName(species.common_name, companionName)
+    );
+
+    if (found) {
+      matched.push(found);
+    } else {
+      console.warn(`Could not find species for companion: "${companionName}"`);
+    }
+  }
+
+  return matched;
+}
