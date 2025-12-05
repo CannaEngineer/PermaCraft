@@ -110,6 +110,7 @@ export function FarmMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
+  const navigationControl = useRef<maplibregl.NavigationControl | null>(null);
   const [mapLayer, setMapLayer] = useState<MapLayer>("satellite");
   const [gridUnit, setGridUnit] = useState<"imperial" | "metric">("imperial");
   const [gridDensity, setGridDensity] = useState<GridDensity>("auto");
@@ -803,8 +804,8 @@ export function FarmMap({
       map.current.addControl(draw.current as any, "top-right");
 
       // Add navigation control
-      const nav = new maplibregl.NavigationControl();
-      map.current.addControl(nav, "top-right");
+      navigationControl.current = new maplibregl.NavigationControl();
+      map.current.addControl(navigationControl.current, "top-right");
 
       // Add custom circle button to the draw control panel
       setTimeout(() => {
@@ -1683,11 +1684,27 @@ export function FarmMap({
             },
           ],
         });
+
+        // Remove old draw control before adding new one
+        if (draw.current) {
+          try {
+            map.current.removeControl(draw.current as any);
+          } catch (e) {
+            // Control may not exist, ignore error
+          }
+        }
         map.current.addControl(draw.current as any, "top-right");
 
-        // Re-add navigation control (setStyle removes all controls)
-        const nav = new maplibregl.NavigationControl();
-        map.current.addControl(nav, "top-right");
+        // Remove old navigation control before re-adding (setStyle does NOT remove controls)
+        if (navigationControl.current) {
+          try {
+            map.current.removeControl(navigationControl.current);
+          } catch (e) {
+            // Control may not exist, ignore error
+          }
+        }
+        navigationControl.current = new maplibregl.NavigationControl();
+        map.current.addControl(navigationControl.current, "top-right");
 
         // Re-add custom circle button to the draw control panel
         setTimeout(() => {
