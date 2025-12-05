@@ -3,6 +3,8 @@
 import { ZONE_TYPES, ZONE_TYPE_CATEGORIES } from "@/lib/map/zone-types";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState, useCallback, useEffect } from 'react';
+import { Play, Pause, RotateCcw, X, Clock } from 'lucide-react';
 
 interface MapLegendProps {
   mapLayer: "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
@@ -44,7 +46,23 @@ const LAYER_LABELS: Record<string, string> = {
   aquatic: 'Aquatic'
 };
 
-export function MapLegend({ mapLayer, gridUnit, zones, plantings = [], isCollapsed = false, onToggle }: MapLegendProps) {
+export function MapLegend({
+  mapLayer,
+  gridUnit,
+  zones,
+  plantings = [],
+  isCollapsed = false,
+  onToggle,
+  isTimeMachineOpen = false,
+  onCloseTimeMachine,
+  currentYear,
+  onYearChange,
+  minYear = new Date().getFullYear(),
+  maxYear = new Date().getFullYear() + 20,
+}: MapLegendProps) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1); // Years per second
+
   const gridSpacing = gridUnit === "imperial" ? "50 ft" : "25 m";
 
   const layerNames = {
