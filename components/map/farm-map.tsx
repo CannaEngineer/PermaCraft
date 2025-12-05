@@ -14,7 +14,6 @@ import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
-import { TimeMachineOverlay } from "./time-machine-overlay";
 import { MapControlsSheet } from "./map-controls-sheet";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
@@ -146,7 +145,7 @@ export function FarmMap({
 
   // Time Machine state - projection year for growth simulation
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
-  const [showTimeMachine, setShowTimeMachine] = useState(false);
+  const [isTimeMachineOpen, setIsTimeMachineOpen] = useState(false);
 
   // Create Post state
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -2608,6 +2607,12 @@ export function FarmMap({
         plantings={plantings}
         isCollapsed={legendCollapsed}
         onToggle={() => setLegendCollapsed(!legendCollapsed)}
+        isTimeMachineOpen={isTimeMachineOpen}
+        onCloseTimeMachine={() => setIsTimeMachineOpen(false)}
+        currentYear={projectionYear}
+        onYearChange={setProjectionYear}
+        minYear={new Date().getFullYear()}
+        maxYear={new Date().getFullYear() + 20}
       />
 
       {/* Render planting markers */}
@@ -2671,13 +2676,6 @@ export function FarmMap({
         />
       )}
 
-      {/* Time Machine Overlay */}
-      <TimeMachineOverlay
-        isOpen={showTimeMachine}
-        onClose={() => setShowTimeMachine(false)}
-        currentYear={projectionYear}
-        onYearChange={setProjectionYear}
-      />
 
       {/* Create Post Modal */}
       <CreatePostDialog
@@ -2713,7 +2711,7 @@ export function FarmMap({
           }
         }}
         onCreatePost={() => setShowCreatePost(true)}
-        onOpenTimeMachine={() => setShowTimeMachine(true)}
+        onOpenTimeMachine={() => setIsTimeMachineOpen(true)}
         hasPlantings={plantings.length > 0}
       />
     </div>
