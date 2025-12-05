@@ -1,20 +1,36 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Leaf, Sprout, Droplets, Bug, Flower2, Zap, TreeDeciduous, Heart } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Leaf, Sprout, Droplets, Bug, Flower2, Zap, TreeDeciduous, Heart, MapPin, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface PlantingWithSpecies {
   id: string;
   permaculture_functions?: string | null;
   species_id: string;
   common_name?: string;
+  scientific_name?: string;
+  layer?: string;
 }
 
 interface FarmVitalsProps {
   plantings: PlantingWithSpecies[];
   className?: string;
   compact?: boolean;
+  onHighlightFunction?: (functionKey: string) => void;
 }
+
+// Importance explanations for each vital
+const VITAL_IMPORTANCE: Record<string, string> = {
+  nitrogen_fixers: 'Nitrogen-fixing plants convert atmospheric nitrogen into soil nutrients, reducing the need for synthetic fertilizers. They improve soil fertility naturally, making them essential for sustainable food production and soil health.',
+  pollinator_plants: 'Pollinator plants attract bees, butterflies, and beneficial insects that are crucial for fertilizing crops. Without pollinators, 75% of food crops would fail. They also support biodiversity and ecosystem resilience.',
+  dynamic_accumulators: 'Deep-rooted plants that mine minerals from the subsoil and bring them to the surface through leaf drop. They act as natural nutrient pumps, making previously unavailable minerals accessible to shallow-rooted plants.',
+  wildlife_habitat: 'Wildlife habitat plants provide shelter, nesting sites, and food for birds, beneficial insects, and animals. They create a balanced ecosystem that naturally controls pests and supports biodiversity.',
+  edible_plants: 'Edible plants provide direct food production for humans. Diversifying edible species improves food security, nutrition, and resilience to crop failures while reducing dependence on external food systems.',
+  medicinal: 'Medicinal plants offer natural healthcare options, from immune support to wound healing. Having medicinal plants on-site provides first-aid resources and reduces reliance on pharmaceutical interventions.',
+  erosion_control: 'Erosion control plants stabilize soil with their root systems, preventing nutrient loss and land degradation. Critical for slopes, water edges, and bare ground where topsoil erosion threatens farm productivity.',
+  water_management: 'Water management plants help regulate water flow, improve infiltration, and reduce runoff. They prevent flooding, recharge groundwater, and create microclimates that conserve moisture during dry periods.'
+};
 
 /**
  * Farm Vitals Dashboard
@@ -32,11 +48,13 @@ interface FarmVitalsProps {
  * - Erosion Control: Soil stabilizers
  * - Water Management: Plants that help with hydrology
  */
-export function FarmVitals({ plantings, className = '', compact = false }: FarmVitalsProps) {
+export function FarmVitals({ plantings, className = '', compact = false, onHighlightFunction }: FarmVitalsProps) {
+  const [expandedVital, setExpandedVital] = useState<string | null>(null);
+
   // Aggregate permaculture functions from all plantings
   const vitals = useMemo(() => {
     const functionCounts: Record<string, number> = {};
-    const functionDetails: Record<string, Set<string>> = {};
+    const functionPlants: Record<string, PlantingWithSpecies[]> = {};
 
     plantings.forEach((planting) => {
       if (!planting.permaculture_functions) return;
@@ -46,10 +64,10 @@ export function FarmVitals({ plantings, className = '', compact = false }: FarmV
         functions.forEach((fn) => {
           functionCounts[fn] = (functionCounts[fn] || 0) + 1;
 
-          if (!functionDetails[fn]) {
-            functionDetails[fn] = new Set();
+          if (!functionPlants[fn]) {
+            functionPlants[fn] = [];
           }
-          functionDetails[fn].add(planting.common_name || planting.species_id);
+          functionPlants[fn].push(planting);
         });
       } catch (error) {
         console.error('Failed to parse permaculture_functions:', error);
@@ -60,82 +78,106 @@ export function FarmVitals({ plantings, className = '', compact = false }: FarmV
     const categories = [
       {
         label: 'Nitrogen Fixers',
+        key: 'nitrogen_fixers',
         icon: Sprout,
         color: 'text-green-600',
         bgColor: 'bg-green-50',
         borderColor: 'border-green-200',
+        hoverBg: 'hover:bg-green-100',
         count: (functionCounts['nitrogen_fixer'] || 0) + (functionCounts['nitrogen_fixing'] || 0),
-        importance: 'high',
+        plants: [...(functionPlants['nitrogen_fixer'] || []), ...(functionPlants['nitrogen_fixing'] || [])],
+        importance: 'high' as const,
         tooltip: 'Legumes that enrich soil with nitrogen',
       },
       {
         label: 'Pollinator Plants',
+        key: 'pollinator_plants',
         icon: Bug,
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-50',
         borderColor: 'border-yellow-200',
-        count: (functionCounts['pollinator_support'] || 0) + (functionCounts['pollinator'] || 0),
-        importance: 'high',
+        hoverBg: 'hover:bg-yellow-100',
+        count: (functionCounts['pollinator_support'] || 0) + (functionCounts['pollinator'] || 0) + (functionCounts['pollinator_attractor'] || 0),
+        plants: [...(functionPlants['pollinator_support'] || []), ...(functionPlants['pollinator'] || []), ...(functionPlants['pollinator_attractor'] || [])],
+        importance: 'high' as const,
         tooltip: 'Attract bees, butterflies, and beneficial insects',
       },
       {
         label: 'Dynamic Accumulators',
+        key: 'dynamic_accumulators',
         icon: Zap,
         color: 'text-purple-600',
         bgColor: 'bg-purple-50',
         borderColor: 'border-purple-200',
+        hoverBg: 'hover:bg-purple-100',
         count: functionCounts['dynamic_accumulator'] || 0,
-        importance: 'medium',
+        plants: functionPlants['dynamic_accumulator'] || [],
+        importance: 'medium' as const,
         tooltip: 'Deep-rooted plants that mine minerals from subsoil',
       },
       {
         label: 'Wildlife Habitat',
+        key: 'wildlife_habitat',
         icon: TreeDeciduous,
         color: 'text-emerald-600',
         bgColor: 'bg-emerald-50',
         borderColor: 'border-emerald-200',
+        hoverBg: 'hover:bg-emerald-100',
         count: (functionCounts['wildlife_habitat'] || 0) + (functionCounts['wildlife_food'] || 0),
-        importance: 'medium',
+        plants: [...(functionPlants['wildlife_habitat'] || []), ...(functionPlants['wildlife_food'] || [])],
+        importance: 'medium' as const,
         tooltip: 'Provides shelter and food for birds and animals',
       },
       {
         label: 'Edible Plants',
+        key: 'edible_plants',
         icon: Leaf,
         color: 'text-orange-600',
         bgColor: 'bg-orange-50',
         borderColor: 'border-orange-200',
+        hoverBg: 'hover:bg-orange-100',
         count: (functionCounts['edible_fruit'] || 0) + (functionCounts['edible_nuts'] || 0) + (functionCounts['edible'] || 0),
-        importance: 'high',
+        plants: [...(functionPlants['edible_fruit'] || []), ...(functionPlants['edible_nuts'] || []), ...(functionPlants['edible'] || [])],
+        importance: 'high' as const,
         tooltip: 'Direct food production for humans',
       },
       {
         label: 'Medicinal',
+        key: 'medicinal',
         icon: Heart,
         color: 'text-red-600',
         bgColor: 'bg-red-50',
         borderColor: 'border-red-200',
+        hoverBg: 'hover:bg-red-100',
         count: functionCounts['medicinal'] || 0,
-        importance: 'low',
+        plants: functionPlants['medicinal'] || [],
+        importance: 'low' as const,
         tooltip: 'Plants with healing properties',
       },
       {
         label: 'Erosion Control',
+        key: 'erosion_control',
         icon: Flower2,
         color: 'text-amber-600',
         bgColor: 'bg-amber-50',
         borderColor: 'border-amber-200',
+        hoverBg: 'hover:bg-amber-100',
         count: (functionCounts['erosion_control'] || 0) + (functionCounts['groundcover'] || 0),
-        importance: 'medium',
+        plants: [...(functionPlants['erosion_control'] || []), ...(functionPlants['groundcover'] || [])],
+        importance: 'medium' as const,
         tooltip: 'Stabilizes soil on slopes and bare ground',
       },
       {
         label: 'Water Management',
+        key: 'water_management',
         icon: Droplets,
         color: 'text-blue-600',
         bgColor: 'bg-blue-50',
         borderColor: 'border-blue-200',
+        hoverBg: 'hover:bg-blue-100',
         count: (functionCounts['water_retention'] || 0) + (functionCounts['wetland'] || 0),
-        importance: 'low',
+        plants: [...(functionPlants['water_retention'] || []), ...(functionPlants['wetland'] || [])],
+        importance: 'low' as const,
         tooltip: 'Helps manage water flow and retention',
       },
     ];
@@ -190,40 +232,136 @@ export function FarmVitals({ plantings, className = '', compact = false }: FarmV
     );
   }
 
-  // Full view for farm editor
+  // Full view for farm editor with expandable details
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 ${className}`}>
-      {vitals.categories.map((cat) => {
+    <div className={className}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {vitals.categories.map((cat) => {
+          const Icon = cat.icon;
+          const isZero = cat.count === 0;
+          const isExpanded = expandedVital === cat.key;
+
+          return (
+            <button
+              key={cat.label}
+              onClick={() => setExpandedVital(isExpanded ? null : cat.key)}
+              className={`rounded-lg border p-3 transition-all text-left ${
+                isZero
+                  ? 'bg-muted/30 border-muted opacity-60'
+                  : `${cat.bgColor} ${cat.borderColor} ${cat.hoverBg} hover:shadow-md cursor-pointer`
+              } ${isExpanded ? 'ring-2 ring-offset-2 ring-green-500' : ''}`}
+              title={cat.tooltip}
+              disabled={isZero}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`h-4 w-4 ${isZero ? 'text-muted-foreground' : cat.color}`} />
+                <span className="text-xs font-medium text-muted-foreground">
+                  {cat.label}
+                </span>
+              </div>
+              <div className={`text-2xl font-bold tabular-nums ${isZero ? 'text-muted-foreground' : cat.color}`}>
+                {cat.count}
+              </div>
+              {cat.importance === 'high' && isZero && (
+                <div className="text-xs text-amber-600 mt-1">
+                  ⚠️ Consider adding
+                </div>
+              )}
+              {!isZero && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Click for details
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Expanded Detail Panel */}
+      {expandedVital && vitals.categories.find(c => c.key === expandedVital) && (() => {
+        const cat = vitals.categories.find(c => c.key === expandedVital)!;
         const Icon = cat.icon;
-        const isZero = cat.count === 0;
+
+        // Deduplicate plants by ID
+        const uniquePlants = Array.from(
+          new Map(cat.plants.map(p => [p.id, p])).values()
+        );
 
         return (
-          <div
-            key={cat.label}
-            className={`rounded-lg border p-3 transition-all ${
-              isZero
-                ? 'bg-muted/30 border-muted opacity-60'
-                : `${cat.bgColor} ${cat.borderColor} hover:shadow-md`
-            }`}
-            title={cat.tooltip}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Icon className={`h-4 w-4 ${isZero ? 'text-muted-foreground' : cat.color}`} />
-              <span className="text-xs font-medium text-muted-foreground">
-                {cat.label}
-              </span>
-            </div>
-            <div className={`text-2xl font-bold tabular-nums ${isZero ? 'text-muted-foreground' : cat.color}`}>
-              {cat.count}
-            </div>
-            {cat.importance === 'high' && isZero && (
-              <div className="text-xs text-amber-600 mt-1">
-                ⚠️ Consider adding
+          <div className={`mt-4 rounded-lg border ${cat.borderColor} ${cat.bgColor} p-4 shadow-lg`}>
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Icon className={`h-6 w-6 ${cat.color}`} />
+                <div>
+                  <h3 className="font-semibold text-lg">{cat.label}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {cat.count} {cat.count === 1 ? 'plant' : 'plants'} providing this function
+                  </p>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setExpandedVital(null)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Why It's Important */}
+            <div className="mb-4 p-3 bg-background/50 rounded border border-border">
+              <h4 className="text-sm font-semibold mb-1">Why This Matters</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {VITAL_IMPORTANCE[cat.key]}
+              </p>
+            </div>
+
+            {/* Plant List */}
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold mb-2">Plants in this category:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                {uniquePlants.map((plant) => (
+                  <div
+                    key={plant.id}
+                    className="flex items-start gap-2 p-2 bg-background/50 rounded border border-border hover:bg-background/80 transition-colors"
+                  >
+                    <Leaf className={`h-4 w-4 ${cat.color} flex-shrink-0 mt-0.5`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate">
+                        {plant.common_name || 'Unknown'}
+                      </div>
+                      {plant.scientific_name && (
+                        <div className="text-xs text-muted-foreground italic truncate">
+                          {plant.scientific_name}
+                        </div>
+                      )}
+                      {plant.layer && (
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {plant.layer} layer
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Highlight on Map Button */}
+            {onHighlightFunction && (
+              <Button
+                onClick={() => onHighlightFunction(cat.key)}
+                className={`w-full ${cat.color}`}
+                variant="outline"
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Highlight on Map
+              </Button>
             )}
           </div>
         );
-      })}
+      })()}
     </div>
   );
 }
