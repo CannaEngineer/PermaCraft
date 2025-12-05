@@ -114,3 +114,45 @@ export function fuzzyMatchSpeciesByNames(
 
   return matched;
 }
+
+/**
+ * Get guild companions for a species (bidirectional)
+ * Combines:
+ * 1. Forward: Species listed in focal plant's companion_plants
+ * 2. Reverse: Species that list focal plant in their companion_plants
+ */
+export function getGuildCompanions(
+  focalPlantCommonName: string,
+  focalPlantCompanionsList: string | null,
+  allSpecies: Species[]
+): Species[] {
+  // Step 1: Forward companions (focal plant's list)
+  let forwardCompanions: Species[] = [];
+  if (focalPlantCompanionsList) {
+    try {
+      const companionNames: string[] = JSON.parse(focalPlantCompanionsList);
+      forwardCompanions = fuzzyMatchSpeciesByNames(companionNames, allSpecies);
+    } catch (error) {
+      console.error('Failed to parse focal plant companion_plants:', error);
+    }
+  }
+
+  // Step 2: Reverse companions (species listing focal plant)
+  const reverseCompanions = allSpecies.filter(species => {
+    if (!species.companion_plants) return false;
+    try {
+      const companions: string[] = JSON.parse(species.companion_plants);
+      return companions.some(companion =>
+        fuzzyMatchPlantName(companion, focalPlantCommonName)
+      );
+    } catch {
+      return false;
+    }
+  });
+
+  // Step 3: Combine and deduplicate by species ID
+  const combined = [...forwardCompanions, ...reverseCompanions];
+  const uniqueMap = new Map(combined.map(s => [s.id, s]));
+
+  return Array.from(uniqueMap.values());
+}
