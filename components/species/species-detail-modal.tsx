@@ -51,7 +51,7 @@ export function SpeciesDetailModal({ speciesId, onClose, onAddToFarm }: SpeciesD
 
   return (
     <Dialog open={!!speciesId} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         {loading || !species ? (
           <div className="py-12 text-center">Loading...</div>
         ) : (

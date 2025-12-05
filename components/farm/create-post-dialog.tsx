@@ -22,7 +22,7 @@ export function CreatePostDialog({
 }: CreatePostDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl w-full">
         <DialogHeader>
           <DialogTitle>Create Post</DialogTitle>
         </DialogHeader>
