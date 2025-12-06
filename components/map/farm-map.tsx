@@ -150,8 +150,8 @@ export function FarmMap({
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
   const [isTimeMachineOpen, setIsTimeMachineOpen] = useState(false);
 
-  // Bottom drawer state - only one can be open at a time
-  const [openDrawer, setOpenDrawer] = useState<'legend' | 'filters' | null>(null);
+  // Bottom drawer state - only one can be open at a time (default filters open)
+  const [openDrawer, setOpenDrawer] = useState<'legend' | 'filters' | null>('filters');
 
   // Create Post state
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -336,6 +336,17 @@ export function FarmMap({
     }
   }, [farm.id, plantings, toast]);
 
+  // Vital type definitions with alternates (matches farm-vitals.tsx)
+  const vitalTypeMap = {
+    'nitrogen_fixer': ['nitrogen_fixer', 'nitrogen_fixing'],
+    'pollinator_support': ['pollinator_support', 'pollinator', 'pollinator_attractor'],
+    'dynamic_accumulator': ['dynamic_accumulator'],
+    'wildlife_habitat': ['wildlife_habitat', 'wildlife_food'],
+    'edible_fruit': ['edible_fruit', 'edible_nuts', 'edible'],
+    'medicinal': ['medicinal'],
+    'erosion_control': ['erosion_control', 'groundcover'],
+  };
+
   // Filter plantings by layer and vital types
   const filteredPlantings = plantings.filter(p => {
     // Layer filter
@@ -348,7 +359,11 @@ export function FarmMap({
         ? JSON.parse(p.permaculture_functions)
         : p.permaculture_functions;
 
-      vitalMatch = vitalFilters.some(vital => functions.includes(vital));
+      // Check if any selected vital type (including alternates) matches the planting's functions
+      vitalMatch = vitalFilters.some(vitalKey => {
+        const vitalVariants = vitalTypeMap[vitalKey as keyof typeof vitalTypeMap] || [vitalKey];
+        return vitalVariants.some(variant => functions.includes(variant));
+      });
     }
 
     return layerMatch && vitalMatch;

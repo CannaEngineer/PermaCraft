@@ -24,15 +24,15 @@ const PLANTING_LAYERS = [
   { value: 'aquatic', label: 'Aquatic', color: 'bg-blue-500' },
 ];
 
-// Vital types for filtering
+// Vital types for filtering - matches actual database values
 const VITAL_TYPES = [
-  { value: 'nitrogen_fixer', label: 'Nitrogen Fixers', emoji: '🌿' },
-  { value: 'pollinator', label: 'Pollinator Plants', emoji: '🐝' },
-  { value: 'dynamic_accumulator', label: 'Dynamic Accumulators', emoji: '⚡' },
-  { value: 'wildlife_habitat', label: 'Wildlife Habitat', emoji: '🦋' },
-  { value: 'edible', label: 'Edible Plants', emoji: '🍎' },
-  { value: 'medicinal', label: 'Medicinal', emoji: '💊' },
-  { value: 'erosion_control', label: 'Erosion Control', emoji: '🌊' },
+  { value: 'nitrogen_fixer', label: 'Nitrogen Fixers', emoji: '🌿', alts: ['nitrogen_fixing'] },
+  { value: 'pollinator_support', label: 'Pollinator Plants', emoji: '🐝', alts: ['pollinator', 'pollinator_attractor'] },
+  { value: 'dynamic_accumulator', label: 'Dynamic Accumulators', emoji: '⚡', alts: [] },
+  { value: 'wildlife_habitat', label: 'Wildlife Habitat', emoji: '🦋', alts: ['wildlife_food'] },
+  { value: 'edible_fruit', label: 'Edible Plants', emoji: '🍎', alts: ['edible_nuts', 'edible'] },
+  { value: 'medicinal', label: 'Medicinal', emoji: '💊', alts: [] },
+  { value: 'erosion_control', label: 'Erosion Control', emoji: '🌊', alts: ['groundcover'] },
 ];
 
 export function MapFiltersDrawer({
@@ -48,7 +48,7 @@ export function MapFiltersDrawer({
 
   return (
     <div
-      className={`absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20 transition-all duration-300 ${
+      className={`absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-30 transition-all duration-300 ${
         isCollapsed ? 'translate-y-full' : 'translate-y-0'
       }`}
       data-filters-container
