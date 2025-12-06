@@ -48,7 +48,7 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect mobile on mount
-  useMemo(() => {
+  useEffect(() => {
     setIsMobile(window.innerWidth < 768);
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
