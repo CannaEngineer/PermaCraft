@@ -439,9 +439,12 @@ IMPORTANT: When suggesting new plantings:
 
       console.log("Capturing composite with overlays...");
 
-      // Collapse legend before screenshot (legend data will be sent as text to AI)
+      // Collapse legend and filters before screenshot (data will be sent as text to AI)
       const legendContainer = mapContainerRef.current.querySelector('[data-legend-container]') as HTMLElement;
       const wasLegendExpanded = legendContainer && legendContainer.getAttribute('data-collapsed') !== 'true';
+
+      const filtersContainer = mapContainerRef.current.querySelector('[data-filters-container]') as HTMLElement;
+      const wasFiltersExpanded = filtersContainer && filtersContainer.getAttribute('data-collapsed') !== 'true';
 
       if (legendContainer && wasLegendExpanded) {
         // Temporarily collapse legend for clean screenshot
@@ -449,6 +452,15 @@ IMPORTANT: When suggesting new plantings:
         const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
         if (legendContent) {
           legendContent.style.display = 'none';
+        }
+      }
+
+      if (filtersContainer && wasFiltersExpanded) {
+        // Temporarily collapse filters for clean screenshot
+        filtersContainer.setAttribute('data-collapsed', 'true');
+        const filtersContent = filtersContainer.querySelector('[data-filters-content]') as HTMLElement;
+        if (filtersContent) {
+          filtersContent.style.display = 'none';
         }
       }
 
@@ -474,12 +486,20 @@ IMPORTANT: When suggesting new plantings:
         (mapCanvas as HTMLElement).style.opacity = '1';
       }
 
-      // Restore legend state
+      // Restore legend and filters state
       if (legendContainer && wasLegendExpanded) {
         legendContainer.setAttribute('data-collapsed', 'false');
         const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
         if (legendContent) {
           legendContent.style.display = 'block';
+        }
+      }
+
+      if (filtersContainer && wasFiltersExpanded) {
+        filtersContainer.setAttribute('data-collapsed', 'false');
+        const filtersContent = filtersContainer.querySelector('[data-filters-content]') as HTMLElement;
+        if (filtersContent) {
+          filtersContent.style.display = 'block';
         }
       }
 
@@ -927,6 +947,7 @@ IMPORTANT: When suggesting new plantings:
             initialConversationId={initialConversationId}
             initialMessage={vitalPrompt}
             forceNewConversation={startNewChat}
+            onClose={() => setIsChatOpen(false)}
             onAnalyze={handleAnalyze}
           />
         </div>

@@ -98,6 +98,7 @@ interface ChatPanelProps {
   initialConversationId?: string; // Optional: Load specific conversation on mount (from URL)
   initialMessage?: string; // Optional: Auto-send this message on mount
   forceNewConversation?: boolean; // Optional: Force new conversation instead of continuing
+  onClose?: () => void; // Optional: Callback when user closes chat panel
   onAnalyze: (
     query: string,
     conversationId?: string
@@ -109,7 +110,7 @@ interface ChatPanelProps {
   }>;
 }
 
-export function EnhancedChatPanel({ farmId, initialConversationId, initialMessage, forceNewConversation, onAnalyze }: ChatPanelProps) {
+export function EnhancedChatPanel({ farmId, initialConversationId, initialMessage, forceNewConversation, onClose, onAnalyze }: ChatPanelProps) {
   /**
    * State Management
    *
@@ -470,10 +471,13 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
               onClick={() => {
-                const event = new CustomEvent("close-chat");
-                window.dispatchEvent(event);
+                if (onClose) {
+                  onClose();
+                } else {
+                  const event = new CustomEvent("close-chat");
+                  window.dispatchEvent(event);
+                }
               }}
             >
               <X className="h-4 w-4" />

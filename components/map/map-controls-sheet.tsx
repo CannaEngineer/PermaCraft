@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Drawer } from 'vaul';
-import { Settings, ChevronUp, Layers as LayersIcon, Grid, Filter, Leaf, Square, MessageSquare, Clock } from 'lucide-react';
+import { Settings, ChevronUp, Layers as LayersIcon, Grid, Leaf, Square, MessageSquare, Clock } from 'lucide-react';
 import { FAB } from '@/components/ui/fab';
 import type { FABAction } from '@/components/ui/fab';
 
@@ -15,8 +15,6 @@ interface MapControlsSheetProps {
   onToggleGridUnit: () => void;
   gridDensity: string;
   onChangeGridDensity: (density: string) => void;
-  plantingFilters: string[];
-  onTogglePlantingFilter: (layer: string) => void;
   onAddPlant?: () => void;
   onDrawZone?: () => void;
   onCreatePost?: () => void;
@@ -35,17 +33,6 @@ const LAYER_OPTIONS: { value: MapLayer; label: string }[] = [
   { value: 'street', label: 'Street Map' },
 ];
 
-const PLANTING_LAYERS = [
-  { value: 'canopy', label: 'Canopy', color: 'bg-green-900' },
-  { value: 'understory', label: 'Understory', color: 'bg-green-700' },
-  { value: 'shrub', label: 'Shrub', color: 'bg-green-500' },
-  { value: 'herbaceous', label: 'Herbaceous', color: 'bg-lime-500' },
-  { value: 'groundcover', label: 'Groundcover', color: 'bg-lime-300' },
-  { value: 'vine', label: 'Vine', color: 'bg-purple-500' },
-  { value: 'root', label: 'Root', color: 'bg-amber-900' },
-  { value: 'aquatic', label: 'Aquatic', color: 'bg-blue-500' },
-];
-
 /**
  * Map Controls Bottom Sheet
  *
@@ -62,8 +49,6 @@ export function MapControlsSheet({
   onToggleGridUnit,
   gridDensity,
   onChangeGridDensity,
-  plantingFilters,
-  onTogglePlantingFilter,
   onAddPlant,
   onDrawZone,
   onCreatePost,
@@ -181,35 +166,6 @@ export function MapControlsSheet({
                     ))}
                   </div>
                 </div>
-              </div>
-            </section>
-
-            {/* Planting Filters Section */}
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Filter className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold uppercase tracking-wide">
-                  Filter by Layer
-                </h3>
-              </div>
-              <div className="space-y-2">
-                {PLANTING_LAYERS.map((layer) => {
-                  const isActive = plantingFilters.length === 0 || plantingFilters.includes(layer.value);
-                  return (
-                    <button
-                      key={layer.value}
-                      onClick={() => onTogglePlantingFilter(layer.value)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${
-                        isActive
-                          ? 'bg-muted/50'
-                          : 'bg-muted/20 opacity-50'
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded ${layer.color}`} />
-                      <span className={isActive ? 'font-medium' : ''}>{layer.label}</span>
-                    </button>
-                  );
-                })}
               </div>
             </section>
 

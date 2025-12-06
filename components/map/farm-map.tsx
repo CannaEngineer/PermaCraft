@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapLegend } from "./map-legend";
+import { MapFiltersDrawer } from "./map-filters-drawer";
 import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
@@ -122,7 +123,7 @@ export function FarmMap({
   const [showHelp, setShowHelp] = useState(false);
   const [bearing, setBearing] = useState(0);
   const [pitch, setPitch] = useState(0);
-  const [legendCollapsed, setLegendCollapsed] = useState(false);
+  // Removed legendCollapsed - now using openDrawer state for exclusive drawer control
   const [circleMode, setCircleMode] = useState(false);
   const [circleCenter, setCircleCenter] = useState<[number, number] | null>(null);
   const [terrainEnabled, setTerrainEnabled] = useState(false);
@@ -138,6 +139,7 @@ export function FarmMap({
 
   // Planting filter and detail state
   const [plantingFilters, setPlantingFilters] = useState<string[]>([]); // Empty = show all
+  const [vitalFilters, setVitalFilters] = useState<string[]>([]); // Empty = show all
   const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
   const [showPlantingMenu, setShowPlantingMenu] = useState(false);
 
@@ -147,6 +149,9 @@ export function FarmMap({
   // Time Machine state - projection year for growth simulation
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
   const [isTimeMachineOpen, setIsTimeMachineOpen] = useState(false);
+
+  // Bottom drawer state - only one can be open at a time
+  const [openDrawer, setOpenDrawer] = useState<'legend' | 'filters' | null>(null);
 
   // Create Post state
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -331,10 +336,23 @@ export function FarmMap({
     }
   }, [farm.id, plantings, toast]);
 
-  // Filter plantings by layer
-  const filteredPlantings = plantingFilters.length === 0
-    ? plantings
-    : plantings.filter(p => plantingFilters.includes(p.layer));
+  // Filter plantings by layer and vital types
+  const filteredPlantings = plantings.filter(p => {
+    // Layer filter
+    const layerMatch = plantingFilters.length === 0 || plantingFilters.includes(p.layer);
+
+    // Vital filter (check if planting has any of the selected vital functions)
+    let vitalMatch = vitalFilters.length === 0;
+    if (!vitalMatch && p.permaculture_functions) {
+      const functions = typeof p.permaculture_functions === 'string'
+        ? JSON.parse(p.permaculture_functions)
+        : p.permaculture_functions;
+
+      vitalMatch = vitalFilters.some(vital => functions.includes(vital));
+    }
+
+    return layerMatch && vitalMatch;
+  });
 
   // Toggle layer filter
   const toggleLayerFilter = (layer: string) => {
@@ -342,6 +360,15 @@ export function FarmMap({
       prev.includes(layer)
         ? prev.filter(l => l !== layer)
         : [...prev, layer]
+    );
+  };
+
+  // Toggle vital filter
+  const toggleVitalFilter = (vital: string) => {
+    setVitalFilters(prev =>
+      prev.includes(vital)
+        ? prev.filter(v => v !== vital)
+        : [...prev, vital]
     );
   };
 
@@ -2598,13 +2625,27 @@ export function FarmMap({
       </div>
 
       {/* Map Legend - Always Visible, Collapsible */}
+      {/* Filters Drawer - Above Legend */}
+      <MapFiltersDrawer
+        plantingFilters={plantingFilters}
+        onTogglePlantingFilter={toggleLayerFilter}
+        vitalFilters={vitalFilters}
+        onToggleVitalFilter={toggleVitalFilter}
+        isCollapsed={openDrawer !== 'filters'}
+        onToggle={() => setOpenDrawer(openDrawer === 'filters' ? null : 'filters')}
+      />
+
+      {/* Legend - Below Filters */}
       <MapLegend
         mapLayer={mapLayer}
         gridUnit={gridUnit}
         zones={zones}
         plantings={plantings}
-        isCollapsed={legendCollapsed}
-        onToggle={() => setLegendCollapsed(!legendCollapsed)}
+        isCollapsed={openDrawer !== 'legend' && !isTimeMachineOpen}
+        onToggle={() => {
+          if (isTimeMachineOpen) return; // Don't allow collapse when time machine is open
+          setOpenDrawer(openDrawer === 'legend' ? null : 'legend');
+        }}
         isTimeMachineOpen={isTimeMachineOpen}
         onCloseTimeMachine={() => setIsTimeMachineOpen(false)}
         currentYear={projectionYear}
@@ -2697,8 +2738,6 @@ export function FarmMap({
         onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
         gridDensity={gridDensity}
         onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
-        plantingFilters={plantingFilters}
-        onTogglePlantingFilter={toggleLayerFilter}
         onAddPlant={() => {
           setPlantingMode(true);
           setShowSpeciesPicker(true);
