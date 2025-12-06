@@ -96,6 +96,8 @@ interface Message {
 interface ChatPanelProps {
   farmId: string;
   initialConversationId?: string; // Optional: Load specific conversation on mount (from URL)
+  initialMessage?: string; // Optional: Auto-send this message on mount
+  forceNewConversation?: boolean; // Optional: Force new conversation instead of continuing
   onAnalyze: (
     query: string,
     conversationId?: string
@@ -107,7 +109,7 @@ interface ChatPanelProps {
   }>;
 }
 
-export function EnhancedChatPanel({ farmId, initialConversationId, onAnalyze }: ChatPanelProps) {
+export function EnhancedChatPanel({ farmId, initialConversationId, initialMessage, forceNewConversation, onAnalyze }: ChatPanelProps) {
   /**
    * State Management
    *
@@ -137,18 +139,33 @@ export function EnhancedChatPanel({ farmId, initialConversationId, onAnalyze }: 
     null
   );
   const isSubmittingRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasAutoSentRef = useRef(false);
+
+  // Auto-scroll to newest message
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   // Load conversations on mount
   useEffect(() => {
     loadConversations();
   }, [farmId]);
 
-  // Set initial conversation from URL (from search results)
+  // Set initial conversation from URL (from search results) or start new if requested
   useEffect(() => {
-    if (initialConversationId) {
+    if (forceNewConversation) {
+      setCurrentConversationId(null);
+      setMessages([]);
+    } else if (initialConversationId) {
       setCurrentConversationId(initialConversationId);
     }
-  }, [initialConversationId]);
+  }, [initialConversationId, forceNewConversation]);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -238,6 +255,82 @@ export function EnhancedChatPanel({ farmId, initialConversationId, onAnalyze }: 
     setMessages([]);
     setShowConversations(false);
   };
+
+  // Programmatically submit a message (for auto-send)
+  const submitMessage = useCallback(async (message: string) => {
+    if (!message.trim() || loading) return;
+
+    const userMessage = message.trim();
+
+    console.log("[Chat] submitMessage called with:", userMessage);
+
+    // Set flag to prevent useEffect from loading messages from DB
+    isSubmittingRef.current = true;
+
+    // Optimistically add user message
+    setMessages((prev) => {
+      console.log("[Chat] Adding user message, current count:", prev.length);
+      return [...prev, { role: "user", content: userMessage }];
+    });
+    setLoading(true);
+
+    try {
+      console.log("[Chat] Calling onAnalyze...");
+      const result = await onAnalyze(
+        userMessage,
+        currentConversationId || undefined
+      );
+
+      console.log("[Chat] onAnalyze returned:", {
+        hasResponse: !!result.response,
+        responseLength: result.response.length,
+        conversationId: result.conversationId,
+      });
+
+      // Update current conversation ID if it was created
+      if (!currentConversationId && result.conversationId) {
+        console.log("[Chat] New conversation created, setting ID:", result.conversationId);
+        setCurrentConversationId(result.conversationId);
+        // Reload conversations list (but don't trigger loadMessages, we already have the messages)
+        loadConversations().catch(err => console.error("Failed to reload conversations:", err));
+      }
+
+      // Add AI response with screenshot
+      setMessages((prev) => {
+        console.log("[Chat] Adding AI response, current count:", prev.length);
+        return [
+          ...prev,
+          { role: "assistant", content: result.response, screenshots: result.screenshot ? [result.screenshot] : null },
+        ];
+      });
+    } catch (error) {
+      console.error("[Chat] Error in submitMessage:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, analysis failed. Please try again.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+      // Clear the flag after a short delay to allow the optimistic updates to settle
+      setTimeout(() => {
+        isSubmittingRef.current = false;
+      }, 500);
+    }
+  }, [loading, currentConversationId, onAnalyze, loadConversations]);
+
+  // Auto-send initial message if provided
+  useEffect(() => {
+    if (initialMessage && !hasAutoSentRef.current && !loading) {
+      hasAutoSentRef.current = true;
+      // Small delay to ensure component is fully mounted
+      setTimeout(() => {
+        submitMessage(initialMessage);
+      }, 300);
+    }
+  }, [initialMessage, loading, submitMessage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -502,6 +595,8 @@ export function EnhancedChatPanel({ farmId, initialConversationId, onAnalyze }: 
               </div>
             </div>
           )}
+          {/* Scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
 
         <form onSubmit={handleSubmit} className="flex gap-2 flex-shrink-0">

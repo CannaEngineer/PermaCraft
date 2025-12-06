@@ -758,15 +758,16 @@ IMPORTANT: When suggesting new plantings:
     [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, buildLegendContext, buildNativeSpeciesContext, buildPlantingsContext]
   );
 
+  // State for vital recommendations
+  const [vitalPrompt, setVitalPrompt] = useState<string | undefined>(undefined);
+  const [startNewChat, setStartNewChat] = useState(false);
+
   /**
    * Handle AI recommendations for specific vital categories
    * Opens chat panel with contextual prompt about the vital
    */
   const handleVitalRecommendations = useCallback(
     (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => {
-      // Open chat panel
-      setIsChatOpen(true);
-
       // Build contextual prompt
       let prompt = `I'd like recommendations for ${vitalLabel} on my farm.\n\n`;
 
@@ -792,14 +793,18 @@ IMPORTANT: When suggesting new plantings:
 
       prompt += `\nPlease be specific about quantities, locations on the map, and spacing. Focus on native species suitable for my climate zone.`;
 
-      // Trigger the AI analysis with this prompt
-      // Note: The chat panel will pick this up via its own state management
-      // We're just opening it and the user can see this suggested prompt
-      // For now, we'll just open the panel - the user can paste or we could auto-send
       console.log('Vital recommendations prompt:', prompt);
 
-      // TODO: Auto-send this prompt to the chat
-      // This would require exposing a method from EnhancedChatPanel
+      // Set the prompt and trigger new conversation
+      setVitalPrompt(prompt);
+      setStartNewChat(true);
+      setIsChatOpen(true);
+
+      // Reset flags after component has time to receive them
+      setTimeout(() => {
+        setVitalPrompt(undefined);
+        setStartNewChat(false);
+      }, 1000);
     },
     [setIsChatOpen]
   );
@@ -920,6 +925,8 @@ IMPORTANT: When suggesting new plantings:
           <EnhancedChatPanel
             farmId={farm.id}
             initialConversationId={initialConversationId}
+            initialMessage={vitalPrompt}
+            forceNewConversation={startNewChat}
             onAnalyze={handleAnalyze}
           />
         </div>
