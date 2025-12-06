@@ -15,6 +15,7 @@ interface PlantingWithSpecies {
 interface FarmVitalsWidgetProps {
   plantings: PlantingWithSpecies[];
   className?: string;
+  onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
 }
 
 /**
@@ -24,7 +25,7 @@ interface FarmVitalsWidgetProps {
  * - Desktop: Slides down from header
  * - Mobile: Collapsible panel below header
  */
-export function FarmVitalsWidget({ plantings, className = '' }: FarmVitalsWidgetProps) {
+export function FarmVitalsWidget({ plantings, className = '', onGetRecommendations }: FarmVitalsWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (plantings.length === 0) {
@@ -61,7 +62,10 @@ export function FarmVitalsWidget({ plantings, className = '' }: FarmVitalsWidget
         }`}
       >
         <div className="px-4 py-4 border-t border-border">
-          <FarmVitals plantings={plantings} />
+          <FarmVitals
+            plantings={plantings}
+            onGetRecommendations={onGetRecommendations}
+          />
         </div>
       </div>
     </div>

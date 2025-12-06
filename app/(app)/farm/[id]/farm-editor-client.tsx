@@ -758,6 +758,52 @@ IMPORTANT: When suggesting new plantings:
     [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, buildLegendContext, buildNativeSpeciesContext, buildPlantingsContext]
   );
 
+  /**
+   * Handle AI recommendations for specific vital categories
+   * Opens chat panel with contextual prompt about the vital
+   */
+  const handleVitalRecommendations = useCallback(
+    (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => {
+      // Open chat panel
+      setIsChatOpen(true);
+
+      // Build contextual prompt
+      let prompt = `I'd like recommendations for ${vitalLabel} on my farm.\n\n`;
+
+      if (currentCount === 0) {
+        prompt += `I currently have NO ${vitalLabel} planted. Please recommend:\n`;
+        prompt += `1. Why ${vitalLabel} are important for my specific farm\n`;
+        prompt += `2. How many ${vitalLabel} I should aim to have based on my farm size\n`;
+        prompt += `3. Specific native species that would work well as ${vitalLabel}\n`;
+        prompt += `4. WHERE on my farm I should plant them (based on the map you can see)\n`;
+        prompt += `5. When to plant them and any guild companions\n`;
+      } else {
+        prompt += `I currently have ${currentCount} ${vitalLabel}:\n`;
+        plantList.forEach(plant => {
+          prompt += `- ${plant.common_name} (${plant.scientific_name || 'unknown species'})\n`;
+        });
+        prompt += `\nPlease recommend:\n`;
+        prompt += `1. How many MORE ${vitalLabel} I should add for optimal farm function\n`;
+        prompt += `2. Specific additional native species to diversify this function\n`;
+        prompt += `3. WHERE on my farm to plant them (considering what I already have)\n`;
+        prompt += `4. How to create guilds or polycultures with my existing ${vitalLabel}\n`;
+        prompt += `5. Any gaps in coverage I should address\n`;
+      }
+
+      prompt += `\nPlease be specific about quantities, locations on the map, and spacing. Focus on native species suitable for my climate zone.`;
+
+      // Trigger the AI analysis with this prompt
+      // Note: The chat panel will pick this up via its own state management
+      // We're just opening it and the user can see this suggested prompt
+      // For now, we'll just open the panel - the user can paste or we could auto-send
+      console.log('Vital recommendations prompt:', prompt);
+
+      // TODO: Auto-send this prompt to the chat
+      // This would require exposing a method from EnhancedChatPanel
+    },
+    [setIsChatOpen]
+  );
+
   return (
     <div className="h-screen flex flex-col">
       {/* Modern Header - Two-tier design for better hierarchy */}
@@ -844,7 +890,10 @@ IMPORTANT: When suggesting new plantings:
       </header>
 
       {/* Farm Vitals Widget - Collapsible */}
-      <FarmVitalsWidget plantings={plantings} />
+      <FarmVitalsWidget
+        plantings={plantings}
+        onGetRecommendations={handleVitalRecommendations}
+      />
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div

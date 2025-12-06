@@ -20,6 +20,7 @@ interface FarmVitalsProps {
   className?: string;
   compact?: boolean;
   onHighlightFunction?: (functionKey: string) => void;
+  onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: PlantingWithSpecies[]) => void;
 }
 
 // Importance explanations for each vital
@@ -42,7 +43,7 @@ const VITAL_IMPORTANCE: Record<string, string> = {
  *
  * Mobile-first design with drawer/modal for details that doesn't obscure the map.
  */
-export function FarmVitals({ plantings, className = '', compact = false, onHighlightFunction }: FarmVitalsProps) {
+export function FarmVitals({ plantings, className = '', compact = false, onHighlightFunction, onGetRecommendations }: FarmVitalsProps) {
   const [selectedVital, setSelectedVital] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -185,10 +186,8 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
       },
     ];
 
-    // Filter to only show categories with counts > 0 or high importance
-    const displayCategories = categories.filter(cat =>
-      cat.count > 0 || cat.importance === 'high'
-    );
+    // Show all categories - users can learn about zero-count vitals too
+    const displayCategories = categories;
 
     return {
       categories: displayCategories,
@@ -273,50 +272,91 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
           </p>
         </div>
 
-        {/* Plant List */}
+        {/* Plant List or Empty State */}
         <div>
-          <h4 className="text-sm font-semibold mb-3">Plants in this category:</h4>
-          <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-2">
-            {uniquePlants.map((plant) => (
-              <div
-                key={plant.id}
-                className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-              >
-                <Leaf className={`h-4 w-4 ${cat.color} flex-shrink-0 mt-0.5`} />
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-sm">
-                    {plant.common_name || 'Unknown'}
+          {uniquePlants.length > 0 ? (
+            <>
+              <h4 className="text-sm font-semibold mb-3">
+                Plants in this category ({uniquePlants.length}):
+              </h4>
+              <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-2">
+                {uniquePlants.map((plant) => (
+                  <div
+                    key={plant.id}
+                    className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                  >
+                    <Leaf className={`h-4 w-4 ${cat.color} flex-shrink-0 mt-0.5`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm">
+                        {plant.common_name || 'Unknown'}
+                      </div>
+                      {plant.scientific_name && (
+                        <div className="text-xs text-muted-foreground italic">
+                          {plant.scientific_name}
+                        </div>
+                      )}
+                      {plant.layer && (
+                        <div className="text-xs text-muted-foreground capitalize mt-0.5">
+                          {plant.layer} layer
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {plant.scientific_name && (
-                    <div className="text-xs text-muted-foreground italic">
-                      {plant.scientific_name}
-                    </div>
-                  )}
-                  {plant.layer && (
-                    <div className="text-xs text-muted-foreground capitalize mt-0.5">
-                      {plant.layer} layer
-                    </div>
-                  )}
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-2">
+                <span className="text-2xl">🌱</span>
+                <div>
+                  <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                    No {cat.label} Yet
+                  </h4>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Consider adding plants to provide this important ecological function.
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Highlight on Map Button */}
-        {onHighlightFunction && (
-          <Button
-            onClick={() => {
-              onHighlightFunction(cat.key);
-              setSelectedVital(null);
-            }}
-            className="w-full"
-            variant="default"
-          >
-            <MapPin className="h-4 w-4 mr-2" />
-            Highlight on Map
-          </Button>
-        )}
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2">
+          {/* Get AI Recommendations */}
+          {onGetRecommendations && (
+            <Button
+              onClick={() => {
+                onGetRecommendations(cat.key, cat.label, cat.count, uniquePlants);
+                setSelectedVital(null);
+              }}
+              className="w-full"
+              variant="default"
+            >
+              <span className="mr-2">🤖</span>
+              {cat.count === 0
+                ? `Get AI Recommendations for ${cat.label}`
+                : `Get More ${cat.label} Recommendations`
+              }
+            </Button>
+          )}
+
+          {/* Highlight on Map - Only show if plants exist */}
+          {onHighlightFunction && cat.count > 0 && (
+            <Button
+              onClick={() => {
+                onHighlightFunction(cat.key);
+                setSelectedVital(null);
+              }}
+              className="w-full"
+              variant="outline"
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Highlight These {cat.count} Plants on Map
+            </Button>
+          )}
+        </div>
       </div>
     );
   }) : null;
@@ -332,14 +372,13 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
           return (
             <button
               key={cat.label}
-              onClick={() => !isZero && setSelectedVital(cat.key)}
-              className={`rounded-lg border p-3 transition-all text-left ${
+              onClick={() => setSelectedVital(cat.key)}
+              className={`rounded-lg border p-3 transition-all text-left cursor-pointer ${
                 isZero
-                  ? 'bg-muted/30 border-muted opacity-60'
-                  : `${cat.bgColor} ${cat.borderColor} ${cat.hoverBg} hover:shadow-md cursor-pointer`
+                  ? 'bg-muted/30 border-muted hover:bg-muted/50 hover:border-muted-foreground/20'
+                  : `${cat.bgColor} ${cat.borderColor} ${cat.hoverBg} hover:shadow-md`
               }`}
               title={cat.tooltip}
-              disabled={isZero}
             >
               <div className="flex items-center gap-2 mb-1">
                 <Icon className={`h-4 w-4 ${isZero ? 'text-muted-foreground' : cat.color}`} />
@@ -350,16 +389,15 @@ export function FarmVitals({ plantings, className = '', compact = false, onHighl
               <div className={`text-2xl font-bold tabular-nums ${isZero ? 'text-muted-foreground' : cat.color}`}>
                 {cat.count}
               </div>
-              {cat.importance === 'high' && isZero && (
-                <div className="text-xs text-amber-600 mt-1">
-                  ⚠️ Consider adding
-                </div>
-              )}
-              {!isZero && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  Tap for details
-                </div>
-              )}
+              <div className="text-xs mt-1">
+                {cat.importance === 'high' && isZero ? (
+                  <span className="text-amber-600">⚠️ Tap to learn why</span>
+                ) : isZero ? (
+                  <span className="text-muted-foreground">Tap to learn more</span>
+                ) : (
+                  <span className="text-muted-foreground">Tap for details</span>
+                )}
+              </div>
             </button>
           );
         })}
