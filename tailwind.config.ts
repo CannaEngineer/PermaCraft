@@ -18,10 +18,14 @@ const config: Config = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
+          light: "hsl(var(--primary-light))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+          hover: "hsl(var(--secondary-hover))",
+          light: "hsl(var(--secondary-light))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -34,6 +38,10 @@ const config: Config = {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          spring: "hsl(var(--accent-spring))",
+          summer: "hsl(var(--accent-summer))",
+          autumn: "hsl(var(--accent-autumn))",
+          winter: "hsl(var(--accent-winter))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -43,6 +51,22 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
+        gradient: {
+          start: "hsl(var(--gradient-start))",
+          end: "hsl(var(--gradient-end))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -50,15 +74,8 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: [
-          "system-ui",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Roboto",
-          "sans-serif",
-        ],
-        serif: ["Georgia", "Times New Roman", "serif"],
+        sans: ["var(--font-sans)", "Inter", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["var(--font-serif)", "Lora", "Georgia", "serif"],
       },
       fontSize: {
         // Mobile-first responsive typography
@@ -86,6 +103,42 @@ const config: Config = {
       },
       minWidth: {
         touch: "44px",
+      },
+      animation: {
+        "pulse-subtle": "pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "shimmer": "shimmer 2s linear infinite",
+        "checkmark": "checkmark 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+        "fade-in": "fadeIn 0.3s ease-out",
+        "scale-bounce": "scaleBounce 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      },
+      keyframes: {
+        "pulse-subtle": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-1000px 0" },
+          "100%": { backgroundPosition: "1000px 0" },
+        },
+        checkmark: {
+          "0%": { transform: "scale(0) rotate(45deg)", opacity: "0" },
+          "50%": { transform: "scale(1.2) rotate(45deg)", opacity: "1" },
+          "100%": { transform: "scale(1) rotate(45deg)", opacity: "1" },
+        },
+        fadeIn: {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        scaleBounce: {
+          "0%": { transform: "scale(0.8)" },
+          "50%": { transform: "scale(1.05)" },
+          "100%": { transform: "scale(1)" },
+        },
+      },
+      boxShadow: {
+        "soft": "0 2px 8px rgba(0, 0, 0, 0.08)",
+        "medium": "0 4px 12px rgba(0, 0, 0, 0.12)",
+        "strong": "0 8px 24px rgba(0, 0, 0, 0.16)",
       },
     },
   },

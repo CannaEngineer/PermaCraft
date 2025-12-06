@@ -438,17 +438,8 @@ IMPORTANT: When suggesting new plantings:
 
       console.log("Capturing composite with overlays...");
 
-      // Collapse bottom drawer before screenshot (data will be sent as text to AI)
-      const bottomDrawer = mapContainerRef.current.querySelector('[data-bottom-drawer]') as HTMLElement;
-      const wasDrawerExpanded = bottomDrawer && bottomDrawer.getAttribute('data-collapsed') !== 'true';
-
-      if (bottomDrawer && wasDrawerExpanded) {
-        // Temporarily collapse bottom drawer for clean screenshot
-        bottomDrawer.setAttribute('data-collapsed', 'true');
-        bottomDrawer.style.transform = 'translateY(100%)';
-      }
-
       // Capture the entire container with html-to-image
+      // Filter out the bottom drawer, map controls, and other UI elements
       screenshotData = await toPng(mapContainerRef.current, {
         quality: 0.9,
         pixelRatio: 1,
@@ -457,8 +448,13 @@ IMPORTANT: When suggesting new plantings:
         filter: (node) => {
           if (node.classList) {
             if (node.classList.contains('temp-screenshot-canvas')) return true;
-            return !node.classList.contains('maplibregl-ctrl') &&
-                   !node.classList.contains('mapboxgl-ctrl');
+            // Filter out map controls
+            if (node.classList.contains('maplibregl-ctrl')) return false;
+            if (node.classList.contains('mapboxgl-ctrl')) return false;
+          }
+          // Filter out bottom drawer by data attribute
+          if ((node as HTMLElement).hasAttribute && (node as HTMLElement).hasAttribute('data-bottom-drawer')) {
+            return false;
           }
           return true;
         },
@@ -468,12 +464,6 @@ IMPORTANT: When suggesting new plantings:
       tempImg.remove();
       if (mapCanvas) {
         (mapCanvas as HTMLElement).style.opacity = '1';
-      }
-
-      // Restore bottom drawer state
-      if (bottomDrawer && wasDrawerExpanded) {
-        bottomDrawer.setAttribute('data-collapsed', 'false');
-        bottomDrawer.style.transform = 'translateY(0)';
       }
 
       console.log("Cleanup complete");
@@ -504,17 +494,6 @@ IMPORTANT: When suggesting new plantings:
       if (tempImg) tempImg.remove();
       const mapCanvas = mapContainerRef.current?.querySelector('canvas');
       if (mapCanvas) (mapCanvas as HTMLElement).style.opacity = '1';
-
-      // Restore legend state even on error
-      const legendContainer = mapContainerRef.current?.querySelector('[data-legend-container]') as HTMLElement;
-      if (legendContainer) {
-        // Restore original collapsed state
-        const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
-        const shouldBeCollapsed = legendContainer.getAttribute('data-collapsed') === 'true';
-        if (legendContent) {
-          legendContent.style.display = shouldBeCollapsed ? 'none' : 'block';
-        }
-      }
 
       throw new Error(
         "Failed to capture map screenshot. Please ensure the map is fully loaded and try again."
@@ -572,104 +551,107 @@ IMPORTANT: When suggesting new plantings:
       console.log(`Capturing screenshot 1: ${currentMapLayer} layer`);
       const currentLayerScreenshot = await captureMapScreenshot();
 
-      // STEP 2: Determine best topographic layer
-      // Currently always uses USGS, but could be enhanced to:
-      // - Use OpenTopoMap for international properties
-      // - Select based on user location/preferences
-      const topoLayer = "usgs";
+      // STEP 2: Determine second screenshot layer
+      // Goal: Always provide two DIFFERENT perspectives
+      // - If on satellite/mapbox-satellite/street/terrain-3d: capture USGS topo as second view
+      // - If on topo layers (topo/usgs/terrain): capture satellite as second view
       const originalLayer = currentMapLayer;
+      const isTopoLayer = originalLayer === "usgs" || originalLayer === "topo" || originalLayer === "terrain";
 
-      let topoScreenshot: string;
+      // Choose complementary layer: satellite if on topo, USGS topo if on satellite
+      const secondLayer = isTopoLayer ? "satellite" : "usgs";
+      const secondLayerLabel = isTopoLayer ? "Satellite" : "USGS Topo";
 
-      // STEP 3: Conditionally capture second screenshot
-      // Skip if user is already viewing a topographic layer
-      // (no point capturing the same view twice)
-      if (originalLayer !== "usgs" && originalLayer !== "topo") {
-        console.log(`Switching to ${topoLayer} layer for second screenshot...`);
+      let secondScreenshot: string;
 
-        // Store current map style to restore later
-        // This is the complete MapLibre style object including sources, layers, etc.
-        const currentStyle = mapRef.current.getStyle();
+      console.log(`Switching to ${secondLayerLabel} layer for second screenshot...`);
 
-        // Create USGS topographic style
-        // This is a minimal MapLibre style with just the USGS raster tile source
-        const usgsStyle = {
-          version: 8 as const, // MapLibre style spec version
+      // Store current map style to restore later
+      const currentStyle = mapRef.current.getStyle();
+
+      // Create the second layer style
+      let secondStyle;
+      if (isTopoLayer) {
+        // Switch to satellite (ESRI World Imagery)
+        secondStyle = {
+          version: 8 as const,
+          sources: {
+            satellite: {
+              type: "raster" as const,
+              tiles: [
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+              ],
+              tileSize: 256,
+              maxzoom: 19,
+            },
+          },
+          layers: [{ id: "satellite", type: "raster" as const, source: "satellite" }],
+        };
+      } else {
+        // Switch to USGS topo
+        secondStyle = {
+          version: 8 as const,
           sources: {
             usgs: {
               type: "raster" as const,
               tiles: [
-                // Free USGS topographic tiles (no API key required)
                 "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
               ],
               tileSize: 256,
-              maxzoom: 16, // USGS tiles available up to zoom 16
+              maxzoom: 16,
             },
           },
           layers: [{ id: "usgs", type: "raster" as const, source: "usgs" }],
         };
-
-        // Temporarily switch to USGS style
-        // This triggers a complete style reload, clearing all current layers
-        mapRef.current.setStyle(usgsStyle);
-
-        // Wait for the new style to load and tiles to render
-        // This is async - tiles must download before we can screenshot
-        await new Promise<void>((resolve) => {
-          const onStyleData = () => {
-            console.log("USGS style loaded, waiting for tiles...");
-            // Wait for map to be idle (all tiles loaded and rendered)
-            mapRef.current!.once("idle", () => {
-              console.log("USGS tiles idle");
-              // Extra 1-second delay to ensure GPU has fully rendered tiles
-              // Needed because 'idle' event can fire before final paint
-              setTimeout(() => resolve(), 1000);
-            });
-          };
-
-          // Check if style is already loaded (edge case)
-          if (mapRef.current!.isStyleLoaded()) {
-            onStyleData();
-          } else {
-            // Wait for 'styledata' event (fired when style JSON is loaded)
-            mapRef.current!.once("styledata", onStyleData);
-          }
-
-          // Safety timeout: Prevent infinite waiting if tiles fail to load
-          setTimeout(() => {
-            console.warn("USGS style load timeout");
-            resolve(); // Proceed anyway
-          }, 15000);
-        });
-
-        // STEP 4: Capture topographic screenshot
-        console.log("Capturing screenshot 2: USGS topo layer");
-        topoScreenshot = await captureMapScreenshot();
-
-        // STEP 5: Restore original layer
-        // User should see the same layer they started with
-        console.log(`Restoring original layer: ${originalLayer}`);
-        mapRef.current.setStyle(currentStyle);
-
-        // Wait for original style to restore
-        // This ensures the UI is back to normal before we return
-        await new Promise<void>((resolve) => {
-          mapRef.current!.once("styledata", () => {
-            mapRef.current!.once("idle", () => {
-              setTimeout(() => resolve(), 500);
-            });
-          });
-
-          // Timeout after 10 seconds
-          setTimeout(() => resolve(), 10000);
-        });
-      } else {
-        // Already on a topo layer, just use current screenshot for both
-        console.log("Already on topo layer, using same screenshot for both views");
-        topoScreenshot = currentLayerScreenshot;
       }
 
+      // Temporarily switch to second style
+      mapRef.current.setStyle(secondStyle);
+
+      // Wait for the new style to load and tiles to render
+      await new Promise<void>((resolve) => {
+        const onStyleData = () => {
+          console.log(`${secondLayerLabel} style loaded, waiting for tiles...`);
+          mapRef.current!.once("idle", () => {
+            console.log(`${secondLayerLabel} tiles idle`);
+            setTimeout(() => resolve(), 1000);
+          });
+        };
+
+        if (mapRef.current!.isStyleLoaded()) {
+          onStyleData();
+        } else {
+          mapRef.current!.once("styledata", onStyleData);
+        }
+
+        setTimeout(() => {
+          console.warn(`${secondLayerLabel} style load timeout`);
+          resolve();
+        }, 15000);
+      });
+
+      // STEP 3: Capture second screenshot
+      console.log(`Capturing screenshot 2: ${secondLayerLabel} layer`);
+      secondScreenshot = await captureMapScreenshot();
+
+      // STEP 4: Restore original layer
+      console.log(`Restoring original layer: ${originalLayer}`);
+      mapRef.current.setStyle(currentStyle);
+
+      await new Promise<void>((resolve) => {
+        mapRef.current!.once("styledata", () => {
+          mapRef.current!.once("idle", () => {
+            setTimeout(() => resolve(), 500);
+          });
+        });
+        setTimeout(() => resolve(), 10000);
+      });
+
       console.log("=== DUAL SCREENSHOT CAPTURE COMPLETE ===");
+
+      // Assign screenshots based on what was captured
+      const topoScreenshot = isTopoLayer ? currentLayerScreenshot : secondScreenshot;
+      const satelliteScreenshot = isTopoLayer ? secondScreenshot : currentLayerScreenshot;
 
       // STEP 6: Calculate farm bounds for grid coordinate mapping
       // This allows the AI to reference precise locations using alphanumeric grid (A1, B2, etc.)
@@ -710,8 +692,8 @@ IMPORTANT: When suggesting new plantings:
           conversationId,
           query,
           screenshots: [
-            { type: originalLayer, data: currentLayerScreenshot },
-            { type: topoLayer, data: topoScreenshot },
+            { type: isTopoLayer ? "topo" : "satellite", data: currentLayerScreenshot },
+            { type: isTopoLayer ? "satellite" : "topo", data: secondScreenshot },
           ],
           mapLayer: currentMapLayer,
           legendContext: buildLegendContext(), // Include legend data as text

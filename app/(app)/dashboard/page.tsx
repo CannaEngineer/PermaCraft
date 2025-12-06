@@ -64,19 +64,11 @@ export default async function DashboardPage() {
   return (
     <DashboardClient>
       <div className="p-4 md:p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-serif font-bold">My Farms</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your permaculture designs
-            </p>
-          </div>
-          <Button asChild className="hidden md:flex">
-            <Link href="/farm/new">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              New Farm
-            </Link>
-          </Button>
+        <div className="mb-8">
+          <h1 className="text-3xl font-serif font-bold">My Farms</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your permaculture designs
+          </p>
         </div>
 
         {/* Search My Farms */}

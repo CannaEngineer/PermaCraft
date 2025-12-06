@@ -31,13 +31,13 @@ interface FarmCardProps {
 export function FarmCard({ farm }: FarmCardProps) {
   return (
     <Link href={`/farm/${farm.id}`}>
-      <Card className="hover:border-primary transition-colors cursor-pointer h-full bg-card hover:bg-accent overflow-hidden">
+      <Card className="card-interactive overflow-hidden animate-fade-in">
         {farm.latest_screenshot ? (
-          <div className="relative w-full h-48 bg-muted">
+          <div className="relative w-full h-48 bg-muted overflow-hidden">
             <img
               src={farm.latest_screenshot}
               alt={`${farm.name} map preview`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               onError={(e) => {
                 // Hide image if it fails to load
                 (e.target as HTMLElement).style.display = 'none';
@@ -45,8 +45,8 @@ export function FarmCard({ farm }: FarmCardProps) {
             />
           </div>
         ) : (
-          <div className="relative w-full h-48 bg-muted flex items-center justify-center">
-            <MapIcon className="h-16 w-16 text-muted-foreground/30" />
+          <div className="relative w-full h-48 bg-gradient-spring flex items-center justify-center">
+            <MapIcon className="h-16 w-16 text-primary/20 transition-transform duration-300 group-hover:scale-110" />
           </div>
         )}
         <CardHeader>

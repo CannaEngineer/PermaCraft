@@ -142,7 +142,6 @@ export function FarmMap({
   const [plantingFilters, setPlantingFilters] = useState<string[]>([]); // Empty = show all
   const [vitalFilters, setVitalFilters] = useState<string[]>([]); // Empty = show all
   const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
-  const [showPlantingMenu, setShowPlantingMenu] = useState(false);
 
   // Guild companion filter state
   const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
@@ -2359,62 +2358,6 @@ export function FarmMap({
         </div>
       )}
 
-      {/* Planting Filter Menu - Desktop Only */}
-      {plantings.length > 0 && !plantingMode && (
-        <div className="hidden md:block absolute top-36 left-4 z-10">
-          <Button
-            onClick={() => {
-              setShowPlantingMenu(!showPlantingMenu);
-              setShowLayerMenu(false);
-              setShowHelp(false);
-            }}
-            variant="secondary"
-            size="sm"
-            className="bg-card text-card-foreground shadow-lg"
-          >
-            <Leaf className="h-4 w-4 mr-2" />
-            Filter Plants ({filteredPlantings.length}/{plantings.length})
-          </Button>
-
-          {showPlantingMenu && (
-            <div className="absolute top-full mt-2 bg-card rounded shadow-lg p-2 space-y-1 min-w-[180px] z-50">
-              <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border">
-                Show by Layer
-              </div>
-              {['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'].map(layer => {
-                const layerCount = plantings.filter(p => p.layer === layer).length;
-                if (layerCount === 0) return null;
-
-                return (
-                  <button
-                    key={layer}
-                    onClick={() => toggleLayerFilter(layer)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent flex items-center justify-between ${
-                      plantingFilters.length === 0 || plantingFilters.includes(layer)
-                        ? 'bg-accent/50 font-medium'
-                        : 'opacity-50'
-                    }`}
-                  >
-                    <span className="capitalize">{layer}</span>
-                    <span className="text-xs text-muted-foreground">{layerCount}</span>
-                  </button>
-                );
-              })}
-              {plantingFilters.length > 0 && (
-                <>
-                  <div className="border-t border-border my-1"></div>
-                  <button
-                    onClick={() => setPlantingFilters([])}
-                    className="w-full text-left px-3 py-2 rounded text-sm hover:bg-accent text-muted-foreground"
-                  >
-                    Show All
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* 3D Terrain Controls - Desktop Only - positioned at bottom right when terrain enabled */}
       {terrainEnabled && (

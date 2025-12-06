@@ -36,9 +36,8 @@ const LAYER_OPTIONS: { value: MapLayer; label: string }[] = [
 /**
  * Map Controls Bottom Sheet
  *
- * Expandable FAB that consolidates all map controls and actions.
- * Primary actions (Plant, Zone, Post) expand on click.
- * Settings action opens the full controls drawer.
+ * Expandable FAB that consolidates map actions (Add Plant, Create Post, Time Machine).
+ * Map settings (layers, grid) are now in the bottom drawer instead.
  *
  * Visible on both mobile and desktop for consistent UX.
  */
@@ -173,18 +172,10 @@ export function MapControlsSheet({
         </Drawer.Content>
       </Drawer.Portal>
 
-      {/* Expandable FAB with Settings trigger at the end */}
+      {/* Expandable FAB */}
       <FAB
-        ariaLabel="Map actions and settings"
-        actions={[
-          ...fabActions,
-          {
-            icon: <Settings className="h-5 w-5" />,
-            label: "Map Settings",
-            onClick: () => setIsDrawerOpen(true),
-            color: "bg-gray-600 text-white"
-          }
-        ]}
+        ariaLabel="Map actions"
+        actions={fabActions}
         className={className}
       />
     </Drawer.Root>

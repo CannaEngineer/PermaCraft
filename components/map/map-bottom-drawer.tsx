@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, Filter, Map, Activity, Settings, Clock, Leaf, Play, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FarmVitals } from "@/components/farm/farm-vitals";
@@ -72,8 +72,23 @@ export function MapBottomDrawer({
   const [activeTab, setActiveTab] = useState<Tab>('filters');
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Force expand when time machine is open
-  const effectiveCollapsed = isCollapsed && !isTimeMachineOpen;
+  // Use isCollapsed directly - remove forced expand
+  const effectiveCollapsed = isCollapsed;
+
+  // Time machine playback effect
+  useEffect(() => {
+    if (!isPlaying || !onYearChange || currentYear === undefined) return;
+
+    const interval = setInterval(() => {
+      if (currentYear >= maxYear) {
+        setIsPlaying(false);
+        return;
+      }
+      onYearChange(currentYear + 1);
+    }, 1000); // Advance one year per second
+
+    return () => clearInterval(interval);
+  }, [isPlaying, currentYear, maxYear, onYearChange]);
 
   return (
     <div
