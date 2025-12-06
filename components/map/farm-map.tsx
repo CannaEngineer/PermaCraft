@@ -2643,9 +2643,11 @@ export function FarmMap({
       <MapBottomDrawer
         mapLayer={mapLayer}
         gridUnit={gridUnit}
+        gridDensity={gridDensity}
         zones={zones}
         plantings={plantings}
         isTimeMachineOpen={isTimeMachineOpen}
+        onOpenTimeMachine={() => setIsTimeMachineOpen(true)}
         onCloseTimeMachine={() => setIsTimeMachineOpen(false)}
         currentYear={projectionYear}
         onYearChange={setProjectionYear}
@@ -2656,6 +2658,13 @@ export function FarmMap({
         vitalFilters={vitalFilters}
         onToggleVitalFilter={toggleVitalFilter}
         onGetRecommendations={onGetRecommendations}
+        onChangeLayer={changeMapLayer}
+        onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
+        onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
+        onAddPlant={() => {
+          setPlantingMode(true);
+          setShowSpeciesPicker(true);
+        }}
       />
 
       {/* Render planting markers */}
@@ -2734,7 +2743,7 @@ export function FarmMap({
         }}
       />
 
-      {/* Map Controls FAB - consolidates all actions and settings */}
+      {/* Map Controls FAB - only Create Post action (other actions moved to bottom drawer) */}
       <MapControlsSheet
         mapLayer={mapLayer}
         onChangeLayer={changeMapLayer}
@@ -2742,17 +2751,7 @@ export function FarmMap({
         onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
         gridDensity={gridDensity}
         onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
-        onAddPlant={() => {
-          setPlantingMode(true);
-          setShowSpeciesPicker(true);
-        }}
-        onDrawZone={() => {
-          if (draw.current) {
-            draw.current.changeMode('draw_polygon');
-          }
-        }}
         onCreatePost={() => setShowCreatePost(true)}
-        onOpenTimeMachine={() => setIsTimeMachineOpen(true)}
         hasPlantings={plantings.length > 0}
       />
     </div>

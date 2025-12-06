@@ -1,17 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Filter, Map, Activity } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, Map, Activity, Settings, Clock, Leaf, Play, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FarmVitals } from "@/components/farm/farm-vitals";
 
+type MapLayer = "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
+type GridDensity = "auto" | "sparse" | "normal" | "dense" | "off";
+
 interface MapBottomDrawerProps {
   // Legend props
-  mapLayer: "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
+  mapLayer: MapLayer;
   gridUnit: "imperial" | "metric";
+  gridDensity: GridDensity;
   zones: any[];
   plantings?: any[];
+
+  // Time Machine props
   isTimeMachineOpen?: boolean;
+  onOpenTimeMachine?: () => void;
   onCloseTimeMachine?: () => void;
   currentYear?: number;
   onYearChange?: (year: number) => void;
@@ -26,16 +33,26 @@ interface MapBottomDrawerProps {
 
   // Vitals props
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
+
+  // Map Settings props
+  onChangeLayer?: (layer: MapLayer) => void;
+  onToggleGridUnit?: () => void;
+  onChangeGridDensity?: (density: GridDensity) => void;
+
+  // Actions
+  onAddPlant?: () => void;
 }
 
-type Tab = 'legend' | 'filters' | 'vitals';
+type Tab = 'legend' | 'filters' | 'vitals' | 'settings' | 'timemachine';
 
 export function MapBottomDrawer({
   mapLayer,
   gridUnit,
+  gridDensity,
   zones,
   plantings = [],
   isTimeMachineOpen = false,
+  onOpenTimeMachine,
   onCloseTimeMachine,
   currentYear,
   onYearChange,
@@ -46,9 +63,14 @@ export function MapBottomDrawer({
   vitalFilters,
   onToggleVitalFilter,
   onGetRecommendations,
+  onChangeLayer,
+  onToggleGridUnit,
+  onChangeGridDensity,
+  onAddPlant,
 }: MapBottomDrawerProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('filters');
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Force expand when time machine is open
   const effectiveCollapsed = isCollapsed && !isTimeMachineOpen;
@@ -84,7 +106,7 @@ export function MapBottomDrawer({
       {/* Tab Bar - Always Visible When Expanded */}
       {!effectiveCollapsed && (
         <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/95">
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setActiveTab('vitals')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
@@ -94,7 +116,7 @@ export function MapBottomDrawer({
               }`}
             >
               <Activity className="inline h-3 w-3 mr-1" />
-              Vitals ({plantings.length})
+              Vitals
             </button>
             <button
               onClick={() => setActiveTab('filters')}
@@ -108,6 +130,31 @@ export function MapBottomDrawer({
               Filters
             </button>
             <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'settings'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              <Settings className="inline h-3 w-3 mr-1" />
+              Settings
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('timemachine');
+                if (onOpenTimeMachine) onOpenTimeMachine();
+              }}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'timemachine'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              <Clock className="inline h-3 w-3 mr-1" />
+              Time Machine
+            </button>
+            <button
               onClick={() => setActiveTab('legend')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === 'legend'
@@ -116,18 +163,30 @@ export function MapBottomDrawer({
               }`}
             >
               <Map className="inline h-3 w-3 mr-1" />
-              Legend
+              Info
             </button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => setIsCollapsed(true)}
-            title="Minimize"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            {onAddPlant && (
+              <Button
+                size="sm"
+                onClick={onAddPlant}
+                className="h-7 text-xs"
+              >
+                <Leaf className="h-3 w-3 mr-1" />
+                Add Plant
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setIsCollapsed(true)}
+              title="Minimize"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -218,26 +277,147 @@ export function MapBottomDrawer({
             </div>
           )}
 
-          {activeTab === 'legend' && (
+          {activeTab === 'settings' && onChangeLayer && (
             <div className="px-4 py-3">
-              {/* Time Machine Controls */}
-              {isTimeMachineOpen && currentYear !== undefined && onYearChange && (
-                <div className="mb-4">
-                  <div className="text-sm font-medium mb-2">Time Machine: {currentYear}</div>
+              <div className="space-y-4">
+                {/* Map Layer Selection */}
+                <div>
+                  <div className="text-sm font-medium mb-2">Map Layer</div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {[
+                      { value: 'satellite' as MapLayer, label: 'Satellite (ESRI)' },
+                      { value: 'mapbox-satellite' as MapLayer, label: 'Mapbox Satellite' },
+                      { value: 'terrain-3d' as MapLayer, label: '3D Terrain' },
+                      { value: 'terrain' as MapLayer, label: 'Terrain Map' },
+                      { value: 'topo' as MapLayer, label: 'OpenTopoMap' },
+                      { value: 'usgs' as MapLayer, label: 'USGS Topo' },
+                      { value: 'street' as MapLayer, label: 'Street Map' },
+                    ].map((layer) => (
+                      <button
+                        key={layer.value}
+                        onClick={() => onChangeLayer(layer.value)}
+                        className={`px-3 py-2 rounded-lg text-xs transition-colors ${
+                          mapLayer === layer.value
+                            ? 'bg-primary text-primary-foreground font-medium'
+                            : 'bg-muted/50 hover:bg-muted'
+                        }`}
+                      >
+                        {layer.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grid Settings */}
+                {onToggleGridUnit && (
+                  <div>
+                    <div className="text-sm font-medium mb-2">Grid Settings</div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={onToggleGridUnit}
+                        className="w-full px-3 py-2 rounded-lg text-xs bg-muted/50 hover:bg-muted transition-colors text-left"
+                      >
+                        <div className="font-medium">Units: {gridUnit === 'imperial' ? 'Imperial (ft)' : 'Metric (m)'}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Tap to toggle</div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Grid Density */}
+                {onChangeGridDensity && (
+                  <div>
+                    <div className="text-sm font-medium mb-2">Grid Density</div>
+                    <div className="grid grid-cols-5 gap-2">
+                      {(['auto', 'sparse', 'normal', 'dense', 'off'] as GridDensity[]).map((density) => (
+                        <button
+                          key={density}
+                          onClick={() => onChangeGridDensity(density)}
+                          className={`px-3 py-2 rounded-lg text-xs transition-colors capitalize ${
+                            gridDensity === density
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted/50 hover:bg-muted'
+                          }`}
+                        >
+                          {density}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'timemachine' && currentYear !== undefined && onYearChange && (
+            <div className="px-4 py-3">
+              <div className="space-y-4">
+                {/* Year Slider */}
+                <div>
+                  <div className="text-sm font-medium mb-2">Projection Year: {currentYear}</div>
                   <input
                     type="range"
                     min={minYear}
                     max={maxYear}
                     value={currentYear}
                     onChange={(e) => onYearChange(Number(e.target.value))}
-                    className="w-full"
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
                     <span>{minYear}</span>
                     <span>{maxYear}</span>
                   </div>
                 </div>
-              )}
+
+                {/* Playback Controls */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={isPlaying ? "default" : "outline"}
+                    onClick={() => setIsPlaying(!isPlaying)}
+                  >
+                    {isPlaying ? (
+                      <>
+                        <Pause className="h-3 w-3 mr-1" />
+                        Pause
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3 w-3 mr-1" />
+                        Play
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onYearChange(minYear)}
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Reset
+                  </Button>
+                  {onCloseTimeMachine && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={onCloseTimeMachine}
+                      className="ml-auto"
+                    >
+                      Close
+                    </Button>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                  <p>Watch your farm grow over time! Use the slider or playback controls to see how plants mature based on their growth rates.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'legend' && (
+            <div className="px-4 py-3">
 
               {/* Map Info */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
