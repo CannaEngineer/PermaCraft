@@ -12,7 +12,6 @@ import { calculateGridCoordinates, formatGridRange } from "@/lib/map/zone-grid-c
 import { toPng } from "html-to-image";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
-import { FarmVitalsWidget } from "@/components/farm/farm-vitals-widget";
 
 interface FarmEditorClientProps {
   farm: Farm;
@@ -439,29 +438,14 @@ IMPORTANT: When suggesting new plantings:
 
       console.log("Capturing composite with overlays...");
 
-      // Collapse legend and filters before screenshot (data will be sent as text to AI)
-      const legendContainer = mapContainerRef.current.querySelector('[data-legend-container]') as HTMLElement;
-      const wasLegendExpanded = legendContainer && legendContainer.getAttribute('data-collapsed') !== 'true';
+      // Collapse bottom drawer before screenshot (data will be sent as text to AI)
+      const bottomDrawer = mapContainerRef.current.querySelector('[data-bottom-drawer]') as HTMLElement;
+      const wasDrawerExpanded = bottomDrawer && bottomDrawer.getAttribute('data-collapsed') !== 'true';
 
-      const filtersContainer = mapContainerRef.current.querySelector('[data-filters-container]') as HTMLElement;
-      const wasFiltersExpanded = filtersContainer && filtersContainer.getAttribute('data-collapsed') !== 'true';
-
-      if (legendContainer && wasLegendExpanded) {
-        // Temporarily collapse legend for clean screenshot
-        legendContainer.setAttribute('data-collapsed', 'true');
-        const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
-        if (legendContent) {
-          legendContent.style.display = 'none';
-        }
-      }
-
-      if (filtersContainer && wasFiltersExpanded) {
-        // Temporarily collapse filters for clean screenshot
-        filtersContainer.setAttribute('data-collapsed', 'true');
-        const filtersContent = filtersContainer.querySelector('[data-filters-content]') as HTMLElement;
-        if (filtersContent) {
-          filtersContent.style.display = 'none';
-        }
+      if (bottomDrawer && wasDrawerExpanded) {
+        // Temporarily collapse bottom drawer for clean screenshot
+        bottomDrawer.setAttribute('data-collapsed', 'true');
+        bottomDrawer.style.transform = 'translateY(100%)';
       }
 
       // Capture the entire container with html-to-image
@@ -486,21 +470,10 @@ IMPORTANT: When suggesting new plantings:
         (mapCanvas as HTMLElement).style.opacity = '1';
       }
 
-      // Restore legend and filters state
-      if (legendContainer && wasLegendExpanded) {
-        legendContainer.setAttribute('data-collapsed', 'false');
-        const legendContent = legendContainer.querySelector('[data-legend-content]') as HTMLElement;
-        if (legendContent) {
-          legendContent.style.display = 'block';
-        }
-      }
-
-      if (filtersContainer && wasFiltersExpanded) {
-        filtersContainer.setAttribute('data-collapsed', 'false');
-        const filtersContent = filtersContainer.querySelector('[data-filters-content]') as HTMLElement;
-        if (filtersContent) {
-          filtersContent.style.display = 'block';
-        }
+      // Restore bottom drawer state
+      if (bottomDrawer && wasDrawerExpanded) {
+        bottomDrawer.setAttribute('data-collapsed', 'false');
+        bottomDrawer.style.transform = 'translateY(0)';
       }
 
       console.log("Cleanup complete");
@@ -914,12 +887,6 @@ IMPORTANT: When suggesting new plantings:
         )}
       </header>
 
-      {/* Farm Vitals Widget - Collapsible */}
-      <FarmVitalsWidget
-        plantings={plantings}
-        onGetRecommendations={handleVitalRecommendations}
-      />
-
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div
           ref={mapContainerRef}
@@ -933,6 +900,7 @@ IMPORTANT: When suggesting new plantings:
               mapRef.current = map;
             }}
             onMapLayerChange={setCurrentMapLayer}
+            onGetRecommendations={handleVitalRecommendations}
           />
         </div>
         <div

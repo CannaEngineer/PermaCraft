@@ -9,8 +9,7 @@ import { Layers, Tag, HelpCircle, Circle, Leaf, MapPin, Square } from "lucide-re
 import { useToast } from "@/hooks/use-toast";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
-import { MapLegend } from "./map-legend";
-import { MapFiltersDrawer } from "./map-filters-drawer";
+import { MapBottomDrawer } from "./map-bottom-drawer";
 import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { PlantingForm } from "./planting-form";
@@ -96,6 +95,7 @@ interface FarmMapProps {
   onZonesChange: (zones: any[]) => void;
   onMapReady?: (map: maplibregl.Map) => void;
   onMapLayerChange?: (layer: string) => void;
+  onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -106,6 +106,7 @@ export function FarmMap({
   onZonesChange,
   onMapReady,
   onMapLayerChange,
+  onGetRecommendations,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -150,8 +151,7 @@ export function FarmMap({
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
   const [isTimeMachineOpen, setIsTimeMachineOpen] = useState(false);
 
-  // Bottom drawer state - only one can be open at a time (default filters open)
-  const [openDrawer, setOpenDrawer] = useState<'legend' | 'filters' | null>('filters');
+  // Removed separate drawer state - now using unified bottom drawer with tabs
 
   // Create Post state
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -2639,34 +2639,23 @@ export function FarmMap({
         <CompassRose bearing={bearing} />
       </div>
 
-      {/* Map Legend - Always Visible, Collapsible */}
-      {/* Filters Drawer - Above Legend */}
-      <MapFiltersDrawer
-        plantingFilters={plantingFilters}
-        onTogglePlantingFilter={toggleLayerFilter}
-        vitalFilters={vitalFilters}
-        onToggleVitalFilter={toggleVitalFilter}
-        isCollapsed={openDrawer !== 'filters'}
-        onToggle={() => setOpenDrawer(openDrawer === 'filters' ? null : 'filters')}
-      />
-
-      {/* Legend - Below Filters */}
-      <MapLegend
+      {/* Unified Bottom Drawer - Contains Vitals, Filters, and Legend in tabs */}
+      <MapBottomDrawer
         mapLayer={mapLayer}
         gridUnit={gridUnit}
         zones={zones}
         plantings={plantings}
-        isCollapsed={openDrawer !== 'legend' && !isTimeMachineOpen}
-        onToggle={() => {
-          if (isTimeMachineOpen) return; // Don't allow collapse when time machine is open
-          setOpenDrawer(openDrawer === 'legend' ? null : 'legend');
-        }}
         isTimeMachineOpen={isTimeMachineOpen}
         onCloseTimeMachine={() => setIsTimeMachineOpen(false)}
         currentYear={projectionYear}
         onYearChange={setProjectionYear}
         minYear={new Date().getFullYear()}
         maxYear={new Date().getFullYear() + 20}
+        plantingFilters={plantingFilters}
+        onTogglePlantingFilter={toggleLayerFilter}
+        vitalFilters={vitalFilters}
+        onToggleVitalFilter={toggleVitalFilter}
+        onGetRecommendations={onGetRecommendations}
       />
 
       {/* Render planting markers */}
