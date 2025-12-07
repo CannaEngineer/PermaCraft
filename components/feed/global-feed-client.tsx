@@ -38,9 +38,10 @@ interface FeedData {
 
 interface GlobalFeedClientProps {
   initialData: FeedData;
+  filterType?: string;
 }
 
-export function GlobalFeedClient({ initialData }: GlobalFeedClientProps) {
+export function GlobalFeedClient({ initialData, filterType = 'all' }: GlobalFeedClientProps) {
   const [posts, setPosts] = useState<Post[]>(initialData.posts);
   const [cursor, setCursor] = useState<string | null>(initialData.next_cursor);
   const [hasMore, setHasMore] = useState(initialData.has_more);
@@ -51,7 +52,15 @@ export function GlobalFeedClient({ initialData }: GlobalFeedClientProps) {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/feed/global?cursor=${cursor}&limit=20`);
+      const params = new URLSearchParams();
+      params.set('cursor', cursor || '');
+      params.set('limit', '20');
+
+      if (filterType && filterType !== 'all') {
+        params.set('type', filterType);
+      }
+
+      const res = await fetch(`/api/feed/global?${params.toString()}`);
       const data: FeedData = await res.json();
 
       setPosts((prev) => [...prev, ...data.posts]);
@@ -62,7 +71,7 @@ export function GlobalFeedClient({ initialData }: GlobalFeedClientProps) {
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, hasMore]);
+  }, [cursor, loading, hasMore, filterType]);
 
   const { ref } = useInfiniteScroll({
     onLoadMore: loadMore,
