@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get('cursor');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
+    const type = searchParams.get('type');
 
     const args: any[] = [session.user.id];
     let sql = `
@@ -31,6 +32,12 @@ export async function GET(request: NextRequest) {
       LEFT JOIN ai_analyses ai ON p.ai_analysis_id = ai.id
       WHERE f.is_public = 1 AND p.is_published = 1
     `;
+
+    // Filter by post type
+    if (type && type !== 'all') {
+      sql += ` AND p.post_type = ?`;
+      args.push(type);
+    }
 
     // Cursor pagination
     if (cursor) {
