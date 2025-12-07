@@ -147,6 +147,21 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
           </div>
         )}
 
+        {/* Hashtags */}
+        {post.hashtags && post.hashtags.length > 0 && (
+          <div className="flex gap-2 mt-3 flex-wrap">
+            {post.hashtags.map((tag) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+              >
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+
         {/* Stats */}
         <div className="flex gap-4 mt-4 text-sm text-muted-foreground">
           <span>{post.reaction_count} reactions</span>
