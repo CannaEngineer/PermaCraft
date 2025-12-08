@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
     // Cursor pagination based on bookmark creation date
     if (cursor) {
       const cursorResult = await db.execute({
-        sql: "SELECT created_at FROM saved_posts WHERE id = ?",
-        args: [cursor],
+        sql: "SELECT sp.created_at FROM saved_posts sp WHERE sp.post_id = ? AND sp.user_id = ?",
+        args: [cursor, session.user.id],
       });
       if (cursorResult.rows.length > 0) {
         sql += ` AND sp.created_at < ?`;
