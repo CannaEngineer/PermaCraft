@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { GlobalFeedClient } from '@/components/feed/global-feed-client';
 import { UniversalSearch } from '@/components/search/universal-search';
 import { PostTypeTabs } from '@/components/feed/post-type-tabs';
+import { TrendingHashtags } from '@/components/feed/trending-hashtags';
 
 interface Post {
   id: string;
@@ -135,28 +136,38 @@ export default async function GalleryPage({ searchParams }: PageProps) {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Community Gallery</h1>
-          <p className="text-muted-foreground mt-2">
-            {hashtag ? `Posts tagged with #${hashtag}` : 'Discover farms and permaculture designs from the community'}
-          </p>
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold">Community Gallery</h1>
+        <p className="text-muted-foreground mt-2">
+          {hashtag ? `Posts tagged with #${hashtag}` : 'Discover farms and permaculture designs from the community'}
+        </p>
+      </div>
+
+      {/* Two Column Layout: Feed + Sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        {/* Main Feed Column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Search Community Content */}
+          <div>
+            <UniversalSearch
+              context="community"
+              placeholder="Search public farms and posts..."
+              className="w-full"
+            />
+          </div>
+
+          {/* Post Type Filter Tabs */}
+          <PostTypeTabs />
+
+          {/* Feed */}
+          <GlobalFeedClient initialData={initialData} filterType={type} filterHashtag={hashtag} />
         </div>
 
-        {/* Search Community Content */}
-        <div className="mb-2">
-          <UniversalSearch
-            context="community"
-            placeholder="Search public farms and posts..."
-            className="w-full"
-          />
-        </div>
-
-        {/* Post Type Filter Tabs */}
-        <PostTypeTabs />
-
-        {/* Feed */}
-        <GlobalFeedClient initialData={initialData} filterType={type} filterHashtag={hashtag} />
+        {/* Sidebar Column */}
+        <aside className="space-y-6">
+          <TrendingHashtags />
+        </aside>
       </div>
     </div>
   );
