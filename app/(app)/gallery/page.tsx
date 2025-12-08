@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { GlobalFeedClient } from '@/components/feed/global-feed-client';
+import { GalleryLayoutWrapper } from '@/components/feed/gallery-layout-wrapper';
 import { UniversalSearch } from '@/components/search/universal-search';
 import { PostTypeTabs } from '@/components/feed/post-type-tabs';
 import { TrendingHashtags } from '@/components/feed/trending-hashtags';
@@ -174,8 +174,8 @@ export default async function GalleryPage({ searchParams }: PageProps) {
           {/* Post Type Filter Tabs */}
           <PostTypeTabs />
 
-          {/* Feed */}
-          <GlobalFeedClient initialData={initialData} filterType={type} filterHashtag={hashtag} />
+          {/* Feed with Layout Toggle */}
+          <GalleryLayoutWrapper initialData={initialData} filterType={type} filterHashtag={hashtag} />
         </div>
 
         {/* Sidebar Column */}

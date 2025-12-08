@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { GlobalFeedClient } from '@/components/feed/global-feed-client';
+import { GalleryLayoutWrapper } from '@/components/feed/gallery-layout-wrapper';
 import { UniversalSearch } from '@/components/search/universal-search';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
@@ -145,8 +145,8 @@ export default async function SavedPostsPage() {
           />
         </div>
 
-        {/* Feed */}
-        <GlobalFeedClient
+        {/* Feed with Layout Toggle */}
+        <GalleryLayoutWrapper
           initialData={initialData}
           apiEndpoint="/api/feed/saved"
         />

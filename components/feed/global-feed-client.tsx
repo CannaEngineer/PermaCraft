@@ -42,13 +42,15 @@ interface GlobalFeedClientProps {
   filterType?: string;
   filterHashtag?: string;
   apiEndpoint?: string;
+  layout?: 'list' | 'grid';
 }
 
 export function GlobalFeedClient({
   initialData,
   filterType = 'all',
   filterHashtag,
-  apiEndpoint = '/api/feed/global'
+  apiEndpoint = '/api/feed/global',
+  layout = 'list'
 }: GlobalFeedClientProps) {
   const [posts, setPosts] = useState<Post[]>(initialData.posts);
   const [cursor, setCursor] = useState<string | null>(initialData.next_cursor);
@@ -98,7 +100,7 @@ export function GlobalFeedClient({
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div>
       {posts.length === 0 ? (
         <div className="text-center py-12 border rounded-lg">
           <p className="text-muted-foreground">No posts yet</p>
@@ -108,31 +110,33 @@ export function GlobalFeedClient({
         </div>
       ) : (
         <>
-          {posts.map((post) => (
-            <div key={post.id} className="space-y-2">
-              {/* Farm context header - updated design */}
-              <Link href={`/farm/${post.farm_id}`} className="block">
-                <div className="bg-accent hover:bg-accent/80 transition-colors rounded-lg p-4 mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <p className="font-semibold text-lg">{post.farm_name}</p>
-                      {post.farm_description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {post.farm_description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Visit Farm →
+          <div className={layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
+            {posts.map((post) => (
+              <div key={post.id} className="space-y-2">
+                {/* Farm context header - updated design */}
+                <Link href={`/farm/${post.farm_id}`} className="block">
+                  <div className="bg-accent hover:bg-accent/80 transition-colors rounded-lg p-4 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <p className="font-semibold text-lg">{post.farm_name}</p>
+                        {post.farm_description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {post.farm_description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Visit Farm →
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
 
-              {/* Post card */}
-              <PostCard post={post} onUpdate={handlePostUpdate} />
-            </div>
-          ))}
+                {/* Post card */}
+                <PostCard post={post} onUpdate={handlePostUpdate} />
+              </div>
+            ))}
+          </div>
 
           {/* Infinite scroll trigger */}
           <div ref={ref} className="h-20 flex items-center justify-center">
