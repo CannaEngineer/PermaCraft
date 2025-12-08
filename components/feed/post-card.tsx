@@ -33,6 +33,7 @@ interface Post {
   user_reaction: string | null;
   ai_response_excerpt: string | null;
   ai_screenshot: string | null;
+  is_bookmarked?: boolean;
 }
 
 interface PostCardProps {
@@ -46,6 +47,7 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
   const [reactionCount, setReactionCount] = useState(post.reaction_count);
   const [userReaction, setUserReaction] = useState(post.user_reaction);
   const [commentCount, setCommentCount] = useState(post.comment_count);
+  const [isBookmarked, setIsBookmarked] = useState(post.is_bookmarked || false);
 
   const formatRelativeTime = (timestamp: number) => {
     const seconds = Math.floor(Date.now() / 1000 - timestamp);
@@ -62,6 +64,13 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
     setReactionCount(newCount);
     if (onUpdate) {
       onUpdate({ ...post, user_reaction: newReaction, reaction_count: newCount });
+    }
+  };
+
+  const handleBookmarkUpdate = (bookmarked: boolean) => {
+    setIsBookmarked(bookmarked);
+    if (onUpdate) {
+      onUpdate({ ...post, is_bookmarked: bookmarked });
     }
   };
 
@@ -185,8 +194,10 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
           userReaction={userReaction}
           reactionCount={reactionCount}
           commentCount={commentCount}
+          isBookmarked={isBookmarked}
           onCommentClick={() => setShowComments(!showComments)}
           onReactionUpdate={handleReactionUpdate}
+          onBookmarkUpdate={handleBookmarkUpdate}
         />
       </CardFooter>
 

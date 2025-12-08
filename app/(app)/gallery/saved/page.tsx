@@ -2,10 +2,8 @@ import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { GlobalFeedClient } from '@/components/feed/global-feed-client';
 import { UniversalSearch } from '@/components/search/universal-search';
-import { PostTypeTabs } from '@/components/feed/post-type-tabs';
-import { TrendingHashtags } from '@/components/feed/trending-hashtags';
 import Link from 'next/link';
-import { Bookmark } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -29,6 +27,7 @@ interface Post {
   view_count: number;
   created_at: number;
   user_reaction: string | null;
+  is_bookmarked?: boolean;
 }
 
 interface FeedData {
@@ -37,11 +36,7 @@ interface FeedData {
   has_more: boolean;
 }
 
-interface PageProps {
-  searchParams: Promise<{ type?: string; hashtag?: string }>;
-}
-
-async function fetchInitialFeed(userId: string, type?: string, hashtag?: string): Promise<FeedData> {
+async function fetchSavedPosts(userId: string): Promise<FeedData> {
   const limit = 20;
   const args: any[] = [userId, userId];
 
@@ -54,31 +49,18 @@ async function fetchInitialFeed(userId: string, type?: string, hashtag?: string)
            ai.screenshot_data as ai_screenshot,
            (SELECT reaction_type FROM post_reactions
             WHERE post_id = p.id AND user_id = ?) as user_reaction,
-           (SELECT 1 FROM saved_posts
-            WHERE post_id = p.id AND user_id = ?) as is_bookmarked
-    FROM farm_posts p
+           1 as is_bookmarked,
+           sp.created_at as bookmark_created_at
+    FROM saved_posts sp
+    JOIN farm_posts p ON sp.post_id = p.id
     JOIN users u ON p.author_id = u.id
     JOIN farms f ON p.farm_id = f.id
     LEFT JOIN ai_analyses ai ON p.ai_analysis_id = ai.id
-    WHERE f.is_public = 1 AND p.is_published = 1
+    WHERE sp.user_id = ? AND p.is_published = 1
+    ORDER BY sp.created_at DESC
+    LIMIT ?
   `;
 
-  // Filter by post type
-  if (type && type !== 'all') {
-    sql += ` AND p.post_type = ?`;
-    args.push(type);
-  }
-
-  // Filter by hashtag
-  if (hashtag) {
-    sql += ` AND EXISTS (
-      SELECT 1 FROM json_each(p.hashtags)
-      WHERE json_each.value = ?
-    )`;
-    args.push(hashtag);
-  }
-
-  sql += ` ORDER BY p.created_at DESC LIMIT ?`;
   args.push(limit + 1);
 
   const postsResult = await db.execute({ sql, args });
@@ -120,7 +102,7 @@ async function fetchInitialFeed(userId: string, type?: string, hashtag?: string)
       view_count: post.view_count,
       created_at: post.created_at,
       user_reaction: post.user_reaction,
-      is_bookmarked: post.is_bookmarked === 1,
+      is_bookmarked: true,
     };
   });
 
@@ -131,57 +113,43 @@ async function fetchInitialFeed(userId: string, type?: string, hashtag?: string)
   };
 }
 
-export default async function GalleryPage({ searchParams }: PageProps) {
+export default async function SavedPostsPage() {
   const session = await requireAuth();
-  const params = await searchParams;
-  const type = params.type || 'all';
-  const hashtag = params.hashtag;
-
-  const initialData = await fetchInitialFeed(session.user.id, type, hashtag);
+  const initialData = await fetchSavedPosts(session.user.id);
 
   return (
     <div className="container mx-auto py-8">
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <h1 className="text-3xl font-bold">Community Gallery</h1>
-          <Link
-            href="/gallery/saved"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent hover:bg-accent/80 transition-colors text-sm font-medium"
-          >
-            <Bookmark className="w-4 h-4" />
-            Saved Posts
-          </Link>
-        </div>
+      <div className="mb-8">
+        <Link
+          href="/gallery"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back to Gallery
+        </Link>
+        <h1 className="text-3xl font-bold">Saved Posts</h1>
         <p className="text-muted-foreground mt-2">
-          {hashtag ? `Posts tagged with #${hashtag}` : 'Discover farms and permaculture designs from the community'}
+          Your collection of bookmarked farms and designs
         </p>
       </div>
 
-      {/* Two Column Layout: Feed + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {/* Main Feed Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Search Community Content */}
-          <div>
-            <UniversalSearch
-              context="community"
-              placeholder="Search public farms and posts..."
-              className="w-full"
-            />
-          </div>
-
-          {/* Post Type Filter Tabs */}
-          <PostTypeTabs />
-
-          {/* Feed */}
-          <GlobalFeedClient initialData={initialData} filterType={type} filterHashtag={hashtag} />
+      {/* Content */}
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Search Saved Content */}
+        <div>
+          <UniversalSearch
+            context="community"
+            placeholder="Search your saved posts..."
+            className="w-full"
+          />
         </div>
 
-        {/* Sidebar Column */}
-        <aside className="space-y-6">
-          <TrendingHashtags />
-        </aside>
+        {/* Feed */}
+        <GlobalFeedClient
+          initialData={initialData}
+          apiEndpoint="/api/feed/saved"
+        />
       </div>
     </div>
   );

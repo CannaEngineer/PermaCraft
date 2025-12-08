@@ -28,6 +28,7 @@ interface Post {
   view_count: number;
   created_at: number;
   user_reaction: string | null;
+  is_bookmarked?: boolean;
 }
 
 interface FeedData {
@@ -40,9 +41,15 @@ interface GlobalFeedClientProps {
   initialData: FeedData;
   filterType?: string;
   filterHashtag?: string;
+  apiEndpoint?: string;
 }
 
-export function GlobalFeedClient({ initialData, filterType = 'all', filterHashtag }: GlobalFeedClientProps) {
+export function GlobalFeedClient({
+  initialData,
+  filterType = 'all',
+  filterHashtag,
+  apiEndpoint = '/api/feed/global'
+}: GlobalFeedClientProps) {
   const [posts, setPosts] = useState<Post[]>(initialData.posts);
   const [cursor, setCursor] = useState<string | null>(initialData.next_cursor);
   const [hasMore, setHasMore] = useState(initialData.has_more);
@@ -65,7 +72,7 @@ export function GlobalFeedClient({ initialData, filterType = 'all', filterHashta
         params.set('hashtag', filterHashtag);
       }
 
-      const res = await fetch(`/api/feed/global?${params.toString()}`);
+      const res = await fetch(`${apiEndpoint}?${params.toString()}`);
       const data: FeedData = await res.json();
 
       setPosts((prev) => [...prev, ...data.posts]);
@@ -76,7 +83,7 @@ export function GlobalFeedClient({ initialData, filterType = 'all', filterHashta
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, hasMore, filterType, filterHashtag]);
+  }, [cursor, loading, hasMore, filterType, filterHashtag, apiEndpoint]);
 
   const { ref } = useInfiniteScroll({
     onLoadMore: loadMore,
