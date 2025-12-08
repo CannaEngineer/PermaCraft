@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
     const postType = searchParams.get('type');
     const hashtag = searchParams.get('hashtag');
+    const climateZones = searchParams.getAll('climate_zones');
+    const farmSize = searchParams.get('farm_size');
+    const soilTypes = searchParams.getAll('soil_types');
 
     const args: any[] = [session.user.id, session.user.id];
     let sql = `
@@ -49,6 +52,38 @@ export async function GET(request: NextRequest) {
         WHERE json_each.value = ?
       )`;
       args.push(hashtag);
+    }
+
+    // Climate zone filter
+    if (climateZones.length > 0) {
+      const placeholders = climateZones.map(() => '?').join(',');
+      sql += ` AND f.climate_zone IN (${placeholders})`;
+      args.push(...climateZones);
+    }
+
+    // Farm size filter
+    if (farmSize) {
+      switch (farmSize) {
+        case 'small':
+          sql += ` AND f.acres < 1`;
+          break;
+        case 'medium':
+          sql += ` AND f.acres >= 1 AND f.acres < 5`;
+          break;
+        case 'large':
+          sql += ` AND f.acres >= 5 AND f.acres < 20`;
+          break;
+        case 'xlarge':
+          sql += ` AND f.acres >= 20`;
+          break;
+      }
+    }
+
+    // Soil type filter
+    if (soilTypes.length > 0) {
+      const placeholders = soilTypes.map(() => '?').join(',');
+      sql += ` AND f.soil_type IN (${placeholders})`;
+      args.push(...soilTypes);
     }
 
     // Cursor pagination

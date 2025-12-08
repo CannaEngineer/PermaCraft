@@ -4,6 +4,8 @@ import { GalleryLayoutWrapper } from '@/components/feed/gallery-layout-wrapper';
 import { UniversalSearch } from '@/components/search/universal-search';
 import { PostTypeTabs } from '@/components/feed/post-type-tabs';
 import { TrendingHashtags } from '@/components/feed/trending-hashtags';
+import { FilterSidebar } from '@/components/feed/filter-sidebar';
+import { ActiveFilters } from '@/components/feed/active-filters';
 import Link from 'next/link';
 import { Bookmark } from 'lucide-react';
 
@@ -131,13 +133,61 @@ async function fetchInitialFeed(userId: string, type?: string, hashtag?: string)
   };
 }
 
+async function fetchFilterOptions() {
+  try {
+    // Get distinct climate zones from farms with public posts
+    const climateResult = await db.execute({
+      sql: `
+        SELECT DISTINCT f.climate_zone
+        FROM farms f
+        JOIN farm_posts p ON p.farm_id = f.id
+        WHERE f.is_public = 1
+          AND p.is_published = 1
+          AND f.climate_zone IS NOT NULL
+          AND f.climate_zone != ''
+        ORDER BY f.climate_zone
+      `,
+      args: [],
+    });
+
+    // Get distinct soil types
+    const soilResult = await db.execute({
+      sql: `
+        SELECT DISTINCT f.soil_type
+        FROM farms f
+        JOIN farm_posts p ON p.farm_id = f.id
+        WHERE f.is_public = 1
+          AND p.is_published = 1
+          AND f.soil_type IS NOT NULL
+          AND f.soil_type != ''
+        ORDER BY f.soil_type
+      `,
+      args: [],
+    });
+
+    return {
+      climateZones: climateResult.rows.map((row: any) => row.climate_zone),
+      soilTypes: soilResult.rows.map((row: any) => row.soil_type),
+    };
+  } catch (error) {
+    console.error("Filter options error:", error);
+    return {
+      climateZones: [],
+      soilTypes: [],
+    };
+  }
+}
+
 export default async function GalleryPage({ searchParams }: PageProps) {
   const session = await requireAuth();
   const params = await searchParams;
   const type = params.type || 'all';
   const hashtag = params.hashtag;
 
-  const initialData = await fetchInitialFeed(session.user.id, type, hashtag);
+  const [initialData, filterOptions] = await Promise.all([
+    fetchInitialFeed(session.user.id, type, hashtag),
+    fetchFilterOptions(),
+  ]);
 
   return (
     <div className="container mx-auto py-8">
@@ -174,12 +224,16 @@ export default async function GalleryPage({ searchParams }: PageProps) {
           {/* Post Type Filter Tabs */}
           <PostTypeTabs />
 
+          {/* Active Filters */}
+          <ActiveFilters />
+
           {/* Feed with Layout Toggle */}
           <GalleryLayoutWrapper initialData={initialData} filterType={type} filterHashtag={hashtag} />
         </div>
 
         {/* Sidebar Column */}
         <aside className="space-y-6">
+          <FilterSidebar availableFilters={filterOptions} />
           <TrendingHashtags />
         </aside>
       </div>
