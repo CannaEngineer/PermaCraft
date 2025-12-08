@@ -35,10 +35,10 @@ interface FeedData {
 }
 
 interface PageProps {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; hashtag?: string }>;
 }
 
-async function fetchInitialFeed(userId: string, type?: string): Promise<FeedData> {
+async function fetchInitialFeed(userId: string, type?: string, hashtag?: string): Promise<FeedData> {
   const limit = 20;
   const args: any[] = [userId];
 
@@ -62,6 +62,15 @@ async function fetchInitialFeed(userId: string, type?: string): Promise<FeedData
   if (type && type !== 'all') {
     sql += ` AND p.post_type = ?`;
     args.push(type);
+  }
+
+  // Filter by hashtag
+  if (hashtag) {
+    sql += ` AND EXISTS (
+      SELECT 1 FROM json_each(p.hashtags)
+      WHERE json_each.value = ?
+    )`;
+    args.push(hashtag);
   }
 
   sql += ` ORDER BY p.created_at DESC LIMIT ?`;
@@ -120,8 +129,9 @@ export default async function GalleryPage({ searchParams }: PageProps) {
   const session = await requireAuth();
   const params = await searchParams;
   const type = params.type || 'all';
+  const hashtag = params.hashtag;
 
-  const initialData = await fetchInitialFeed(session.user.id, type);
+  const initialData = await fetchInitialFeed(session.user.id, type, hashtag);
 
   return (
     <div className="container mx-auto py-8">
@@ -129,7 +139,7 @@ export default async function GalleryPage({ searchParams }: PageProps) {
         <div className="text-center">
           <h1 className="text-3xl font-bold">Community Gallery</h1>
           <p className="text-muted-foreground mt-2">
-            Discover farms and permaculture designs from the community
+            {hashtag ? `Posts tagged with #${hashtag}` : 'Discover farms and permaculture designs from the community'}
           </p>
         </div>
 
@@ -146,7 +156,7 @@ export default async function GalleryPage({ searchParams }: PageProps) {
         <PostTypeTabs />
 
         {/* Feed */}
-        <GlobalFeedClient initialData={initialData} filterType={type} />
+        <GlobalFeedClient initialData={initialData} filterType={type} filterHashtag={hashtag} />
       </div>
     </div>
   );

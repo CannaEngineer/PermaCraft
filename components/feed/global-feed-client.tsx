@@ -39,9 +39,10 @@ interface FeedData {
 interface GlobalFeedClientProps {
   initialData: FeedData;
   filterType?: string;
+  filterHashtag?: string;
 }
 
-export function GlobalFeedClient({ initialData, filterType = 'all' }: GlobalFeedClientProps) {
+export function GlobalFeedClient({ initialData, filterType = 'all', filterHashtag }: GlobalFeedClientProps) {
   const [posts, setPosts] = useState<Post[]>(initialData.posts);
   const [cursor, setCursor] = useState<string | null>(initialData.next_cursor);
   const [hasMore, setHasMore] = useState(initialData.has_more);
@@ -60,6 +61,10 @@ export function GlobalFeedClient({ initialData, filterType = 'all' }: GlobalFeed
         params.set('type', filterType);
       }
 
+      if (filterHashtag) {
+        params.set('hashtag', filterHashtag);
+      }
+
       const res = await fetch(`/api/feed/global?${params.toString()}`);
       const data: FeedData = await res.json();
 
@@ -71,7 +76,7 @@ export function GlobalFeedClient({ initialData, filterType = 'all' }: GlobalFeed
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, hasMore, filterType]);
+  }, [cursor, loading, hasMore, filterType, filterHashtag]);
 
   const { ref } = useInfiniteScroll({
     onLoadMore: loadMore,

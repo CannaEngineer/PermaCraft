@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const cursor = searchParams.get('cursor');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
     const postType = searchParams.get('type');
+    const hashtag = searchParams.get('hashtag');
 
     const args: any[] = [session.user.id];
     let sql = `
@@ -37,6 +38,15 @@ export async function GET(request: NextRequest) {
     if (postType && postType !== 'all') {
       sql += ` AND p.post_type = ?`;
       args.push(postType);
+    }
+
+    // Add hashtag filter if specified
+    if (hashtag) {
+      sql += ` AND EXISTS (
+        SELECT 1 FROM json_each(p.hashtags)
+        WHERE json_each.value = ?
+      )`;
+      args.push(hashtag);
     }
 
     // Cursor pagination

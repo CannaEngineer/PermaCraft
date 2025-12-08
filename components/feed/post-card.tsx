@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onUpdate }: PostCardProps) {
+  const router = useRouter();
   const [showComments, setShowComments] = useState(false);
   const [reactionCount, setReactionCount] = useState(post.reaction_count);
   const [userReaction, setUserReaction] = useState(post.user_reaction);
@@ -61,6 +63,10 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
     if (onUpdate) {
       onUpdate({ ...post, user_reaction: newReaction, reaction_count: newCount });
     }
+  };
+
+  const handleHashtagClick = (hashtag: string) => {
+    router.push(`/gallery?hashtag=${encodeURIComponent(hashtag)}`);
   };
 
   return (
@@ -155,6 +161,7 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
                 key={tag}
                 variant="secondary"
                 className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                onClick={() => handleHashtagClick(tag)}
               >
                 #{tag}
               </Badge>
