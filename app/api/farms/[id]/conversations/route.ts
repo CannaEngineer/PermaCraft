@@ -27,10 +27,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get all conversations for this farm, ordered by most recent
     const conversationsResult = await db.execute({
-      sql: `SELECT id, created_at, updated_at
+      sql: `SELECT id, title, created_at, updated_at
             FROM ai_conversations
             WHERE farm_id = ?
-            ORDER BY created_at DESC
+            ORDER BY updated_at DESC
             LIMIT 50`,
       args: [farmId],
     });
@@ -50,7 +50,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         return {
           id: conv.id,
+          title: conv.title,
           created_at: conv.created_at,
+          updated_at: conv.updated_at,
           preview: firstMessage?.user_query?.substring(0, 100) || 'No messages',
         };
       })
