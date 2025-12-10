@@ -100,10 +100,17 @@ export async function scanKnowledgeFolder(): Promise<{
 }> {
   console.log(`📚 Scanning knowledge folder: ${KNOWLEDGE_FOLDER}`);
 
-  // Ensure folder exists
+  // Check if folder exists
   if (!fs.existsSync(KNOWLEDGE_FOLDER)) {
-    console.log('  Creating knowledge folder...');
-    fs.mkdirSync(KNOWLEDGE_FOLDER, { recursive: true });
+    // Try to create it (won't work in production/serverless)
+    try {
+      console.log('  Creating knowledge folder...');
+      fs.mkdirSync(KNOWLEDGE_FOLDER, { recursive: true });
+    } catch (error) {
+      console.log('  ℹ Knowledge folder does not exist and cannot be created (read-only filesystem)');
+      console.log('  ℹ RAG system requires local data/knowledge folder - skipping in production');
+      return { scanned: [], newCount: 0, updatedCount: 0, skippedCount: 0 };
+    }
     return { scanned: [], newCount: 0, updatedCount: 0, skippedCount: 0 };
   }
 

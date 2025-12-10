@@ -30,11 +30,15 @@ export async function initializeRAG(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      // Only run in production or when explicitly enabled
-      const shouldRun = process.env.NODE_ENV === 'production' || process.env.RAG_AUTO_SCAN === 'true';
+      // Only run when explicitly enabled (requires local data/knowledge folder)
+      // RAG system doesn't work on serverless/read-only filesystems
+      const shouldRun = process.env.RAG_AUTO_SCAN === 'true';
 
       if (!shouldRun) {
-        console.log('📚 RAG auto-scan disabled (set RAG_AUTO_SCAN=true to enable in dev)');
+        // Silent in production, only log in development
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('📚 RAG auto-scan disabled (set RAG_AUTO_SCAN=true to enable)');
+        }
         return;
       }
 
