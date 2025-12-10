@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS ai_analyses (
   zones_context TEXT, -- JSON array of zone info at time of analysis
   ai_response TEXT NOT NULL,
   model TEXT,
+  generated_image_url TEXT, -- R2 URL of AI-generated sketch
   created_at INTEGER DEFAULT (unixepoch()),
   FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE,
   FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE SET NULL
@@ -149,6 +150,21 @@ CREATE TABLE IF NOT EXISTS regional_knowledge (
   created_at INTEGER DEFAULT (unixepoch())
 );
 
+-- Farmer Goals
+CREATE TABLE IF NOT EXISTS farmer_goals (
+  id TEXT PRIMARY KEY,
+  farm_id TEXT NOT NULL,
+  goal_category TEXT NOT NULL, -- 'income', 'food', 'biodiversity', 'soil', 'water', 'shelter', 'learning'
+  description TEXT NOT NULL,
+  priority INTEGER DEFAULT 3, -- 1-5 scale
+  targets TEXT, -- JSON array of measurable targets
+  timeline TEXT, -- 'short' (1 year), 'medium' (2-3 years), 'long' (4+ years)
+  status TEXT DEFAULT 'active', -- 'active', 'completed', 'archived'
+  created_at INTEGER DEFAULT (unixepoch()),
+  updated_at INTEGER DEFAULT (unixepoch()),
+  FOREIGN KEY (farm_id) REFERENCES farms(id) ON DELETE CASCADE
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_farms_user_id ON farms(user_id);
@@ -163,3 +179,6 @@ CREATE INDEX IF NOT EXISTS idx_collaborators_farm_id ON farm_collaborators(farm_
 CREATE INDEX IF NOT EXISTS idx_collaborators_user_id ON farm_collaborators(user_id);
 CREATE INDEX IF NOT EXISTS idx_species_layer ON species(layer);
 CREATE INDEX IF NOT EXISTS idx_species_native ON species(is_native);
+CREATE INDEX IF NOT EXISTS idx_goals_farm_id ON farmer_goals(farm_id);
+CREATE INDEX IF NOT EXISTS idx_goals_category ON farmer_goals(goal_category);
+CREATE INDEX IF NOT EXISTS idx_goals_priority ON farmer_goals(priority);

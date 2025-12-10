@@ -115,6 +115,7 @@ export interface AIAnalysis {
   zones_context: string | null; // JSON array of zone info
   ai_response: string;
   model: string | null;
+  generated_image_url: string | null; // R2 URL of AI-generated sketch
   created_at: number;
 }
 
@@ -220,4 +221,17 @@ export interface PostView {
   post_id: string;
   user_id: string | null;
   created_at: number;
+}
+
+export interface FarmerGoal {
+  id: string;
+  farm_id: string;
+  goal_category: string;
+  description: string;
+  priority: number;
+  targets: string | null; // JSON array as string
+  timeline: string;
+  status: string;
+  created_at: number;
+  updated_at: number;
 }

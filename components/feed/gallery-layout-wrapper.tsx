@@ -8,6 +8,9 @@ interface GalleryLayoutWrapperProps {
   initialData: any;
   filterType?: string;
   filterHashtag?: string;
+  filterClimateZones?: string[];
+  filterFarmSize?: string;
+  filterSoilTypes?: string[];
   apiEndpoint?: string;
 }
 
@@ -15,6 +18,9 @@ export function GalleryLayoutWrapper({
   initialData,
   filterType,
   filterHashtag,
+  filterClimateZones,
+  filterFarmSize,
+  filterSoilTypes,
   apiEndpoint
 }: GalleryLayoutWrapperProps) {
   const [layout, setLayout] = useState<'list' | 'grid'>('list');
@@ -29,6 +35,9 @@ export function GalleryLayoutWrapper({
         layout={layout}
         filterType={filterType}
         filterHashtag={filterHashtag}
+        filterClimateZones={filterClimateZones}
+        filterFarmSize={filterFarmSize}
+        filterSoilTypes={filterSoilTypes}
         apiEndpoint={apiEndpoint}
       />
     </>

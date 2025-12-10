@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { PostCard } from './post-card';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { Loader2 } from 'lucide-react';
@@ -41,6 +41,9 @@ interface GlobalFeedClientProps {
   initialData: FeedData;
   filterType?: string;
   filterHashtag?: string;
+  filterClimateZones?: string[];
+  filterFarmSize?: string;
+  filterSoilTypes?: string[];
   apiEndpoint?: string;
   layout?: 'list' | 'grid';
 }
@@ -49,6 +52,9 @@ export function GlobalFeedClient({
   initialData,
   filterType = 'all',
   filterHashtag,
+  filterClimateZones = [],
+  filterFarmSize,
+  filterSoilTypes = [],
   apiEndpoint = '/api/feed/global',
   layout = 'list'
 }: GlobalFeedClientProps) {
@@ -56,6 +62,13 @@ export function GlobalFeedClient({
   const [cursor, setCursor] = useState<string | null>(initialData.next_cursor);
   const [hasMore, setHasMore] = useState(initialData.has_more);
   const [loading, setLoading] = useState(false);
+
+  // Reset feed when filters change
+  useEffect(() => {
+    setPosts(initialData.posts);
+    setCursor(initialData.next_cursor);
+    setHasMore(initialData.has_more);
+  }, [initialData, filterType, filterHashtag, filterClimateZones, filterFarmSize, filterSoilTypes]);
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -74,6 +87,18 @@ export function GlobalFeedClient({
         params.set('hashtag', filterHashtag);
       }
 
+      if (filterClimateZones && filterClimateZones.length > 0) {
+        filterClimateZones.forEach(zone => params.append('climate_zones', zone));
+      }
+
+      if (filterFarmSize) {
+        params.set('farm_size', filterFarmSize);
+      }
+
+      if (filterSoilTypes && filterSoilTypes.length > 0) {
+        filterSoilTypes.forEach(soil => params.append('soil_types', soil));
+      }
+
       const res = await fetch(`${apiEndpoint}?${params.toString()}`);
       const data: FeedData = await res.json();
 
@@ -85,7 +110,7 @@ export function GlobalFeedClient({
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, hasMore, filterType, filterHashtag, apiEndpoint]);
+  }, [cursor, loading, hasMore, filterType, filterHashtag, filterClimateZones, filterFarmSize, filterSoilTypes, apiEndpoint]);
 
   const { ref } = useInfiniteScroll({
     onLoadMore: loadMore,

@@ -73,15 +73,19 @@ import type { AIConversation, AIAnalysis } from "@/lib/db/schema";
  * - content: The actual message text (markdown for assistant)
  * - screenshots: Array of screenshot URLs (only on assistant messages)
  *                Can be R2 URLs or base64 data URIs
+ * - generatedImageUrl: AI-generated sketch/diagram URL (R2 URL)
+ *                      Only on assistant messages when sketch was requested
  *
- * Why optional screenshots?
- * - User messages don't have screenshots
+ * Why optional screenshots and generatedImageUrl?
+ * - User messages don't have screenshots or sketches
  * - Some analyses might not store screenshots (legacy or failed uploads)
+ * - Sketches are only generated when user requests visual diagrams
  */
 interface Message {
   role: "user" | "assistant";
   content: string;
   screenshots?: string[] | null;
+  generatedImageUrl?: string | null;
 }
 
 /**
@@ -92,6 +96,7 @@ interface Message {
  *   1. Captures dual screenshots (satellite + topo)
  *   2. Calls /api/ai/analyze
  *   3. Returns AI response with metadata
+ *   4. May include generated sketch if user requested visual
  */
 interface ChatPanelProps {
   farmId: string;
@@ -107,6 +112,7 @@ interface ChatPanelProps {
     conversationId: string;
     analysisId: string;
     screenshot: string; // Primary screenshot for display
+    generatedImageUrl?: string | null; // AI-generated sketch if requested
   }>;
 }
 
@@ -240,6 +246,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
             role: "assistant",
             content: analysis.ai_response,
             screenshots: screenshots,
+            generatedImageUrl: analysis.generated_image_url,
           });
         });
 
@@ -296,12 +303,17 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
         loadConversations().catch(err => console.error("Failed to reload conversations:", err));
       }
 
-      // Add AI response with screenshot
+      // Add AI response with screenshot and optional generated sketch
       setMessages((prev) => {
         console.log("[Chat] Adding AI response, current count:", prev.length);
         return [
           ...prev,
-          { role: "assistant", content: result.response, screenshots: result.screenshot ? [result.screenshot] : null },
+          {
+            role: "assistant",
+            content: result.response,
+            screenshots: result.screenshot ? [result.screenshot] : null,
+            generatedImageUrl: result.generatedImageUrl || null,
+          },
         ];
       });
     } catch (error) {
@@ -375,12 +387,17 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
         loadConversations().catch(err => console.error("Failed to reload conversations:", err));
       }
 
-      // Add AI response with screenshot (convert single screenshot to array for consistency)
+      // Add AI response with screenshot and optional generated sketch (convert single screenshot to array for consistency)
       setMessages((prev) => {
         console.log("[Chat] Adding AI response, current count:", prev.length);
         return [
           ...prev,
-          { role: "assistant", content: result.response, screenshots: result.screenshot ? [result.screenshot] : null },
+          {
+            role: "assistant",
+            content: result.response,
+            screenshots: result.screenshot ? [result.screenshot] : null,
+            generatedImageUrl: result.generatedImageUrl || null,
+          },
         ];
       });
     } catch (error) {
@@ -566,6 +583,25 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
                         {msg.content}
                       </ReactMarkdown>
                     </div>
+                    {msg.generatedImageUrl && (
+                      <div className="mt-4 border-t border-border pt-4">
+                        <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                          <SparklesIcon className="h-4 w-4" />
+                          AI-Generated Sketch
+                        </div>
+                        <img
+                          src={msg.generatedImageUrl}
+                          alt="AI-generated sketch"
+                          className="w-full h-auto rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setSelectedScreenshot(msg.generatedImageUrl!)}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            console.error("Failed to load generated sketch:", msg.generatedImageUrl);
+                          }}
+                        />
+                      </div>
+                    )}
                     {msg.screenshots && msg.screenshots.length > 0 && (
                       <div className="flex gap-2 mt-3 flex-wrap">
                         {msg.screenshots.map((screenshot, idx) => (

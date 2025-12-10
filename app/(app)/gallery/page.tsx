@@ -40,10 +40,25 @@ interface FeedData {
 }
 
 interface PageProps {
-  searchParams: Promise<{ type?: string; hashtag?: string }>;
+  searchParams: Promise<{
+    type?: string;
+    hashtag?: string;
+    climate_zones?: string | string[];
+    farm_size?: string;
+    soil_types?: string | string[];
+  }>;
 }
 
-async function fetchInitialFeed(userId: string, type?: string, hashtag?: string): Promise<FeedData> {
+async function fetchInitialFeed(
+  userId: string,
+  filters: {
+    type?: string;
+    hashtag?: string;
+    climateZones?: string[];
+    farmSize?: string;
+    soilTypes?: string[];
+  }
+): Promise<FeedData> {
   const limit = 20;
   const args: any[] = [userId, userId];
 
@@ -66,18 +81,50 @@ async function fetchInitialFeed(userId: string, type?: string, hashtag?: string)
   `;
 
   // Filter by post type
-  if (type && type !== 'all') {
+  if (filters.type && filters.type !== 'all') {
     sql += ` AND p.post_type = ?`;
-    args.push(type);
+    args.push(filters.type);
   }
 
   // Filter by hashtag
-  if (hashtag) {
+  if (filters.hashtag) {
     sql += ` AND EXISTS (
       SELECT 1 FROM json_each(p.hashtags)
       WHERE json_each.value = ?
     )`;
-    args.push(hashtag);
+    args.push(filters.hashtag);
+  }
+
+  // Climate zone filter
+  if (filters.climateZones && filters.climateZones.length > 0) {
+    const placeholders = filters.climateZones.map(() => '?').join(',');
+    sql += ` AND f.climate_zone IN (${placeholders})`;
+    args.push(...filters.climateZones);
+  }
+
+  // Farm size filter
+  if (filters.farmSize) {
+    switch (filters.farmSize) {
+      case 'small':
+        sql += ` AND f.acres < 1`;
+        break;
+      case 'medium':
+        sql += ` AND f.acres >= 1 AND f.acres < 5`;
+        break;
+      case 'large':
+        sql += ` AND f.acres >= 5 AND f.acres < 20`;
+        break;
+      case 'xlarge':
+        sql += ` AND f.acres >= 20`;
+        break;
+    }
+  }
+
+  // Soil type filter
+  if (filters.soilTypes && filters.soilTypes.length > 0) {
+    const placeholders = filters.soilTypes.map(() => '?').join(',');
+    sql += ` AND f.soil_type IN (${placeholders})`;
+    args.push(...filters.soilTypes);
   }
 
   sql += ` ORDER BY p.created_at DESC LIMIT ?`;
@@ -181,11 +228,30 @@ async function fetchFilterOptions() {
 export default async function GalleryPage({ searchParams }: PageProps) {
   const session = await requireAuth();
   const params = await searchParams;
+
+  // Extract all filter parameters
   const type = params.type || 'all';
   const hashtag = params.hashtag;
+  const climateZones = params.climate_zones
+    ? Array.isArray(params.climate_zones)
+      ? params.climate_zones
+      : [params.climate_zones]
+    : [];
+  const farmSize = params.farm_size;
+  const soilTypes = params.soil_types
+    ? Array.isArray(params.soil_types)
+      ? params.soil_types
+      : [params.soil_types]
+    : [];
 
   const [initialData, filterOptions] = await Promise.all([
-    fetchInitialFeed(session.user.id, type, hashtag),
+    fetchInitialFeed(session.user.id, {
+      type,
+      hashtag,
+      climateZones,
+      farmSize,
+      soilTypes,
+    }),
     fetchFilterOptions(),
   ]);
 
@@ -228,7 +294,14 @@ export default async function GalleryPage({ searchParams }: PageProps) {
           <ActiveFilters />
 
           {/* Feed with Layout Toggle */}
-          <GalleryLayoutWrapper initialData={initialData} filterType={type} filterHashtag={hashtag} />
+          <GalleryLayoutWrapper
+            initialData={initialData}
+            filterType={type}
+            filterHashtag={hashtag}
+            filterClimateZones={climateZones}
+            filterFarmSize={farmSize}
+            filterSoilTypes={soilTypes}
+          />
         </div>
 
         {/* Sidebar Column */}
