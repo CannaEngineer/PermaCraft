@@ -351,7 +351,8 @@ export function chunkText(text: string, pageNumber?: number): DocumentChunk[] {
     startPos = endPos - CHUNK_OVERLAP;
 
     // Ensure we make progress even if chunks are small
-    if (startPos <= chunks[chunks.length - 1]?.metadata?.startChar ?? 0) {
+    const lastChunkStart = chunks[chunks.length - 1]?.metadata?.startChar;
+    if (lastChunkStart !== undefined && startPos <= lastChunkStart) {
       startPos = endPos;
     }
   }
