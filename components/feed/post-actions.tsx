@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { MessageSquareIcon, ShareIcon } from 'lucide-react';
+import { MessageSquareIcon, ShareIcon, BookmarkIcon } from 'lucide-react';
 import { ReactionButton } from './reaction-button';
 import { useState } from 'react';
 
@@ -11,8 +11,10 @@ interface PostActionsProps {
   userReaction: string | null;
   reactionCount: number;
   commentCount: number;
+  isBookmarked: boolean;
   onCommentClick: () => void;
   onReactionUpdate: (newReaction: string | null, newCount: number) => void;
+  onBookmarkUpdate: (bookmarked: boolean) => void;
 }
 
 export function PostActions({
@@ -21,12 +23,16 @@ export function PostActions({
   userReaction,
   reactionCount,
   commentCount,
+  isBookmarked,
   onCommentClick,
   onReactionUpdate,
+  onBookmarkUpdate,
 }: PostActionsProps) {
   const [currentReaction, setCurrentReaction] = useState(userReaction);
   const [currentCount, setCurrentCount] = useState(reactionCount);
+  const [currentBookmark, setCurrentBookmark] = useState(isBookmarked);
   const [loading, setLoading] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   const handleReact = async (type: string) => {
     if (loading) return;
@@ -66,6 +72,37 @@ export function PostActions({
     }
   };
 
+  const handleBookmark = async () => {
+    if (bookmarkLoading) return;
+
+    // Optimistic update
+    const newBookmarkState = !currentBookmark;
+    setCurrentBookmark(newBookmarkState);
+
+    setBookmarkLoading(true);
+    try {
+      const res = await fetch(
+        `/api/farms/${farmId}/posts/${postId}/bookmark`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      const data = await res.json();
+
+      // Sync with server response
+      setCurrentBookmark(data.is_bookmarked);
+      onBookmarkUpdate(data.is_bookmarked);
+    } catch (error) {
+      console.error('Failed to bookmark:', error);
+      // Rollback on error
+      setCurrentBookmark(isBookmarked);
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
+
   const handleShare = async () => {
     const url = `${window.location.origin}/farm/${farmId}#post-${postId}`;
     try {
@@ -94,6 +131,19 @@ export function PostActions({
       >
         <MessageSquareIcon className="w-4 h-4" />
         <span>{commentCount > 0 ? commentCount : 'Comment'}</span>
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleBookmark}
+        disabled={bookmarkLoading}
+        className="gap-2"
+      >
+        <BookmarkIcon
+          className={`w-4 h-4 ${currentBookmark ? 'fill-current' : ''}`}
+        />
+        <span>{currentBookmark ? 'Saved' : 'Save'}</span>
       </Button>
 
       <Button

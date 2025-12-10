@@ -270,6 +270,8 @@ export function createAnalysisPrompt(
     legendContext?: string;
     nativeSpeciesContext?: string;
     plantingsContext?: string;
+    goalsContext?: string;
+    ragContext?: string;
   }
 ): string {
   /**
@@ -309,6 +311,8 @@ MAP VIEW: ${mapContext?.layer ? layerDescriptions[mapContext.layer] || mapContex
 ${zonesInfo}
 ${mapContext?.nativeSpeciesContext ? `\n${mapContext.nativeSpeciesContext}\n` : ""}
 ${mapContext?.plantingsContext ? `\n${mapContext.plantingsContext}\n` : ""}
+${mapContext?.goalsContext ? `\n${mapContext.goalsContext}\n` : ""}
+${mapContext?.ragContext ? `\n${mapContext.ragContext}\n` : ""}
 GRID: Yellow grid lines visible in screenshot. 50ft spacing (imperial). Columns = A,B,C... (west to east), Rows = 1,2,3... (south to north)
 
 USER QUESTION:
@@ -337,4 +341,68 @@ ANALYZE BOTH IMAGES TOGETHER:
 Answer the user's question based on ALL information available: both screenshots, zone data, and farm context. Be specific about what you observe in BOTH views. Match your response depth to the question type (simple question = simple answer, design request = detailed terrain-aware response).`;
 
   return context;
+}
+
+/**
+ * Sketch Instruction Generation Prompt
+ *
+ * Used in Stage 1 of sketch generation to convert user request into
+ * detailed, actionable drawing instructions for the image AI.
+ */
+export const SKETCH_INSTRUCTION_PROMPT = `You are a permaculture design illustrator. Your job is to generate EXTREMELY DETAILED drawing instructions for an image generation AI.
+
+The user wants a visual sketch/layout. You must:
+
+1. Analyze the user's request and farm context
+2. Determine what should be drawn (zones, plantings, water features, structures)
+3. Generate step-by-step drawing instructions
+
+OUTPUT FORMAT (JSON):
+{
+  "drawingPrompt": "Detailed prompt for image AI",
+  "explanation": "Brief text explanation for the user (1-2 sentences)",
+  "style": "annotated" | "clean" | "detailed"
+}
+
+DRAWING PROMPT GUIDELINES:
+- Be EXTREMELY specific about placement, using grid coordinates
+- Describe colors, line styles, labels, annotations
+- Reference the base screenshot as the background
+- Specify what to overlay/draw on top
+
+EXAMPLE:
+User: "Can you draw the swale layout for rows 15-17?"
+
+OUTPUT:
+{
+  "drawingPrompt": "Using the provided satellite map as background, draw three parallel curved lines representing swales. Each swale should follow the contour lines, curving gently from west to east. Draw the swales as thick blue dashed lines (4px width, 10px dashes). Add small downslope arrows. Label each swale. Add a legend in the bottom-right corner.",
+  "explanation": "I've designed three contour swales spaced evenly across your slope.",
+  "style": "annotated"
+}`;
+
+/**
+ * Create a complete prompt for sketch instruction generation
+ *
+ * @param farmContext - Farm metadata (name, location, climate, etc.)
+ * @param userQuery - The user's request for a sketch
+ * @param mapContext - Map layer, zones, screenshots info
+ * @returns Complete prompt for text AI to generate drawing instructions
+ */
+export function createSketchInstructionPrompt(
+  farmContext: any,
+  userQuery: string,
+  mapContext: any
+): string {
+  return `${SKETCH_INSTRUCTION_PROMPT}
+
+FARM CONTEXT:
+${JSON.stringify(farmContext, null, 2)}
+
+MAP CONTEXT:
+${JSON.stringify(mapContext, null, 2)}
+
+USER REQUEST:
+"${userQuery}"
+
+Generate the drawing instructions JSON now:`;
 }

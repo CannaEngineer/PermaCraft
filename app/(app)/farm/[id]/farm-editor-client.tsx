@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { FarmMap } from "@/components/map/farm-map";
 import { EnhancedChatPanel } from "@/components/ai/enhanced-chat-panel";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Trash2 } from "lucide-react";
-import type { Farm, Zone } from "@/lib/db/schema";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { SaveIcon, MessageSquare, Trash2, Target } from "lucide-react";
+import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { calculateGridCoordinates, formatGridRange } from "@/lib/map/zone-grid-calculator";
 import { toPng } from "html-to-image";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
+import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
 
 interface FarmEditorClientProps {
   farm: Farm;
@@ -36,6 +38,8 @@ export function FarmEditorClient({
   const [initialConversationId, setInitialConversationId] = useState<string | undefined>(undefined);
   const [nativeSpecies, setNativeSpecies] = useState<any[]>([]);
   const [plantings, setPlantings] = useState<any[]>([]);
+  const [showGoalsWizard, setShowGoalsWizard] = useState(false);
+  const [goals, setGoals] = useState<FarmerGoal[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -107,6 +111,57 @@ When suggesting plants, prioritize these natives and explain their permaculture 
   }, [nativeSpecies]);
 
   /**
+   * Build goals context text for AI
+   * Returns structured text describing farmer's goals for prioritization
+   */
+  const buildGoalsContext = useCallback(() => {
+    if (goals.length === 0) {
+      return 'No specific goals defined yet. The farmer has not set any specific objectives.';
+    }
+
+    const goalsList = goals.map(goal => {
+      const priorityMap: Record<number, string> = {
+        1: 'lowest',
+        2: 'low',
+        3: 'medium',
+        4: 'high',
+        5: 'highest'
+      };
+      const priorityText = priorityMap[goal.priority] || 'medium';
+
+      const timelineText = {
+        'short': 'short-term (1 year)',
+        'medium': 'medium-term (2-3 years)',
+        'long': 'long-term (4+ years)'
+      }[goal.timeline as keyof { short: string; medium: string; long: string }] || goal.timeline;
+
+      let goalText = `  - ${goal.description} (${goal.goal_category}, ${priorityText} priority, ${timelineText})`;
+
+      if (goal.targets) {
+        try {
+          const targets = JSON.parse(goal.targets as string);
+          if (Array.isArray(targets) && targets.length > 0) {
+            goalText += ` - Targets: ${targets.join(', ')}`;
+          }
+        } catch (e) {
+          console.error("Failed to parse targets for goal:", goal.id);
+        }
+      }
+
+      return goalText;
+    }).join('\n');
+
+    return `
+FARMER GOALS (${goals.length} total):
+${goalsList}
+
+When making recommendations, prioritize suggestions that help achieve these specific goals,
+especially those with higher priority ratings. Align your suggestions with the appropriate
+timeline horizons (short, medium, or long-term).
+    `.trim();
+  }, [goals]);
+
+  /**
    * Build plantings context text for AI
    * Returns structured text describing existing plantings on the farm
    */
@@ -155,6 +210,23 @@ IMPORTANT: When suggesting new plantings:
       loadPlantings();
     }
   }, [farm?.id]);
+
+  // Load goals for AI context
+  useEffect(() => {
+    if (farm?.id) {
+      loadGoals();
+    }
+  }, [farm?.id]);
+
+  const loadGoals = async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/goals`);
+      const data = await response.json();
+      setGoals(data.goals || []);
+    } catch (error) {
+      console.error('Failed to load goals:', error);
+    }
+  };
 
   const loadNativeSpecies = async () => {
     try {
@@ -539,6 +611,7 @@ IMPORTANT: When suggesting new plantings:
       conversationId: string;
       analysisId: string;
       screenshot: string;
+      generatedImageUrl?: string | null;
     }> => {
       if (!mapContainerRef.current || !mapRef.current) {
         throw new Error("Map not ready");
@@ -699,6 +772,7 @@ IMPORTANT: When suggesting new plantings:
           legendContext: buildLegendContext(), // Include legend data as text
           nativeSpeciesContext: buildNativeSpeciesContext(), // Include native species recommendations
           plantingsContext: buildPlantingsContext(), // Include existing plantings context
+          goalsContext: buildGoalsContext(), // Include farmer goals for prioritization
           zones: zones.map((zone) => {
             const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
             const gridCells = calculateGridCoordinates(geom, farmBounds, 'imperial');
@@ -728,9 +802,10 @@ IMPORTANT: When suggesting new plantings:
         conversationId: data.conversationId,
         analysisId: data.analysisId,
         screenshot: currentLayerScreenshot, // Return primary screenshot for display in chat
+        generatedImageUrl: data.generatedImageUrl, // Return AI-generated sketch if created
       };
     },
-    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, buildLegendContext, buildNativeSpeciesContext, buildPlantingsContext]
+    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, buildLegendContext, buildNativeSpeciesContext, buildPlantingsContext, buildGoalsContext]
   );
 
   // State for vital recommendations
@@ -859,6 +934,20 @@ IMPORTANT: When suggesting new plantings:
 
             {/* Right: Farm Management Actions */}
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGoalsWizard(true)}
+                className="hidden md:flex items-center gap-2"
+              >
+                <Target className="h-4 w-4" />
+                <span>Goals</span>
+                {goals.length > 0 && (
+                  <span className="bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {goals.length}
+                  </span>
+                )}
+              </Button>
               <FarmSettingsButton
                 farmId={farm.id}
                 initialIsPublic={initialIsPublic}
@@ -904,6 +993,23 @@ IMPORTANT: When suggesting new plantings:
       </div>
 
       {/* Delete Farm Dialog */}
+      <Dialog open={showGoalsWizard} onOpenChange={setShowGoalsWizard}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogTitle className="sr-only">Set Your Farm Goals</DialogTitle>
+          <DialogDescription className="sr-only">
+            Define your permaculture goals to get personalized AI recommendations
+          </DialogDescription>
+          <GoalCaptureWizard
+            farmId={farm.id}
+            initialGoals={goals}
+            onComplete={(newGoals) => {
+              setGoals(newGoals);
+              setShowGoalsWizard(false);
+            }}
+            onCancel={() => setShowGoalsWizard(false)}
+          />
+        </DialogContent>
+      </Dialog>
       <DeleteFarmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}

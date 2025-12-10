@@ -35,9 +35,12 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { openrouter, FREE_VISION_MODELS } from "@/lib/ai/openrouter";
-import { PERMACULTURE_SYSTEM_PROMPT, createAnalysisPrompt } from "@/lib/ai/prompts";
+import { PERMACULTURE_SYSTEM_PROMPT, createAnalysisPrompt, createSketchInstructionPrompt } from "@/lib/ai/prompts";
 import { manageConversationContext } from "@/lib/ai/context-manager";
 import { uploadScreenshot } from "@/lib/storage/r2";
+import { getGoalsForAIContext } from "@/lib/ai/goals-context";
+import { getRAGContext } from "@/lib/ai/rag-context";
+import { generateSketch } from "@/lib/ai/sketch-generator";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
@@ -146,6 +149,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Get goals context for AI prompt
+    const goalsContext = await getGoalsForAIContext(farmId);
+
+    /**
+     * STEP 5.5: Retrieve RAG context from knowledge base
+     *
+     * Queries the permaculture knowledge base for relevant information based on
+     * the user's query. This grounds AI responses in authoritative literature.
+     *
+     * Current Implementation:
+     * - Returns all available knowledge chunks (we only have a few)
+     * - TODO: Once embeddings API is working, use semantic search for relevance
+     *
+     * Knowledge Base:
+     * - PDFs automatically processed and chunked
+     * - Text embedded using Qwen3 (8192 dimensions)
+     * - Stored in knowledge_chunks table
+     *
+     * Integration:
+     * - Context added to prompt as "Permaculture Knowledge Base" section
+     * - AI can cite sources by number (e.g., "According to Source 1...")
+     * - Reduces hallucination by providing factual references
+     */
+    const ragContext = await getRAGContext(query, 5);
+
     // Create analysis prompt with farm and map context
     const userPrompt = createAnalysisPrompt(
       {
@@ -165,6 +193,8 @@ export async function POST(request: NextRequest) {
         legendContext: legendContext,
         nativeSpeciesContext: nativeSpeciesContext,
         plantingsContext: plantingsContext,
+        goalsContext: goalsContext,
+        ragContext: ragContext,
       }
     );
 
@@ -374,6 +404,13 @@ export async function POST(request: NextRequest) {
           max_tokens: 4000, // Allow detailed responses
         });
 
+        // Validate response structure
+        if (!completion?.choices?.[0]?.message?.content) {
+          console.error(`Model ${model} returned invalid response structure:`, completion);
+          lastError = new Error(`Invalid response from ${model}`);
+          continue; // Try next model
+        }
+
         usedModel = model;
         console.log(`AI Response received from ${model}:`, {
           hasResponse: !!completion.choices[0]?.message?.content,
@@ -436,13 +473,179 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If we exhausted all models, throw the last error
+    // If we exhausted all free models, try paid fallback
     if (!completion) {
-      console.error("All vision models failed or rate limited");
-      throw lastError || new Error("All AI models are currently rate limited. Please try again in a few moments.");
+      console.log("All free models failed, trying paid fallback model...");
+
+      try {
+        const fallbackModel = "google/gemini-2.5-flash-lite";
+        console.log(`Attempting AI analysis with fallback model: ${fallbackModel}`);
+
+        // Build the same message structure
+        const userContent: any[] = [{ type: "text", text: userPrompt }];
+        screenshots.forEach((screenshot, idx) => {
+          userContent.push({
+            type: "image_url",
+            image_url: { url: screenshotUrls[idx] },
+          });
+        });
+
+        const messages: any[] = [
+          { role: "system", content: PERMACULTURE_SYSTEM_PROMPT },
+          ...conversationHistory,
+          { role: "user", content: userContent },
+        ];
+
+        completion = await openrouter.chat.completions.create({
+          model: fallbackModel,
+          messages: messages,
+          max_tokens: 4000,
+        });
+
+        // Validate response
+        if (!completion?.choices?.[0]?.message?.content) {
+          throw new Error(`Invalid response from fallback model ${fallbackModel}`);
+        }
+
+        usedModel = fallbackModel;
+        console.log(`✓ Success with paid fallback model: ${fallbackModel}`);
+
+      } catch (fallbackError: any) {
+        console.error("Paid fallback model also failed:", fallbackError);
+        throw lastError || fallbackError || new Error("All AI models are currently unavailable. Please try again later.");
+      }
+    }
+
+    // Final check
+    if (!completion) {
+      console.error("All vision models failed");
+      throw new Error("All AI models are currently unavailable. Please try again later.");
     }
 
     const response = completion.choices[0]?.message?.content || "No response generated";
+
+    /**
+     * STEP 8: Detect if sketch/drawing is requested
+     *
+     * Check if the user's query or the AI's response suggests a visual sketch
+     * should be generated. Keywords like "sketch", "draw", "layout", "diagram"
+     * indicate the user wants a visual representation.
+     *
+     * Two-Stage Sketch Generation:
+     * Stage 1: Text AI converts user request into detailed drawing instructions
+     * Stage 2: Image AI (Gemini 2.5 Flash Image) generates annotated visual
+     *
+     * This approach works better than direct text-to-image because:
+     * - Text AI understands permaculture context and can create precise instructions
+     * - Image AI can overlay annotations, labels, and design elements on the base map
+     * - Separates "what to draw" (design) from "how to draw it" (rendering)
+     */
+    const sketchKeywords = [
+      'sketch', 'draw', 'layout', 'diagram', 'visual', 'image',
+      'show me', 'can you draw', 'create a drawing', 'illustrate',
+      'annotate', 'mark on the map', 'overlay'
+    ];
+
+    const queryLower = query.toLowerCase();
+    const responseLower = response.toLowerCase();
+    const requestsSketch = sketchKeywords.some(keyword =>
+      queryLower.includes(keyword) || responseLower.includes(keyword)
+    );
+
+    let generatedImageUrl: string | null = null;
+
+    if (requestsSketch && screenshots.length > 0) {
+      try {
+        console.log('🎨 Sketch requested - generating visual...');
+
+        /**
+         * Stage 1: Generate drawing instructions using text AI
+         *
+         * Use a smaller, faster text model to convert the user's request
+         * into detailed step-by-step drawing instructions for the image AI.
+         */
+        const instructionPrompt = createSketchInstructionPrompt(
+          {
+            name: farm.name,
+            acres: farm.acres || undefined,
+            climateZone: farm.climate_zone || undefined,
+            rainfallInches: farm.rainfall_inches || undefined,
+            soilType: farm.soil_type || undefined,
+            centerLat: farm.center_lat,
+            centerLng: farm.center_lng,
+          },
+          query,
+          {
+            layer: mapLayer,
+            zones: zones,
+          }
+        );
+
+        console.log('📝 Stage 1: Generating drawing instructions...');
+        const instructionsResponse = await openrouter.chat.completions.create({
+          model: 'google/gemini-flash-1.5', // Fast, cheap text model
+          messages: [
+            { role: 'user', content: instructionPrompt }
+          ],
+          max_tokens: 1500,
+        });
+
+        const instructionsText = instructionsResponse.choices[0]?.message?.content || '';
+
+        // Parse JSON from response (handle markdown code blocks)
+        let drawingInstructions;
+        try {
+          const jsonMatch = instructionsText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            drawingInstructions = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('No JSON found in instructions response');
+          }
+        } catch (parseError) {
+          console.error('Failed to parse drawing instructions:', parseError);
+          throw new Error('Could not parse drawing instructions from AI');
+        }
+
+        console.log('✓ Drawing instructions generated:', drawingInstructions.drawingPrompt.substring(0, 100));
+
+        /**
+         * Stage 2: Generate sketch image using Gemini 2.5 Flash Image
+         *
+         * Pass the base screenshot + detailed drawing instructions to the
+         * image generation model. It will create an annotated overlay.
+         */
+        console.log('🖼️  Stage 2: Generating sketch image...');
+        const baseScreenshotUrl = screenshotUrls[0]; // Use primary screenshot as base
+
+        const sketchDataUrl = await generateSketch({
+          baseImageUrl: baseScreenshotUrl,
+          drawingPrompt: drawingInstructions.drawingPrompt,
+        });
+
+        console.log('✓ Sketch generated, length:', sketchDataUrl.length);
+
+        /**
+         * Upload generated sketch to R2 storage
+         *
+         * Store the sketch permanently so users can reference it later.
+         * Unlike screenshots which are temporary, sketches are valuable
+         * design artifacts that should be archived.
+         */
+        console.log('☁️  Uploading sketch to R2...');
+        generatedImageUrl = await uploadScreenshot(
+          farmId,
+          sketchDataUrl,
+          'ai-sketch'
+        );
+
+        console.log('✓ Sketch uploaded:', generatedImageUrl.substring(0, 100));
+
+      } catch (sketchError) {
+        console.error('Sketch generation failed:', sketchError);
+        // Don't fail the entire request - just skip the sketch
+        // The text response is still valuable
+      }
+    }
 
     // Prepare zones context as JSON
     const zonesContext = zones ? JSON.stringify(zones) : null;
@@ -452,9 +655,9 @@ export async function POST(request: NextRequest) {
     await db.execute({
       sql: `INSERT INTO ai_analyses (
               id, farm_id, conversation_id, user_query, screenshot_data,
-              map_layer, zones_context, ai_response, model, created_at
+              map_layer, zones_context, ai_response, model, generated_image_url, created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())`,
       args: [
         analysisId,
         farmId,
@@ -464,7 +667,8 @@ export async function POST(request: NextRequest) {
         mapLayer || "satellite",
         zonesContext,
         response,
-        usedModel // Store which model actually responded
+        usedModel, // Store which model actually responded
+        generatedImageUrl, // Store sketch URL if generated
       ],
     });
 
@@ -472,6 +676,7 @@ export async function POST(request: NextRequest) {
       response,
       analysisId,
       conversationId: activeConversationId,
+      generatedImageUrl, // Include sketch URL in response
     });
   } catch (error) {
     console.error("AI analysis error:", error);

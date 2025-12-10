@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
+import { AudioProvider } from "@/components/audio/AudioProvider";
+
+// Initialize RAG system on server startup
+import '@/lib/rag/startup';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const lora = Lora({ subsets: ["latin"], variable: "--font-serif" });
@@ -17,7 +21,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${lora.variable}`}>
-      <body>{children}</body>
+      <body>
+        <AudioProvider>
+          {children}
+        </AudioProvider>
+      </body>
     </html>
   );
 }

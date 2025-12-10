@@ -14,9 +14,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get('cursor');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
-    const type = searchParams.get('type');
+    const postType = searchParams.get('type');
+    const hashtag = searchParams.get('hashtag');
+    const climateZones = searchParams.getAll('climate_zones');
+    const farmSize = searchParams.get('farm_size');
+    const soilTypes = searchParams.getAll('soil_types');
 
-    const args: any[] = [session.user.id];
+    const args: any[] = [session.user.id, session.user.id];
     let sql = `
       SELECT p.*,
              u.name as author_name,
@@ -25,7 +29,9 @@ export async function GET(request: NextRequest) {
              f.description as farm_description,
              ai.screenshot_data as ai_screenshot,
              (SELECT reaction_type FROM post_reactions
-              WHERE post_id = p.id AND user_id = ?) as user_reaction
+              WHERE post_id = p.id AND user_id = ?) as user_reaction,
+             (SELECT 1 FROM saved_posts
+              WHERE post_id = p.id AND user_id = ?) as is_bookmarked
       FROM farm_posts p
       JOIN users u ON p.author_id = u.id
       JOIN farms f ON p.farm_id = f.id
@@ -33,10 +39,51 @@ export async function GET(request: NextRequest) {
       WHERE f.is_public = 1 AND p.is_published = 1
     `;
 
-    // Filter by post type
-    if (type && type !== 'all') {
+    // Add post type filter if specified
+    if (postType && postType !== 'all') {
       sql += ` AND p.post_type = ?`;
-      args.push(type);
+      args.push(postType);
+    }
+
+    // Add hashtag filter if specified
+    if (hashtag) {
+      sql += ` AND EXISTS (
+        SELECT 1 FROM json_each(p.hashtags)
+        WHERE json_each.value = ?
+      )`;
+      args.push(hashtag);
+    }
+
+    // Climate zone filter
+    if (climateZones.length > 0) {
+      const placeholders = climateZones.map(() => '?').join(',');
+      sql += ` AND f.climate_zone IN (${placeholders})`;
+      args.push(...climateZones);
+    }
+
+    // Farm size filter
+    if (farmSize) {
+      switch (farmSize) {
+        case 'small':
+          sql += ` AND f.acres < 1`;
+          break;
+        case 'medium':
+          sql += ` AND f.acres >= 1 AND f.acres < 5`;
+          break;
+        case 'large':
+          sql += ` AND f.acres >= 5 AND f.acres < 20`;
+          break;
+        case 'xlarge':
+          sql += ` AND f.acres >= 20`;
+          break;
+      }
+    }
+
+    // Soil type filter
+    if (soilTypes.length > 0) {
+      const placeholders = soilTypes.map(() => '?').join(',');
+      sql += ` AND f.soil_type IN (${placeholders})`;
+      args.push(...soilTypes);
     }
 
     // Cursor pagination
@@ -93,6 +140,7 @@ export async function GET(request: NextRequest) {
         view_count: post.view_count,
         created_at: post.created_at,
         user_reaction: post.user_reaction,
+        is_bookmarked: post.is_bookmarked === 1,
       };
     });
 

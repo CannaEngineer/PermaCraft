@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ interface Post {
   user_reaction: string | null;
   ai_response_excerpt: string | null;
   ai_screenshot: string | null;
+  is_bookmarked?: boolean;
 }
 
 interface PostCardProps {
@@ -40,10 +42,12 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onUpdate }: PostCardProps) {
+  const router = useRouter();
   const [showComments, setShowComments] = useState(false);
   const [reactionCount, setReactionCount] = useState(post.reaction_count);
   const [userReaction, setUserReaction] = useState(post.user_reaction);
   const [commentCount, setCommentCount] = useState(post.comment_count);
+  const [isBookmarked, setIsBookmarked] = useState(post.is_bookmarked || false);
 
   const formatRelativeTime = (timestamp: number) => {
     const seconds = Math.floor(Date.now() / 1000 - timestamp);
@@ -61,6 +65,17 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
     if (onUpdate) {
       onUpdate({ ...post, user_reaction: newReaction, reaction_count: newCount });
     }
+  };
+
+  const handleBookmarkUpdate = (bookmarked: boolean) => {
+    setIsBookmarked(bookmarked);
+    if (onUpdate) {
+      onUpdate({ ...post, is_bookmarked: bookmarked });
+    }
+  };
+
+  const handleHashtagClick = (hashtag: string) => {
+    router.push(`/gallery?hashtag=${encodeURIComponent(hashtag)}`);
   };
 
   return (
@@ -147,6 +162,22 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
           </div>
         )}
 
+        {/* Hashtags */}
+        {post.hashtags && post.hashtags.length > 0 && (
+          <div className="flex gap-2 mt-3 flex-wrap">
+            {post.hashtags.map((tag) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                onClick={() => handleHashtagClick(tag)}
+              >
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+
         {/* Stats */}
         <div className="flex gap-4 mt-4 text-sm text-muted-foreground">
           <span>{post.reaction_count} reactions</span>
@@ -163,8 +194,10 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
           userReaction={userReaction}
           reactionCount={reactionCount}
           commentCount={commentCount}
+          isBookmarked={isBookmarked}
           onCommentClick={() => setShowComments(!showComments)}
           onReactionUpdate={handleReactionUpdate}
+          onBookmarkUpdate={handleBookmarkUpdate}
         />
       </CardFooter>
 

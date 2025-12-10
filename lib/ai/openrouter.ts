@@ -27,3 +27,11 @@ export const FREE_VISION_MODELS = [
 
 // Default to first model
 export const FREE_VISION_MODEL = FREE_VISION_MODELS[0];
+
+// Fallback paid vision model (when free tier rate limit is hit)
+// Gemini 2.5 Flash Lite is very cheap and fast for OCR
+export const FALLBACK_VISION_MODEL = "google/gemini-2.5-flash-lite";
+
+// Image generation model for AI sketches/layouts
+// Gemini 2.5 Flash Image can generate annotated images from descriptions
+export const IMAGE_GENERATION_MODEL = "google/gemini-2.5-flash-image";
