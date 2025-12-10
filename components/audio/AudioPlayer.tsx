@@ -29,9 +29,9 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose }: AudioPlayerProps) 
 
   return (
     <>
-      {/* Desktop Player - Fixed at bottom */}
+      {/* Desktop Player - Fixed at bottom, lower z-index than chat panel */}
       <div className={cn(
-        "hidden md:block fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 transition-all duration-300 z-50",
+        "hidden md:block fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 transition-all duration-300 z-[30]",
         isDesktopExpanded ? "h-64" : "h-16"
       )}>
         {/* Collapsed Desktop Player Bar */}
