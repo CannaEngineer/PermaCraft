@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Sidebar } from "@/components/shared/sidebar";
 import { BottomNavBar } from "@/components/shared/bottom-nav-bar";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,6 +13,8 @@ export default function AppLayoutClient({
   children: React.ReactNode;
   userName: string;
 }) {
+  const [isMusicPlayerOpen, setIsMusicPlayerOpen] = useState(false);
+
   return (
     <div className="h-screen flex bg-background">
       {/* Desktop Sidebar - hidden on mobile */}
@@ -20,15 +23,21 @@ export default function AppLayoutClient({
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 overflow-auto bg-background pb-16">
+      <main className="flex-1 overflow-auto bg-background pb-16 md:pb-16">
         {children}
       </main>
 
       {/* Mobile Bottom Navigation - hidden on desktop */}
-      <BottomNavBar userName={userName} />
+      <BottomNavBar
+        userName={userName}
+        onMusicOpen={() => setIsMusicPlayerOpen(true)}
+      />
 
-      {/* Audio Player - fixed at bottom */}
-      <AudioPlayer />
+      {/* Audio Player - desktop fixed bottom, mobile drawer */}
+      <AudioPlayer
+        isMobileOpen={isMusicPlayerOpen}
+        onMobileClose={() => setIsMusicPlayerOpen(false)}
+      />
 
       {/* Toast Notifications */}
       <Toaster />

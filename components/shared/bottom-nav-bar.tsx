@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, ImageIcon, Leaf, Menu } from "lucide-react";
+import { MapIcon, LayoutDashboard, ImageIcon, Leaf, Menu, Music } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -16,6 +16,7 @@ const navItems = [
 
 interface BottomNavBarProps {
   userName: string;
+  onMusicOpen?: () => void;
 }
 
 /**
@@ -26,12 +27,13 @@ interface BottomNavBarProps {
  *
  * Features:
  * - Fixed to bottom of screen
- * - 5 items: Dashboard | Gallery | Plants | Menu
+ * - 5 items: Dashboard | Gallery | Plants | Music | Menu
+ * - Music opens music player drawer
  * - Menu opens drawer with user info and logout
  * - Active state highlighting
  * - Touch-friendly 44px minimum height
  */
-export function BottomNavBar({ userName }: BottomNavBarProps) {
+export function BottomNavBar({ userName, onMusicOpen }: BottomNavBarProps) {
   const pathname = usePathname();
   const [showMenu, setShowMenu] = useState(false);
 
@@ -71,6 +73,17 @@ export function BottomNavBar({ userName }: BottomNavBarProps) {
               </Link>
             );
           })}
+
+          {/* Music Button */}
+          <button
+            onClick={onMusicOpen}
+            className="flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation text-muted-foreground active:text-primary"
+          >
+            <Music className="h-6 w-6 transition-transform active:scale-110" />
+            <span className="text-xs font-medium">
+              Music
+            </span>
+          </button>
 
           {/* Menu Button */}
           <button
