@@ -34,12 +34,12 @@ export function Sidebar({
   );
 
   return (
-    <div className="flex flex-col h-full bg-card pb-80">
+    <div className="flex flex-col h-full bg-card pb-80 xp-panel">
       {/* Logo/Brand */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 border-b border-border xp-title-bar">
         <div className="flex items-center space-x-2">
-          <MapIcon className="h-8 w-8 text-primary" />
-          <span className="text-xl font-serif font-bold text-foreground">PermaCraft</span>
+          <MapIcon className="h-8 w-8" />
+          <span className="text-xl font-serif font-bold">PermaCraft</span>
         </div>
       </div>
 
@@ -61,9 +61,9 @@ export function Sidebar({
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors min-h-touch",
+                "xp-menu-item flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors min-h-touch",
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "active bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-muted hover:text-foreground"
               )}
             >

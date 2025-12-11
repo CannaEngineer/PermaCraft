@@ -51,7 +51,7 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
   return (
     <>
       {/* Bottom Navigation Bar - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-card border-t border-border safe-area-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-card border-t border-border safe-area-bottom xp-taskbar">
         <div className="flex items-center justify-around h-16">
           {visibleNav.map((item) => {
             const isActive = pathname === item.href;
@@ -60,9 +60,9 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation",
+                  "xp-menu-item flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation",
                   isActive
-                    ? "text-primary"
+                    ? "active text-primary"
                     : "text-muted-foreground active:text-primary"
                 )}
               >
@@ -83,7 +83,7 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
           {/* Music Button */}
           <button
             onClick={onMusicOpen}
-            className="flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation text-muted-foreground active:text-primary"
+            className="xp-menu-item flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation text-muted-foreground active:text-primary"
           >
             <Music className="h-6 w-6 transition-transform active:scale-110" />
             <span className="text-xs font-medium">
@@ -95,9 +95,9 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
           <button
             onClick={() => setShowMenu(!showMenu)}
             className={cn(
-              "flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation",
+              "xp-menu-item flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation",
               showMenu
-                ? "text-primary"
+                ? "active text-primary"
                 : "text-muted-foreground active:text-primary"
             )}
           >
@@ -125,7 +125,7 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
           />
 
           {/* Drawer */}
-          <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom">
+          <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom xp-panel">
             <div className="p-6 space-y-4">
               {isAuthenticated ? (
                 <>

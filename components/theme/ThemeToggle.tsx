@@ -25,12 +25,12 @@ export function ThemeToggle() {
           <span className="hidden sm:inline">Theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme('modern')}>
+      <DropdownMenuContent align="end" className="xp-panel">
+        <DropdownMenuItem onClick={() => setTheme('modern')} className="xp-menu-item">
           <Palmtree className="h-4 w-4 mr-2" />
           Modern (Default)
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('windows-xp')}>
+        <DropdownMenuItem onClick={() => setTheme('windows-xp')} className="xp-menu-item">
           <MonitorIcon className="h-4 w-4 mr-2" />
           Windows XP Retro
         </DropdownMenuItem>
