@@ -8,18 +8,29 @@ import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Gallery", href: "/gallery", icon: ImageIcon },
-  { name: "Plants", href: "/plants", icon: Leaf },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
+  { name: "Gallery", href: "/gallery", icon: ImageIcon, requiresAuth: false },
+  { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
 ];
 
-export function Sidebar({ userName }: { userName: string }) {
+export function Sidebar({
+  userName,
+  isAuthenticated,
+}: {
+  userName: string | null;
+  isAuthenticated: boolean;
+}) {
   const pathname = usePathname();
 
   const handleLogout = async () => {
     await fetch("/api/auth/sign-out", { method: "POST" });
     window.location.href = "/login";
   };
+
+  // Filter navigation based on auth status
+  const visibleNav = navigation.filter(
+    (item) => !item.requiresAuth || isAuthenticated
+  );
 
   return (
     <div className="flex flex-col h-full bg-card pb-16">
@@ -42,7 +53,7 @@ export function Sidebar({ userName }: { userName: string }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4 space-y-2">
-        {navigation.map((item) => {
+        {visibleNav.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -64,19 +75,36 @@ export function Sidebar({ userName }: { userName: string }) {
 
       {/* User section */}
       <div className="p-4 border-t border-border">
-        <div className="flex items-center mb-3">
-          <span className="text-sm font-medium text-foreground truncate">
-            {userName}
-          </span>
-        </div>
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
+        {isAuthenticated ? (
+          <>
+            <div className="flex items-center mb-3">
+              <span className="text-sm font-medium text-foreground truncate">
+                {userName}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </>
+        ) : (
+          <div className="space-y-2">
+            <Link href="/login">
+              <Button variant="default" className="w-full">
+                Log In
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="outline" className="w-full">
+                Register
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

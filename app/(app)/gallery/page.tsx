@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { GalleryLayoutWrapper } from '@/components/feed/gallery-layout-wrapper';
 import { UniversalSearch } from '@/components/search/universal-search';
@@ -50,7 +50,7 @@ interface PageProps {
 }
 
 async function fetchInitialFeed(
-  userId: string,
+  userId: string | null,
   filters: {
     type?: string;
     hashtag?: string;
@@ -60,9 +60,10 @@ async function fetchInitialFeed(
   }
 ): Promise<FeedData> {
   const limit = 20;
-  const args: any[] = [userId, userId];
+  const args: any[] = userId ? [userId, userId] : [];
 
-  let sql = `
+  let sql = userId
+    ? `
     SELECT p.*,
            u.name as author_name,
            u.image as author_image,
@@ -73,6 +74,21 @@ async function fetchInitialFeed(
             WHERE post_id = p.id AND user_id = ?) as user_reaction,
            (SELECT 1 FROM saved_posts
             WHERE post_id = p.id AND user_id = ?) as is_bookmarked
+    FROM farm_posts p
+    JOIN users u ON p.author_id = u.id
+    JOIN farms f ON p.farm_id = f.id
+    LEFT JOIN ai_analyses ai ON p.ai_analysis_id = ai.id
+    WHERE f.is_public = 1 AND p.is_published = 1
+  `
+    : `
+    SELECT p.*,
+           u.name as author_name,
+           u.image as author_image,
+           f.name as farm_name,
+           f.description as farm_description,
+           ai.screenshot_data as ai_screenshot,
+           NULL as user_reaction,
+           NULL as is_bookmarked
     FROM farm_posts p
     JOIN users u ON p.author_id = u.id
     JOIN farms f ON p.farm_id = f.id
@@ -226,7 +242,7 @@ async function fetchFilterOptions() {
 }
 
 export default async function GalleryPage({ searchParams }: PageProps) {
-  const session = await requireAuth();
+  const session = await getSession();
   const params = await searchParams;
 
   // Extract all filter parameters
@@ -245,7 +261,7 @@ export default async function GalleryPage({ searchParams }: PageProps) {
     : [];
 
   const [initialData, filterOptions] = await Promise.all([
-    fetchInitialFeed(session.user.id, {
+    fetchInitialFeed(session?.user.id || null, {
       type,
       hashtag,
       climateZones,

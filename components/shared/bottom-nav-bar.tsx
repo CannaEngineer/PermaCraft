@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Gallery", href: "/gallery", icon: ImageIcon },
-  { name: "Plants", href: "/plants", icon: Leaf },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
+  { name: "Gallery", href: "/gallery", icon: ImageIcon, requiresAuth: false },
+  { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
 ];
 
 interface BottomNavBarProps {
-  userName: string;
+  userName: string | null;
+  isAuthenticated: boolean;
   onMusicOpen?: () => void;
 }
 
@@ -33,7 +34,7 @@ interface BottomNavBarProps {
  * - Active state highlighting
  * - Touch-friendly 44px minimum height
  */
-export function BottomNavBar({ userName, onMusicOpen }: BottomNavBarProps) {
+export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomNavBarProps) {
   const pathname = usePathname();
   const [showMenu, setShowMenu] = useState(false);
 
@@ -42,12 +43,17 @@ export function BottomNavBar({ userName, onMusicOpen }: BottomNavBarProps) {
     window.location.href = "/login";
   };
 
+  // Filter navigation based on auth status
+  const visibleNav = navItems.filter(
+    (item) => !item.requiresAuth || isAuthenticated
+  );
+
   return (
     <>
       {/* Bottom Navigation Bar - Mobile Only */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-card border-t border-border safe-area-bottom">
         <div className="flex items-center justify-around h-16">
-          {navItems.map((item) => {
+          {visibleNav.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
@@ -121,42 +127,81 @@ export function BottomNavBar({ userName, onMusicOpen }: BottomNavBarProps) {
           {/* Drawer */}
           <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom">
             <div className="p-6 space-y-4">
-              {/* User Info */}
-              <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-lg font-semibold text-primary">
-                    {userName.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {userName}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Signed in
-                  </p>
-                </div>
-              </div>
+              {isAuthenticated ? (
+                <>
+                  {/* User Info */}
+                  <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-lg font-semibold text-primary">
+                        {userName?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {userName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Signed in
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Actions */}
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-12"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  Sign Out
-                </Button>
+                  {/* Actions */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start h-12"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4 mr-3" />
+                      Sign Out
+                    </Button>
 
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start h-12"
-                  onClick={() => setShowMenu(false)}
-                >
-                  Close Menu
-                </Button>
-              </div>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start h-12"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Close Menu
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Not Signed In */}
+                  <div className="pb-4 border-b border-border">
+                    <p className="text-sm font-medium text-foreground">
+                      Welcome to PermaCraft
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Sign in to create and manage your farms
+                    </p>
+                  </div>
+
+                  {/* Auth Actions */}
+                  <div className="space-y-2">
+                    <Link href="/login" onClick={() => setShowMenu(false)}>
+                      <Button variant="default" className="w-full h-12">
+                        Log In
+                      </Button>
+                    </Link>
+
+                    <Link href="/register" onClick={() => setShowMenu(false)}>
+                      <Button variant="outline" className="w-full h-12">
+                        Register
+                      </Button>
+                    </Link>
+
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start h-12"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Close Menu
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </>

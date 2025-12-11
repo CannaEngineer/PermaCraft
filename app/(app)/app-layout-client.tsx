@@ -9,9 +9,11 @@ import AudioPlayer from "@/components/audio/AudioPlayer";
 export default function AppLayoutClient({
   children,
   userName,
+  isAuthenticated,
 }: {
   children: React.ReactNode;
-  userName: string;
+  userName: string | null;
+  isAuthenticated: boolean;
 }) {
   const [isMusicPlayerOpen, setIsMusicPlayerOpen] = useState(false);
 
@@ -19,7 +21,7 @@ export default function AppLayoutClient({
     <div className="h-screen flex bg-background">
       {/* Desktop Sidebar - hidden on mobile */}
       <aside className="hidden md:block md:w-64 flex-shrink-0 bg-card border-r border-border">
-        <Sidebar userName={userName} />
+        <Sidebar userName={userName} isAuthenticated={isAuthenticated} />
       </aside>
 
       {/* Main content area */}
@@ -30,6 +32,7 @@ export default function AppLayoutClient({
       {/* Mobile Bottom Navigation - hidden on desktop */}
       <BottomNavBar
         userName={userName}
+        isAuthenticated={isAuthenticated}
         onMusicOpen={() => setIsMusicPlayerOpen(true)}
       />
 
