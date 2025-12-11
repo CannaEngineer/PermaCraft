@@ -101,6 +101,29 @@ export default function RegisterPage() {
           >
             {loading ? "Creating account..." : "Create Account"}
           </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or
+              </span>
+            </div>
+          </div>
+
+          <Link href="/gallery" className="w-full">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              Browse Gallery as Guest
+            </Button>
+          </Link>
+
           <p className="text-sm text-muted-foreground text-center">
             Already have an account?{" "}
             <Link
