@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { MapIcon, LayoutDashboard, ImageIcon, Leaf, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
@@ -72,6 +73,11 @@ export function Sidebar({
           );
         })}
       </nav>
+
+      {/* Theme Toggle */}
+      <div className="px-4 pb-4">
+        <ThemeToggle />
+      </div>
 
       {/* User section */}
       <div className="p-4 border-t border-border">

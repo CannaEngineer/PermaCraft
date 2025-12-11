@@ -166,7 +166,7 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose }: AudioPlayerProps) 
         </div>
       </div>
 
-      {/* Mobile Player - Slide-up drawer */}
+      {/* Mobile Player - Slide-up drawer - Winamp Style */}
       {isMobileOpen && (
         <>
           {/* Backdrop */}
@@ -176,53 +176,64 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose }: AudioPlayerProps) 
           />
 
           {/* Mobile Player Drawer */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-[75] bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[80vh] flex flex-col">
+          <div
+            className="md:hidden fixed bottom-0 left-0 right-0 z-[75] rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
+            style={{
+              background: 'linear-gradient(180deg, #2d3748 0%, #1a202c 100%)'
+            }}
+          >
             {/* Drag Handle */}
-            <div className="flex justify-center py-2 border-b border-gray-200 dark:border-gray-800">
-              <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+            <div className="flex justify-center py-2 border-b border-gray-700">
+              <div className="w-12 h-1 bg-gray-600 rounded-full" />
             </div>
 
-            {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800">
-              <h3 className="text-lg font-semibold">Permaculture Music</h3>
+            {/* Title Bar */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gradient-to-r from-gray-700 to-gray-800">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <h3 className="text-sm font-bold text-green-400 tracking-wide">PERMACRAFT MUSIC</h3>
+              </div>
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={onMobileClose}
-                className="h-8 w-8"
+                className="h-7 text-gray-400 hover:text-white hover:bg-gray-700"
               >
-                <ChevronDown className="h-5 w-5" />
+                <ChevronDown className="h-4 w-4" />
               </Button>
             </div>
 
-            {/* Current Track Info */}
-            {currentTrack && (
-              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-gray-200 dark:bg-gray-700 border-2 border-dashed rounded-lg w-16 h-16 flex items-center justify-center flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-base truncate">{currentTrack.title}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{currentTrack.artist}</p>
+            {/* VU Display & Track Info */}
+            <div className="p-4 border-b border-gray-700">
+              <div className="bg-black/40 border border-gray-600 rounded p-3 mb-4">
+                {currentTrack ? (
+                  <div className="text-center">
+                    <div className="text-green-400 font-mono text-sm truncate">{currentTrack.title}</div>
+                    <div className="text-green-500/70 font-mono text-xs truncate mt-1">{currentTrack.artist}</div>
                   </div>
-                  {isPlaying && (
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
-                  )}
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-4">
-                  <ProgressBar />
-                </div>
-
-                {/* Controls */}
-                <div className="flex justify-center mt-4">
-                  <AudioControls />
-                </div>
+                ) : (
+                  <div className="text-green-500/50 font-mono text-xs text-center">*** SELECT TRACK ***</div>
+                )}
               </div>
-            )}
+
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <ProgressBar />
+              </div>
+
+              {/* Controls */}
+              <div className="flex justify-center">
+                <AudioControls />
+              </div>
+            </div>
 
             {/* Playlist */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-3 bg-gray-900/30">
+              <div className="mb-2">
+                <h4 className="text-xs font-bold text-green-400 tracking-wider">
+                  PLAYLIST • {tracks.length} TRACKS
+                </h4>
+              </div>
               <Playlist
                 onSelectTrack={(index) => {
                   setCurrentTrack(index);

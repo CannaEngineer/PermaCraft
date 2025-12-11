@@ -59,6 +59,47 @@
     --gradient-end: 100 40% 97%;       /* Subtle green tint */
   }
 
+  [data-theme="windows-xp"] {
+    /* Windows XP Luna Blue Theme - Retro 2001 aesthetic */
+    --background: 44 30% 92%;         /* #ECE9D8 - Classic silver/beige window background */
+    --foreground: 0 0% 0%;             /* #000000 - Black text */
+    --card: 0 0% 100%;                 /* #FFFFFF - White panels */
+    --card-foreground: 0 0% 0%;        /* #000000 - Black text */
+    --popover: 44 30% 92%;             /* #ECE9D8 - Silver popups */
+    --popover-foreground: 0 0% 0%;     /* #000000 - Black text */
+
+    /* Primary - Luna Blue (taskbar, title bars) */
+    --primary: 218 76% 51%;            /* #245EDC - Classic XP blue */
+    --primary-hover: 218 76% 45%;      /* Darker blue on hover */
+    --primary-light: 218 70% 65%;      /* Lighter blue variant */
+    --primary-foreground: 0 0% 100%;   /* #FFFFFF - White text */
+
+    /* Secondary - Start button green */
+    --secondary: 120 45% 40%;          /* #3C8A3C - XP green */
+    --secondary-hover: 120 50% 35%;    /* Darker green */
+    --secondary-light: 120 40% 50%;    /* Lighter green */
+    --secondary-foreground: 0 0% 100%; /* #FFFFFF - White text */
+
+    /* Accent - Classic selection blue */
+    --accent: 218 90% 85%;             /* Light blue highlight */
+    --accent-foreground: 0 0% 0%;      /* #000000 - Black text */
+
+    --muted: 44 20% 85%;               /* Muted gray-beige */
+    --muted-foreground: 0 0% 35%;      /* Dark gray */
+    --destructive: 0 100% 50%;         /* #FF0000 - Bright red */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF - White */
+    --border: 0 0% 70%;                /* #B3B3B3 - Light gray border */
+    --input: 0 0% 100%;                /* #FFFFFF - White input fields */
+    --ring: 218 76% 51%;               /* Primary blue for focus */
+    --radius: 0.25rem;                 /* Smaller rounded corners (XP style) */
+
+    /* XP-specific colors */
+    --xp-title-bar: 218 76% 51%;       /* Blue title bar */
+    --xp-title-inactive: 0 0% 80%;     /* Gray inactive title bar */
+    --xp-start-green: 120 45% 40%;     /* Start button green */
+    --xp-panel: 44 30% 92%;            /* Silver panel background */
+  }
+
   [data-theme="dark"] {
     /* Future dark mode (placeholder) */
     --background: 0 0% 3.9%;

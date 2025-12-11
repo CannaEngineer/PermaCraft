@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import { AudioProvider } from "@/components/audio/AudioProvider";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 // Initialize RAG system on server startup
 import '@/lib/rag/startup';
@@ -22,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${lora.variable}`}>
       <body>
-        <AudioProvider>
-          {children}
-        </AudioProvider>
+        <ThemeProvider>
+          <AudioProvider>
+            {children}
+          </AudioProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
