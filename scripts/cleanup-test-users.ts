@@ -7,9 +7,13 @@
  * Usage: npx tsx scripts/cleanup-test-users.ts
  */
 
-import 'dotenv/config';
-import { db } from '../lib/db';
+import { config } from 'dotenv';
 import * as readline from 'readline';
+
+// Load environment variables from .env.local BEFORE importing db
+config({ path: '.env.local' });
+
+import { db } from '../lib/db';
 
 const TEST_EMAILS = ['test@test.com', 'test@example.com'];
 
@@ -251,7 +255,7 @@ async function deleteUserData(userIds: string[]) {
 
     log('  Deleting farm collaborators...', 'blue');
     await db.execute({
-      sql: `DELETE FROM farm_collaborators WHERE farm_id IN (${farmPlaceholders}) OR collaborator_id IN (${placeholders})`,
+      sql: `DELETE FROM farm_collaborators WHERE farm_id IN (${farmPlaceholders}) OR user_id IN (${placeholders})`,
       args: [...farmIds, ...userIds],
     });
 

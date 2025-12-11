@@ -28,7 +28,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
-    "cleanup:test-users": "tsx scripts/cleanup-test-users.ts"
+    "cleanup:test-users": "dotenv -e .env.local -- tsx scripts/cleanup-test-users.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
