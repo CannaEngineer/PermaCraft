@@ -1,9 +1,19 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { MessageSquareIcon, ShareIcon, BookmarkIcon } from 'lucide-react';
+import { MessageSquareIcon, ShareIcon, BookmarkIcon, Trash2Icon } from 'lucide-react';
 import { ReactionButton } from './reaction-button';
 import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface PostActionsProps {
   postId: string;
@@ -12,9 +22,11 @@ interface PostActionsProps {
   reactionCount: number;
   commentCount: number;
   isBookmarked: boolean;
+  isAuthor?: boolean;
   onCommentClick: () => void;
   onReactionUpdate: (newReaction: string | null, newCount: number) => void;
   onBookmarkUpdate: (bookmarked: boolean) => void;
+  onDelete?: () => void;
 }
 
 export function PostActions({
@@ -24,15 +36,19 @@ export function PostActions({
   reactionCount,
   commentCount,
   isBookmarked,
+  isAuthor = false,
   onCommentClick,
   onReactionUpdate,
   onBookmarkUpdate,
+  onDelete,
 }: PostActionsProps) {
   const [currentReaction, setCurrentReaction] = useState(userReaction);
   const [currentCount, setCurrentCount] = useState(reactionCount);
   const [currentBookmark, setCurrentBookmark] = useState(isBookmarked);
   const [loading, setLoading] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleReact = async (type: string) => {
     if (loading) return;
@@ -114,8 +130,37 @@ export function PostActions({
     }
   };
 
+  const handleDelete = async () => {
+    if (deleteLoading) return;
+
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/farms/${farmId}/posts/${postId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete post');
+      }
+
+      // Close dialog
+      setShowDeleteDialog(false);
+
+      // Notify parent component
+      if (onDelete) {
+        onDelete();
+      }
+    } catch (error) {
+      console.error('Failed to delete post:', error);
+      // TODO: Show error toast
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
-    <div className="flex items-center gap-2">
+    <>
+      <div className="flex items-center gap-2">
       <ReactionButton
         currentReaction={currentReaction}
         reactionCount={currentCount}
@@ -155,6 +200,42 @@ export function PostActions({
         <ShareIcon className="w-4 h-4" />
         <span>Share</span>
       </Button>
+
+      {isAuthor && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowDeleteDialog(true)}
+          disabled={deleteLoading}
+          className="gap-2 text-destructive hover:text-destructive"
+        >
+          <Trash2Icon className="w-4 h-4" />
+          <span>Delete</span>
+        </Button>
+      )}
     </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+              All comments and reactions will also be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

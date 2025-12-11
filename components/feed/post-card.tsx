@@ -38,16 +38,19 @@ interface Post {
 
 interface PostCardProps {
   post: Post;
+  currentUserId?: string;
   onUpdate?: (post: Post) => void;
+  onDelete?: (postId: string) => void;
 }
 
-export function PostCard({ post, onUpdate }: PostCardProps) {
+export function PostCard({ post, currentUserId, onUpdate, onDelete }: PostCardProps) {
   const router = useRouter();
   const [showComments, setShowComments] = useState(false);
   const [reactionCount, setReactionCount] = useState(post.reaction_count);
   const [userReaction, setUserReaction] = useState(post.user_reaction);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [isBookmarked, setIsBookmarked] = useState(post.is_bookmarked || false);
+  const isAuthor = currentUserId === post.author.id;
 
   const formatRelativeTime = (timestamp: number) => {
     const seconds = Math.floor(Date.now() / 1000 - timestamp);
@@ -195,9 +198,11 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
           reactionCount={reactionCount}
           commentCount={commentCount}
           isBookmarked={isBookmarked}
+          isAuthor={isAuthor}
           onCommentClick={() => setShowComments(!showComments)}
           onReactionUpdate={handleReactionUpdate}
           onBookmarkUpdate={handleBookmarkUpdate}
+          onDelete={() => onDelete?.(post.id)}
         />
       </CardFooter>
 
