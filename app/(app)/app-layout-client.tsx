@@ -25,7 +25,7 @@ export default function AppLayoutClient({
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 overflow-auto bg-background pb-16 md:pb-16">
+      <main className="flex-1 overflow-auto bg-background pb-16 md:pb-80">
         {children}
       </main>
 

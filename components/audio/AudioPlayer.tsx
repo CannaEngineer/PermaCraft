@@ -7,7 +7,7 @@ import ProgressBar from '@/components/audio/ProgressBar';
 import Playlist from '@/components/audio/Playlist';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Minimize2 } from 'lucide-react';
 
 interface AudioPlayerProps {
   isMobileOpen?: boolean;
@@ -23,106 +23,144 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose }: AudioPlayerProps) 
     setCurrentTrack
   } = useAudio();
 
-  const [isDesktopExpanded, setIsDesktopExpanded] = React.useState(false);
+  const [isDesktopExpanded, setIsDesktopExpanded] = React.useState(true);
 
   const currentTrack = currentTrackIndex !== null ? tracks[currentTrackIndex] : null;
 
   return (
     <>
-      {/* Desktop Player - Fixed at bottom, lower z-index than chat panel */}
+      {/* Desktop Player - Winamp-style, Fixed at bottom */}
       <div className={cn(
-        "hidden md:block fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 transition-all duration-300 z-[30]",
-        isDesktopExpanded ? "h-64" : "h-16"
-      )}>
+        "hidden md:block fixed bottom-0 left-0 right-0 transition-all duration-300 z-[30]",
+        isDesktopExpanded ? "h-80" : "h-16"
+      )}
+      style={{
+        background: isDesktopExpanded
+          ? 'linear-gradient(180deg, #2d3748 0%, #1a202c 100%)'
+          : 'linear-gradient(90deg, #2d3748 0%, #1a202c 100%)'
+      }}
+      >
         {/* Collapsed Desktop Player Bar */}
         <div
           className={cn(
-            "flex items-center justify-between p-2 h-16 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
-            isDesktopExpanded ? "hidden" : "block"
+            "flex items-center justify-between px-3 h-16",
+            isDesktopExpanded ? "hidden" : "flex"
           )}
         >
-          <div className="flex items-center space-x-3 w-full">
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsDesktopExpanded(true)}
-              className="p-1"
+              className="text-green-400 hover:text-green-300 hover:bg-gray-700"
             >
-              <span className="text-xs text-gray-500 dark:text-gray-400">Expand Player</span>
+              <ChevronUp className="h-4 w-4 mr-1" />
+              <span className="text-xs">Expand</span>
             </Button>
 
             {currentTrack ? (
-              <div className="flex items-center flex-1 min-w-0">
-                <div className="flex items-center space-x-2 min-w-0">
-                  {isPlaying ? (
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  ) : (
-                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{currentTrack.title}</p>
-                    <p className="text-xs text-gray-500 truncate">{currentTrack.artist}</p>
+              <div className="flex items-center flex-1 min-w-0 space-x-3">
+                {isPlaying ? (
+                  <div className="flex space-x-0.5 items-end h-4">
+                    <div className="w-1 bg-green-400 rounded-sm animate-pulse" style={{ height: '60%', animationDelay: '0ms' }} />
+                    <div className="w-1 bg-green-400 rounded-sm animate-pulse" style={{ height: '100%', animationDelay: '150ms' }} />
+                    <div className="w-1 bg-green-400 rounded-sm animate-pulse" style={{ height: '80%', animationDelay: '300ms' }} />
                   </div>
+                ) : (
+                  <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-green-400 truncate">{currentTrack.title}</p>
+                  <p className="text-xs text-gray-400 truncate">{currentTrack.artist}</p>
                 </div>
               </div>
             ) : (
-              <div className="flex-1 text-sm text-gray-500 italic">
+              <div className="flex-1 text-sm text-gray-400 italic">
                 No track selected
               </div>
             )}
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center">
               <AudioControls isCompact={true} />
             </div>
           </div>
         </div>
 
-        {/* Expanded Desktop Player */}
-        <div className={isDesktopExpanded ? "block h-full" : "hidden"}>
-          <div className="flex flex-col h-full p-4">
-            {/* Header with collapse button */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Permaculture Music</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsDesktopExpanded(false)}
-              >
-                Collapse Player
-              </Button>
+        {/* Expanded Desktop Player - Winamp Style */}
+        <div className={cn("h-full flex flex-col", isDesktopExpanded ? "flex" : "hidden")}>
+          {/* Title Bar */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 bg-gradient-to-r from-gray-700 to-gray-800">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <h3 className="text-sm font-bold text-green-400 tracking-wide">PERMACRAFT MUSIC PLAYER</h3>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDesktopExpanded(false)}
+              className="h-6 text-gray-400 hover:text-white hover:bg-gray-700"
+            >
+              <Minimize2 className="h-3 w-3" />
+            </Button>
+          </div>
 
-            {/* Track info and controls */}
-            <div className="flex flex-col md:flex-row items-center gap-6 mb-4">
-              <div className="flex flex-col items-center">
-                <div className="bg-gray-200 dark:bg-gray-700 border-2 border-dashed rounded-xl w-16 h-16 flex items-center justify-center" />
-                <div className="mt-2 text-center">
-                  {currentTrack ? (
-                    <>
-                      <p className="font-medium">{currentTrack.title}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{currentTrack.artist}</p>
-                    </>
-                  ) : (
-                    <p className="text-gray-500 italic">Select a track</p>
-                  )}
-                </div>
+          {/* Main Player Area */}
+          <div className="flex flex-1 min-h-0">
+            {/* Left: Track Display & Controls */}
+            <div className="w-80 border-r border-gray-700 flex flex-col p-4 bg-gray-800/50">
+              {/* VU Meter / Display */}
+              <div className="bg-black/40 border border-gray-600 rounded p-3 mb-4 h-20 flex items-center justify-center">
+                {currentTrack ? (
+                  <div className="text-center w-full">
+                    <div className="text-green-400 font-mono text-sm truncate px-2">{currentTrack.title}</div>
+                    <div className="text-green-500/70 font-mono text-xs truncate px-2 mt-1">{currentTrack.artist}</div>
+                  </div>
+                ) : (
+                  <div className="text-green-500/50 font-mono text-xs">*** READY ***</div>
+                )}
               </div>
 
-              <div className="flex-1 max-w-md">
+              {/* Progress Bar */}
+              <div className="mb-4">
                 <ProgressBar />
-                <div className="flex justify-center mt-4">
-                  <AudioControls />
-                </div>
               </div>
+
+              {/* Controls */}
+              <div className="flex justify-center mb-4">
+                <AudioControls />
+              </div>
+
+              {/* Track Info */}
+              {currentTrack && (
+                <div className="mt-auto bg-black/30 border border-gray-600 rounded p-3">
+                  <div className="text-xs text-gray-400 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Theme:</span>
+                      <span className="text-green-400 capitalize">{currentTrack.theme?.replace('-', ' ')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Duration:</span>
+                      <span className="text-green-400">{currentTrack.duration}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Playlist */}
-            <div className="flex-1 overflow-y-auto">
-              <Playlist
-                onSelectTrack={(index) => {
-                  setCurrentTrack(index);
-                }}
-              />
+            {/* Right: Playlist */}
+            <div className="flex-1 flex flex-col min-w-0 bg-gray-900/30">
+              <div className="p-3 border-b border-gray-700 bg-gray-800/30">
+                <h4 className="text-xs font-bold text-green-400 tracking-wider">
+                  PLAYLIST • {tracks.length} TRACKS
+                </h4>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2">
+                <Playlist
+                  onSelectTrack={(index) => {
+                    setCurrentTrack(index);
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

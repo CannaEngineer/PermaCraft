@@ -33,7 +33,7 @@ export function Sidebar({
   );
 
   return (
-    <div className="flex flex-col h-full bg-card pb-16">
+    <div className="flex flex-col h-full bg-card pb-80">
       {/* Logo/Brand */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-2">
