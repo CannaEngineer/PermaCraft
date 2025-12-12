@@ -4,6 +4,7 @@
  */
 
 import { db } from '@/lib/db';
+import { semanticSearch } from '@/lib/rag/semantic-search';
 
 export interface KnowledgeChunk {
   chunkId: string;
@@ -15,13 +16,12 @@ export interface KnowledgeChunk {
 }
 
 /**
- * Get RAG context for AI prompts
+ * Get RAG context for AI prompts using semantic search
  *
- * For now, this returns ALL embedded chunks since we only have a few.
- * Once embeddings API is working, this will use semantic search to find
- * the most relevant chunks based on the query.
+ * Uses vector embeddings to find the most relevant knowledge chunks
+ * based on semantic similarity to the user's query.
  *
- * @param query - User's question (unused for now, will be used for semantic search)
+ * @param query - User's question used for semantic search
  * @param topK - Number of chunks to return (default: 5)
  */
 export async function getRAGContext(
@@ -31,42 +31,62 @@ export async function getRAGContext(
   try {
     console.log(`🔍 Retrieving knowledge base context for query: "${query.substring(0, 50)}..."`);
 
-    // Get all chunks with embeddings from database
-    // TODO: Once embeddings API is working, use semantic search instead
-    const result = await db.execute({
-      sql: `
-        SELECT
-          kc.id,
-          kc.chunk_text,
-          kc.page_number,
-          kc.chunk_index,
-          ks.id as source_id,
-          ks.filename,
-          ks.title
-        FROM knowledge_chunks kc
-        JOIN knowledge_sources ks ON ks.id = kc.source_id
-        WHERE kc.embedding IS NOT NULL
-        ORDER BY ks.title, kc.chunk_index
-        LIMIT ?
-      `,
-      args: [topK],
-    });
+    // Use semantic search to find relevant chunks
+    const searchResults = await semanticSearch(db, query, topK, 0.5);
 
-    if (result.rows.length === 0) {
-      console.log('  ⚠ No knowledge chunks found in database');
-      return '';
+    if (searchResults.length === 0) {
+      console.log('  ⚠ No relevant knowledge chunks found');
+      // Fallback: get any chunks if semantic search fails
+      const fallbackResult = await db.execute({
+        sql: `
+          SELECT
+            kc.id,
+            kc.chunk_text,
+            kc.page_number,
+            kc.chunk_index,
+            ks.id as source_id,
+            ks.filename,
+            ks.title
+          FROM knowledge_chunks kc
+          JOIN knowledge_sources ks ON ks.id = kc.source_id
+          WHERE kc.embedding IS NOT NULL
+          ORDER BY ks.title, kc.chunk_index
+          LIMIT ?
+        `,
+        args: [topK],
+      });
+
+      if (fallbackResult.rows.length === 0) {
+        console.log('  ⚠ No knowledge chunks found in database');
+        return '';
+      }
+
+      const fallbackChunks: KnowledgeChunk[] = fallbackResult.rows.map(row => ({
+        chunkId: row.id as string,
+        chunkText: row.chunk_text as string,
+        pageNumber: row.page_number as number | null,
+        sourceFilename: row.filename as string,
+        sourceTitle: row.title as string,
+        chunkIndex: row.chunk_index as number,
+      }));
+
+      console.log(`  ✓ Using ${fallbackChunks.length} fallback chunks`);
+      return formatKnowledgeForAI(fallbackChunks);
     }
 
-    console.log(`  ✓ Found ${result.rows.length} knowledge chunks`);
+    console.log(`  ✓ Found ${searchResults.length} semantically relevant chunks`);
+    searchResults.forEach((result, i) => {
+      console.log(`     ${i + 1}. ${result.sourceTitle} (similarity: ${result.similarity.toFixed(3)})`);
+    });
 
-    // Format chunks for AI context
-    const chunks: KnowledgeChunk[] = result.rows.map(row => ({
-      chunkId: row.id as string,
-      chunkText: row.chunk_text as string,
-      pageNumber: row.page_number as number | null,
-      sourceFilename: row.filename as string,
-      sourceTitle: row.title as string,
-      chunkIndex: row.chunk_index as number,
+    // Convert search results to KnowledgeChunk format
+    const chunks: KnowledgeChunk[] = searchResults.map(result => ({
+      chunkId: result.chunkId,
+      chunkText: result.chunkText,
+      pageNumber: result.pageNumber,
+      sourceFilename: result.sourceFilename,
+      sourceTitle: result.sourceTitle,
+      chunkIndex: result.chunkIndex,
     }));
 
     return formatKnowledgeForAI(chunks);

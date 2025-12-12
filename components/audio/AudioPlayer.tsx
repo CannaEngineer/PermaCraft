@@ -23,7 +23,7 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose }: AudioPlayerProps) 
     setCurrentTrack
   } = useAudio();
 
-  const [isDesktopExpanded, setIsDesktopExpanded] = React.useState(true);
+  const [isDesktopExpanded, setIsDesktopExpanded] = React.useState(false);
 
   const currentTrack = currentTrackIndex !== null ? tracks[currentTrackIndex] : null;
 

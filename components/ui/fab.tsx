@@ -89,9 +89,10 @@ export function FAB({
         onClick={handleMainClick}
         className={cn(
           "h-14 w-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200",
-          "bg-primary text-primary-foreground",
+          "bg-primary text-primary-foreground border-2 border-primary-foreground/20",
           "hover:scale-110 active:scale-95",
           "focus:outline-none focus:ring-4 focus:ring-primary/30",
+          "[data-theme='windows-xp']_&:shadow-[0_0_0_2px_rgba(0,0,0,0.1)]",
           isExpanded && "rotate-45"
         )}
         aria-label={ariaLabel}
