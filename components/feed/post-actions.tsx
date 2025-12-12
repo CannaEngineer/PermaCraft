@@ -160,7 +160,7 @@ export function PostActions({
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
       <ReactionButton
         currentReaction={currentReaction}
         reactionCount={currentCount}

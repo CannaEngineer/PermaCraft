@@ -39,6 +39,7 @@ interface FarmPublicViewProps {
     next_cursor: string | null;
     has_more: boolean;
   };
+  currentUserId?: string;
 }
 
 export function FarmPublicView({
@@ -46,6 +47,7 @@ export function FarmPublicView({
   farmOwner,
   latestScreenshot,
   initialFeedData,
+  currentUserId,
 }: FarmPublicViewProps) {
   return (
     <div className="min-h-screen bg-background">
@@ -96,7 +98,11 @@ export function FarmPublicView({
       <div className="container mx-auto px-4 pb-8">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold mb-6">Farm Updates</h2>
-          <FarmFeedClient farmId={farm.id} initialData={initialFeedData} />
+          <FarmFeedClient
+            farmId={farm.id}
+            initialData={initialFeedData}
+            currentUserId={currentUserId}
+          />
         </div>
       </div>
     </div>

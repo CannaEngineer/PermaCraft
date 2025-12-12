@@ -149,6 +149,7 @@ export default async function SavedPostsPage() {
         <GalleryLayoutWrapper
           initialData={initialData}
           apiEndpoint="/api/feed/saved"
+          currentUserId={session.user.id}
         />
       </div>
     </div>

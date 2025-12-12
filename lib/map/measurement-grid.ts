@@ -46,7 +46,7 @@ export function getGridInterval(zoom: number, unit: GridUnit, density: GridDensi
 /**
  * Get fixed grid interval for the farm (independent of zoom level)
  * This creates a consistent reference grid that doesn't change as you zoom
- * @deprecated Use getGridInterval() instead for adaptive grids
+ * Used for AI consistency - grid labels stay the same regardless of zoom
  */
 export function getFixedGridInterval(unit: GridUnit): GridInterval {
   if (unit === 'imperial') {
@@ -90,6 +90,7 @@ function metersToDegreesLng(meters: number, latitude: number): number {
 /**
  * Generate fixed grid lines for farm bounds
  * Grid stays in the same geographic location regardless of zoom level
+ * This ensures AI always references the same grid coordinates
  */
 export function generateGridLines(
   bounds: {
@@ -102,7 +103,8 @@ export function generateGridLines(
   zoom: number = 15,
   density: GridDensity = 'auto'
 ): { lines: Feature<LineString>[], labels: Feature<Point>[], latLines: number[], lngLines: number[] } {
-  const interval = getGridInterval(zoom, unit, density);
+  // Always use fixed grid interval for lines so AI has consistent reference
+  const interval = getFixedGridInterval(unit);
 
   // If grid is off, return empty
   if (interval.value === 0) {
@@ -193,7 +195,8 @@ export function generateGridLines(
 /**
  * Generate viewport-specific labels ensuring labels are visible in current view
  * This provides context for AI screenshot analysis
- * Label density adjusts based on zoom level for readability
+ * Grid spacing is fixed (same as grid lines), but label DENSITY adjusts with zoom
+ * This means labels reference the same grid cells at all zoom levels
  */
 export function generateViewportLabels(
   farmBounds: {
@@ -212,7 +215,8 @@ export function generateViewportLabels(
   zoom: number,
   density: GridDensity = 'auto'
 ): Feature<Point>[] {
-  const interval = getGridInterval(zoom, unit, density);
+  // Use fixed grid interval to match grid lines
+  const interval = getFixedGridInterval(unit);
 
   // If grid is off, return empty
   if (interval.value === 0) {

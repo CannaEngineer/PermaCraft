@@ -12,6 +12,7 @@ interface GalleryLayoutWrapperProps {
   filterFarmSize?: string;
   filterSoilTypes?: string[];
   apiEndpoint?: string;
+  currentUserId?: string;
 }
 
 export function GalleryLayoutWrapper({
@@ -21,7 +22,8 @@ export function GalleryLayoutWrapper({
   filterClimateZones,
   filterFarmSize,
   filterSoilTypes,
-  apiEndpoint
+  apiEndpoint,
+  currentUserId
 }: GalleryLayoutWrapperProps) {
   const [layout, setLayout] = useState<'list' | 'grid'>('list');
 
@@ -39,6 +41,7 @@ export function GalleryLayoutWrapper({
         filterFarmSize={filterFarmSize}
         filterSoilTypes={filterSoilTypes}
         apiEndpoint={apiEndpoint}
+        currentUserId={currentUserId}
       />
     </>
   );

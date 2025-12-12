@@ -317,6 +317,7 @@ export default async function GalleryPage({ searchParams }: PageProps) {
             filterClimateZones={climateZones}
             filterFarmSize={farmSize}
             filterSoilTypes={soilTypes}
+            currentUserId={session?.user.id}
           />
         </div>
 

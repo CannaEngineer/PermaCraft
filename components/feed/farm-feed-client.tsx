@@ -36,9 +36,10 @@ interface FeedData {
 interface FarmFeedClientProps {
   farmId: string;
   initialData: FeedData;
+  currentUserId?: string;
 }
 
-export function FarmFeedClient({ farmId, initialData }: FarmFeedClientProps) {
+export function FarmFeedClient({ farmId, initialData, currentUserId }: FarmFeedClientProps) {
   const [posts, setPosts] = useState<Post[]>(initialData.posts);
   const [cursor, setCursor] = useState<string | null>(initialData.next_cursor);
   const [hasMore, setHasMore] = useState(initialData.has_more);
@@ -76,6 +77,10 @@ export function FarmFeedClient({ farmId, initialData }: FarmFeedClientProps) {
     );
   }, []);
 
+  const handlePostDelete = useCallback((postId: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {posts.length === 0 ? (
@@ -91,7 +96,9 @@ export function FarmFeedClient({ farmId, initialData }: FarmFeedClientProps) {
             <PostCard
               key={post.id}
               post={post}
+              currentUserId={currentUserId}
               onUpdate={handlePostUpdate}
+              onDelete={handlePostDelete}
             />
           ))}
 

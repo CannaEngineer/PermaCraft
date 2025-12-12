@@ -169,6 +169,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
         farmOwner={farmOwner}
         latestScreenshot={latestScreenshot}
         initialFeedData={initialFeedData}
+        currentUserId={session.user.id}
       />
     );
   }
@@ -184,7 +185,11 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
       />
       <div className="mt-8 px-4 pb-8">
         <h2 className="text-2xl font-bold mb-4 text-center">Farm Feed</h2>
-        <FarmFeedClient farmId={id} initialData={initialFeedData} />
+        <FarmFeedClient
+          farmId={id}
+          initialData={initialFeedData}
+          currentUserId={session.user.id}
+        />
       </div>
     </div>
   );

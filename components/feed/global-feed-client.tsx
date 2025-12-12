@@ -46,6 +46,7 @@ interface GlobalFeedClientProps {
   filterSoilTypes?: string[];
   apiEndpoint?: string;
   layout?: 'list' | 'grid';
+  currentUserId?: string;
 }
 
 export function GlobalFeedClient({
@@ -56,7 +57,8 @@ export function GlobalFeedClient({
   filterFarmSize,
   filterSoilTypes = [],
   apiEndpoint = '/api/feed/global',
-  layout = 'list'
+  layout = 'list',
+  currentUserId
 }: GlobalFeedClientProps) {
   const [posts, setPosts] = useState<Post[]>(initialData.posts);
   const [cursor, setCursor] = useState<string | null>(initialData.next_cursor);
@@ -124,6 +126,10 @@ export function GlobalFeedClient({
     );
   }, []);
 
+  const handlePostDelete = useCallback((postId: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
+
   return (
     <div>
       {posts.length === 0 ? (
@@ -158,7 +164,12 @@ export function GlobalFeedClient({
                 </Link>
 
                 {/* Post card */}
-                <PostCard post={post} onUpdate={handlePostUpdate} />
+                <PostCard
+                  post={post}
+                  currentUserId={currentUserId}
+                  onUpdate={handlePostUpdate}
+                  onDelete={handlePostDelete}
+                />
               </div>
             ))}
           </div>
