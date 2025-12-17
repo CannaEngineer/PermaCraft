@@ -474,6 +474,7 @@ export function FarmMap({
         id: "grid-lines-layer",
         type: "line",
         source: "grid-lines",
+        minzoom: 13, // Only show grid when zoomed in enough to prevent lag
         paint: {
           "line-color": "#ffff00", // Yellow for visibility on satellite imagery
           "line-width": 1,
@@ -528,6 +529,7 @@ export function FarmMap({
         id: "grid-labels-layer",
         type: "symbol",
         source: "grid-labels",
+        minzoom: 13, // Only show labels when zoomed in enough to prevent lag
         layout: {
           "text-field": ["get", "label"], // Label text from GeoJSON feature property
           "text-size": [

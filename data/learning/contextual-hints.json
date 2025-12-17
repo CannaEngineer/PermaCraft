@@ -1,0 +1,30 @@
+[
+  {
+    "id": "hint-first-zone",
+    "trigger_type": "first_zone",
+    "lesson_id": "lesson-zone-01",
+    "hint_text": "Great! You've drawn your first zone. Learn more about permaculture zones and how to organize your farm by energy flow.",
+    "priority": 1
+  },
+  {
+    "id": "hint-first-planting",
+    "trigger_type": "first_planting",
+    "lesson_id": "lesson-polyculture-01",
+    "hint_text": "You've added your first plant! Discover how to create plant guilds and polycultures for a thriving ecosystem.",
+    "priority": 1
+  },
+  {
+    "id": "hint-water-feature",
+    "trigger_type": "water_feature",
+    "lesson_id": "lesson-water-01",
+    "hint_text": "Planning water management? Learn about swales, ponds, and rainwater harvesting strategies.",
+    "priority": 2
+  },
+  {
+    "id": "hint-ai-analysis",
+    "trigger_type": "ai_analysis",
+    "lesson_id": "lesson-intro-01",
+    "hint_text": "Using AI for the first time? Discover how to ask better design questions and interpret AI recommendations.",
+    "priority": 2
+  }
+]

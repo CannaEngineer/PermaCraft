@@ -1,0 +1,62 @@
+[
+  {
+    "id": "urban-food-producer",
+    "name": "Urban Food Producer",
+    "slug": "urban-food-producer",
+    "description": "Learn to grow food in small urban spaces like balconies, rooftops, and yards under 0.5 acres. Master container gardening, vertical growing, and intensive production techniques.",
+    "target_audience": "City dwellers, apartment residents, small yards (0.1-0.5 acres)",
+    "estimated_lessons": 35,
+    "difficulty": "beginner",
+    "icon_name": "Building2"
+  },
+  {
+    "id": "suburban-homesteader",
+    "name": "Suburban Homesteader",
+    "slug": "suburban-homesteader",
+    "description": "Transform your suburban lot into a productive homestead. Learn food production, small-scale livestock integration, and how to maximize yields on typical residential properties.",
+    "target_audience": "Suburban residents with 0.5-2 acres",
+    "estimated_lessons": 42,
+    "difficulty": "beginner",
+    "icon_name": "Home"
+  },
+  {
+    "id": "rural-regenerator",
+    "name": "Rural Regenerator",
+    "slug": "rural-regenerator",
+    "description": "Restore and regenerate larger rural properties with ecosystem-first permaculture. Focus on water management, native species, and healing degraded land.",
+    "target_audience": "Rural landowners with 2-20+ acres focused on restoration",
+    "estimated_lessons": 48,
+    "difficulty": "intermediate",
+    "icon_name": "TreePine"
+  },
+  {
+    "id": "small-farm-operator",
+    "name": "Small Farm Operator",
+    "slug": "small-farm-operator",
+    "description": "Run a profitable small farm using permaculture principles. Learn production agriculture, market strategies, and scaling polyculture systems for income generation.",
+    "target_audience": "Small farmers (5-50 acres) seeking production income",
+    "estimated_lessons": 50,
+    "difficulty": "intermediate",
+    "icon_name": "Tractor"
+  },
+  {
+    "id": "agro-tourism-developer",
+    "name": "Agro-Tourism Developer",
+    "slug": "agro-tourism-developer",
+    "description": "Create educational farm experiences and visitor-friendly permaculture designs. Learn how to host workshops, farm stays, and build community around your land.",
+    "target_audience": "Farms of any size interested in hosting visitors and education",
+    "estimated_lessons": 45,
+    "difficulty": "advanced",
+    "icon_name": "Users"
+  },
+  {
+    "id": "permaculture-student",
+    "name": "Permaculture Student",
+    "slug": "permaculture-student",
+    "description": "Comprehensive permaculture education covering all topics in depth. The most complete learning path for those seeking mastery of permaculture design principles.",
+    "target_audience": "Students seeking comprehensive permaculture knowledge",
+    "estimated_lessons": 60,
+    "difficulty": "beginner",
+    "icon_name": "GraduationCap"
+  }
+]
