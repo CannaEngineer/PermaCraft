@@ -1,0 +1,254 @@
+[
+  {
+    "id": "badge-observer",
+    "name": "Observer",
+    "description": "Complete the Introduction to Permaculture topic and learn to observe patterns in nature",
+    "icon_name": "Eye",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "intro-permaculture"
+    }
+  },
+  {
+    "id": "badge-water-steward",
+    "name": "Water Steward",
+    "description": "Master water management techniques for your permaculture design",
+    "icon_name": "Droplets",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "water-management"
+    }
+  },
+  {
+    "id": "badge-guild-builder",
+    "name": "Guild Builder",
+    "description": "Learn to create diverse polyculture plant guilds",
+    "icon_name": "Network",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "polyculture-design"
+    }
+  },
+  {
+    "id": "badge-zone-planner",
+    "name": "Zone Planner",
+    "description": "Understand permaculture zones and efficient energy placement",
+    "icon_name": "Target",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "zone-education"
+    }
+  },
+  {
+    "id": "badge-native-advocate",
+    "name": "Native Advocate",
+    "description": "Champion native plants and bioregional ecology",
+    "icon_name": "Sprout",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "native-first-approach"
+    }
+  },
+  {
+    "id": "badge-systems-thinker",
+    "name": "Systems Thinker",
+    "description": "See the whole picture and understand feedback loops",
+    "icon_name": "CircleDot",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "systems-thinking"
+    }
+  },
+  {
+    "id": "badge-soil-steward",
+    "name": "Soil Steward",
+    "description": "Build healthy living soil ecosystems",
+    "icon_name": "Mountain",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "soil-building"
+    }
+  },
+  {
+    "id": "badge-urban-cultivator",
+    "name": "Urban Cultivator",
+    "description": "Master small-space permaculture in urban environments",
+    "icon_name": "Building2",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "urban-permaculture"
+    }
+  },
+  {
+    "id": "badge-forest-gardener",
+    "name": "Forest Gardener",
+    "description": "Design seven-layer food forests",
+    "icon_name": "Trees",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "food-forests"
+    }
+  },
+  {
+    "id": "badge-ethical-designer",
+    "name": "Ethical Designer",
+    "description": "Understand permaculture economics and ethics",
+    "icon_name": "Heart",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "topic_complete",
+      "topic_id": "economics-ethics"
+    }
+  },
+  {
+    "id": "badge-first-steps",
+    "name": "First Steps",
+    "description": "Complete your very first lesson",
+    "icon_name": "Footprints",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "lesson_count",
+      "count": 1
+    }
+  },
+  {
+    "id": "badge-dedicated-learner",
+    "name": "Dedicated Learner",
+    "description": "Complete 10 lessons",
+    "icon_name": "BookMarked",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "lesson_count",
+      "count": 10
+    }
+  },
+  {
+    "id": "badge-knowledge-seeker",
+    "name": "Knowledge Seeker",
+    "description": "Complete 25 lessons",
+    "icon_name": "BookOpen",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "lesson_count",
+      "count": 25
+    }
+  },
+  {
+    "id": "badge-100xp",
+    "name": "XP Collector",
+    "description": "Earn your first 100 XP",
+    "icon_name": "Zap",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "xp_threshold",
+      "xp": 100
+    }
+  },
+  {
+    "id": "badge-500xp",
+    "name": "XP Master",
+    "description": "Earn 500 XP",
+    "icon_name": "Sparkles",
+    "badge_type": "foundation",
+    "tier": 1,
+    "unlock_criteria": {
+      "type": "xp_threshold",
+      "xp": 500
+    }
+  },
+  {
+    "id": "badge-path-urban",
+    "name": "Urban Food Producer",
+    "description": "Complete the Urban Food Producer learning path",
+    "icon_name": "Building2",
+    "badge_type": "path_completion",
+    "tier": 3,
+    "unlock_criteria": {
+      "type": "path_complete",
+      "path_id": "urban-food-producer"
+    }
+  },
+  {
+    "id": "badge-path-suburban",
+    "name": "Suburban Homesteader",
+    "description": "Complete the Suburban Homesteader learning path",
+    "icon_name": "Home",
+    "badge_type": "path_completion",
+    "tier": 3,
+    "unlock_criteria": {
+      "type": "path_complete",
+      "path_id": "suburban-homesteader"
+    }
+  },
+  {
+    "id": "badge-path-rural",
+    "name": "Rural Regenerator",
+    "description": "Complete the Rural Regenerator learning path",
+    "icon_name": "TreePine",
+    "badge_type": "path_completion",
+    "tier": 3,
+    "unlock_criteria": {
+      "type": "path_complete",
+      "path_id": "rural-regenerator"
+    }
+  },
+  {
+    "id": "badge-path-farm",
+    "name": "Small Farm Operator",
+    "description": "Complete the Small Farm Operator learning path",
+    "icon_name": "Tractor",
+    "badge_type": "path_completion",
+    "tier": 3,
+    "unlock_criteria": {
+      "type": "path_complete",
+      "path_id": "small-farm-operator"
+    }
+  },
+  {
+    "id": "badge-path-tourism",
+    "name": "Agro-Tourism Developer",
+    "description": "Complete the Agro-Tourism Developer learning path",
+    "icon_name": "Users",
+    "badge_type": "path_completion",
+    "tier": 3,
+    "unlock_criteria": {
+      "type": "path_complete",
+      "path_id": "agro-tourism-developer"
+    }
+  },
+  {
+    "id": "badge-path-student",
+    "name": "Permaculture Designer",
+    "description": "Complete the Permaculture Student learning path and master all topics",
+    "icon_name": "GraduationCap",
+    "badge_type": "path_completion",
+    "tier": 3,
+    "unlock_criteria": {
+      "type": "path_complete",
+      "path_id": "permaculture-student"
+    }
+  }
+]

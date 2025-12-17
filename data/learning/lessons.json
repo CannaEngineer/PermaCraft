@@ -1,0 +1,157 @@
+[
+  {
+    "id": "intro-01-what-is-permaculture",
+    "topic_id": "intro-permaculture",
+    "title": "What is Permaculture?",
+    "slug": "what-is-permaculture",
+    "description": "Discover the foundational principles and ethics that guide permaculture design. Learn how permaculture offers solutions to our most pressing environmental and social challenges.",
+    "content_type": "text",
+    "estimated_minutes": 15,
+    "difficulty": "beginner",
+    "xp_reward": 20,
+    "order_index": 1,
+    "content": {
+      "core_content": "# What is Permaculture?\n\nPermaculture is a design system for creating sustainable human habitats by following nature's patterns. The word 'permaculture' was coined by Bill Mollison and David Holmgren in the 1970s, combining 'permanent' and 'agriculture' - though it has grown to mean 'permanent culture' as it addresses not just food production, but all aspects of human habitation.\n\n## The Three Ethics\n\nEvery permaculture design is guided by three core ethics:\n\n### 1. Earth Care\nProvision for all life systems to continue and multiply. Without a healthy earth, humans cannot flourish.\n\n### 2. People Care\nProvision for people to access those resources necessary for their existence. A sustainable system must provide for people's needs.\n\n### 3. Fair Share\nBy governing our own needs, we can set resources aside to further the above principles. This includes sharing surplus and setting limits to consumption.\n\n## Design Principles\n\nPermaculture operates through 12 design principles that help us work with nature rather than against it:\n\n1. **Observe and Interact** - By taking time to engage with nature we can design solutions that suit our particular situation\n2. **Catch and Store Energy** - By developing systems that collect resources at peak abundance, we can use them in times of need\n3. **Obtain a Yield** - Ensure that you are getting truly useful rewards as part of the work you are doing\n\nThese principles (and the other nine we'll explore in later lessons) help guide decision-making in permaculture design.\n\n## Why Permaculture Matters\n\nPermaculture offers practical solutions to:\n- Climate change and carbon sequestration\n- Food security and resilience\n- Water conservation and management\n- Soil degradation and erosion\n- Loss of biodiversity\n- Community resilience and local economies\n\nBy designing systems that work with natural patterns, permaculture creates abundance while regenerating ecosystems.\n\n## Your Permaculture Journey\n\nAs you progress through these lessons, you'll learn to:\n- Observe patterns in your landscape\n- Design productive systems that require minimal inputs\n- Work with native species and natural processes\n- Create resilient, self-maintaining systems\n- Connect with a global community of practitioners\n\nPermaculture is more than a farming method - it's a way of thinking about how we interact with our environment and each other.",
+      "images": [
+        {
+          "url": "/images/lessons/permaculture-ethics-flower.jpg",
+          "alt": "The permaculture ethics and principles flower diagram",
+          "credit": "Permaculture Principles, CC BY-NC"
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Which of the following is NOT one of the three permaculture ethics?",
+          "options": [
+            "Earth Care",
+            "People Care",
+            "Fair Share",
+            "Profit Maximization"
+          ],
+          "correct": 3,
+          "explanation": "The three ethics are Earth Care, People Care, and Fair Share. Permaculture focuses on sustainability and equity, not profit maximization."
+        },
+        {
+          "question": "What does 'Observe and Interact' mean in permaculture?",
+          "options": [
+            "Watch nature documentaries",
+            "Take time to understand your specific site before designing",
+            "Talk to your plants daily",
+            "Avoid interfering with nature"
+          ],
+          "correct": 1,
+          "explanation": "Observe and Interact means spending time understanding the patterns, flows, and characteristics of your specific site before implementing solutions."
+        }
+      ],
+      "source_attribution": "Adapted from Permaculture: A Designer's Manual (Mollison, 1988) and Permaculture Principles (Holmgren, 2002)",
+      "license": "CC BY-NC-SA"
+    }
+  },
+  {
+    "id": "zones-01-understanding-zones",
+    "topic_id": "zone-education",
+    "title": "Understanding Permaculture Zones",
+    "slug": "understanding-permaculture-zones",
+    "description": "Learn how permaculture zones organize your landscape based on frequency of use and energy input. Master the foundation of efficient permaculture design.",
+    "content_type": "text",
+    "estimated_minutes": 20,
+    "difficulty": "beginner",
+    "xp_reward": 25,
+    "order_index": 1,
+    "content": {
+      "core_content": "# Understanding Permaculture Zones\n\nZones are a key concept in permaculture that help organize your design based on how frequently you'll visit different areas. By placing elements according to how often they need attention, you conserve energy and create efficient systems.\n\n## The Zone System\n\nPermaculture divides space into 6 zones (0-5) based on frequency of human use:\n\n### Zone 0: The Home\nThis is your house or central dwelling. It's the heart of your system and where you spend most of your time. Consider:\n- Energy efficiency and passive solar design\n- Indoor food production (sprouts, microgreens)\n- Rainwater collection from roofs\n- Greywater systems\n\n### Zone 1: Daily Visit Area\nElements you interact with every day, located closest to the house (0-20 feet):\n- Kitchen herbs and salad greens\n- Small animals needing daily care (chickens, rabbits)\n- Composting area\n- Frequently used tools and supplies\n- Annual vegetable garden\n\n**Energy Flow**: You might visit Zone 1 multiple times per day, so place high-maintenance, high-yield elements here.\n\n### Zone 2: Weekly Visit Area\nElements requiring regular but less frequent attention (20-100 feet from house):\n- Larger food garden with perennials\n- Small orchard trees\n- Larger composting systems\n- Tool storage and workshop\n- Larger animal systems (pig pen, beehives)\n\n**Energy Flow**: Designed for weekly maintenance rather than daily attention.\n\n### Zone 3: Occasional Visit Area\nLess intensive production areas visited weekly to monthly:\n- Main crop orchards\n- Larger animal grazing (sheep, goats, cattle)\n- Food forests and nut trees\n- Pond systems\n- Firewood production\n\n**Energy Flow**: Self-maintaining systems that need occasional harvesting or checking.\n\n### Zone 4: Wild Foraging Area\nSemi-wild areas primarily for foraging and timber, visited seasonally:\n- Managed woodland\n- Wild forage areas\n- Timber production\n- Large wildlife habitat\n- Seasonal nut and berry harvesting\n\n**Energy Flow**: Mostly self-managing with seasonal harvests.\n\n### Zone 5: Wilderness\nUntouched or unmanaged land left for nature:\n- Observation and learning from nature\n- Seed collection from wild species\n- Wildlife sanctuary\n- Meditation and reflection\n\n**Energy Flow**: We don't manage this zone; we learn from it.\n\n## Zones as Intensity, Not Distance\n\nWhile we describe zones with distances, they're really about **intensity of interaction**:\n- Zone 1 on a balcony might be 5 feet from your door\n- Zone 1 on a farm might be 50 feet from your house\n- A greenhouse you visit daily is Zone 1 even if it's 100 feet away\n\n## Overlapping Zones\n\nZones can overlap and interweave:\n- A path through Zone 3 might have Zone 1 herb edges\n- A Zone 2 orchard might have Zone 1 herbs at its edge nearest the house\n- Animals can move between zones (chickens in Zone 1 coop, grazing in Zone 2)\n\n## Adapting Zones to Your Context\n\nThe zone system is flexible:\n- **Urban balcony**: Might only have Zones 0 and 1\n- **Suburban yard**: Typically Zones 0-3\n- **Small farm**: All zones 0-5\n- **Apartment**: Zone 0 with windowsill and balcony as Zone 1\n\n## Key Principle: Match Element to Zone\n\nPlace elements where they'll receive appropriate attention:\n- **High maintenance, high value** → Zone 1 (herbs, salad greens)\n- **Medium maintenance, good yield** → Zone 2 (berry bushes, perennial vegetables)\n- **Low maintenance, bulk harvest** → Zone 3 (orchard, nut trees)\n- **Minimal intervention** → Zone 4-5 (wild foods, timber)\n\n## Next Steps\n\nIn upcoming lessons, we'll dive deep into designing each specific zone for your context and climate.",
+      "images": [
+        {
+          "url": "/images/lessons/permaculture-zones-diagram.jpg",
+          "alt": "Diagram showing permaculture zones 0-5 radiating from a central home",
+          "credit": "Permaculture Research Institute"
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Which zone should you place herbs you use in cooking every day?",
+          "options": [
+            "Zone 0",
+            "Zone 1",
+            "Zone 2",
+            "Zone 3"
+          ],
+          "correct": 1,
+          "explanation": "Daily-use herbs belong in Zone 1, the area you visit most frequently and is closest to your kitchen."
+        },
+        {
+          "question": "Zones are primarily organized by:",
+          "options": [
+            "Distance from the house in feet",
+            "Type of plants grown",
+            "Frequency of human interaction",
+            "Soil quality"
+          ],
+          "correct": 2,
+          "explanation": "Zones are organized by frequency of human interaction and intensity of management, not fixed distances."
+        },
+        {
+          "question": "What is the main purpose of Zone 5?",
+          "options": [
+            "Maximum food production",
+            "Timber harvesting",
+            "Learning from nature and wildlife habitat",
+            "Composting area"
+          ],
+          "correct": 2,
+          "explanation": "Zone 5 is wilderness left unmanaged - we observe and learn from nature here rather than extract resources."
+        }
+      ],
+      "source_attribution": "Adapted from Permaculture: A Designer's Manual (Mollison, 1988)",
+      "license": "CC BY-NC-SA"
+    }
+  },
+  {
+    "id": "native-01-why-native-plants",
+    "topic_id": "native-first-approach",
+    "title": "Why Native Plants Matter",
+    "slug": "why-native-plants-matter",
+    "description": "Discover the critical role native plants play in ecosystem health, biodiversity, and resilient permaculture designs. Learn to identify and prioritize native species for your bioregion.",
+    "content_type": "text",
+    "estimated_minutes": 18,
+    "difficulty": "beginner",
+    "xp_reward": 25,
+    "order_index": 1,
+    "content": {
+      "core_content": "# Why Native Plants Matter\n\nA core principle of ecological permaculture is \"Native First\" - prioritizing plants indigenous to your bioregion. Understanding why native plants matter is essential for creating regenerative, resilient designs.\n\n## What Are Native Plants?\n\nNative plants are species that evolved in a specific region over thousands of years, adapting to local climate, soil, and ecological relationships without human intervention.\n\n**Native**: Evolved in your ecoregion for millennia\n**Naturalized**: Non-native but established without human help for decades\n**Non-native/Exotic**: Introduced from other regions by humans\n**Invasive**: Non-native species that aggressively spread and harm ecosystems\n\n## The Ecosystem Services of Native Plants\n\n### 1. Support Native Wildlife\n\nNative plants co-evolved with local insects, birds, and animals:\n- **Native oak trees** support 500+ species of caterpillars\n- **Non-native ginkgo** supports 5 species\n- These caterpillars feed 96% of terrestrial bird species\n\nNo native plants = collapsing food web.\n\n### 2. Adapted to Local Conditions\n\nNative plants are resilient because they evolved for your exact conditions:\n- Drought tolerance in dry regions\n- Flood tolerance in wet areas\n- Pest and disease resistance\n- Suitable for local soil types\n- Synchronized with local seasonal patterns\n\n**Result**: Less water, fertilizer, pesticides needed.\n\n### 3. Build Healthy Soil\n\nNative plants develop deep, complex root systems:\n- **Prairie grasses**: Roots 10-15 feet deep\n- Prevent erosion\n- Create soil structure\n- Sequester carbon\n- Support soil microbiome specific to your region\n\n### 4. Support Pollinators\n\nMany native pollinators are specialists:\n- **Monarch butterflies** need native milkweed\n- **Native bees** evolved with native flower shapes\n- Non-natives may not provide the right pollen or nectar timing\n\nWithout native plants, native pollinators disappear.\n\n### 5. Prevent Invasive Species\n\nUsing natives reduces risk:\n- Many invasive species started as ornamental garden plants\n- Natives won't escape and dominate wild areas\n- Natives support predators that control pest populations\n\n## The Ethics of Native Plants\n\n### Earth Care\nPrioritizing natives regenerates ecosystem health and biodiversity - the foundation of earth care.\n\n### People Care\nNative plants often have traditional uses:\n- Indigenous food sources\n- Medicinal applications\n- Cultural significance\n- Local knowledge systems\n\nUsing natives honors and preserves this knowledge.\n\n### Fair Share\nNative plants share resources fairly:\n- Support entire ecosystems, not just humans\n- Reduce resource inputs (water, fertilizer)\n- Leave space for wild species to thrive\n\n## Natives in Permaculture Design\n\n### The 80/20 Approach\nStrive for **80%+ native species** in your design:\n- Use natives for the foundational structure\n- Carefully select non-natives for specific functions (food production)\n- Always ask: \"Is there a native alternative?\"\n\n### Bioregional Focus\nUnderstand your ecoregion:\n- What's native to your specific area?\n- What plant communities naturally occurred here?\n- What did this landscape look like pre-development?\n\n### Native Guilds\nBuild plant communities that mirror natural ecosystems:\n- Native canopy trees\n- Native understory shrubs\n- Native groundcovers\n- Native nitrogen fixers\n\nThese evolved together and support each other.\n\n## Finding Native Plants\n\n### Research Resources\n- State native plant societies\n- Local Extension offices\n- Native plant databases (e.g., Lady Bird Johnson Wildflower Center)\n- Field guides to your region\n- Indigenous knowledge keepers\n\n### Questions to Ask\n- Is this plant native to my specific ecoregion?\n- What wildlife does it support?\n- What is its natural habitat?\n- Does it have any traditional uses?\n- Where can I source seeds or plants ethically?\n\n## Common Questions\n\n**\"Can I still grow tomatoes and herbs?\"**\nYes! The goal is native-first, not native-only. Use non-natives strategically for food production, but build the ecosystem foundation with natives.\n\n**\"Aren't native plants boring?\"**\nNatives offer incredible diversity - flowers, fruits, fall color, winter interest. Many \"exotic\" garden plants pale in comparison to native beauty.\n\n**\"Native to what geographic scale?\"**\nFocus on your ecoregion (50-200 mile radius). A plant native 500 miles away may not be adapted to your local conditions.\n\n## Taking Action\n\nStart your native plant journey:\n1. Identify 3 native species well-suited to your property\n2. Learn what wildlife they support\n3. Find ethical local sources\n4. Observe where they naturally grow in wild areas nearby\n5. Plant them in appropriate zones\n\nEvery native plant is a victory for ecosystem health.",
+      "images": [
+        {
+          "url": "/images/lessons/native-oak-vs-ginkgo.jpg",
+          "alt": "Comparison showing native oak supporting 500+ species vs ginkgo supporting 5",
+          "credit": "Bringing Nature Home, Tallamy 2007"
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Why do native plants support more wildlife than non-native plants?",
+          "options": [
+            "They're prettier",
+            "They co-evolved with local insects and animals over millennia",
+            "They're bigger",
+            "They produce more fruit"
+          ],
+          "correct": 1,
+          "explanation": "Native plants co-evolved with local wildlife, creating intricate relationships that non-native plants cannot replicate."
+        },
+        {
+          "question": "What percentage of native plants should you aim for in a permaculture design?",
+          "options": [
+            "50%",
+            "60%",
+            "80%+",
+            "100%"
+          ],
+          "correct": 2,
+          "explanation": "The native-first approach recommends 80%+ native species to support ecosystem health while allowing space for productive non-natives."
+        }
+      ],
+      "source_attribution": "Adapted from Bringing Nature Home (Tallamy, 2007) and Native Plant Gardening for Birds, Bees & Butterflies (Xerces Society, 2014)",
+      "license": "CC BY-NC-SA"
+    }
+  }
+]

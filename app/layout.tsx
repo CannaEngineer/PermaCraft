@@ -5,8 +5,11 @@ import { AudioProvider } from "@/components/audio/AudioProvider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { XPWrapper } from "@/components/theme/XPWrapper";
 
-// Initialize RAG system on server startup
-import '@/lib/rag/startup';
+// Initialize RAG system on server startup (production only)
+// Note: Disabled in development to prevent re-initialization on hot reload
+if (process.env.NODE_ENV === 'production') {
+  import('@/lib/rag/startup');
+}
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const lora = Lora({ subsets: ["latin"], variable: "--font-serif" });

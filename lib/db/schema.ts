@@ -235,3 +235,163 @@ export interface FarmerGoal {
   created_at: number;
   updated_at: number;
 }
+
+// Learning System Types
+
+export interface LearningPath {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  target_audience: string;
+  estimated_lessons: number;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  icon_name: string;
+  created_at: number;
+}
+
+export interface Topic {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  icon_name: string;
+  created_at: number;
+}
+
+export interface Lesson {
+  id: string;
+  topic_id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string; // JSON structure with core_content, images, quiz, etc.
+  content_type: 'text' | 'interactive' | 'video' | 'mixed';
+  estimated_minutes: number;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  prerequisite_lesson_ids: string | null; // JSON array
+  xp_reward: number;
+  order_index: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PathLesson {
+  id: string;
+  learning_path_id: string;
+  lesson_id: string;
+  order_index: number;
+  is_required: number; // 1 = required, 0 = optional
+  created_at: number;
+}
+
+export interface LearningPathTopic {
+  id: string;
+  learning_path_id: string;
+  topic_id: string;
+  emphasis_level: 'core' | 'supplementary' | 'optional';
+  created_at: number;
+}
+
+export interface UserProgress {
+  id: string;
+  user_id: string;
+  learning_path_id: string | null;
+  current_level: number;
+  total_xp: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface LessonCompletion {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  completed_at: number;
+  xp_earned: number;
+  quiz_score: number | null; // 0-100
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon_name: string;
+  badge_type: 'foundation' | 'mastery' | 'path_completion';
+  tier: number; // 1, 2, 3
+  unlock_criteria: string; // JSON: {type: 'lesson', lesson_id: '...'} or {type: 'score', min_score: 90}
+  created_at: number;
+}
+
+export interface UserBadge {
+  id: string;
+  user_id: string;
+  badge_id: string;
+  earned_at: number;
+}
+
+export interface PracticeFarm {
+  id: string;
+  user_id: string;
+  lesson_id: string | null;
+  name: string;
+  description: string | null;
+  center_lat: number;
+  center_lng: number;
+  zoom_level: number;
+  ai_grade: number | null; // 0-100
+  ai_feedback: string | null; // JSON from grading
+  submitted_for_review: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PracticeZone {
+  id: string;
+  practice_farm_id: string;
+  name: string | null;
+  zone_type: string;
+  geometry: string; // GeoJSON
+  properties: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PracticePlanting {
+  id: string;
+  practice_farm_id: string;
+  species_id: string;
+  name: string | null;
+  lat: number;
+  lng: number;
+  planted_year: number | null;
+  current_year: number;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ContextualHint {
+  id: string;
+  trigger_type: 'first_zone' | 'first_planting' | 'water_feature' | 'ai_analysis' | 'help_icon';
+  lesson_id: string;
+  hint_text: string;
+  priority: number;
+  created_at: number;
+}
+
+export interface UserHintDismissal {
+  id: string;
+  user_id: string;
+  hint_id: string;
+  dismissed_at: number;
+}
+
+export interface AITutorConversation {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  messages: string; // JSON array of {role, content}
+  created_at: number;
+  updated_at: number;
+}

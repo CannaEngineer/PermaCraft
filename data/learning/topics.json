@@ -1,0 +1,72 @@
+[
+  {
+    "id": "intro-permaculture",
+    "name": "Introduction to Permaculture",
+    "slug": "intro-permaculture",
+    "description": "Foundational concepts, ethics (Earth Care, People Care, Fair Share), observation skills, and the permaculture design process.",
+    "icon_name": "Sprout"
+  },
+  {
+    "id": "zone-education",
+    "name": "Zone Education",
+    "slug": "zone-education",
+    "description": "Understanding permaculture zones 0-5, placement logic based on frequency of access, and designing efficient energy flows.",
+    "icon_name": "Target"
+  },
+  {
+    "id": "native-first-approach",
+    "name": "Native First Approach",
+    "slug": "native-first-approach",
+    "description": "Bioregional plant selection, ecosystem services of native species, ethics of native vs. non-native plants, and supporting local biodiversity.",
+    "icon_name": "Leaf"
+  },
+  {
+    "id": "polyculture-design",
+    "name": "Polyculture Design",
+    "slug": "polyculture-design",
+    "description": "Building plant guilds, companion planting strategies, vertical layer stacking from canopy to root zone, and succession planting.",
+    "icon_name": "Trees"
+  },
+  {
+    "id": "systems-thinking",
+    "name": "Systems Thinking",
+    "slug": "systems-thinking",
+    "description": "Observing patterns in nature, understanding feedback loops, whole-system design approaches, and leveraging edge effects.",
+    "icon_name": "Network"
+  },
+  {
+    "id": "water-management",
+    "name": "Water Management",
+    "slug": "water-management",
+    "description": "Swale and berm construction, pond design, keyline systems, rainwater harvesting, and working with water in the landscape.",
+    "icon_name": "Droplet"
+  },
+  {
+    "id": "soil-building",
+    "name": "Soil Building",
+    "slug": "soil-building",
+    "description": "Composting systems, mulching strategies, cover crops, no-till methods, and building healthy living soil ecosystems.",
+    "icon_name": "Shovel"
+  },
+  {
+    "id": "urban-permaculture",
+    "name": "Urban Permaculture",
+    "slug": "urban-permaculture",
+    "description": "Container guilds, vertical gardens, micro-climate creation, balcony and rooftop production, and intensive small-space design.",
+    "icon_name": "Building"
+  },
+  {
+    "id": "food-forests",
+    "name": "Food Forests",
+    "slug": "food-forests",
+    "description": "Seven-layer forest gardens, succession planning from pioneers to climax species, perennial systems, and designing productive woodland ecosystems.",
+    "icon_name": "TreeDeciduous"
+  },
+  {
+    "id": "economics-ethics",
+    "name": "Economics & Ethics",
+    "slug": "economics-ethics",
+    "description": "Fair trade principles, people care in practice, fair share and surplus distribution, community economics, and farm financial sustainability.",
+    "icon_name": "DollarSign"
+  }
+]

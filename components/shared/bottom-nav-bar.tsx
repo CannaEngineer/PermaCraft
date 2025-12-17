@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, ImageIcon, Leaf, Menu, Music } from "lucide-react";
+import { MapIcon, LayoutDashboard, ImageIcon, Leaf, Menu, Music, GraduationCap } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -11,6 +11,7 @@ import { LogOut } from "lucide-react";
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
   { name: "Gallery", href: "/gallery", icon: ImageIcon, requiresAuth: false },
+  { name: "Learn", href: "/learn", icon: GraduationCap, requiresAuth: false },
   { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
 ];
 
@@ -28,7 +29,7 @@ interface BottomNavBarProps {
  *
  * Features:
  * - Fixed to bottom of screen
- * - 5 items: Dashboard | Gallery | Plants | Music | Menu
+ * - 6 items: Dashboard | Gallery | Learn | Plants | Music | Menu
  * - Music opens music player drawer
  * - Menu opens drawer with user info and logout
  * - Active state highlighting
