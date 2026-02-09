@@ -2,29 +2,29 @@
   {
     "id": "hint-first-zone",
     "trigger_type": "first_zone",
-    "lesson_id": "lesson-zone-01",
+    "lesson_id": "zones-01-understanding-zones",
     "hint_text": "Great! You've drawn your first zone. Learn more about permaculture zones and how to organize your farm by energy flow.",
     "priority": 1
   },
   {
     "id": "hint-first-planting",
     "trigger_type": "first_planting",
-    "lesson_id": "lesson-polyculture-01",
-    "hint_text": "You've added your first plant! Discover how to create plant guilds and polycultures for a thriving ecosystem.",
+    "lesson_id": "native-01-why-native-plants",
+    "hint_text": "You've added your first plant! Discover the importance of native species and how to select plants for your region.",
     "priority": 1
   },
   {
     "id": "hint-water-feature",
     "trigger_type": "water_feature",
-    "lesson_id": "lesson-water-01",
-    "hint_text": "Planning water management? Learn about swales, ponds, and rainwater harvesting strategies.",
+    "lesson_id": "zones-01-understanding-zones",
+    "hint_text": "Planning water management? Start by understanding permaculture zones and how to organize water features by access frequency.",
     "priority": 2
   },
   {
     "id": "hint-ai-analysis",
     "trigger_type": "ai_analysis",
-    "lesson_id": "lesson-intro-01",
-    "hint_text": "Using AI for the first time? Discover how to ask better design questions and interpret AI recommendations.",
+    "lesson_id": "intro-01-what-is-permaculture",
+    "hint_text": "Using AI for the first time? Learn the foundational permaculture principles that guide our AI recommendations.",
     "priority": 2
   }
 ]

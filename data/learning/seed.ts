@@ -34,6 +34,9 @@ async function seed() {
   const badges = JSON.parse(
     readFileSync(join(__dirname, 'badges.json'), 'utf-8')
   );
+  const contextualHints = JSON.parse(
+    readFileSync(join(__dirname, 'contextual-hints.json'), 'utf-8')
+  );
 
   // Seed Learning Paths
   console.log(`📚 Seeding ${learningPaths.length} learning paths...`);
@@ -136,12 +139,35 @@ async function seed() {
     }
   }
 
+  // Seed Contextual Hints
+  console.log(`\n💡 Seeding ${contextualHints.length} contextual hints...`);
+  for (const hint of contextualHints) {
+    try {
+      await db.execute({
+        sql: `INSERT OR REPLACE INTO contextual_hints
+              (id, trigger_type, lesson_id, hint_text, priority)
+              VALUES (?, ?, ?, ?, ?)`,
+        args: [
+          hint.id,
+          hint.trigger_type,
+          hint.lesson_id,
+          hint.hint_text,
+          hint.priority,
+        ],
+      });
+      console.log(`  ✓ ${hint.trigger_type} hint`);
+    } catch (error) {
+      console.error(`  ✗ Failed to insert hint ${hint.id}:`, error);
+    }
+  }
+
   console.log('\n✅ Seed completed successfully!');
   console.log(`\nSummary:`);
   console.log(`  ${learningPaths.length} learning paths`);
   console.log(`  ${topics.length} topics`);
   console.log(`  ${lessons.length} lessons`);
   console.log(`  ${badges.length} badges`);
+  console.log(`  ${contextualHints.length} contextual hints`);
   process.exit(0);
 }
 
