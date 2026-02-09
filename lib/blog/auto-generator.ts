@@ -13,6 +13,36 @@ const openrouter = new OpenAI({
 // Use Claude 3.5 Sonnet for reliable generation
 const PREMIUM_MODEL = 'anthropic/claude-3.5-sonnet';
 
+/**
+ * Safely parse JSON that might contain control characters
+ */
+function safeJsonParse<T>(jsonString: string, fallback: T): T {
+  try {
+    // First, try direct parse
+    return JSON.parse(jsonString);
+  } catch (firstError) {
+    try {
+      // If that fails, try to fix common issues
+      // Replace literal newlines with escaped newlines in string values
+      const cleaned = jsonString
+        .replace(/(\r\n|\n|\r)/g, '\\n')  // Escape newlines
+        .replace(/\t/g, '\\t')             // Escape tabs
+        .replace(/\\/g, '\\\\')            // Double escape backslashes
+        .replace(/\\\\n/g, '\\n')          // Fix double-escaped newlines
+        .replace(/\\\\t/g, '\\t');         // Fix double-escaped tabs
+
+      return JSON.parse(cleaned);
+    } catch (secondError) {
+      console.error('JSON parsing failed:', {
+        original: jsonString.substring(0, 500),
+        firstError: (firstError as Error).message,
+        secondError: (secondError as Error).message,
+      });
+      return fallback;
+    }
+  }
+}
+
 interface TopicIdea {
   title: string;
   keywords: string[];
@@ -32,10 +62,12 @@ export async function discoverTrendingTopics(): Promise<TopicIdea[]> {
 Identify 5 valuable blog topics for permaculture learners. Consider:
 - Current season: ${new Date().toLocaleDateString('en-US', { month: 'long' })}
 - Sustainable living trends
-- Common beginner questions  
+- Common beginner questions
 - Advanced techniques
 - Urban/rural applications
 - Climate relevance
+
+IMPORTANT: Return valid JSON with no line breaks within string values. Use spaces instead of newlines.
 
 Return JSON:
 {
@@ -57,7 +89,13 @@ Return JSON:
     temperature: 0.8,
   });
 
-  const result = JSON.parse(response.choices[0]?.message?.content || '{"topics":[]}');
+  const content = response.choices[0]?.message?.content || '{"topics":[]}';
+  const result = safeJsonParse(content, { topics: [] });
+
+  if (!result.topics || result.topics.length === 0) {
+    throw new Error('AI failed to generate topics');
+  }
+
   return result.topics;
 }
 
@@ -84,18 +122,20 @@ export async function generateBlogPost(topic: TopicIdea): Promise<BlogPost> {
 **Keywords:** ${topic.keywords.join(', ')}
 **Audience:** ${topic.target_audience}
 
+IMPORTANT: Return valid JSON. In the "content" field, use \\n for line breaks in the markdown.
+
 Return JSON:
 {
   "title": "Final title (50-60 chars with primary keyword)",
   "meta_description": "Meta description (150-160 chars, actionable)",
   "excerpt": "Preview hook (2-3 sentences)",
-  "content": "Full markdown post (1500-2500 words)",
+  "content": "Full markdown post (1500-2500 words) with proper \\n escaping",
   "seo_keywords": "keyword1, keyword2, keyword3",
   "tags": ["tag1", "tag2", "tag3"],
   "estimated_read_time": 8
 }
 
-Structure:
+Content Structure:
 1. Hook introduction (relatable scenario)
 2. Main sections with ## headers
 3. Practical examples and steps
@@ -113,7 +153,21 @@ Include scientific plant names and references to permaculture principles.`;
     max_tokens: 8000,
   });
 
-  const post = JSON.parse(response.choices[0]?.message?.content || '{}');
+  const content = response.choices[0]?.message?.content || '{}';
+  const post = safeJsonParse(content, {
+    title: topic.title,
+    meta_description: '',
+    excerpt: '',
+    content: '',
+    seo_keywords: '',
+    tags: [],
+    estimated_read_time: 8,
+  });
+
+  if (!post.title || !post.content) {
+    throw new Error('AI failed to generate complete blog post');
+  }
+
   const slug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 100);
 
   return {
