@@ -9,7 +9,10 @@ import { PlusCircle, FileText, CheckCircle, Clock, Trash2 } from 'lucide-react';
 async function getContentStats() {
   const [lessonsResult, generationsResult, topicsResult] = await Promise.all([
     db.execute('SELECT COUNT(*) as count FROM lessons'),
-    db.execute('SELECT COUNT(*) as count FROM content_generations WHERE status = ?', ['draft']),
+    db.execute({
+      sql: 'SELECT COUNT(*) as count FROM content_generations WHERE status = ?',
+      args: ['draft'],
+    }),
     db.execute('SELECT id, name, slug FROM topics ORDER BY name'),
   ]);
 
