@@ -71,7 +71,7 @@ async function main() {
   console.log('🚀 Starting batch lesson generation...\n');
 
   // Check if auth cookie is provided
-  const authCookie = process.env.AUTH_COOKIE;
+  const authCookie = process.env.AUTH_COOKIE as string;
   if (!authCookie) {
     console.error('❌ Error: AUTH_COOKIE environment variable is required');
     console.error('\nTo get your auth cookie:');
