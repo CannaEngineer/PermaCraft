@@ -84,7 +84,7 @@ export default async function UserDetailPage({ params }: PageProps) {
         ub.*,
         b.name,
         b.description,
-        b.icon
+        b.icon_name
       FROM user_badges ub
       LEFT JOIN badges b ON ub.badge_id = b.id
       WHERE ub.user_id = ?
@@ -280,7 +280,7 @@ export default async function UserDetailPage({ params }: PageProps) {
                   key={badge.id}
                   className="flex flex-col items-center text-center p-4 border rounded-lg"
                 >
-                  <div className="text-3xl mb-2">{badge.icon}</div>
+                  <div className="text-3xl mb-2">{badge.icon_name}</div>
                   <p className="font-medium text-sm">{badge.name}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {new Date(badge.earned_at * 1000).toLocaleDateString()}
