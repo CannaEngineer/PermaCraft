@@ -71,8 +71,7 @@ async function main() {
   console.log('🚀 Starting batch lesson generation...\n');
 
   // Check if auth cookie is provided
-  const authCookie = process.env.AUTH_COOKIE as string;
-  if (!authCookie) {
+  if (!process.env.AUTH_COOKIE) {
     console.error('❌ Error: AUTH_COOKIE environment variable is required');
     console.error('\nTo get your auth cookie:');
     console.error('1. Log into PermaCraft in your browser');
@@ -82,6 +81,7 @@ async function main() {
     console.error('5. Run: AUTH_COOKIE="better-auth.session_token=YOUR_VALUE" npx tsx scripts/batch-generate-lessons.ts');
     process.exit(1);
   }
+  const authCookie: string = process.env.AUTH_COOKIE;
 
   // Load lesson specifications
   const specs: LessonSpec[] = JSON.parse(
