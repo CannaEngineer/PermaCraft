@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, ImageIcon, Leaf, GraduationCap, LogOut, Shield } from "lucide-react";
+import { MapIcon, LayoutDashboard, ImageIcon, Leaf, GraduationCap, LogOut, Shield, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -12,6 +12,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
   { name: "Gallery", href: "/gallery", icon: ImageIcon, requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, requiresAuth: false },
+  { name: "Blog", href: "/learn/blog", icon: BookOpen, requiresAuth: false },
   { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
 ];
 
