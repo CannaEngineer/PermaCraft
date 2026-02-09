@@ -127,13 +127,14 @@ Generate comprehensive, engaging lesson content that achieves these learning obj
       .replace(/^-+|-+$/g, '');
 
     // Calculate XP reward based on difficulty and length
-    const baseXP = {
+    const baseXP: Record<string, number> = {
       beginner: 20,
       intermediate: 30,
       advanced: 40,
-    }[difficulty] || 20;
+    };
+    const xpBase = baseXP[difficulty] || 20;
 
-    const xpReward = Math.floor(baseXP + (estimated_minutes / 15) * 10);
+    const xpReward = Math.floor(xpBase + (estimated_minutes / 15) * 10);
 
     // Save generation to database
     const generationId = crypto.randomUUID();
