@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 
@@ -12,9 +11,7 @@ const readSchema = z.object({
 export async function POST(request: Request) {
   try {
     // Get current user
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await getSession();
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

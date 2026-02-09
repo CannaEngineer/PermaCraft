@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -41,9 +40,7 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function BlogPostPage({ params }: PageProps) {
   // Get current user (optional - can read without login)
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSession();
   const userId = session?.user?.id;
 
   // Get blog post with author info

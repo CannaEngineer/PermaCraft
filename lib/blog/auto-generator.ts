@@ -10,8 +10,8 @@ const openrouter = new OpenAI({
   },
 });
 
-// Use premium model for best results  
-const PREMIUM_MODEL = 'anthropic/claude-opus-4';
+// Use Grok 4.1 Fast for testing
+const PREMIUM_MODEL = 'x-ai/grok-2-1212';
 
 interface TopicIdea {
   title: string;

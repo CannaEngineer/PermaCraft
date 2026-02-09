@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { generateBlogPost_Auto } from '@/lib/blog/auto-generator';
 import { db } from '@/lib/db';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
 
 export async function POST(request: Request) {
   try {
     // Verify admin user
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await getSession();
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
