@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, ImageIcon, Leaf, GraduationCap, LogOut, Shield, Users } from "lucide-react";
+import { MapIcon, LayoutDashboard, ImageIcon, Leaf, GraduationCap, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -36,12 +36,9 @@ export function Sidebar({
     (item) => !item.requiresAuth || isAuthenticated
   );
 
-  // Add admin links if user is admin
+  // Add admin link if user is admin
   const adminNav = isAdmin
-    ? [
-        { name: "Content", href: "/admin/content", icon: Shield, requiresAuth: true },
-        { name: "Users", href: "/admin/users", icon: Users, requiresAuth: true }
-      ]
+    ? [{ name: "Admin", href: "/admin", icon: Shield, requiresAuth: true }]
     : [];
 
   return (
