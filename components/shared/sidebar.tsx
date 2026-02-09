@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, ImageIcon, Leaf, GraduationCap, LogOut } from "lucide-react";
+import { MapIcon, LayoutDashboard, ImageIcon, Leaf, GraduationCap, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -18,9 +18,11 @@ const navigation = [
 export function Sidebar({
   userName,
   isAuthenticated,
+  isAdmin,
 }: {
   userName: string | null;
   isAuthenticated: boolean;
+  isAdmin?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -33,6 +35,11 @@ export function Sidebar({
   const visibleNav = navigation.filter(
     (item) => !item.requiresAuth || isAuthenticated
   );
+
+  // Add admin link if user is admin
+  const adminNav = isAdmin
+    ? [{ name: "Admin", href: "/admin/content", icon: Shield, requiresAuth: true }]
+    : [];
 
   return (
     <div className="flex flex-col h-full bg-card pb-80 xp-panel">
@@ -55,7 +62,7 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4 space-y-2">
-        {visibleNav.map((item) => {
+        {[...visibleNav, ...adminNav].map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
