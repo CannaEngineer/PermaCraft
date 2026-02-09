@@ -9,7 +9,10 @@ export async function POST(request: Request) {
     const session = await getSession();
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized - please log in as an admin' },
+        { status: 401 }
+      );
     }
 
     const userResult = await db.execute({
@@ -19,8 +22,16 @@ export async function POST(request: Request) {
 
     if (userResult.rows.length === 0 || !(userResult.rows[0] as any).is_admin) {
       return NextResponse.json(
-        { error: 'Admin access required' },
+        { error: 'Admin access required - your account does not have admin privileges' },
         { status: 403 }
+      );
+    }
+
+    // Check for OpenRouter API key
+    if (!process.env.OPENROUTER_API_KEY) {
+      return NextResponse.json(
+        { error: 'OpenRouter API key not configured - add OPENROUTER_API_KEY to environment variables' },
+        { status: 500 }
       );
     }
 
@@ -44,9 +55,34 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('Manual generation failed:', error);
+
+    // Provide specific error messages
+    let errorMessage = 'Generation failed';
+    let statusCode = 500;
+
+    if (error.message?.includes('API key')) {
+      errorMessage = 'OpenRouter API key is invalid or missing';
+    } else if (error.message?.includes('rate limit') || error.status === 429) {
+      errorMessage = 'Rate limit exceeded - please wait a moment and try again';
+      statusCode = 429;
+    } else if (error.message?.includes('timeout')) {
+      errorMessage = 'AI generation timed out - please try again';
+      statusCode = 504;
+    } else if (error.message?.includes('No endpoints found') || error.status === 404) {
+      errorMessage = 'AI model not available - check model configuration';
+      statusCode = 503;
+    } else if (error.message?.includes('insufficient credits') || error.message?.includes('quota')) {
+      errorMessage = 'Insufficient OpenRouter credits - please add credits to your account';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
     return NextResponse.json(
-      { error: error.message || 'Generation failed' },
-      { status: 500 }
+      {
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
+      { status: statusCode }
     );
   }
 }
