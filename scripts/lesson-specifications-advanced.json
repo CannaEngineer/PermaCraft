@@ -1,0 +1,317 @@
+[
+  {
+    "topic_slug": "food-forests",
+    "title": "Managing Food Forest Succession",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand ecological succession in food forests, Manage transition from pioneer to climax species, Plan for long-term forest development, Accelerate beneficial succession",
+    "key_concepts": "Primary and secondary succession, Pioneer species role, Climax forest characteristics, Succession acceleration techniques, Nitrogen-fixing pioneers, Canopy management over time, Self-seeding and natural regeneration",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Grafting and Propagation for Food Forests",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Learn grafting techniques for fruit trees, Propagate perennials from cuttings, Understand layering and division, Build a nursery area in Zone 1",
+    "key_concepts": "Whip and tongue grafting, Cleft grafting, Hardwood and softwood cuttings, Air layering, Root division, Rootstock selection, Scionwood collection and storage, Nursery bed management",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Greywater Systems Design",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design safe greywater systems, Understand legal and health considerations, Select appropriate plants for greywater, Create mulch basins and infiltration zones",
+    "key_concepts": "Greywater safety guidelines, Three-way valves, Branched drain systems, Mulch basin construction, Plant selection for greywater, Soap and chemical considerations, Legal requirements by region, Maintenance protocols",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Aquaculture in Permaculture",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Integrate fish and aquatic systems, Design aquaponics systems, Understand polyculture in ponds, Select appropriate species for climate",
+    "key_concepts": "Fish species selection, Tilapia and carp systems, Aquaponics principles, Nutrient cycling in aquaculture, Pond polyculture, Water quality management, Feed systems, Integrated pest management in water",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "Fruit Tree Guild Design",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design complete fruit tree guilds, Select guild members for functions, Stack temporal and spatial niches, Plan for pest management within guilds",
+    "key_concepts": "Apple guild example, Nitrogen-fixing shrubs (Autumn Olive, Elaeagnus), Dynamic accumulators (Comfrey, Yarrow), Aromatic pest deterrents, Pollinator attractors, Groundcover and living mulch, Guild succession over time",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "Perennial Vegetables and Herbs",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Identify productive perennial vegetables, Integrate perennials into food systems, Understand maintenance requirements, Plan for year-round harvest",
+    "key_concepts": "Perennial vegetables overview (asparagus, artichoke, rhubarb, walking onions), Perennial herbs (oregano, thyme, sage, rosemary), Perennial brassicas (kale varieties), Sea kale and Turkish rocket, Sorrel and Good King Henry, Maintenance and division cycles",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Native Plants for Temperate Climates",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Identify key native species for temperate regions, Design with temperate native guilds, Understand seasonal patterns, Support native pollinators",
+    "key_concepts": "Temperate deciduous forest natives, Oak-hickory guilds, Native understory plants (pawpaw, serviceberry, spicebush), Native perennials (asters, goldenrod, milkweed), Native groundcovers (wild strawberry, violets), Seasonal succession of blooms",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Native Plants for Arid Climates",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Select drought-tolerant native species, Design for water conservation, Understand desert ecology, Create native arid guilds",
+    "key_concepts": "Desert and dryland natives, Mesquite and acacia guilds, Native cacti and succulents, Agave and yucca species, Native perennial flowers (penstemon, lupine), Deep-rooted drought survivors, Nurse plant systems",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Native Plants for Wet Climates",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Select plants for wet and boggy areas, Design rain garden systems, Understand wetland ecology, Support wetland wildlife",
+    "key_concepts": "Wetland and riparian natives, Native rushes and sedges, Willow and alder species, Native water plants, Bog and marsh specialists, Rain garden design, Seasonal flooding tolerance, Wetland restoration techniques",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Integrated Pest Management",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design for pest balance not elimination, Attract beneficial insects, Understand predator-prey dynamics, Reduce chemical dependence",
+    "key_concepts": "Beneficial insect habitat, Predatory insects (lady beetles, lacewings, parasitic wasps), Pest tolerance thresholds, Trap cropping, Aromatic confusion planting, Diverse habitat creation, Seasonal pest cycles, Monitoring and observation",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Permaculture Economics and Livelihoods",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design economically viable systems, Understand value-added products, Plan for multiple income streams, Calculate return on investment",
+    "key_concepts": "Market garden economics, CSA models, Value-added processing, Agro-tourism income, Education and consultation, Multiple enterprises, Start-up costs vs ongoing revenue, Appropriate scale for profitability",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "Biochar Production and Use",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand biochar benefits, Learn safe production methods, Charge biochar properly, Apply biochar to soils",
+    "key_concepts": "Biochar definition and properties, Carbon sequestration benefits, Simple production methods, Charging with compost and nutrients, Application rates and methods, Long-term soil improvement, Integration with composting",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "Mycorrhizal Fungi and Soil Networks",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand mycorrhizal relationships, Support fungal networks, Design for soil biology, Inoculate when appropriate",
+    "key_concepts": "Arbuscular and ectomycorrhizal fungi, Wood-wide web, Plant-fungal symbiosis, Native fungal communities, No-till to preserve networks, Fungal-dominant vs bacterial-dominant soils, Inoculation techniques, Woody debris and fungal food",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Integrating Small Livestock",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Integrate chickens in appropriate zones, Understand rotational grazing, Design for animal welfare, Stack functions with animals",
+    "key_concepts": "Chickens in permaculture (eggs, pest control, tillage, fertilizer), Chicken tractor design, Zone 2 placement, Rotational systems, Animal welfare considerations, Predator protection, Feed supplementation vs foraging, Manure management",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Beekeeping in Permaculture",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Integrate honeybees appropriately, Support native pollinators, Understand bee forage needs, Design for pollinator health",
+    "key_concepts": "Honeybee placement (Zone 2-3), Year-round forage planning, Native vs honeybee considerations, Treatment-free beekeeping, Swarm prevention and capture, Habitat for native bees, Pesticide awareness, Forage plants by season",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "urban-permaculture",
+    "title": "Vermicomposting for Urban Spaces",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Set up worm bins successfully, Maintain healthy worm populations, Harvest vermicompost, Use worm castings effectively",
+    "key_concepts": "Red wiggler worms (Eisenia fetida), Bin design and bedding, Feeding guidelines, Moisture and temperature control, Harvesting castings and worm tea, Indoor vs outdoor systems, Troubleshooting common problems",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "urban-permaculture",
+    "title": "Guerrilla Gardening and Seed Bombing",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand guerrilla gardening ethics, Create seed bombs effectively, Select appropriate species, Transform neglected spaces",
+    "key_concepts": "Guerrilla gardening history and purpose, Seed bomb recipe and technique, Native species selection for bombing, Site selection ethics, Dealing with authorities, Low-maintenance species, Community transformation, Public vs private space",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Mushroom Cultivation in Food Forests",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Integrate mushroom production, Understand wood decomposition, Inoculate logs and beds, Select appropriate species",
+    "key_concepts": "Shiitake log cultivation, Oyster mushroom bags and beds, Wine cap stropharia in wood chip paths, Morel habitat creation, Native mushroom species, Log inoculation timing, Spawn types and sources, Shade and moisture requirements",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Drought-Proofing Strategies",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design for drought resilience, Build water storage in landscapes, Select drought-tolerant species, Reduce water dependency",
+    "key_concepts": "Landscape hydration strategies, Soil moisture retention, Deep-rooted plant selection, Mulching for water conservation, Swale and basin maximization, Drought-tolerant polycultures, Greywater integration, Storage pond networks",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Climate Change Adaptation",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design for changing climate, Build resilience in systems, Select adaptable species, Plan for extremes",
+    "key_concepts": "Climate change impacts on regions, Shifting hardiness zones, Extreme weather preparation, Species diversity for adaptation, Water storage for irregular rainfall, Heat-tolerant varieties, Cold-hardy backups, Flexible design principles",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Carbon Sequestration in Permaculture",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand carbon cycling, Design for carbon storage, Calculate sequestration rates, Contribute to climate solutions",
+    "key_concepts": "Soil carbon sequestration, Perennial plant contributions, Tree planting and biomass, No-till benefits, Compost and organic matter, Biochar for long-term storage, Grassland management, Quantifying carbon benefits",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "No-Till and Minimal Tillage Methods",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand no-till benefits, Use appropriate tools and techniques, Maintain soil structure, Reduce labor and fuel",
+    "key_concepts": "No-till philosophy, Soil structure preservation, Broadfork use, Occultation with tarps, Sheet mulching as no-till transition, Permanent bed systems, Cover crop termination without tillage, Transitioning from conventional tillage",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "economics-ethics",
+    "title": "CSA and Direct Marketing",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design CSA share structures, Price appropriately, Build community relationships, Manage expectations and communication",
+    "key_concepts": "CSA models and variations, Share pricing and composition, Harvest planning, Member communication, Risk-sharing with members, Payment structures, Distribution logistics, Building loyal membership",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "economics-ethics",
+    "title": "Permaculture Design Consulting",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Offer design services professionally, Conduct site assessments, Create comprehensive plans, Price design work appropriately",
+    "key_concepts": "Design process stages, Client consultation, Base map creation, Site analysis, Master plan development, Implementation phasing, Design fees and contracts, Professional ethics, Continuing education",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "intro-permaculture",
+    "title": "Permaculture Design Certificate Path",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand PDC requirements, Choose quality courses, Continue education, Join permaculture networks",
+    "key_concepts": "72-hour PDC curriculum, Finding reputable instructors, Online vs in-person courses, Hands-on requirements, Post-PDC pathways, Diploma and advanced training, Permaculture organizations, Ongoing community involvement",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "intro-permaculture",
+    "title": "Site Assessment and Analysis",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Conduct thorough site assessments, Map existing resources, Identify opportunities and constraints, Document observations systematically",
+    "key_concepts": "Site inventory checklist, Topographic mapping, Sun and wind analysis, Water flow observation, Soil testing, Existing vegetation survey, Access and circulation, Sector analysis, Base map creation",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Native Plant Propagation",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Propagate native plants from seed and cuttings, Understand stratification requirements, Collect seed ethically, Build native plant nursery",
+    "key_concepts": "Seed collection ethics and timing, Cold stratification, Scarification for hard seeds, Native plant cuttings, Division of native perennials, Nursery bed preparation, Hardening off native seedlings, Regional provenance importance",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "Medicinal Herb Gardens",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design medicinal herb gardens, Understand common medicinal plants, Integrate herbs into food systems, Practice safe wildcrafting",
+    "key_concepts": "Common medicinal herbs (echinacea, calendula, chamomile, St. John's wort), Native medicinal plants, Herb preservation and preparation, Ethical wildcrafting, Medical disclaimers, Growing vs purchasing, Perennial vs annual medicinals",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Earthworks and Landscape Shaping",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design appropriate earthworks, Understand cut and fill principles, Calculate earthwork volumes, Hire contractors effectively",
+    "key_concepts": "Swale, berm, and terrace construction, Cut and fill balance, Equipment selection, Contour finding and marking, Slope stability, Soil compaction, Erosion control during construction, Working with contractors",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Nut Tree Production",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Select nut trees for region, Understand spacing and maturity, Plan for pollination, Integrate into food forests",
+    "key_concepts": "Nut tree overview (chestnuts, hazelnuts, walnuts, pecans, hickories), Grafted vs seedling trees, Spacing requirements, Pollination needs, Years to production, Native nut trees, Nut processing and storage, Allelopathy considerations (black walnut)",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Greenhouse and Season Extension",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design season extension systems, Understand greenhouse microclimates, Select appropriate structures, Integrate with thermal mass",
+    "key_concepts": "Greenhouse types (hoop house, cold frame, attached greenhouse), Passive solar design, Thermal mass for heat storage, Row covers and low tunnels, Site placement (Zone 1), Ventilation and cooling, Year-round production, Seed starting infrastructure",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "urban-permaculture",
+    "title": "Food Preservation and Storage",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Preserve harvest surpluses, Design root cellars, Understand canning and fermentation, Store food safely",
+    "key_concepts": "Root cellar design and use, Canning basics and safety, Fermentation (sauerkraut, kimchi, pickles), Dehydration, Freezing considerations, Storage crop selection, Extending harvest season, Food safety guidelines",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "Chop and Drop Mulching",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Practice chop and drop technique, Select appropriate plants, Time cutting cycles, Build soil fertility dynamically",
+    "key_concepts": "Chop and drop philosophy, Dynamic accumulator cutting, Comfrey management, Nitrogen-fixer pruning, Seasonal timing, Nitrogen release timing, Living mulch systems, Woody vs herbaceous material",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Appropriate Technology in Permaculture",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Select appropriate tools and technology, Balance efficiency with sustainability, Understand tool hierarchy, Design for repairability",
+    "key_concepts": "Appropriate technology principles, Hand tools vs machines, Solar power applications, Bicycle-powered tools, Rocket stoves and efficient heating, Water pumps and irrigation, Tool maintenance and repair, Local manufacturing",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "intro-permaculture",
+    "title": "Reading the Landscape",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Read ecological indicators, Understand vegetation patterns, Identify site opportunities, Observe before designing",
+    "key_concepts": "Indicator plants, Erosion patterns, Wildlife signs, Soil indicators from plants, Water indicators, Microclimate clues, Human impact signs, Seasonal observation importance",
+    "quiz_count": 2
+  }
+]
