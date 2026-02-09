@@ -10,8 +10,8 @@ const openrouter = new OpenAI({
   },
 });
 
-// Use Grok 4.1 Fast for testing
-const PREMIUM_MODEL = 'x-ai/grok-2-1212';
+// Use Claude 3.5 Sonnet for reliable generation
+const PREMIUM_MODEL = 'anthropic/claude-3.5-sonnet';
 
 interface TopicIdea {
   title: string;

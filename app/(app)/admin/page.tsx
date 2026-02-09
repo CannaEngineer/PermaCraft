@@ -3,35 +3,39 @@ import { db } from '@/lib/db';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  BookOpen, 
-  Users, 
-  TrendingUp, 
+import {
+  BookOpen,
+  Users,
+  TrendingUp,
   Activity,
   FileText,
   Shield,
   BarChart3,
-  Settings
+  Settings,
+  Newspaper,
+  Zap
 } from 'lucide-react';
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
 
   // Get overall stats
-  const [lessonsResult, usersResult, activeResult] = await Promise.all([
+  const [lessonsResult, usersResult, activeResult, blogResult] = await Promise.all([
     db.execute('SELECT COUNT(*) as count FROM lessons'),
     db.execute('SELECT COUNT(*) as count FROM users'),
     db.execute(`
-      SELECT COUNT(DISTINCT user_id) as count 
-      FROM lesson_completions 
+      SELECT COUNT(DISTINCT user_id) as count
+      FROM lesson_completions
       WHERE completed_at > datetime('now', '-7 days')
     `),
+    db.execute('SELECT COUNT(*) as count FROM blog_posts WHERE is_published = 1'),
   ]);
 
   const stats = {
     lessons: (lessonsResult.rows[0] as any).count,
     users: (usersResult.rows[0] as any).count,
     activeUsers: (activeResult.rows[0] as any).count,
+    blogPosts: (blogResult.rows[0] as any).count,
   };
 
   return (
@@ -48,7 +52,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Lessons</CardTitle>
@@ -56,6 +60,17 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.lessons}</div>
+            <p className="text-xs text-muted-foreground">Published</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Blog Posts</CardTitle>
+            <Newspaper className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.blogPosts}</div>
             <p className="text-xs text-muted-foreground">Published</p>
           </CardContent>
         </Card>
@@ -86,7 +101,7 @@ export default async function AdminDashboardPage() {
       {/* Admin Sections */}
       <div>
         <h2 className="text-2xl font-bold mb-4">Admin Sections</h2>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-3">
           {/* Content Management */}
           <Card className="hover:border-primary transition-colors">
             <CardHeader>
@@ -128,6 +143,39 @@ export default async function AdminDashboardPage() {
             </CardContent>
           </Card>
 
+          {/* Blog Management */}
+          <Card className="hover:border-primary transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Newspaper className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Blog Management</CardTitle>
+                  <CardDescription>
+                    AI-powered blog system with automated content
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  • Generate AI-powered blog posts<br />
+                  • SEO optimization and auto-tagging<br />
+                  • View analytics and engagement<br />
+                  • Manage published content
+                </p>
+              </div>
+              <Link href="/admin/blog">
+                <Button className="w-full">
+                  <Newspaper className="h-4 w-4 mr-2" />
+                  Blog Dashboard
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
           {/* User Management */}
           <Card className="hover:border-primary transition-colors">
             <CardHeader>
@@ -166,12 +214,21 @@ export default async function AdminDashboardPage() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <Link href="/admin/content/generate">
             <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
               <CardContent className="p-6 text-center">
                 <BookOpen className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <p className="font-medium">Generate Lesson</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/blog">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardContent className="p-6 text-center">
+                <Newspaper className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="font-medium">Manage Blog</p>
               </CardContent>
             </Card>
           </Link>
