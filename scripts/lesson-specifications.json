@@ -1,0 +1,389 @@
+[
+  {
+    "topic_slug": "zone-education",
+    "title": "Zone 0: The Home Interior",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand Zone 0 principles and energy flows, Identify opportunities for home resource efficiency, Apply permaculture ethics indoors, Create functional indoor growing spaces",
+    "key_concepts": "Zone 0 as the foundation of permaculture design, Energy and water conservation in the home, Indoor composting systems, Windowsill and indoor food production, Observation starting from home, Connection between indoor and outdoor zones",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Zone 1: The Kitchen Garden",
+    "difficulty": "beginner",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design high-intensity Zone 1 gardens, Select plants requiring daily attention, Optimize kitchen garden placement, Understand daily access patterns and maintenance",
+    "key_concepts": "Zone 1 definition and access frequency, Culinary herbs and salad greens selection, Vertical growing for space efficiency, Succession planting techniques, Companion planting in intensive spaces, Season extension methods",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Zone 2: Small Livestock and Intensive Planting",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design Zone 2 for 2-3 times weekly access, Integrate small animals with plant systems, Select appropriate perennial vegetables and berries, Plan efficient maintenance schedules",
+    "key_concepts": "Zone 2 access patterns, Small animal integration (chickens, bees, rabbits), Perennial vegetables and soft fruits, Composting systems placement, Tool storage and work areas, Stacking functions in limited space",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Zone 3: Main Crop Production",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design low-maintenance Zone 3 systems, Select hardy crops and orchard trees, Plan weekly maintenance schedules, Understand appropriate scale for Zone 3",
+    "key_concepts": "Zone 3 characteristics and weekly access, Main crop production and storage crops, Orchard establishment and management, Mulching and no-till methods, Cover cropping systems, Swale and water management integration",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Zone 4: Semi-Wild Forage and Timber",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand Zone 4 as managed wilderness, Select native timber and forage species, Practice minimal intervention management, Identify wild food and medicinal plants",
+    "key_concepts": "Zone 4 monthly to seasonal access, Native tree and shrub selection, Forage plant identification, Coppicing and timber management, Wildlife habitat creation, Edge effects and ecotones",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "zone-education",
+    "title": "Zone 5: Wilderness and Observation",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Recognize the importance of unmanaged land, Practice observation of natural patterns, Understand wilderness as teacher, Apply lessons from Zone 5 to designed zones",
+    "key_concepts": "Zone 5 as undisturbed nature, Observation before action principle, Learning from natural succession, Understanding ecosystem services, Seed and genetic material collection, Wildlife corridors and connectivity",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Why Native Plants Matter",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand ecological relationships with native species, Recognize co-evolution of plants and pollinators, Learn ecosystem services of native plants, Distinguish native from naturalized and invasive species",
+    "key_concepts": "Native species definition and importance, Co-evolved relationships, Ecosystem services, Soil biology and mycorrhizal networks, Local ecotype adaptation, Native plant communities",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Finding Native Plants for Your Bioregion",
+    "difficulty": "beginner",
+    "estimated_minutes": 20,
+    "learning_objectives": "Identify your bioregion and native plant communities, Use botanical resources and databases, Understand hardiness zones and microclimates, Source native plants ethically",
+    "key_concepts": "Bioregional boundaries, Native plant databases and resources, Local plant societies and organizations, Ethical wildcrafting principles, Native plant nurseries, Understanding provenance",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Native Plant Guilds and Polycultures",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design guilds using native species, Understand natural plant communities, Stack functions with native plants, Create regionally appropriate polycultures",
+    "key_concepts": "Natural succession patterns, Native plant layers, Nitrogen-fixers in native ecosystems, Dynamic accumulators, Native groundcovers and living mulches, Mimicking forest edge communities",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Ecosystem Services of Native Plants",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Identify multiple ecosystem services, Design for pollinator support, Understand soil building functions, Support beneficial insects and wildlife",
+    "key_concepts": "Pollinator host plants, Beneficial insect habitat, Soil stabilization and erosion control, Carbon sequestration, Water infiltration, Wildlife food and shelter",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "native-first-approach",
+    "title": "Dealing with Invasive Species Responsibly",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Identify invasive species in your region, Understand ecological impacts of invasives, Learn removal and management techniques, Restore native plant communities",
+    "key_concepts": "Invasive species definition, Ecological and economic impacts, Removal timing and techniques, Proper disposal methods, Native plant restoration, Prevention strategies",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "Introduction to Plant Guilds",
+    "difficulty": "beginner",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand guild concept and benefits, Identify guild functions, Design simple guilds, Stack multiple functions in space",
+    "key_concepts": "Guild definition, Functional relationships, Seven layers of food forest, Temporal niches, Spatial arrangement, Dynamic relationships over time",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "The Seven Layers of a Food Forest",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Identify all seven layers, Design complete vertical stacking, Select appropriate species for each layer, Plan succession and maturity timing",
+    "key_concepts": "Canopy, Sub-canopy, Shrub, Herbaceous, Groundcover, Vine, Root layers, Light requirements by layer, Succession planning, Mature ecosystem structure",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "Nitrogen-Fixing Plants and Guilds",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand nitrogen fixation process, Select appropriate nitrogen-fixers, Integrate fixers into guilds, Time chop-and-drop cycles",
+    "key_concepts": "Biological nitrogen fixation, Rhizobium bacteria, Native nitrogen-fixing species, Chop-and-drop mulching, Guild placement of fixers, Seasonal timing",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "Dynamic Accumulators in Permaculture",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand mineral accumulation, Select accumulator species, Use accumulators for soil building, Create nutrient cycling systems",
+    "key_concepts": "Deep-rooted mineral miners, Nutrient accumulation patterns, Comfrey and other accumulators, Living mulch systems, Biochar and nutrient cycling",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "polyculture-design",
+    "title": "Companion Planting Science",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand allelopathy and plant interactions, Apply scientific companion planting, Avoid problematic combinations, Design for pest management",
+    "key_concepts": "Allelopathy mechanisms, Beneficial and antagonistic relationships, Three Sisters guild, Aromatic pest confusion, Trap cropping, Scientific evidence vs folklore",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Observation: The First Principle",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Practice systematic observation, Record site patterns, Understand observation before action, Develop patience in design",
+    "key_concepts": "Observation through seasons, Site analysis tools, Pattern recognition, Water flow observation, Sun angles and shadows, Wind patterns, Existing vegetation as indicators",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Understanding Energy Flows",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Map energy flows on site, Design for energy efficiency, Understand solar gain and heat, Minimize energy inputs",
+    "key_concepts": "Solar energy capture, Wind energy and protection, Water as energy storage, Gravity-fed systems, Passive heating and cooling, Zone placement for energy efficiency",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Feedback Loops in Permaculture",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Identify positive and negative feedback loops, Design self-regulating systems, Recognize tipping points, Create resilient designs",
+    "key_concepts": "Positive feedback loops, Negative feedback loops, System stability, Self-regulation, Observation-based adjustment, Resilience through diversity",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "systems-thinking",
+    "title": "Edge Effects and Ecotones",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Recognize edge habitats, Design productive edges, Maximize edge in landscapes, Understand edge species diversity",
+    "key_concepts": "Ecotone definition, Edge effect biodiversity, Keyhole beds and mandala gardens, Forest edge design, Pond edge productivity, Creating vs destroying edges",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Reading the Water Landscape",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Observe water flow patterns, Identify water accumulation areas, Understand watershed context, Read vegetation as water indicator",
+    "key_concepts": "Watershed boundaries, Catchment areas, Erosion indicators, Hydrophytic vegetation, Seasonal water patterns, Groundwater indicators",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Swale Design and Construction",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design effective swales, Calculate appropriate sizing, Understand on-contour placement, Construct swales properly",
+    "key_concepts": "On-contour water harvesting, Swale dimensions and spacing, Overflow management, Planting swale systems, Maintenance requirements, Common mistakes to avoid",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Pond Design and Ecology",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design functional ponds, Understand pond ecology, Site ponds appropriately, Plan for multiple functions",
+    "key_concepts": "Pond sizing and depth, Natural pond systems, Sealing methods, Edge design, Aquatic plant zones, Wildlife habitat, Integration with broader water system",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Rainwater Harvesting Systems",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Calculate catchment area, Size storage appropriately, Design distribution systems, Understand filtration needs",
+    "key_concepts": "Roof catchment calculation, First flush systems, Tank sizing, Gravity-fed distribution, Overflow integration, Water quality considerations",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "water-management",
+    "title": "Keyline Design Principles",
+    "difficulty": "advanced",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand keyline patterns, Identify keypoint on land, Design keyline cultivation, Improve water distribution",
+    "key_concepts": "Keypoint identification, Keyline patterns, Contour vs keyline, Subsoiling techniques, Pattern cultivation, Landscape rehydration",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "Understanding Soil Biology",
+    "difficulty": "beginner",
+    "estimated_minutes": 20,
+    "learning_objectives": "Recognize soil as living ecosystem, Understand soil food web, Support beneficial organisms, Avoid practices that harm soil life",
+    "key_concepts": "Soil food web, Bacteria and fungi, Protozoa and nematodes, Mycorrhizal fungi, Earthworms and arthropods, Building biological activity",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "Composting Systems Design",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design appropriate composting systems, Understand carbon-nitrogen ratios, Manage moisture and aeration, Troubleshoot common problems",
+    "key_concepts": "Hot composting vs cold composting, Carbon to nitrogen ratios, Moisture and oxygen requirements, Compost placement in zones, Sheet mulching, Vermicomposting",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "Mulching Strategies",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Select appropriate mulch materials, Apply mulch effectively, Understand mulch benefits, Avoid common mulching mistakes",
+    "key_concepts": "Organic mulch types, Living mulches, Mulch depth guidelines, Termite and rodent considerations, Sheet mulching technique, Seasonal mulching",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "soil-building",
+    "title": "Cover Crops and Green Manures",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Select appropriate cover crops, Time planting and termination, Understand biomass building, Integrate into rotation",
+    "key_concepts": "Cover crop selection by season, Nitrogen-fixing covers, Deep-rooted soil builders, Chop-and-drop timing, Seed vs transplant following, Multi-species cover mixes",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "urban-permaculture",
+    "title": "Balcony and Rooftop Growing",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Design vertical growing systems, Manage weight restrictions, Select appropriate containers, Maximize limited space",
+    "key_concepts": "Weight load calculations, Container selection, Vertical trellising, Intensive planting techniques, Microclimate creation, Water management in containers",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "urban-permaculture",
+    "title": "Small Space Polyculture",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Design guilds for containers, Stack functions in small spaces, Create intensive polycultures, Manage succession planting",
+    "key_concepts": "Container guilds, Vertical layering, Succession planting schedules, Companion planting in pots, Perennial vegetables for containers, Year-round production",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "urban-permaculture",
+    "title": "Urban Microclimates",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Identify urban heat islands, Use building microclimates, Extend growing seasons, Protect from extreme weather",
+    "key_concepts": "Heat retention by buildings, Wind tunnels and protection, Reflected light utilization, Frost pockets in cities, Season extension techniques, Microclimate mapping",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "urban-permaculture",
+    "title": "Community Gardens and Social Permaculture",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Organize community spaces, Apply People Care ethics, Design shared systems, Manage group dynamics",
+    "key_concepts": "Shared governance models, Individual vs communal plots, Tool sharing systems, Conflict resolution, Community building, Education programs, Food security",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Food Forest Basics",
+    "difficulty": "beginner",
+    "estimated_minutes": 20,
+    "learning_objectives": "Understand food forest concept, Recognize succession stages, Plan long-term forest development, Design for multiple harvests",
+    "key_concepts": "Food forest definition, Mimicking natural forests, Perennial emphasis, Succession planning, Timeframe expectations, Management vs wilderness",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Canopy and Sub-Canopy Selection",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Select appropriate tree species, Plan spacing and timing, Understand mature sizes, Design for multiple yields",
+    "key_concepts": "Native nut and fruit trees, Standard vs dwarf sizing, Spacing calculations, Grafting and varieties, Pollination requirements, Coppicing species",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Understory Design",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Select shade-tolerant species, Design productive understories, Manage light succession, Plan temporal niches",
+    "key_concepts": "Shade tolerance levels, Currants and berries, Perennial vegetables, Medicinal herbs, Spring ephemerals, Ferns and groundcovers",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Food Forest Establishment",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Prepare site appropriately, Plant in succession, Establish support systems, Plan phased development",
+    "key_concepts": "Site preparation methods, Planting timing by layer, Nurse plants, Windbreaks and support species, Irrigation during establishment, Mulching strategies",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "food-forests",
+    "title": "Food Forest Maintenance",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Develop maintenance schedules, Practice appropriate pruning, Manage succession, Harvest sustainably",
+    "key_concepts": "Decreasing management over time, Pruning for production, Pest and disease management, Coppicing cycles, Harvest timing, Self-seeding and succession",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "intro-permaculture",
+    "title": "The Three Ethics",
+    "difficulty": "beginner",
+    "estimated_minutes": 15,
+    "learning_objectives": "Understand Earth Care ethic, Apply People Care principles, Practice Fair Share, Make ethical design decisions",
+    "key_concepts": "Earth Care as foundation, People Care in design, Fair Share and limits, Surplus redistribution, Ethics in decision-making, Long-term vs short-term thinking",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "intro-permaculture",
+    "title": "The Twelve Design Principles",
+    "difficulty": "beginner",
+    "estimated_minutes": 20,
+    "learning_objectives": "Learn all twelve principles, Apply principles to design, Recognize principles in nature, Use principles for decision-making",
+    "key_concepts": "Observe and interact, Catch and store energy, Obtain a yield, Self-regulation, Renewable resources, Produce no waste, Design from patterns, Integrate not segregate, Small and slow, Diversity, Edges, Creative response to change",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "intro-permaculture",
+    "title": "Pattern Recognition in Nature",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Identify natural patterns, Apply patterns to design, Understand pattern functions, Scale patterns appropriately",
+    "key_concepts": "Branching patterns, Spirals and waves, Lobes and clefts, Scatter and cluster, Sphere and dome, Pattern observation methods",
+    "quiz_count": 2
+  },
+  {
+    "topic_slug": "economics-ethics",
+    "title": "Fair Share Economics",
+    "difficulty": "intermediate",
+    "estimated_minutes": 20,
+    "learning_objectives": "Apply Fair Share to economics, Design sustainable livelihoods, Share surplus appropriately, Understand gift economy",
+    "key_concepts": "Fair Share ethic in practice, Surplus redistribution, Gift economy, Local currencies, Appropriate profit, Economic resilience, Community wealth",
+    "quiz_count": 3
+  },
+  {
+    "topic_slug": "economics-ethics",
+    "title": "People Care in Practice",
+    "difficulty": "intermediate",
+    "estimated_minutes": 15,
+    "learning_objectives": "Design for human needs, Create inclusive systems, Support community health, Balance individual and collective",
+    "key_concepts": "Human needs beyond food, Accessibility in design, Mental health considerations, Community building, Conflict resolution, Social sustainability",
+    "quiz_count": 2
+  }
+]
