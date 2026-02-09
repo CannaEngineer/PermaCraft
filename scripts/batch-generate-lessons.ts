@@ -81,7 +81,7 @@ async function main() {
     console.error('5. Run: AUTH_COOKIE="better-auth.session_token=YOUR_VALUE" npx tsx scripts/batch-generate-lessons.ts');
     process.exit(1);
   }
-  const authCookie: string = process.env.AUTH_COOKIE;
+  const authCookie = process.env.AUTH_COOKIE!;
 
   // Load lesson specifications
   const specs: LessonSpec[] = JSON.parse(
