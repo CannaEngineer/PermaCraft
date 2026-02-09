@@ -113,8 +113,8 @@ INSERT OR IGNORE INTO blog_tags (id, name, slug, description) VALUES
 
 -- Add blog reading badges
 INSERT OR IGNORE INTO badges (id, name, description, icon_name, badge_type, tier, unlock_criteria) VALUES
-  ('badge_blog_reader', 'Blog Explorer', 'Read your first blog post', '📖', 'foundation', 1, 'Read 1 blog post'),
-  ('badge_avid_reader', 'Avid Reader', 'Read 10 blog posts', '📚', 'foundation', 2, 'Read 10 blog posts'),
-  ('badge_blog_scholar', 'Knowledge Seeker', 'Read 25 blog posts', '🎓', 'mastery', 3, 'Read 25 blog posts'),
-  ('badge_blog_master', 'Blog Master', 'Read 50 blog posts', '🔍', 'mastery', 4, 'Read 50 blog posts');
+  ('badge_blog_reader', 'Blog Explorer', 'Read your first blog post', '📖', 'foundation', 1, '{"type":"blog_reads","count":1}'),
+  ('badge_avid_reader', 'Avid Reader', 'Read 10 blog posts', '📚', 'foundation', 2, '{"type":"blog_reads","count":10}'),
+  ('badge_blog_scholar', 'Knowledge Seeker', 'Read 25 blog posts', '🎓', 'mastery', 3, '{"type":"blog_reads","count":25}'),
+  ('badge_blog_master', 'Blog Master', 'Read 50 blog posts', '🔍', 'mastery', 4, '{"type":"blog_reads","count":50}');
 
