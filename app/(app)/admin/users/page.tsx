@@ -32,7 +32,7 @@ interface PageProps {
 export default async function AdminUsersPage({ searchParams }: PageProps) {
   await requireAdmin();
 
-  // Build user query
+  // Build user query (calculate stats from actual tables)
   let query = `
     SELECT
       u.id,
@@ -40,16 +40,16 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       u.email,
       u.is_admin,
       u.created_at,
-      up.level,
-      up.total_xp,
-      up.lessons_completed,
-      up.badges_earned,
       COUNT(DISTINCT f.id) as farm_count,
+      COUNT(DISTINCT lc.id) as lessons_completed,
+      SUM(DISTINCT l.xp_reward) as total_xp,
+      COUNT(DISTINCT ub.id) as badges_earned,
       MAX(lc.completed_at) as last_activity
     FROM users u
-    LEFT JOIN user_progress up ON u.id = up.user_id
     LEFT JOIN farms f ON u.id = f.user_id
     LEFT JOIN lesson_completions lc ON u.id = lc.user_id
+    LEFT JOIN lessons l ON lc.lesson_id = l.id
+    LEFT JOIN user_badges ub ON u.id = ub.user_id
     WHERE 1=1
   `;
 
@@ -68,8 +68,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   }
 
   query += `
-    GROUP BY u.id, u.name, u.email, u.is_admin, u.created_at,
-             up.level, up.total_xp, up.lessons_completed, up.badges_earned
+    GROUP BY u.id, u.name, u.email, u.is_admin, u.created_at
     ORDER BY u.created_at DESC
   `;
 

@@ -27,20 +27,20 @@ interface PageProps {
 export default async function UserDetailPage({ params }: PageProps) {
   await requireAdmin();
 
-  // Get user details
+  // Get user details with calculated stats
   const userResult = await db.execute({
     sql: `
       SELECT
         u.*,
-        up.level,
-        up.total_xp,
-        up.lessons_completed,
-        up.badges_earned,
-        up.current_streak,
-        up.longest_streak
+        COUNT(DISTINCT lc.id) as lessons_completed,
+        SUM(l.xp_reward) as total_xp,
+        COUNT(DISTINCT ub.id) as badges_earned
       FROM users u
-      LEFT JOIN user_progress up ON u.id = up.user_id
+      LEFT JOIN lesson_completions lc ON u.id = lc.user_id
+      LEFT JOIN lessons l ON lc.lesson_id = l.id
+      LEFT JOIN user_badges ub ON u.id = ub.user_id
       WHERE u.id = ?
+      GROUP BY u.id
     `,
     args: [params.id],
   });
@@ -116,9 +116,6 @@ export default async function UserDetailPage({ params }: PageProps) {
                   Admin
                 </Badge>
               )}
-              {user.level && (
-                <Badge variant="secondary">Level {user.level}</Badge>
-              )}
             </div>
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
               <Mail className="h-4 w-4" />
@@ -139,7 +136,7 @@ export default async function UserDetailPage({ params }: PageProps) {
           <CardContent>
             <div className="text-2xl font-bold">{user.total_xp || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Level {user.level || 0}
+              Experience Points
             </p>
           </CardContent>
         </Card>
@@ -170,15 +167,15 @@ export default async function UserDetailPage({ params }: PageProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Badges</CardTitle>
+            <Award className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {user.current_streak || 0}
+              {user.badges_earned || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              Best: {user.longest_streak || 0} days
+              Earned
             </p>
           </CardContent>
         </Card>
