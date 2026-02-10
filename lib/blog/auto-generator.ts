@@ -365,41 +365,43 @@ async function generateImagePrompt(title: string, keywords: string[]): Promise<s
   console.log('🎨 Generating image prompt...');
 
   // Fallback prompt in case AI fails
-  const fallbackPrompt = `A vibrant, photorealistic permaculture garden scene featuring ${keywords.join(', ')}. Lush green plants, sustainable design elements, natural lighting, professional garden photography style.`;
+  const fallbackPrompt = `Vibrant photorealistic permaculture garden scene with ${keywords.slice(0, 3).join(', ')}, lush green plants, sustainable design elements, natural lighting, professional garden photography, 4K quality, wide landscape view`;
 
   try {
     // Get model for image prompt generation
     const promptModel = await getBlogImagePromptModel();
 
-    const prompt = `Create a detailed image generation prompt for a permaculture blog post cover image.
+    const prompt = `Create a concise, descriptive image prompt for a permaculture blog cover image.
 
 Blog title: "${title}"
 Keywords: ${keywords.join(', ')}
 
+Write a single paragraph (2-3 sentences) describing the image.
 Requirements:
-- Photorealistic or artistic illustration style
+- Photorealistic garden/farm photography style
 - Vibrant, professional, educational
-- Shows permaculture concepts visually
-- No text or words in the image
-- Suitable for a blog header (landscape orientation)
+- Include specific permaculture elements: ${keywords.slice(0, 3).join(', ')}
+- Natural lighting, landscape orientation
+- NO text or words in the image
 
-Return JSON:
-{
-  "prompt": "Detailed image generation prompt (2-3 sentences)"
-}`;
+Return only the image description, no JSON, no extra formatting.`;
 
     const response = await openrouter.chat.completions.create({
       model: promptModel,
       messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      temperature: 0.8,
-      max_tokens: 300,
+      temperature: 0.7,
+      max_tokens: 200,
     });
 
-    const content = response.choices[0]?.message?.content || '{"prompt":""}';
-    const result = safeJsonParse(content, { prompt: '' });
+    const content = response.choices[0]?.message?.content?.trim() || '';
 
-    return result.prompt || fallbackPrompt;
+    if (!content || content.length < 20) {
+      console.log('⚠️ Generated prompt too short, using fallback');
+      return fallbackPrompt;
+    }
+
+    console.log('✅ Image prompt generated:', content.substring(0, 100) + '...');
+    return content;
   } catch (error: any) {
     console.error('⚠️ Image prompt generation failed:', error.message);
     console.log('📋 Using fallback image prompt');
@@ -420,17 +422,21 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
   try {
     // OpenRouter uses chat/completions with modalities for image generation
     // See: https://openrouter.ai/docs/guides/overview/multimodal/image-generation
+
+    // Format prompt for image generation - must be direct and clear
+    const directPrompt = `Generate an image: ${imagePrompt}`;
+
     const response = await openrouter.chat.completions.create({
       model: imageModel,
       messages: [
         {
           role: 'user',
-          content: imagePrompt,
+          content: directPrompt,
         },
       ],
       // @ts-ignore - modalities is supported by OpenRouter but not in OpenAI types
       modalities: ['image', 'text'],
-      temperature: 0.8,
+      temperature: 0.7, // Lower temp for more consistent results
     });
 
     console.log('📦 Image API response structure:', {
