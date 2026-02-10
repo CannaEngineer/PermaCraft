@@ -13,8 +13,8 @@ const openrouter = new OpenAI({
 // Use Grok 4.1 Fast for cost-effective text generation
 const TEXT_MODEL = 'x-ai/grok-4.1-fast';
 const IMAGE_PROMPT_MODEL = 'google/gemini-2.5-flash-lite';
-// Use FLUX for reliable image generation
-const IMAGE_MODEL = 'black-forest-labs/flux-1.1-pro';
+// Use Gemini for image generation
+const IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 
 /**
  * Safely parse JSON that might contain control characters
@@ -208,41 +208,42 @@ Return JSON:
  * Generate cover image for blog post
  */
 async function generateCoverImage(imagePrompt: string): Promise<string | null> {
-  console.log('🖼️ Generating cover image with FLUX...');
+  console.log('🖼️ Generating cover image with Gemini...');
 
   try {
-    // FLUX uses the image generation API format
-    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://permaculture.studio',
-        'X-Title': 'PermaCraft',
-      },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        prompt: imagePrompt,
-        n: 1,
-        size: '1024x1024',
-      }),
+    // Try chat completions endpoint for Gemini image model
+    const response = await openrouter.chat.completions.create({
+      model: IMAGE_MODEL,
+      messages: [{
+        role: 'user',
+        content: `Generate an image: ${imagePrompt}`
+      }],
+      max_tokens: 1024,
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Image generation API error:', error);
-      return null;
-    }
+    const content = response.choices[0]?.message?.content;
 
-    const data = await response.json();
-
-    // Check for image URL in response
-    if (data.data && data.data[0] && data.data[0].url) {
+    // Check if content is a URL
+    if (content && (content.startsWith('http://') || content.startsWith('https://'))) {
       console.log('✅ Image generated successfully');
-      return data.data[0].url;
+      return content;
     }
 
-    console.warn('No image URL in response:', JSON.stringify(data).substring(0, 200));
+    // Check for image URL in message metadata
+    const message = response.choices[0]?.message as any;
+    if (message?.image_url) {
+      console.log('✅ Image URL found in metadata');
+      return message.image_url;
+    }
+
+    // Check if there's a URL anywhere in the response
+    const urlMatch = content?.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      console.log('✅ Image URL extracted from response');
+      return urlMatch[0];
+    }
+
+    console.log('⚠️ No image URL found in response, continuing without image');
     return null;
   } catch (error: any) {
     console.error('Image generation failed:', error.message);
