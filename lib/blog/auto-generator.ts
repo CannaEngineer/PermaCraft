@@ -13,8 +13,8 @@ const openrouter = new OpenAI({
 // Use Grok 4.1 Fast for cost-effective text generation
 const TEXT_MODEL = 'x-ai/grok-4.1-fast';
 const IMAGE_PROMPT_MODEL = 'google/gemini-2.5-flash-lite';
-// Use Gemini for image generation
-const IMAGE_MODEL = 'google/gemini-2.5-flash-image';
+// Use GPT-5 Image Mini for reliable, cheap image generation
+const IMAGE_MODEL = 'openai/gpt-5-image-mini';
 
 /**
  * Safely parse JSON that might contain control characters
@@ -208,42 +208,47 @@ Return JSON:
  * Generate cover image for blog post
  */
 async function generateCoverImage(imagePrompt: string): Promise<string | null> {
-  console.log('🖼️ Generating cover image with Gemini...');
+  console.log('🖼️ Generating cover image with GPT-5 Image Mini...');
 
   try {
-    // Try chat completions endpoint for Gemini image model
-    const response = await openrouter.chat.completions.create({
-      model: IMAGE_MODEL,
-      messages: [{
-        role: 'user',
-        content: `Generate an image: ${imagePrompt}`
-      }],
-      max_tokens: 1024,
+    // Use images API endpoint for OpenAI models
+    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://permaculture.studio',
+        'X-Title': 'PermaCraft',
+      },
+      body: JSON.stringify({
+        model: IMAGE_MODEL,
+        prompt: imagePrompt,
+        n: 1,
+        size: '1024x1024',
+      }),
     });
 
-    const content = response.choices[0]?.message?.content;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Image API error:', response.status, errorText.substring(0, 200));
+      return null;
+    }
 
-    // Check if content is a URL
-    if (content && (content.startsWith('http://') || content.startsWith('https://'))) {
+    const data = await response.json();
+
+    // OpenAI images API returns data array with URL
+    if (data.data && data.data[0] && data.data[0].url) {
       console.log('✅ Image generated successfully');
-      return content;
+      return data.data[0].url;
     }
 
-    // Check for image URL in message metadata
-    const message = response.choices[0]?.message as any;
-    if (message?.image_url) {
-      console.log('✅ Image URL found in metadata');
-      return message.image_url;
+    // Fallback: check for url field directly
+    if (data.url) {
+      console.log('✅ Image URL found');
+      return data.url;
     }
 
-    // Check if there's a URL anywhere in the response
-    const urlMatch = content?.match(/https?:\/\/[^\s]+/);
-    if (urlMatch) {
-      console.log('✅ Image URL extracted from response');
-      return urlMatch[0];
-    }
-
-    console.log('⚠️ No image URL found in response, continuing without image');
+    console.log('⚠️ No image URL found in response:', JSON.stringify(data).substring(0, 200));
     return null;
   } catch (error: any) {
     console.error('Image generation failed:', error.message);
