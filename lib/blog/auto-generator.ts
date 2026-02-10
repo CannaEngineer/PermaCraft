@@ -258,6 +258,7 @@ Return JSON:
 
 /**
  * Generate cover image for blog post
+ * OpenRouter uses chat/completions with modalities, not a separate images endpoint
  */
 async function generateCoverImage(imagePrompt: string): Promise<string | null> {
   // Get model for image generation
@@ -266,61 +267,63 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
   console.log(`🖼️ Generating cover image with ${imageModel}...`);
 
   try {
-    // Use images API endpoint for image generation models
-    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://permaculture.studio',
-        'X-Title': 'PermaCraft',
-      },
-      body: JSON.stringify({
-        model: imageModel,
-        prompt: imagePrompt,
-        n: 1,
-        size: '1024x1024',
-      }),
+    // OpenRouter uses chat/completions with modalities for image generation
+    // See: https://openrouter.ai/docs/guides/overview/multimodal/image-generation
+    const response = await openrouter.chat.completions.create({
+      model: imageModel,
+      messages: [
+        {
+          role: 'user',
+          content: imagePrompt,
+        },
+      ],
+      // @ts-ignore - modalities is supported by OpenRouter but not in OpenAI types
+      modalities: ['image', 'text'],
+      temperature: 0.8,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Image API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        model: imageModel,
-        error: errorText.substring(0, 500),
-      });
-      return null;
-    }
-
-    const data = await response.json();
     console.log('📦 Image API response structure:', {
-      hasData: !!data.data,
-      hasUrl: !!data.url,
-      dataLength: data.data?.length,
-      firstItemKeys: data.data?.[0] ? Object.keys(data.data[0]) : [],
-      topLevelKeys: Object.keys(data),
-      fullResponse: JSON.stringify(data).substring(0, 300),
+      choices: response.choices?.length,
+      message: response.choices?.[0]?.message,
+      content: typeof response.choices?.[0]?.message?.content,
     });
 
+    // Extract image URL from response
+    // OpenRouter returns image URLs in the message content
+    const message = response.choices?.[0]?.message;
     let tempImageUrl: string | null = null;
 
-    // OpenAI images API returns data array with URL
-    if (data.data && data.data[0] && data.data[0].url) {
-      console.log('✅ Image generated successfully');
-      tempImageUrl = data.data[0].url;
+    // Check for image URL in content (can be string or array)
+    if (typeof message?.content === 'string') {
+      // Sometimes returned as markdown image: ![image](url)
+      const markdownMatch = message.content.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/);
+      if (markdownMatch) {
+        tempImageUrl = markdownMatch[1];
+      } else if (message.content.startsWith('http')) {
+        tempImageUrl = message.content;
+      }
+    } else if (Array.isArray(message?.content)) {
+      // Content can be array of parts with image_url
+      for (const part of message.content) {
+        if (part.type === 'image_url' && part.image_url?.url) {
+          tempImageUrl = part.image_url.url;
+          break;
+        }
+      }
     }
-    // Fallback: check for url field directly
-    else if (data.url) {
-      console.log('✅ Image URL found');
-      tempImageUrl = data.url;
+
+    // @ts-ignore - Check for custom image field
+    if (!tempImageUrl && message?.image_url) {
+      tempImageUrl = message.image_url;
     }
 
     if (!tempImageUrl) {
-      console.log('⚠️ No image URL found in response:', JSON.stringify(data).substring(0, 200));
+      console.log('⚠️ No image URL found in response');
+      console.log('Full response:', JSON.stringify(response).substring(0, 500));
       return null;
     }
+
+    console.log('✅ Image generated successfully');
 
     // Download and upload to R2 for permanent storage
     try {
@@ -338,7 +341,10 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
       return tempImageUrl;
     }
   } catch (error: any) {
-    console.error('Image generation failed:', error.message);
+    console.error('❌ Image generation failed:', error.message);
+    if (error.response) {
+      console.error('Error response:', JSON.stringify(error.response).substring(0, 500));
+    }
     // Don't fail the whole blog post if image generation fails
     return null;
   }
