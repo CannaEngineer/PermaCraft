@@ -289,12 +289,20 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
     });
 
     // Extract image URL from response
-    // OpenRouter returns image URLs in the message content
-    const message = response.choices?.[0]?.message;
+    // OpenRouter/Gemini returns images in message.images array
+    const message = response.choices?.[0]?.message as any;
     let tempImageUrl: string | null = null;
 
-    // Check for image URL in content (can be string or array)
-    if (typeof message?.content === 'string') {
+    // Check for images array (Gemini format)
+    if (message?.images && Array.isArray(message.images)) {
+      const firstImage = message.images[0];
+      if (firstImage?.image_url?.url) {
+        tempImageUrl = firstImage.image_url.url;
+      }
+    }
+
+    // Fallback: Check for image URL in content (can be string or array)
+    if (!tempImageUrl && typeof message?.content === 'string') {
       // Sometimes returned as markdown image: ![image](url)
       const markdownMatch = message.content.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/);
       if (markdownMatch) {
@@ -302,9 +310,8 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
       } else if (message.content.startsWith('http')) {
         tempImageUrl = message.content;
       }
-    } else if (message?.content && typeof message.content === 'object') {
+    } else if (!tempImageUrl && message?.content && typeof message.content === 'object') {
       // Content can be array of parts with image_url (OpenRouter multimodal response)
-      // Cast to any since OpenAI types don't include this format
       const contentParts = message.content as any;
       if (Array.isArray(contentParts)) {
         for (const part of contentParts) {
@@ -317,8 +324,8 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
     }
 
     // Check for custom image field (OpenRouter may add this)
-    if (!tempImageUrl && (message as any)?.image_url) {
-      tempImageUrl = (message as any).image_url;
+    if (!tempImageUrl && message?.image_url) {
+      tempImageUrl = message.image_url;
     }
 
     if (!tempImageUrl) {
@@ -329,19 +336,35 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
 
     console.log('✅ Image generated successfully');
 
-    // Download and upload to R2 for permanent storage
+    // Upload to R2 for permanent storage
     try {
-      console.log('📥 Downloading image and uploading to R2...');
-      const permanentUrl = await uploadImageFromUrl(
-        tempImageUrl,
-        'blog-covers',
-        'cover.png'
-      );
-      console.log('✅ Image permanently stored:', permanentUrl.substring(0, 100));
-      return permanentUrl;
+      console.log('📥 Uploading image to R2...');
+
+      // Handle base64 data URLs (Gemini returns these)
+      if (tempImageUrl.startsWith('data:')) {
+        console.log('Converting base64 data URL to buffer...');
+        // Use uploadScreenshot which handles base64 data URLs
+        const { uploadScreenshot } = await import('@/lib/storage/r2');
+        const permanentUrl = await uploadScreenshot(
+          'blog-covers',
+          tempImageUrl,
+          'cover'
+        );
+        console.log('✅ Image permanently stored:', permanentUrl.substring(0, 100));
+        return permanentUrl;
+      } else {
+        // Handle regular HTTP URLs
+        const permanentUrl = await uploadImageFromUrl(
+          tempImageUrl,
+          'blog-covers',
+          'cover.png'
+        );
+        console.log('✅ Image permanently stored:', permanentUrl.substring(0, 100));
+        return permanentUrl;
+      }
     } catch (uploadError: any) {
-      console.error('Failed to upload to R2, using temporary URL:', uploadError.message);
-      // Return temporary URL as fallback
+      console.error('Failed to upload to R2:', uploadError.message);
+      // Return data URL as fallback (will be stored in database)
       return tempImageUrl;
     }
   } catch (error: any) {
