@@ -365,7 +365,7 @@ async function generateImagePrompt(title: string, keywords: string[]): Promise<s
   console.log('🎨 Generating image prompt...');
 
   // Fallback prompt in case AI fails
-  const fallbackPrompt = `Vibrant photorealistic permaculture garden scene with ${keywords.slice(0, 3).join(', ')}, lush green plants, sustainable design elements, natural lighting, professional garden photography, 4K quality, wide landscape view`;
+  const fallbackPrompt = `Vibrant photorealistic permaculture garden scene with ${keywords.slice(0, 3).join(', ')}, lush green plants, sustainable design elements, natural lighting, professional garden photography, 4K quality, wide landscape view, no text, no words, no typography, pure nature photography`;
 
   try {
     // Get model for image prompt generation
@@ -382,7 +382,8 @@ Requirements:
 - Vibrant, professional, educational
 - Include specific permaculture elements: ${keywords.slice(0, 3).join(', ')}
 - Natural lighting, landscape orientation
-- NO text or words in the image
+- ABSOLUTELY NO TEXT, NO WORDS, NO LETTERS, NO TYPOGRAPHY - image models cannot render text properly
+- Focus on visual elements only: plants, landscapes, garden scenes, natural elements
 
 Return only the image description, no JSON, no extra formatting.`;
 
@@ -568,46 +569,58 @@ export async function generateBlogPost(topic: TopicIdea): Promise<BlogPost> {
     // Get model for blog text generation
     const textModel = await getBlogTextModel();
 
-  const prompt = `Write an exceptional blog post for PermaCraft, an AI-powered permaculture design platform.
+  const prompt = `Write an exceptional blog post about permaculture for PermaCraft readers.
 
 **Topic:** ${topic.title}
 **Keywords:** ${topic.keywords.join(', ')}
 **Target Audience:** ${topic.target_audience}
 
-ABOUT PERMACRAFT & READERS:
-- Users design permaculture farms on interactive maps
-- Planning stage (not yet implementing)
+ABOUT PERMACRAFT READERS:
+- Small farmers, homesteaders, suburban gardeners interested in permaculture
+- Planning their permaculture designs (not yet implementing)
 - Want practical, actionable design advice
-- Mix of small farmers, homesteaders, suburban gardeners
 - Value native species and permaculture ethics
+- General permaculture education audience
+
+IMPORTANT - DO NOT MAKE UP FEATURES:
+- Write about permaculture principles and practices in general
+- DO NOT mention specific PermaCraft features, tools, or capabilities
+- DO NOT reference "PermaCraft map tools" or "placing on your map" unless the actual platform features are verified
+- Focus on timeless permaculture knowledge, not software features
+- This is educational content about permaculture, not a product tutorial
 
 CONTENT REQUIREMENTS:
 
 Structure (1800-2500 words):
 1. **Hook** (150 words): Relatable scenario/problem this topic solves
-2. **What/Why** (200 words): Core concept and importance
+2. **What/Why** (200 words): Core concept and importance in permaculture
 3. **How-To Sections** (1200+ words): 3-5 practical sections with ## headers
-   - Include zone-based thinking where relevant
-   - Reference map planning ("when placing this on your map...")
+   - Include zone-based thinking where relevant (Zone 1-5 permaculture design)
    - Emphasize native species when discussing plants
-   - Connect to permaculture principles explicitly
-4. **Design Tips for PermaCraft** (200 words): How to apply using map tools
-5. **Key Takeaways** (150 words): Bullet list of main points
-6. **Next Steps** (100 words): Clear action items
+   - Connect to permaculture principles explicitly (observe, stack functions, edge, succession)
+   - Provide actionable advice for real-world implementation
+4. **Key Takeaways** (150 words): Bullet list of main points
+5. **Next Steps** (100 words): Clear action items for readers
 
 SEO Optimization:
 - Primary keyword in first 50 words
 - H2 headers include keywords naturally
 - Short paragraphs (2-3 sentences max)
-- Use lists and subheadings
+- Use lists and subheadings for readability
 - Include scientific names for plants (Genus species)
-- Internal topic suggestions (topics for linking)
 
 Tone:
 - Friendly, encouraging, practical
 - Not preachy or academic
 - Celebrate small-scale and beginner efforts
 - "You" language (direct address)
+
+CRITICAL - CONTENT FORMATTING:
+- Return ONLY the blog post content - NO meta information
+- DO NOT include word counts, length notes, or writing instructions in the content
+- DO NOT include phrases like "1800-2500 words" or "approximately X words"
+- DO NOT include AI generation notes or metadata in the content field
+- The content should be pure markdown blog post text
 
 IMPORTANT: Return valid JSON. Use \\n for line breaks in markdown content.
 
@@ -616,7 +629,7 @@ Return JSON:
   "title": "SEO title with primary keyword (50-60 chars)",
   "meta_description": "Actionable description with benefit (150-160 chars)",
   "excerpt": "Compelling 2-3 sentence preview with hook",
-  "content": "Full markdown content (1800-2500 words) with \\n line breaks",
+  "content": "Full markdown content (1800-2500 words) with \\n line breaks - PURE CONTENT ONLY, NO META NOTES",
   "seo_keywords": "primary keyword, secondary, tertiary, long-tail",
   "tags": ["tag1", "tag2", "tag3"],
   "estimated_read_time": 8
