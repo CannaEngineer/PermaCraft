@@ -12,6 +12,7 @@ const openrouter = new OpenAI({
 
 // Use Claude 3.5 Sonnet for reliable generation
 const PREMIUM_MODEL = 'anthropic/claude-3.5-sonnet';
+const IMAGE_PROMPT_MODEL = 'google/gemini-2.5-flash-lite';
 const IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 
 /**
@@ -136,7 +137,7 @@ Return JSON:
 }`;
 
   const response = await openrouter.chat.completions.create({
-    model: PREMIUM_MODEL,
+    model: IMAGE_PROMPT_MODEL,
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.8,
