@@ -72,11 +72,13 @@ function safeJsonParse<T>(jsonString: string, fallback: T): T {
 }
 
 interface TopicIdea {
+  id?: string;
   title: string;
   keywords: string[];
   target_audience: string;
   seo_angle: string;
   why_trending: string;
+  priority?: number;
 }
 
 /**
@@ -97,6 +99,81 @@ async function getExistingBlogContext(): Promise<string> {
 
   const posts = result.rows as any[];
   return posts.map((p, i) => `${i + 1}. "${p.title}"`).join('\n');
+}
+
+/**
+ * Get number of pending topics in queue
+ */
+async function getQueueSize(): Promise<number> {
+  const result = await db.execute({
+    sql: `SELECT COUNT(*) as count FROM blog_topic_queue WHERE status = 'pending'`,
+    args: [],
+  });
+  return (result.rows[0] as any).count;
+}
+
+/**
+ * Get next topic from queue
+ */
+async function getNextTopicFromQueue(): Promise<TopicIdea | null> {
+  const result = await db.execute({
+    sql: `SELECT * FROM blog_topic_queue
+          WHERE status = 'pending'
+          ORDER BY priority DESC, created_at ASC
+          LIMIT 1`,
+    args: [],
+  });
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0] as any;
+  return {
+    id: row.id,
+    title: row.title,
+    keywords: JSON.parse(row.keywords),
+    target_audience: row.target_audience,
+    seo_angle: row.seo_angle,
+    why_trending: row.why_trending,
+    priority: row.priority,
+  };
+}
+
+/**
+ * Mark topic as used
+ */
+async function markTopicAsUsed(topicId: string, postId: string): Promise<void> {
+  await db.execute({
+    sql: `UPDATE blog_topic_queue
+          SET status = 'used', used_at = unixepoch(), used_by_post_id = ?
+          WHERE id = ?`,
+    args: [postId, topicId],
+  });
+}
+
+/**
+ * Save topics to queue
+ */
+async function saveTopicsToQueue(topics: TopicIdea[]): Promise<void> {
+  for (const topic of topics) {
+    const topicId = crypto.randomUUID();
+    await db.execute({
+      sql: `INSERT INTO blog_topic_queue (
+        id, title, keywords, target_audience, seo_angle, why_trending, priority
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        topicId,
+        topic.title,
+        JSON.stringify(topic.keywords),
+        topic.target_audience,
+        topic.seo_angle,
+        topic.why_trending,
+        topic.priority || 0,
+      ],
+    });
+  }
+  console.log(`✅ Added ${topics.length} topics to queue`);
 }
 
 /**
@@ -127,10 +204,10 @@ const FALLBACK_TOPICS: TopicIdea[] = [
 ];
 
 /**
- * Discover trending permaculture topics
+ * Replenish topic queue with new AI-discovered topics
  */
-export async function discoverTrendingTopics(): Promise<TopicIdea[]> {
-  console.log('🔍 Discovering trending topics...');
+export async function replenishTopicQueue(): Promise<void> {
+  console.log('🔍 Replenishing topic queue...');
 
   // Get model for blog text generation
   const textModel = await getBlogTextModel();
@@ -138,33 +215,56 @@ export async function discoverTrendingTopics(): Promise<TopicIdea[]> {
   // Get existing blog context
   const existingPosts = await getExistingBlogContext();
 
-  const prompt = `You are a permaculture content strategist for a leading education platform.
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long' });
+  const currentSeason = ['December', 'January', 'February'].includes(currentMonth) ? 'Winter' :
+                        ['March', 'April', 'May'].includes(currentMonth) ? 'Spring' :
+                        ['June', 'July', 'August'].includes(currentMonth) ? 'Summer' : 'Fall';
 
-Identify 5 valuable blog topics for permaculture learners. Consider:
-- Current season: ${new Date().toLocaleDateString('en-US', { month: 'long' })}
-- Sustainable living trends
-- Common beginner questions
-- Advanced techniques
-- Urban/rural applications
-- Climate relevance
+  const prompt = `You are a content strategist for PermaCraft, an AI-powered permaculture design platform.
 
-EXISTING BLOG POSTS (avoid duplicates, build on these topics):
+ABOUT PERMACRAFT:
+- Map-based permaculture planning tool for small farmers, homesteaders, and permaculture students
+- Users design farms by drawing zones and plantings on interactive maps
+- AI analyzes screenshots and provides permaculture design recommendations
+- Emphasizes NATIVE species and permaculture principles
+- Target audience: beginners to intermediate permaculture practitioners
+
+GENERATE 15 BLOG TOPICS that help PermaCraft users succeed with their designs:
+
+CONSIDER:
+- Current season: ${currentSeason} (${currentMonth})
+- Seasonal tasks and planting schedules
+- Zone-based design (Zones 0-5)
+- Map-based planning and design techniques
+- Native species selection by region
+- Permaculture principles (observation, stacking functions, edge effects, succession)
+- Common beginner mistakes and solutions
+- Soil building, water management, companion planting
+- Urban/suburban small-scale applications
+- Climate adaptation and resilience
+
+EXISTING BLOG POSTS (avoid duplicates):
 ${existingPosts}
 
-IMPORTANT:
-- Choose NEW topics that complement but don't duplicate existing posts
-- Return valid JSON with no line breaks within string values
-- Consider gaps in current content coverage
+REQUIREMENTS:
+- Choose NEW topics that fill gaps in existing content
+- Mix of beginner (60%), intermediate (30%), advanced (10%)
+- Include actionable, practical advice
+- Focus on design and planning (our users are in the planning phase)
+- Incorporate map/zone thinking where relevant
+- SEO-optimized titles with target keywords
+- Return valid JSON with no line breaks in strings
 
 Return JSON:
 {
   "topics": [
     {
-      "title": "SEO-optimized title (50-60 chars)",
-      "keywords": ["keyword1", "keyword2", "keyword3"],
+      "title": "SEO title with keyword (50-60 chars)",
+      "keywords": ["primary keyword", "secondary", "tertiary"],
       "target_audience": "beginners|intermediate|advanced",
-      "seo_angle": "Why this ranks well",
-      "why_trending": "Timely relevance"
+      "seo_angle": "Search volume/ranking opportunity",
+      "why_trending": "Seasonal relevance or evergreen value",
+      "priority": 0-10 (higher = more timely/important)
     }
   ]
 }`;
@@ -174,8 +274,8 @@ Return JSON:
       model: textModel,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
-      temperature: 0.7, // Lower temperature for more reliable JSON
-      max_tokens: 2000,
+      temperature: 0.7,
+      max_tokens: 3000,
     });
 
     const content = response.choices[0]?.message?.content || '{"topics":[]}';
@@ -183,15 +283,16 @@ Return JSON:
 
     if (!result.topics || result.topics.length === 0) {
       console.warn('⚠️ AI returned empty topics, using fallbacks');
-      return FALLBACK_TOPICS;
+      await saveTopicsToQueue(FALLBACK_TOPICS);
+      return;
     }
 
-    console.log(`✅ Generated ${result.topics.length} topics`);
-    return result.topics;
+    console.log(`✅ Discovered ${result.topics.length} new topics`);
+    await saveTopicsToQueue(result.topics);
   } catch (error: any) {
     console.error('❌ Topic discovery failed:', error.message);
     console.log('📋 Using fallback topics');
-    return FALLBACK_TOPICS;
+    await saveTopicsToQueue(FALLBACK_TOPICS);
   }
 }
 
@@ -409,34 +510,59 @@ export async function generateBlogPost(topic: TopicIdea): Promise<BlogPost> {
     // Get model for blog text generation
     const textModel = await getBlogTextModel();
 
-  const prompt = `Create an exceptional, SEO-optimized permaculture blog post:
+  const prompt = `Write an exceptional blog post for PermaCraft, an AI-powered permaculture design platform.
 
 **Topic:** ${topic.title}
 **Keywords:** ${topic.keywords.join(', ')}
-**Audience:** ${topic.target_audience}
+**Target Audience:** ${topic.target_audience}
 
-IMPORTANT: Return valid JSON. In the "content" field, use \\n for line breaks in the markdown.
+ABOUT PERMACRAFT & READERS:
+- Users design permaculture farms on interactive maps
+- Planning stage (not yet implementing)
+- Want practical, actionable design advice
+- Mix of small farmers, homesteaders, suburban gardeners
+- Value native species and permaculture ethics
+
+CONTENT REQUIREMENTS:
+
+Structure (1800-2500 words):
+1. **Hook** (150 words): Relatable scenario/problem this topic solves
+2. **What/Why** (200 words): Core concept and importance
+3. **How-To Sections** (1200+ words): 3-5 practical sections with ## headers
+   - Include zone-based thinking where relevant
+   - Reference map planning ("when placing this on your map...")
+   - Emphasize native species when discussing plants
+   - Connect to permaculture principles explicitly
+4. **Design Tips for PermaCraft** (200 words): How to apply using map tools
+5. **Key Takeaways** (150 words): Bullet list of main points
+6. **Next Steps** (100 words): Clear action items
+
+SEO Optimization:
+- Primary keyword in first 50 words
+- H2 headers include keywords naturally
+- Short paragraphs (2-3 sentences max)
+- Use lists and subheadings
+- Include scientific names for plants (Genus species)
+- Internal topic suggestions (topics for linking)
+
+Tone:
+- Friendly, encouraging, practical
+- Not preachy or academic
+- Celebrate small-scale and beginner efforts
+- "You" language (direct address)
+
+IMPORTANT: Return valid JSON. Use \\n for line breaks in markdown content.
 
 Return JSON:
 {
-  "title": "Final title (50-60 chars with primary keyword)",
-  "meta_description": "Meta description (150-160 chars, actionable)",
-  "excerpt": "Preview hook (2-3 sentences)",
-  "content": "Full markdown post (1500-2500 words) with proper \\n escaping",
-  "seo_keywords": "keyword1, keyword2, keyword3",
+  "title": "SEO title with primary keyword (50-60 chars)",
+  "meta_description": "Actionable description with benefit (150-160 chars)",
+  "excerpt": "Compelling 2-3 sentence preview with hook",
+  "content": "Full markdown content (1800-2500 words) with \\n line breaks",
+  "seo_keywords": "primary keyword, secondary, tertiary, long-tail",
   "tags": ["tag1", "tag2", "tag3"],
   "estimated_read_time": 8
-}
-
-Content Structure:
-1. Hook introduction (relatable scenario)
-2. Main sections with ## headers
-3. Practical examples and steps
-4. Key takeaways (bullets)
-5. Conclusion with CTA
-
-SEO: Keywords in first 100 words, natural distribution, short paragraphs.
-Include scientific plant names and references to permaculture principles.`;
+}`;
 
     const response = await openrouter.chat.completions.create({
       model: textModel,
@@ -557,7 +683,7 @@ export async function saveBlogPost(
 }
 
 /**
- * Main workflow - generates one optimized post
+ * Main workflow - generates one optimized post from topic queue
  * NEVER throws - returns post ID or throws only on critical database errors
  */
 export async function generateBlogPost_Auto(
@@ -567,14 +693,44 @@ export async function generateBlogPost_Auto(
   console.log('\n🤖 Auto-generating blog post...\n');
 
   try {
-    // Topic discovery (has internal fallbacks)
-    const topics = await discoverTrendingTopics();
+    // Check queue size and replenish if needed
+    const queueSize = await getQueueSize();
+    console.log(`📊 Topic queue: ${queueSize} topics available`);
+
+    if (queueSize < 3) {
+      console.log('⚠️ Queue running low, replenishing...');
+      await replenishTopicQueue();
+    }
+
+    // Get next topic from queue
+    let topic = await getNextTopicFromQueue();
+
+    // If queue is completely empty (shouldn't happen but fallback)
+    if (!topic) {
+      console.warn('⚠️ No topics in queue, replenishing now...');
+      await replenishTopicQueue();
+      topic = await getNextTopicFromQueue();
+
+      // Ultimate fallback
+      if (!topic) {
+        console.warn('⚠️ Still no topics, using hardcoded fallback');
+        topic = FALLBACK_TOPICS[0];
+      }
+    }
+
+    console.log(`📝 Selected topic: ${topic.title}`);
 
     // Post generation (has internal fallbacks)
-    const post = await generateBlogPost(topics[0]);
+    const post = await generateBlogPost(topic);
 
     // Save to database (only critical failure point)
     const postId = await saveBlogPost(post, adminUserId, autoPublish);
+
+    // Mark topic as used
+    if (topic.id) {
+      await markTopicAsUsed(topic.id, postId);
+      console.log('✅ Topic marked as used');
+    }
 
     console.log('\n✅ Complete!\n');
     return postId;
