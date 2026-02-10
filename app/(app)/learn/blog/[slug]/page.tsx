@@ -102,8 +102,19 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Cover Image */}
+      {post.cover_image_url && (
+        <div className="w-full h-[400px] overflow-hidden bg-muted border-b">
+          <img
+            src={post.cover_image_url}
+            alt={post.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className={`border-b ${post.cover_image_url ? 'bg-background' : 'bg-muted/30'}`}>
         <div className="container mx-auto py-6">
           <Link href="/learn/blog">
             <Button variant="ghost" size="sm" className="mb-4">

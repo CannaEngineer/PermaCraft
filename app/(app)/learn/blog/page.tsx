@@ -107,7 +107,16 @@ export default async function BlogPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {posts.map((post) => (
           <Link key={post.id} href={`/learn/blog/${post.slug}`}>
-            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer overflow-hidden">
+              {post.cover_image_url && (
+                <div className="w-full h-48 overflow-hidden bg-muted">
+                  <img
+                    src={post.cover_image_url}
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-lg line-clamp-2">
