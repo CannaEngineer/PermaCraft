@@ -316,9 +316,9 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
       }
     }
 
-    // @ts-ignore - Check for custom image field
-    if (!tempImageUrl && message?.image_url) {
-      tempImageUrl = message.image_url;
+    // Check for custom image field (OpenRouter may add this)
+    if (!tempImageUrl && (message as any)?.image_url) {
+      tempImageUrl = (message as any).image_url;
     }
 
     if (!tempImageUrl) {
