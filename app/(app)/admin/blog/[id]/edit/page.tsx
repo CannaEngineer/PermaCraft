@@ -4,11 +4,12 @@ import { notFound } from 'next/navigation';
 import { BlogPostEditor } from '@/components/admin/blog-post-editor';
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default async function EditBlogPostPage({ params }: PageProps) {
+export default async function EditBlogPostPage(props: PageProps) {
   await requireAdmin();
+  const params = await props.params;
 
   // Get blog post
   const postResult = await db.execute({

@@ -79,10 +79,33 @@ interface TopicIdea {
 }
 
 /**
+ * Get context of existing blog posts (titles only for efficiency)
+ */
+async function getExistingBlogContext(): Promise<string> {
+  const result = await db.execute({
+    sql: `SELECT title, excerpt FROM blog_posts
+          WHERE is_published = 1
+          ORDER BY created_at DESC
+          LIMIT 20`,
+    args: [],
+  });
+
+  if (result.rows.length === 0) {
+    return 'No existing blog posts.';
+  }
+
+  const posts = result.rows as any[];
+  return posts.map((p, i) => `${i + 1}. "${p.title}"`).join('\n');
+}
+
+/**
  * Discover trending permaculture topics
  */
 export async function discoverTrendingTopics(): Promise<TopicIdea[]> {
   console.log('🔍 Discovering trending topics...');
+
+  // Get existing blog context
+  const existingPosts = await getExistingBlogContext();
 
   const prompt = `You are a permaculture content strategist for a leading education platform.
 
@@ -94,7 +117,13 @@ Identify 5 valuable blog topics for permaculture learners. Consider:
 - Urban/rural applications
 - Climate relevance
 
-IMPORTANT: Return valid JSON with no line breaks within string values. Use spaces instead of newlines.
+EXISTING BLOG POSTS (avoid duplicates, build on these topics):
+${existingPosts}
+
+IMPORTANT:
+- Choose NEW topics that complement but don't duplicate existing posts
+- Return valid JSON with no line breaks within string values
+- Consider gaps in current content coverage
 
 Return JSON:
 {
