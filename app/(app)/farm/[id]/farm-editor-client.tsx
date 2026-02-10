@@ -793,7 +793,10 @@ IMPORTANT: When suggesting new plantings:
       });
 
       if (!analyzeRes.ok) {
-        throw new Error("Analysis failed");
+        const errorData = await analyzeRes.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.message || errorData.error || "Analysis failed";
+        console.error("[Chat] Analysis API error:", errorMessage, errorData);
+        throw new Error(errorMessage);
       }
 
       const data = await analyzeRes.json();
