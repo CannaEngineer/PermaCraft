@@ -24,17 +24,41 @@ function safeJsonParse<T>(jsonString: string, fallback: T): T {
     return JSON.parse(jsonString);
   } catch (firstError) {
     try {
-      // If that fails, try to fix common issues
-      // Replace literal newlines with escaped newlines in string values
-      const cleaned = jsonString
-        .replace(/(\r\n|\n|\r)/g, '\\n')  // Escape newlines
-        .replace(/\t/g, '\\t')             // Escape tabs
-        .replace(/\\/g, '\\\\')            // Double escape backslashes
-        .replace(/\\\\n/g, '\\n')          // Fix double-escaped newlines
-        .replace(/\\\\t/g, '\\t');         // Fix double-escaped tabs
+      // More aggressive cleaning for malformed JSON
+      let cleaned = jsonString;
+
+      // Find all string values and escape newlines within them
+      // This regex finds quoted strings and replaces actual newlines with \n
+      cleaned = cleaned.replace(/"([^"]*?)"/gs, (match, content) => {
+        const escaped = content
+          .replace(/\\/g, '\\\\')           // Escape backslashes first
+          .replace(/\n/g, '\\n')            // Escape newlines
+          .replace(/\r/g, '\\r')            // Escape carriage returns
+          .replace(/\t/g, '\\t')            // Escape tabs
+          .replace(/"/g, '\\"');            // Escape quotes
+        return `"${escaped}"`;
+      });
 
       return JSON.parse(cleaned);
     } catch (secondError) {
+      // Last resort: try to extract JSON object manually
+      try {
+        // Find the JSON object boundaries
+        const start = jsonString.indexOf('{');
+        const end = jsonString.lastIndexOf('}') + 1;
+        if (start >= 0 && end > start) {
+          const extracted = jsonString.substring(start, end);
+          // Remove all literal newlines and tabs
+          const minimal = extracted
+            .replace(/\r?\n/g, ' ')
+            .replace(/\t/g, ' ')
+            .replace(/\s+/g, ' ');
+          return JSON.parse(minimal);
+        }
+      } catch (thirdError) {
+        // Give up
+      }
+
       console.error('JSON parsing failed:', {
         original: jsonString.substring(0, 500),
         firstError: (firstError as Error).message,
