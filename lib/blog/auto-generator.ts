@@ -302,12 +302,16 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
       } else if (message.content.startsWith('http')) {
         tempImageUrl = message.content;
       }
-    } else if (Array.isArray(message?.content)) {
-      // Content can be array of parts with image_url
-      for (const part of message.content) {
-        if (part.type === 'image_url' && part.image_url?.url) {
-          tempImageUrl = part.image_url.url;
-          break;
+    } else if (message?.content && typeof message.content === 'object') {
+      // Content can be array of parts with image_url (OpenRouter multimodal response)
+      // Cast to any since OpenAI types don't include this format
+      const contentParts = message.content as any;
+      if (Array.isArray(contentParts)) {
+        for (const part of contentParts) {
+          if (part.type === 'image_url' && part.image_url?.url) {
+            tempImageUrl = part.image_url.url;
+            break;
+          }
         }
       }
     }
