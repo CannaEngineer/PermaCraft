@@ -357,12 +357,12 @@ export async function POST(request: NextRequest) {
      * - Fallback typically succeeds on 1st or 2nd model
      */
     let completion;
-    let usedModel: string;
     let lastError;
 
     // Get configured vision model from settings
     const configuredVisionModel = await getMapAnalysisVisionModel();
     const visionModels = [configuredVisionModel, ...FREE_VISION_MODELS.filter(m => m !== configuredVisionModel)];
+    let usedModel = visionModels[0]; // Initialize with first model
 
     for (const model of visionModels) {
       try {
