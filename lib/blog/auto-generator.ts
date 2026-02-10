@@ -100,6 +100,33 @@ async function getExistingBlogContext(): Promise<string> {
 }
 
 /**
+ * Default fallback topics if AI fails
+ */
+const FALLBACK_TOPICS: TopicIdea[] = [
+  {
+    title: 'Getting Started with Permaculture Design Principles',
+    keywords: ['permaculture', 'design principles', 'sustainable gardening'],
+    target_audience: 'beginners',
+    seo_angle: 'High-volume beginner search terms',
+    why_trending: 'Evergreen permaculture basics',
+  },
+  {
+    title: 'Building Healthy Soil: Composting Essentials',
+    keywords: ['composting', 'soil health', 'organic matter'],
+    target_audience: 'beginners',
+    seo_angle: 'Popular gardening topic',
+    why_trending: 'Year-round soil building interest',
+  },
+  {
+    title: 'Water Management in Permaculture Gardens',
+    keywords: ['water harvesting', 'irrigation', 'drought resilience'],
+    target_audience: 'intermediate',
+    seo_angle: 'Climate-relevant search terms',
+    why_trending: 'Water conservation increasing priority',
+  },
+];
+
+/**
  * Discover trending permaculture topics
  */
 export async function discoverTrendingTopics(): Promise<TopicIdea[]> {
@@ -142,21 +169,30 @@ Return JSON:
   ]
 }`;
 
-  const response = await openrouter.chat.completions.create({
-    model: textModel,
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
-    temperature: 0.8,
-  });
+  try {
+    const response = await openrouter.chat.completions.create({
+      model: textModel,
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.7, // Lower temperature for more reliable JSON
+      max_tokens: 2000,
+    });
 
-  const content = response.choices[0]?.message?.content || '{"topics":[]}';
-  const result = safeJsonParse(content, { topics: [] });
+    const content = response.choices[0]?.message?.content || '{"topics":[]}';
+    const result = safeJsonParse(content, { topics: [] });
 
-  if (!result.topics || result.topics.length === 0) {
-    throw new Error('AI failed to generate topics');
+    if (!result.topics || result.topics.length === 0) {
+      console.warn('⚠️ AI returned empty topics, using fallbacks');
+      return FALLBACK_TOPICS;
+    }
+
+    console.log(`✅ Generated ${result.topics.length} topics`);
+    return result.topics;
+  } catch (error: any) {
+    console.error('❌ Topic discovery failed:', error.message);
+    console.log('📋 Using fallback topics');
+    return FALLBACK_TOPICS;
   }
-
-  return result.topics;
 }
 
 interface BlogPost {
@@ -177,10 +213,14 @@ interface BlogPost {
 async function generateImagePrompt(title: string, keywords: string[]): Promise<string> {
   console.log('🎨 Generating image prompt...');
 
-  // Get model for image prompt generation
-  const promptModel = await getBlogImagePromptModel();
+  // Fallback prompt in case AI fails
+  const fallbackPrompt = `A vibrant, photorealistic permaculture garden scene featuring ${keywords.join(', ')}. Lush green plants, sustainable design elements, natural lighting, professional garden photography style.`;
 
-  const prompt = `Create a detailed image generation prompt for a permaculture blog post cover image.
+  try {
+    // Get model for image prompt generation
+    const promptModel = await getBlogImagePromptModel();
+
+    const prompt = `Create a detailed image generation prompt for a permaculture blog post cover image.
 
 Blog title: "${title}"
 Keywords: ${keywords.join(', ')}
@@ -197,18 +237,23 @@ Return JSON:
   "prompt": "Detailed image generation prompt (2-3 sentences)"
 }`;
 
-  const response = await openrouter.chat.completions.create({
-    model: promptModel,
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
-    temperature: 0.8,
-    max_tokens: 300,
-  });
+    const response = await openrouter.chat.completions.create({
+      model: promptModel,
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.8,
+      max_tokens: 300,
+    });
 
-  const content = response.choices[0]?.message?.content || '{"prompt":""}';
-  const result = safeJsonParse(content, { prompt: '' });
+    const content = response.choices[0]?.message?.content || '{"prompt":""}';
+    const result = safeJsonParse(content, { prompt: '' });
 
-  return result.prompt || `A vibrant permaculture garden scene related to ${title}`;
+    return result.prompt || fallbackPrompt;
+  } catch (error: any) {
+    console.error('⚠️ Image prompt generation failed:', error.message);
+    console.log('📋 Using fallback image prompt');
+    return fallbackPrompt;
+  }
 }
 
 /**
@@ -300,13 +345,36 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
 }
 
 /**
+ * Generate a basic fallback blog post if AI fails
+ */
+function generateFallbackPost(topic: TopicIdea): BlogPost {
+  const slug = topic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 100);
+
+  return {
+    title: topic.title,
+    slug,
+    meta_description: `Learn about ${topic.keywords.join(', ')} in permaculture. A comprehensive guide for ${topic.target_audience}.`,
+    excerpt: `An introduction to ${topic.title.toLowerCase()} and how it applies to permaculture design.`,
+    content: `# ${topic.title}\n\nThis topic covers important aspects of ${topic.keywords.join(', ')}.\n\n## Overview\n\nPermaculture emphasizes sustainable and regenerative practices. This article explores how these principles apply to this topic.\n\n## Key Takeaways\n\n- Understanding ${topic.keywords[0]}\n- Practical applications\n- Getting started tips\n\n## Conclusion\n\nImplementing these practices can significantly improve your permaculture system.`,
+    seo_keywords: topic.keywords.join(', '),
+    tags: topic.keywords.slice(0, 3),
+    read_time_minutes: 5,
+  };
+}
+
+/**
  * Generate complete SEO-optimized blog post
  */
 export async function generateBlogPost(topic: TopicIdea): Promise<BlogPost> {
   console.log(`📝 Generating: ${topic.title}`);
 
-  // Get model for blog text generation
-  const textModel = await getBlogTextModel();
+  let post: any;
+  let slug: string;
+
+  // Try to generate content with AI
+  try {
+    // Get model for blog text generation
+    const textModel = await getBlogTextModel();
 
   const prompt = `Create an exceptional, SEO-optimized permaculture blog post:
 
@@ -337,49 +405,66 @@ Content Structure:
 SEO: Keywords in first 100 words, natural distribution, short paragraphs.
 Include scientific plant names and references to permaculture principles.`;
 
-  const response = await openrouter.chat.completions.create({
-    model: textModel,
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
-    temperature: 0.7,
-    max_tokens: 8000,
-  });
+    const response = await openrouter.chat.completions.create({
+      model: textModel,
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+      max_tokens: 8000,
+    });
 
-  const content = response.choices[0]?.message?.content || '{}';
-  const post = safeJsonParse(content, {
-    title: topic.title,
-    meta_description: '',
-    excerpt: '',
-    content: '',
-    seo_keywords: '',
-    tags: [],
-    estimated_read_time: 8,
-  });
+    const content = response.choices[0]?.message?.content || '{}';
+    post = safeJsonParse(content, {
+      title: topic.title,
+      meta_description: '',
+      excerpt: '',
+      content: '',
+      seo_keywords: '',
+      tags: [],
+      estimated_read_time: 8,
+    });
 
-  if (!post.title || !post.content) {
-    throw new Error('AI failed to generate complete blog post');
+    if (!post.title || !post.content) {
+      console.warn('⚠️ AI generated incomplete post, using fallback');
+      post = generateFallbackPost(topic);
+    }
+
+    slug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 100);
+    console.log('✅ Blog content generated');
+  } catch (error: any) {
+    console.error('❌ Blog generation failed:', error.message);
+    console.log('📋 Using fallback post content');
+    post = generateFallbackPost(topic);
+    slug = post.slug;
   }
 
-  const slug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 100);
-
-  // Generate cover image
+  // Generate cover image (non-blocking)
   let coverImageUrl: string | null = null;
   try {
+    console.log('🎨 Attempting to generate cover image...');
     const imagePrompt = await generateImagePrompt(post.title, topic.keywords);
     coverImageUrl = await generateCoverImage(imagePrompt);
-  } catch (error) {
-    console.error('Cover image generation failed, continuing without image:', error);
+
+    if (coverImageUrl) {
+      console.log('✅ Cover image generated successfully');
+    } else {
+      console.log('⚠️ No cover image generated, continuing without');
+    }
+  } catch (error: any) {
+    console.error('⚠️ Cover image generation failed:', error.message);
+    console.log('📝 Continuing without cover image');
+    // Don't fail the whole post if image generation fails
   }
 
   return {
     title: post.title,
     slug,
-    meta_description: post.meta_description,
-    excerpt: post.excerpt,
+    meta_description: post.meta_description || `Learn about ${topic.title}`,
+    excerpt: post.excerpt || `An introduction to ${topic.title}`,
     content: post.content,
-    seo_keywords: post.seo_keywords,
-    tags: post.tags || [],
-    read_time_minutes: post.estimated_read_time || 8,
+    seo_keywords: post.seo_keywords || topic.keywords.join(', '),
+    tags: post.tags || topic.keywords.slice(0, 3),
+    read_time_minutes: post.estimated_read_time || post.read_time_minutes || 8,
     cover_image_url: coverImageUrl || undefined,
   };
 }
@@ -440,17 +525,40 @@ export async function saveBlogPost(
 
 /**
  * Main workflow - generates one optimized post
+ * NEVER throws - returns post ID or throws only on critical database errors
  */
 export async function generateBlogPost_Auto(
   adminUserId: string,
   autoPublish = false
 ): Promise<string> {
   console.log('\n🤖 Auto-generating blog post...\n');
-  
-  const topics = await discoverTrendingTopics();
-  const post = await generateBlogPost(topics[0]);
-  const postId = await saveBlogPost(post, adminUserId, autoPublish);
-  
-  console.log('\n✅ Complete!\n');
-  return postId;
+
+  try {
+    // Topic discovery (has internal fallbacks)
+    const topics = await discoverTrendingTopics();
+
+    // Post generation (has internal fallbacks)
+    const post = await generateBlogPost(topics[0]);
+
+    // Save to database (only critical failure point)
+    const postId = await saveBlogPost(post, adminUserId, autoPublish);
+
+    console.log('\n✅ Complete!\n');
+    return postId;
+  } catch (error: any) {
+    console.error('❌ Critical error in blog auto-generation:', error.message);
+    console.error('Stack:', error.stack);
+
+    // Last resort: generate minimal fallback post and save it
+    console.log('🆘 Creating emergency fallback post...');
+    try {
+      const emergencyPost = generateFallbackPost(FALLBACK_TOPICS[0]);
+      const postId = await saveBlogPost(emergencyPost, adminUserId, autoPublish);
+      console.log('✅ Emergency fallback post saved');
+      return postId;
+    } catch (fallbackError: any) {
+      console.error('💥 Complete failure - even fallback failed:', fallbackError.message);
+      throw new Error('Blog generation system completely failed. Check database connection.');
+    }
+  }
 }
