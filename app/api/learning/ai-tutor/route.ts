@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { openrouter } from '@/lib/ai/openrouter';
+import { getAITutorModel } from '@/lib/ai/model-settings';
 
 export const runtime = 'edge';
 
@@ -90,9 +91,12 @@ ${lessonContent.core_content.substring(0, 500)}...`;
       { role: 'user', content: message },
     ];
 
+    // Get model for AI tutor
+    const tutorModel = await getAITutorModel();
+
     // Stream response from AI
     const completion = await openrouter.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
+      model: tutorModel,
       messages: messages as any,
       temperature: 0.7,
       max_tokens: 800,

@@ -101,7 +101,7 @@ export default async function AdminDashboardPage() {
       {/* Admin Sections */}
       <div>
         <h2 className="text-2xl font-bold mb-4">Admin Sections</h2>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Content Management */}
           <Card className="hover:border-primary transition-colors">
             <CardHeader>
@@ -126,20 +126,12 @@ export default async function AdminDashboardPage() {
                   • View content library and stats
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Link href="/admin/content" className="flex-1">
-                  <Button className="w-full">
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Content Dashboard
-                  </Button>
-                </Link>
-                <Link href="/admin/content/library">
-                  <Button variant="outline">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Library
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/admin/content">
+                <Button className="w-full">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Manage Content
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -208,13 +200,46 @@ export default async function AdminDashboardPage() {
               </Link>
             </CardContent>
           </Card>
+
+          {/* System Settings */}
+          <Card className="hover:border-primary transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Settings className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>System Settings</CardTitle>
+                  <CardDescription>
+                    Configure AI models and platform settings
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  • Configure AI text generation models<br />
+                  • Set image generation preferences<br />
+                  • Optimize for cost vs quality<br />
+                  • View model pricing information
+                </p>
+              </div>
+              <Link href="/admin/settings">
+                <Button className="w-full">
+                  <Zap className="h-4 w-4 mr-2" />
+                  AI Model Settings
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div>
         <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Link href="/admin/content/generate">
             <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
               <CardContent className="p-6 text-center">
@@ -251,13 +276,14 @@ export default async function AdminDashboardPage() {
             </Card>
           </Link>
 
-          <Card className="hover:bg-accent/50 transition-colors cursor-pointer opacity-50">
-            <CardContent className="p-6 text-center">
-              <BarChart3 className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="font-medium text-muted-foreground">Analytics</p>
-              <p className="text-xs text-muted-foreground mt-1">Coming Soon</p>
-            </CardContent>
-          </Card>
+          <Link href="/admin/settings">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardContent className="p-6 text-center">
+                <Settings className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-sm">AI Settings</p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
     </div>

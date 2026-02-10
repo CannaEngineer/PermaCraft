@@ -10,11 +10,11 @@ const openrouter = new OpenAI({
   },
 });
 
-// Use Grok 4.1 Fast for cost-effective text generation
-const TEXT_MODEL = 'x-ai/grok-4.1-fast';
-const IMAGE_PROMPT_MODEL = 'google/gemini-2.5-flash-lite';
-// Use GPT-5 Image Mini for reliable, cheap image generation
-const IMAGE_MODEL = 'openai/gpt-5-image-mini';
+import {
+  getBlogTextModel,
+  getBlogImagePromptModel,
+  getBlogImageGenerationModel,
+} from '@/lib/ai/model-settings';
 
 /**
  * Safely parse JSON that might contain control characters
@@ -104,6 +104,9 @@ async function getExistingBlogContext(): Promise<string> {
 export async function discoverTrendingTopics(): Promise<TopicIdea[]> {
   console.log('🔍 Discovering trending topics...');
 
+  // Get model for blog text generation
+  const textModel = await getBlogTextModel();
+
   // Get existing blog context
   const existingPosts = await getExistingBlogContext();
 
@@ -139,7 +142,7 @@ Return JSON:
 }`;
 
   const response = await openrouter.chat.completions.create({
-    model: TEXT_MODEL,
+    model: textModel,
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.8,
@@ -173,6 +176,9 @@ interface BlogPost {
 async function generateImagePrompt(title: string, keywords: string[]): Promise<string> {
   console.log('🎨 Generating image prompt...');
 
+  // Get model for image prompt generation
+  const promptModel = await getBlogImagePromptModel();
+
   const prompt = `Create a detailed image generation prompt for a permaculture blog post cover image.
 
 Blog title: "${title}"
@@ -191,7 +197,7 @@ Return JSON:
 }`;
 
   const response = await openrouter.chat.completions.create({
-    model: IMAGE_PROMPT_MODEL,
+    model: promptModel,
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.8,
@@ -208,10 +214,13 @@ Return JSON:
  * Generate cover image for blog post
  */
 async function generateCoverImage(imagePrompt: string): Promise<string | null> {
-  console.log('🖼️ Generating cover image with GPT-5 Image Mini...');
+  // Get model for image generation
+  const imageModel = await getBlogImageGenerationModel();
+
+  console.log(`🖼️ Generating cover image with ${imageModel}...`);
 
   try {
-    // Use images API endpoint for OpenAI models
+    // Use images API endpoint for image generation models
     const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -221,7 +230,7 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
         'X-Title': 'PermaCraft',
       },
       body: JSON.stringify({
-        model: IMAGE_MODEL,
+        model: imageModel,
         prompt: imagePrompt,
         n: 1,
         size: '1024x1024',
@@ -263,6 +272,9 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
 export async function generateBlogPost(topic: TopicIdea): Promise<BlogPost> {
   console.log(`📝 Generating: ${topic.title}`);
 
+  // Get model for blog text generation
+  const textModel = await getBlogTextModel();
+
   const prompt = `Create an exceptional, SEO-optimized permaculture blog post:
 
 **Topic:** ${topic.title}
@@ -293,7 +305,7 @@ SEO: Keywords in first 100 words, natural distribution, short paragraphs.
 Include scientific plant names and references to permaculture principles.`;
 
   const response = await openrouter.chat.completions.create({
-    model: TEXT_MODEL,
+    model: textModel,
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.7,

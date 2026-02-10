@@ -41,6 +41,11 @@ import { uploadScreenshot } from "@/lib/storage/r2";
 import { getGoalsForAIContext } from "@/lib/ai/goals-context";
 import { getRAGContext } from "@/lib/ai/rag-context";
 import { generateSketch } from "@/lib/ai/sketch-generator";
+import {
+  getMapAnalysisVisionModel,
+  getMapAnalysisFallbackModel,
+  getSketchInstructionModel,
+} from "@/lib/ai/model-settings";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
@@ -352,10 +357,14 @@ export async function POST(request: NextRequest) {
      * - Fallback typically succeeds on 1st or 2nd model
      */
     let completion;
-    let usedModel = FREE_VISION_MODELS[0];
+    let usedModel: string;
     let lastError;
 
-    for (const model of FREE_VISION_MODELS) {
+    // Get configured vision model from settings
+    const configuredVisionModel = await getMapAnalysisVisionModel();
+    const visionModels = [configuredVisionModel, ...FREE_VISION_MODELS.filter(m => m !== configuredVisionModel)];
+
+    for (const model of visionModels) {
       try {
         console.log(`Attempting AI analysis with model: ${model}`);
 
@@ -478,7 +487,7 @@ export async function POST(request: NextRequest) {
       console.log("All free models failed, trying paid fallback model...");
 
       try {
-        const fallbackModel = "google/gemini-2.5-flash-lite";
+        const fallbackModel = await getMapAnalysisFallbackModel();
         console.log(`Attempting AI analysis with fallback model: ${fallbackModel}`);
 
         // Build the same message structure
@@ -582,8 +591,9 @@ export async function POST(request: NextRequest) {
         );
 
         console.log('📝 Stage 1: Generating drawing instructions...');
+        const sketchInstructionModel = await getSketchInstructionModel();
         const instructionsResponse = await openrouter.chat.completions.create({
-          model: 'google/gemini-flash-1.5', // Fast, cheap text model
+          model: sketchInstructionModel,
           messages: [
             { role: 'user', content: instructionPrompt }
           ],

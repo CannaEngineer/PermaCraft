@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin';
 import { db } from '@/lib/db';
 import { openrouter } from '@/lib/ai/openrouter';
+import { getLessonGenerationModel } from '@/lib/ai/model-settings';
 
 // POST /api/admin/content/generate - Generate a new lesson with AI
 export async function POST(request: NextRequest) {
@@ -101,9 +102,12 @@ ${key_concepts}
 
 Generate comprehensive, engaging lesson content that achieves these learning objectives and covers all key concepts.`;
 
+    // Get model for lesson generation
+    const lessonModel = await getLessonGenerationModel();
+
     // Call AI
     const completion = await openrouter.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
+      model: lessonModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -150,7 +154,7 @@ Generate comprehensive, engaging lesson content that achieves these learning obj
         topic_id,
         session.user.id,
         JSON.stringify({ learning_objectives, key_concepts }),
-        'openai/gpt-oss-120b',
+        lessonModel,
         aiResponse,
         'draft',
         title,

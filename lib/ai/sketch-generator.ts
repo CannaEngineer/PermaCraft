@@ -11,8 +11,7 @@
  */
 
 import { openrouter } from './openrouter';
-
-const IMAGE_GENERATION_MODEL = 'google/gemini-2.5-flash-image';
+import { getSketchImageModel } from './model-settings';
 
 export interface SketchGenerationOptions {
   baseImageUrl: string;       // Screenshot to draw on (R2 URL or data URI)
@@ -30,14 +29,17 @@ export interface SketchGenerationOptions {
 export async function generateSketch(options: SketchGenerationOptions): Promise<string> {
   const { baseImageUrl, drawingPrompt, aspectRatio } = options;
 
-  console.log('[Sketch] Generating image with model:', IMAGE_GENERATION_MODEL);
+  // Get configured model for sketch image generation
+  const imageModel = await getSketchImageModel();
+
+  console.log('[Sketch] Generating image with model:', imageModel);
   console.log('[Sketch] Base image URL length:', baseImageUrl.length);
   console.log('[Sketch] Drawing prompt length:', drawingPrompt.length);
 
   try {
     // Build message with image input + text prompt
     const completion = await openrouter.chat.completions.create({
-      model: IMAGE_GENERATION_MODEL,
+      model: imageModel,
       messages: [
         {
           role: 'user',
