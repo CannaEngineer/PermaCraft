@@ -29,8 +29,8 @@ function safeJsonParse<T>(jsonString: string, fallback: T): T {
       let cleaned = jsonString;
 
       // Find all string values and escape newlines within them
-      // This regex finds quoted strings and replaces actual newlines with \n
-      cleaned = cleaned.replace(/"([^"]*?)"/gs, (match, content) => {
+      // Use [\s\S] instead of . with s flag for compatibility
+      cleaned = cleaned.replace(/"([\s\S]*?)"/g, (match, content) => {
         const escaped = content
           .replace(/\\/g, '\\\\')           // Escape backslashes first
           .replace(/\n/g, '\\n')            // Escape newlines
