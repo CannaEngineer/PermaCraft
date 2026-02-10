@@ -102,9 +102,59 @@ async function getExistingBlogContext(): Promise<string> {
 }
 
 /**
+ * Ensure blog_topic_queue table exists
+ */
+async function ensureTopicQueueTable(): Promise<void> {
+  try {
+    // Try to query the table
+    await db.execute({
+      sql: `SELECT COUNT(*) FROM blog_topic_queue LIMIT 1`,
+      args: [],
+    });
+  } catch (error: any) {
+    // Table doesn't exist, create it
+    if (error.message?.includes('no such table')) {
+      console.log('📦 Creating blog_topic_queue table...');
+
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS blog_topic_queue (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          keywords TEXT NOT NULL,
+          target_audience TEXT NOT NULL,
+          seo_angle TEXT,
+          why_trending TEXT,
+          status TEXT DEFAULT 'pending',
+          priority INTEGER DEFAULT 0,
+          created_at INTEGER DEFAULT (unixepoch()),
+          used_at INTEGER,
+          used_by_post_id TEXT,
+          FOREIGN KEY (used_by_post_id) REFERENCES blog_posts(id) ON DELETE SET NULL
+        )
+      `);
+
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_blog_topic_queue_status_priority
+          ON blog_topic_queue(status, priority DESC, created_at)
+      `);
+
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_blog_topic_queue_used_by_post
+          ON blog_topic_queue(used_by_post_id)
+      `);
+
+      console.log('✅ blog_topic_queue table created');
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
  * Get number of pending topics in queue
  */
 async function getQueueSize(): Promise<number> {
+  await ensureTopicQueueTable();
   const result = await db.execute({
     sql: `SELECT COUNT(*) as count FROM blog_topic_queue WHERE status = 'pending'`,
     args: [],
@@ -482,7 +532,9 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
  * Generate a basic fallback blog post if AI fails
  */
 function generateFallbackPost(topic: TopicIdea): BlogPost {
-  const slug = topic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 100);
+  // Add timestamp to slug to ensure uniqueness
+  const baseSlug = topic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 90);
+  const slug = `${baseSlug}-${Date.now()}`;
 
   return {
     title: topic.title,
