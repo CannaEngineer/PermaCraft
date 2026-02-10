@@ -13,7 +13,8 @@ const openrouter = new OpenAI({
 // Use Claude 3.5 Sonnet for reliable generation
 const PREMIUM_MODEL = 'anthropic/claude-3.5-sonnet';
 const IMAGE_PROMPT_MODEL = 'google/gemini-2.5-flash-lite';
-const IMAGE_MODEL = 'google/gemini-2.5-flash-image';
+// Use FLUX for reliable image generation
+const IMAGE_MODEL = 'black-forest-labs/flux-1.1-pro';
 
 /**
  * Safely parse JSON that might contain control characters
@@ -178,31 +179,41 @@ Return JSON:
  * Generate cover image for blog post
  */
 async function generateCoverImage(imagePrompt: string): Promise<string | null> {
-  console.log('🖼️ Generating cover image...');
+  console.log('🖼️ Generating cover image with FLUX...');
 
   try {
-    const response = await openrouter.chat.completions.create({
-      model: IMAGE_MODEL,
-      messages: [{ role: 'user', content: imagePrompt }],
-      max_tokens: 1024,
+    // FLUX uses the image generation API format
+    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://permaculture.studio',
+        'X-Title': 'PermaCraft',
+      },
+      body: JSON.stringify({
+        model: IMAGE_MODEL,
+        prompt: imagePrompt,
+        n: 1,
+        size: '1024x1024',
+      }),
     });
 
-    // OpenRouter image models may return URL or base64
-    const content = response.choices[0]?.message?.content;
-
-    // Check if it's a URL
-    if (content && (content.startsWith('http://') || content.startsWith('https://'))) {
-      return content;
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Image generation API error:', error);
+      return null;
     }
 
-    // Check if response has image URL in metadata
-    if (response.choices[0]?.message) {
-      const message = response.choices[0].message as any;
-      if (message.image_url) return message.image_url;
-      if (message.url) return message.url;
+    const data = await response.json();
+
+    // Check for image URL in response
+    if (data.data && data.data[0] && data.data[0].url) {
+      console.log('✅ Image generated successfully');
+      return data.data[0].url;
     }
 
-    console.warn('No image URL found in response');
+    console.warn('No image URL in response:', JSON.stringify(data).substring(0, 200));
     return null;
   } catch (error: any) {
     console.error('Image generation failed:', error.message);

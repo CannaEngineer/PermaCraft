@@ -9,6 +9,7 @@ const updateSchema = z.object({
   metaDescription: z.string().optional(),
   excerpt: z.string().optional(),
   content: z.string().min(1).optional(),
+  coverImageUrl: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
   seoKeywords: z.string().optional(),
   readTimeMinutes: z.number().min(1).max(60).optional(),
@@ -97,6 +98,11 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (data.content !== undefined) {
       updates.push('content = ?');
       args.push(data.content);
+    }
+
+    if (data.coverImageUrl !== undefined) {
+      updates.push('cover_image_url = ?');
+      args.push(data.coverImageUrl);
     }
 
     if (data.seoKeywords !== undefined) {
