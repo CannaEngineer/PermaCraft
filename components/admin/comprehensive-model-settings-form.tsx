@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,16 @@ import {
 } from '@/components/ui/select';
 import { Save, RotateCcw, Zap, MessageSquare, MapPin, Image, FileText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  model_id: string;
+  category: string;
+  cost_description: string;
+  description: string;
+}
 
 interface ComprehensiveModelSettingsFormProps {
   currentSettings: {
@@ -42,40 +52,47 @@ interface ComprehensiveModelSettingsFormProps {
   };
 }
 
-// Model options by category
-const TEXT_MODELS = [
-  { value: 'x-ai/grok-4.1-fast', label: 'Grok 4.1 Fast (Recommended - Fast & Cheap)', cost: '$0.002' },
-  { value: 'x-ai/grok-2-1212', label: 'Grok 2', cost: '$0.01' },
-  { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (Premium)', cost: '$0.20' },
-  { value: 'openai/gpt-4o', label: 'GPT-4o', cost: '$0.15' },
-  { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', cost: '$0.02' },
-  { value: 'meta-llama/llama-3.2-90b-vision-instruct:free', label: 'Llama 3.2 90B (Free)', cost: 'Free' },
-];
-
-const VISION_MODELS = [
-  { value: 'meta-llama/llama-3.2-90b-vision-instruct:free', label: 'Llama 3.2 90B Vision (Free)', cost: 'Free' },
-  { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', cost: '$0.001' },
-  { value: 'google/gemini-flash-1.5', label: 'Gemini Flash 1.5', cost: '$0.001' },
-  { value: 'openai/gpt-4o', label: 'GPT-4o Vision', cost: '$0.15' },
-];
-
-const IMAGE_PROMPT_MODELS = [
-  { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (Recommended)', cost: '$0.001' },
-  { value: 'x-ai/grok-4.1-fast', label: 'Grok 4.1 Fast', cost: '$0.002' },
-  { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', cost: '$0.02' },
-];
-
-const IMAGE_GENERATION_MODELS = [
-  { value: 'openai/dall-e-3', label: 'DALL-E 3 (Reliable)', cost: '$0.04' },
-  { value: 'black-forest-labs/flux-1.1-pro', label: 'FLUX 1.1 Pro', cost: '$0.04' },
-  { value: 'stability-ai/stable-diffusion-xl-1024-v1-0', label: 'Stable Diffusion XL', cost: '$0.003' },
-  { value: 'google/gemini-2.5-flash-image', label: 'Gemini Flash Image (Experimental)', cost: '$0.002' },
-];
-
 export function ComprehensiveModelSettingsForm({ currentSettings }: ComprehensiveModelSettingsFormProps) {
   const router = useRouter();
   const [settings, setSettings] = useState(currentSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const [models, setModels] = useState<AIModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
+
+  // Load available models from database
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const response = await fetch('/api/admin/ai-models');
+        if (!response.ok) throw new Error('Failed to load models');
+        const data = await response.json();
+        setModels(data.models);
+      } catch (error: any) {
+        toast.error('Failed to load model catalog');
+        console.error(error);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    loadModels();
+  }, []);
+
+  // Filter models by category
+  const getModelsByCategory = (category: string) => {
+    return models
+      .filter((m) => m.category === category)
+      .map((m) => ({
+        value: m.model_id,
+        label: `${m.name} (${m.provider})`,
+        cost: m.cost_description || 'Unknown',
+      }));
+  };
+
+  const TEXT_MODELS = getModelsByCategory('text');
+  const VISION_MODELS = getModelsByCategory('vision');
+  const IMAGE_PROMPT_MODELS = getModelsByCategory('image_prompt');
+  const IMAGE_GENERATION_MODELS = getModelsByCategory('image_generation');
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -106,6 +123,14 @@ export function ComprehensiveModelSettingsForm({ currentSettings }: Comprehensiv
   };
 
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(currentSettings);
+
+  if (isLoadingModels) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Loading model catalog...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
