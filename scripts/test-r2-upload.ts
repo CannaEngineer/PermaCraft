@@ -4,6 +4,12 @@
  * Run with: npx tsx scripts/test-r2-upload.ts
  */
 
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { uploadImageFromUrl } from '../lib/storage/r2';
 
 async function testR2Upload() {

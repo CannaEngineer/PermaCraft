@@ -17,18 +17,25 @@
 
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) {
-  throw new Error("R2 credentials not configured - see lib/storage/r2.ts for setup instructions");
-}
+let r2: S3Client | null = null;
 
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-  },
-});
+function getR2Client(): S3Client {
+  if (!r2) {
+    if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) {
+      throw new Error("R2 credentials not configured - see lib/storage/r2.ts for setup instructions");
+    }
+
+    r2 = new S3Client({
+      region: "auto",
+      endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      },
+    });
+  }
+  return r2;
+}
 
 export async function uploadScreenshot(
   farmId: string,
@@ -70,7 +77,7 @@ export async function uploadScreenshot(
     bufferPreview: buffer.slice(0, 20).toString('hex'),
   });
 
-  await r2.send(
+  await getR2Client().send(
     new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
       Key: key,
@@ -133,7 +140,7 @@ export async function uploadImageFromUrl(
       contentType,
     });
 
-    await r2.send(
+    await getR2Client().send(
       new PutObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME!,
         Key: key,
