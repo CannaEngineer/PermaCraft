@@ -95,3 +95,68 @@ export async function uploadScreenshot(
 
   return publicUrl;
 }
+
+/**
+ * Download an image from a URL and upload it to R2
+ * Used for blog cover images from AI generation services
+ */
+export async function uploadImageFromUrl(
+  url: string,
+  folder: string,
+  filename: string
+): Promise<string> {
+  console.log(`Downloading image from URL: ${url.substring(0, 100)}...`);
+
+  try {
+    // Download the image
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    if (buffer.length === 0) {
+      throw new Error('Downloaded image is empty');
+    }
+
+    // Determine content type from response or default to image/png
+    const contentType = response.headers.get('content-type') || 'image/png';
+
+    const key = `${folder}/${Date.now()}-${filename}`;
+
+    console.log('Uploading downloaded image to R2:', {
+      bucket: process.env.R2_BUCKET_NAME,
+      key,
+      bufferSize: buffer.length,
+      contentType,
+    });
+
+    await r2.send(
+      new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME!,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000',
+      })
+    );
+
+    const publicUrl = process.env.R2_PUBLIC_URL
+      ? `${process.env.R2_PUBLIC_URL}/${key}`
+      : url; // Fallback to original URL if no R2 public URL configured
+
+    console.log('Image uploaded to R2:', {
+      key,
+      publicUrl: publicUrl.substring(0, 100),
+      usingCustomDomain: !!process.env.R2_PUBLIC_URL,
+    });
+
+    return publicUrl;
+  } catch (error: any) {
+    console.error('Failed to upload image from URL:', error);
+    // Return original URL as fallback
+    return url;
+  }
+}

@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
+import { uploadImageFromUrl } from '@/lib/storage/r2';
 
 const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -239,26 +240,58 @@ async function generateCoverImage(imagePrompt: string): Promise<string | null> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Image API error:', response.status, errorText.substring(0, 200));
+      console.error('❌ Image API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        model: imageModel,
+        error: errorText.substring(0, 500),
+      });
       return null;
     }
 
     const data = await response.json();
+    console.log('📦 Image API response structure:', {
+      hasData: !!data.data,
+      hasUrl: !!data.url,
+      dataLength: data.data?.length,
+      firstItemKeys: data.data?.[0] ? Object.keys(data.data[0]) : [],
+      topLevelKeys: Object.keys(data),
+      fullResponse: JSON.stringify(data).substring(0, 300),
+    });
+
+    let tempImageUrl: string | null = null;
 
     // OpenAI images API returns data array with URL
     if (data.data && data.data[0] && data.data[0].url) {
       console.log('✅ Image generated successfully');
-      return data.data[0].url;
+      tempImageUrl = data.data[0].url;
     }
-
     // Fallback: check for url field directly
-    if (data.url) {
+    else if (data.url) {
       console.log('✅ Image URL found');
-      return data.url;
+      tempImageUrl = data.url;
     }
 
-    console.log('⚠️ No image URL found in response:', JSON.stringify(data).substring(0, 200));
-    return null;
+    if (!tempImageUrl) {
+      console.log('⚠️ No image URL found in response:', JSON.stringify(data).substring(0, 200));
+      return null;
+    }
+
+    // Download and upload to R2 for permanent storage
+    try {
+      console.log('📥 Downloading image and uploading to R2...');
+      const permanentUrl = await uploadImageFromUrl(
+        tempImageUrl,
+        'blog-covers',
+        'cover.png'
+      );
+      console.log('✅ Image permanently stored:', permanentUrl.substring(0, 100));
+      return permanentUrl;
+    } catch (uploadError: any) {
+      console.error('Failed to upload to R2, using temporary URL:', uploadError.message);
+      // Return temporary URL as fallback
+      return tempImageUrl;
+    }
   } catch (error: any) {
     console.error('Image generation failed:', error.message);
     // Don't fail the whole blog post if image generation fails
