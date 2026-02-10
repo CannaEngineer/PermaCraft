@@ -2,7 +2,7 @@
 
 ## 🎉 What's Working Now
 
-Your PermaCraft RAG system is **fully functional** with OpenRouter's Qwen3 embeddings!
+Your Permaculture.Studio RAG system is **fully functional** with OpenRouter's Qwen3 embeddings!
 
 ### ✅ Tested & Working
 1. **PDF OCR**: Extracts text from PDFs using OpenRouter vision
@@ -60,7 +60,7 @@ RAG_AUTO_PROCESS=true    # Automatically process them
 
 ```bash
 # Connect to database
-turso db shell permacraft
+turso db shell permaculture-studio
 
 # Check processed documents
 SELECT filename, processing_status, total_chunks
@@ -145,7 +145,7 @@ pdftoppm -png -f 1 -l 1 data/knowledge/yourfile.pdf /tmp/test
 ### Database Issues
 ```bash
 # Reset everything
-turso db shell permacraft
+turso db shell permaculture-studio
 DELETE FROM knowledge_processing_queue;
 DELETE FROM knowledge_sources;
 DELETE FROM knowledge_chunks;

@@ -2,7 +2,7 @@
 
   Overview
   This document outlines the implementation plan for adding a music player
-  to the PermaCraft permaculture design application. The goal is to
+  to the Permaculture.Studio permaculture design application. The goal is to
   integrate permaculture-specific songs to enhance the user experience
   while designing sustainable landscapes.
 

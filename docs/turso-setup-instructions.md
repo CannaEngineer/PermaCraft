@@ -1,6 +1,6 @@
 # Turso Database Setup Instructions
 
-This document contains the commands to set up your Turso database for PermaCraft.
+This document contains the commands to set up your Turso database for Permaculture.Studio.
 
 ## Step 1: Install Turso CLI
 
@@ -23,7 +23,7 @@ turso auth login
 Create a new database called "permacraft":
 
 ```bash
-turso db create permacraft
+turso db create permaculture-studio
 ```
 
 ## Step 4: Get Database Credentials
@@ -31,13 +31,13 @@ turso db create permacraft
 Get the database URL:
 
 ```bash
-turso db show permacraft --url
+turso db show permaculture-studio --url
 ```
 
 Create an authentication token:
 
 ```bash
-turso db tokens create permacraft
+turso db tokens create permaculture-studio
 ```
 
 ## Step 5: Update Environment Variables
@@ -54,7 +54,7 @@ TURSO_AUTH_TOKEN=eyJ... (from step 4)
 Once you have the credentials configured, apply the database schema:
 
 ```bash
-turso db shell permacraft < lib/db/schema.sql
+turso db shell permaculture-studio < lib/db/schema.sql
 ```
 
 ## Verification
@@ -62,7 +62,7 @@ turso db shell permacraft < lib/db/schema.sql
 Verify the schema was created successfully:
 
 ```bash
-turso db shell permacraft
+turso db shell permaculture-studio
 ```
 
 Then run:

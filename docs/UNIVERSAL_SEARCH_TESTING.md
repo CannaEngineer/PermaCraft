@@ -5,7 +5,7 @@
 
 ## Overview
 
-The universal search system has been fully implemented across the PermaCraft application. This document provides a comprehensive testing guide for manual QA.
+The universal search system has been fully implemented across the Permaculture.Studio application. This document provides a comprehensive testing guide for manual QA.
 
 ## Implementation Summary
 

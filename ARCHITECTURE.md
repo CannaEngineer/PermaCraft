@@ -1,6 +1,6 @@
-# PermaCraft Architecture
+# Permaculture.Studio Architecture
 
-This document provides a technical overview of PermaCraft's architecture, design patterns, and implementation details.
+This document provides a technical overview of Permaculture.Studio's architecture, design patterns, and implementation details.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This document provides a technical overview of PermaCraft's architecture, design
 
 ## System Overview
 
-PermaCraft is a **serverless, full-stack Next.js application** with:
+Permaculture.Studio is a **serverless, full-stack Next.js application** with:
 - Server-side rendering (SSR) and static generation (SSG)
 - Server Components for optimal performance
 - Edge runtime where applicable

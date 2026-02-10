@@ -70,7 +70,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`,
         {
           headers: {
-            'User-Agent': 'PermaCraft Farm Planner'
+            'User-Agent': 'Permaculture.Studio Farm Planner'
           }
         }
       );

@@ -18,7 +18,7 @@ First time setup - grant yourself admin access:
 npx tsx scripts/make-admin.ts your-email@example.com
 ```
 
-**Important:** You must have logged into PermaCraft at least once for your account to exist in the database.
+**Important:** You must have logged into Permaculture.Studio at least once for your account to exist in the database.
 
 ### 2. Access the Admin Panel
 

@@ -1,8 +1,8 @@
-# PermaCraft AI-Powered Permaculture Design Platform
+# Permaculture.Studio AI-Powered Permaculture Design Platform
 
 ## Project Overview
 
-PermaCraft is an AI-powered permaculture design platform that combines interactive mapping with intelligent terrain analysis for regenerative agriculture planning. The application is built with Next.js 14, TypeScript, and uses Turso (libSQL) as its database. It leverages AI vision models through OpenRouter to provide permaculture design recommendations based on satellite and topographic map analysis.
+Permaculture.Studio is an AI-powered permaculture design platform that combines interactive mapping with intelligent terrain analysis for regenerative agriculture planning. The application is built with Next.js 14, TypeScript, and uses Turso (libSQL) as its database. It leverages AI vision models through OpenRouter to provide permaculture design recommendations based on satellite and topographic map analysis.
 
 ### Key Features
 - Interactive map-based design with support for polygons, lines, points, and circles
@@ -36,13 +36,13 @@ PermaCraft is an AI-powered permaculture design platform that combines interacti
 npm install
 
 # Set up Turso database
-turso db create permacraft
-turso db shell permacraft < lib/db/schema.sql
-turso db shell permacraft < data/seed-species.sql
+turso db create permaculture-studio
+turso db shell permaculture-studio < lib/db/schema.sql
+turso db shell permaculture-studio < data/seed-species.sql
 
 # Get database credentials
-turso db show permacraft
-turso db tokens create permacraft
+turso db show permaculture-studio
+turso db tokens create permaculture-studio
 
 # Configure environment variables
 cp .env.example .env.local
@@ -75,7 +75,7 @@ npm run test         # Run tests with Vitest
 
 ## Project Structure
 ```
-permacraft/
+permaculture-studio/
 ├── app/                    # Next.js app directory
 │   ├── (app)/             # Authenticated routes
 │   │   ├── dashboard/     # User's farms list

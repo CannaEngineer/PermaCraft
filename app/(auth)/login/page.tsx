@@ -52,7 +52,7 @@ export default function LoginPage() {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-3xl font-serif font-bold">
-          PermaCraft
+          Permaculture.Studio
         </CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>

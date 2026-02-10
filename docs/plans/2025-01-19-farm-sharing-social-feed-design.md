@@ -8,7 +8,7 @@
 
 ## Vision
 
-Transform PermaCraft's gallery into a living social platform where farm owners tell their permaculture journey through timestamped posts. Enable community learning through engagement (comments, reactions) while maintaining owner control over their narrative.
+Transform Permaculture.Studio's gallery into a living social platform where farm owners tell their permaculture journey through timestamped posts. Enable community learning through engagement (comments, reactions) while maintaining owner control over their narrative.
 
 **Core Concept:** "Farm as Living Story"
 

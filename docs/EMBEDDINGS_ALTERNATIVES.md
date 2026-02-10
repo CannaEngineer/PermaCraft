@@ -249,7 +249,7 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 
 ```bash
 # Clear old embeddings
-turso db shell permacraft
+turso db shell permaculture-studio
 UPDATE knowledge_chunks SET embedding = NULL;
 
 # Generate new embeddings with OpenAI

@@ -1,4 +1,4 @@
-# 🎓 PermaCraft Content Library - Complete!
+# 🎓 Permaculture.Studio Content Library - Complete!
 
 **Date:** 2026-02-09  
 **Status:** Production Ready  

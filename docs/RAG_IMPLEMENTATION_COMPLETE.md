@@ -204,7 +204,7 @@ You'll know RAG is working when:
 
 ## 🎊 Summary
 
-**RAG is now fully integrated into PermaCraft!**
+**RAG is now fully integrated into Permaculture.Studio!**
 
 - ✅ PDF processing: Complete (OCR, chunking, storage)
 - ✅ Embeddings: Complete (Qwen3, 8192-dim vectors)

@@ -5,7 +5,7 @@
 
 ## Overview
 
-The PermaCraft educational system (Phase 1 MVP) has been successfully implemented and deployed to the database. All core infrastructure, UI pages, API endpoints, and foundational features are now live.
+The Permaculture.Studio educational system (Phase 1 MVP) has been successfully implemented and deployed to the database. All core infrastructure, UI pages, API endpoints, and foundational features are now live.
 
 ---
 

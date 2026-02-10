@@ -1,8 +1,8 @@
-# PermaCraft AI-Powered Permaculture Design Platform
+# Permaculture.Studio AI-Powered Permaculture Design Platform
 
 ## Application Overview
 
-PermaCraft is an advanced AI-powered permaculture design platform that combines interactive mapping with intelligent terrain analysis for regenerative agriculture planning. The application enables farmers, permaculturists, and land stewards to design sustainable farms using cutting-edge AI vision models to analyze satellite and topographic imagery for location-specific recommendations.
+Permaculture.Studio is an advanced AI-powered permaculture design platform that combines interactive mapping with intelligent terrain analysis for regenerative agriculture planning. The application enables farmers, permaculturists, and land stewards to design sustainable farms using cutting-edge AI vision models to analyze satellite and topographic imagery for location-specific recommendations.
 
 ## Problems Solved
 
@@ -13,7 +13,7 @@ PermaCraft is an advanced AI-powered permaculture design platform that combines 
 - **Design Visualization**: Difficulty visualizing how different zones will interact on actual terrain
 - **Knowledge Gap**: Lack of access to permaculture expertise for sustainable design decisions
 
-### PermaCraft Solutions
+### Permaculture.Studio Solutions
 - **AI-Powered Terrain Analysis**: Automatically identifies drainage patterns, slopes, aspect, and elevation changes
 - **Native Species Recommendations**: Matches plants to local climate zones and soil conditions
 - **Grid-Based Location System**: Provides precise coordinates for implementation
@@ -128,6 +128,6 @@ PermaCraft is an advanced AI-powered permaculture design platform that combines 
 
 ## Impact and Value Proposition
 
-PermaCraft democratizes permaculture expertise by making advanced terrain analysis and species selection available to anyone with a computer and internet connection. The platform helps create more sustainable, productive, and resilient agricultural systems by combining traditional permaculture wisdom with modern AI technology, resulting in designs that work harmoniously with natural systems rather than against them.
+Permaculture.Studio democratizes permaculture expertise by making advanced terrain analysis and species selection available to anyone with a computer and internet connection. The platform helps create more sustainable, productive, and resilient agricultural systems by combining traditional permaculture wisdom with modern AI technology, resulting in designs that work harmoniously with natural systems rather than against them.
 
 The application bridges the gap between permaculture theory and practical implementation by providing concrete, location-specific guidance that takes into account the unique characteristics of each piece of land.

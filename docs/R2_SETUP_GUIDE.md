@@ -1,4 +1,4 @@
-# Cloudflare R2 Setup Guide for PermaCraft
+# Cloudflare R2 Setup Guide for Permaculture.Studio
 
 ## Overview
 This guide will help you set up Cloudflare R2 storage for blog cover images and map screenshots.
@@ -18,11 +18,11 @@ This guide will help you set up Cloudflare R2 storage for blog cover images and 
 4. If prompted, enable R2 for your account (no credit card required for development)
 
 ### 1.2 Use Existing Bucket
-If you already have a bucket (e.g., `permacraft-snapshots`), **skip to Step 2**.
+If you already have a bucket (e.g., `permaculture-studio-snapshots`), **skip to Step 2**.
 
 Or to create a new bucket:
 1. Click **"Create bucket"**
-2. **Bucket name**: `permacraft-snapshots` (lowercase, no spaces)
+2. **Bucket name**: `permaculture-studio-snapshots` (lowercase, no spaces)
 3. **Location**: Choose closest to your users
 4. Click **"Create bucket"**
 
@@ -64,7 +64,7 @@ Blog images will be stored in a `blog-covers/` folder within this bucket.
 - **Permissions**: Select **"Object Read & Write"**
 - **Bucket scope**:
   - Select **"Apply to specific buckets only"**
-  - Choose `permacraft-snapshots`
+  - Choose `permaculture-studio-snapshots`
 - **TTL**: Leave as "Forever" (or set expiration if you prefer)
 
 ### 3.3 Save Credentials
@@ -95,7 +95,7 @@ Create or update `.env.local` in your project root:
 R2_ACCOUNT_ID=your_account_id_here
 R2_ACCESS_KEY_ID=your_access_key_id_here
 R2_SECRET_ACCESS_KEY=your_secret_access_key_here
-R2_BUCKET_NAME=permacraft-snapshots
+R2_BUCKET_NAME=permaculture-studio-snapshots
 R2_PUBLIC_URL=https://pub-xxxxxxxx.r2.dev
 
 # Existing vars...
@@ -108,7 +108,7 @@ TURSO_DATABASE_URL=...
 ### For Vercel Production
 
 1. Go to https://vercel.com/dashboard
-2. Select your **PermaCraft** project
+2. Select your **Permaculture.Studio** project
 3. Navigate to **Settings** → **Environment Variables**
 4. Add each variable:
 
@@ -117,7 +117,7 @@ TURSO_DATABASE_URL=...
 | `R2_ACCOUNT_ID` | Your account ID | ✓ All |
 | `R2_ACCESS_KEY_ID` | Your access key | ✓ All |
 | `R2_SECRET_ACCESS_KEY` | Your secret key | ✓ All |
-| `R2_BUCKET_NAME` | `permacraft-snapshots` | ✓ All |
+| `R2_BUCKET_NAME` | `permaculture-studio-snapshots` | ✓ All |
 | `R2_PUBLIC_URL` | `https://pub-xxxx.r2.dev` | ✓ All |
 
 5. After adding all variables, **redeploy**:
@@ -151,7 +151,7 @@ Environment Variables:
   R2_PUBLIC_URL: https://pub-xxxxx.r2.dev
 
 📥 Downloading test image from: https://...
-⬆️  Uploading to R2 bucket: permacraft-snapshots
+⬆️  Uploading to R2 bucket: permaculture-studio-snapshots
 
 ✅ Success! Image uploaded to R2
 📍 Permanent URL: https://pub-xxxxx.r2.dev/test/...
@@ -259,7 +259,7 @@ After completing setup:
 Your R2 bucket will be organized like this:
 
 ```
-permacraft-snapshots/
+permaculture-studio-snapshots/
 ├── farms/                    # Map screenshots (existing)
 │   └── [farm-id]/
 │       └── snapshots/

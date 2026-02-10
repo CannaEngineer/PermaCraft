@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: PageProps) {
   if (!post) return { title: 'Post Not Found' };
 
   return {
-    title: `${post.title} - PermaCraft Blog`,
+    title: `${post.title} - Permaculture.Studio Blog`,
     description: post.meta_description,
   };
 }
@@ -129,7 +129,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <User className="h-4 w-4" />
-                <span>{post.author_name || 'PermaCraft Team'}</span>
+                <span>{post.author_name || 'Permaculture.Studio Team'}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
@@ -217,7 +217,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                     <User className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">{post.author_name || 'PermaCraft Team'}</p>
+                    <p className="font-medium">{post.author_name || 'Permaculture.Studio Team'}</p>
                     <p className="text-sm text-muted-foreground">
                       Expert in permaculture and sustainable living
                     </p>

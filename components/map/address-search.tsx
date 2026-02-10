@@ -58,7 +58,7 @@ export function AddressSearch({ onLocationSelect }: AddressSearchProps) {
           `addressdetails=1`,
         {
           headers: {
-            'User-Agent': 'PermaCraft/1.0', // Required by Nominatim
+            'User-Agent': 'Permaculture.Studio/1.0', // Required by Nominatim
           },
         }
       );

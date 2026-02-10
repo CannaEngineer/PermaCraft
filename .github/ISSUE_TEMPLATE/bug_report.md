@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve PermaCraft
+about: Report a bug to help us improve Permaculture.Studio
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -28,7 +28,7 @@ If applicable, add screenshots to help explain the problem.
 - **OS**: [e.g., macOS 14, Windows 11, Ubuntu 22.04]
 - **Browser**: [e.g., Chrome 120, Firefox 121, Safari 17]
 - **Node Version**: [e.g., 18.17.0]
-- **PermaCraft Version**: [e.g., 0.1.0]
+- **Permaculture.Studio Version**: [e.g., 0.1.0]
 
 ## Additional Context
 Add any other context about the problem here.

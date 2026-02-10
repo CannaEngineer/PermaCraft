@@ -7,7 +7,7 @@ const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY!,
   defaultHeaders: {
     'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://permaculture.studio',
-    'X-Title': 'PermaCraft',
+    'X-Title': 'Permaculture.Studio',
   },
 });
 
@@ -270,16 +270,16 @@ export async function replenishTopicQueue(): Promise<void> {
                         ['March', 'April', 'May'].includes(currentMonth) ? 'Spring' :
                         ['June', 'July', 'August'].includes(currentMonth) ? 'Summer' : 'Fall';
 
-  const prompt = `You are a content strategist for PermaCraft, an AI-powered permaculture design platform.
+  const prompt = `You are a content strategist for Permaculture.Studio, an AI-powered permaculture design platform.
 
-ABOUT PERMACRAFT:
+ABOUT PERMACULTURE.STUDIO:
 - Map-based permaculture planning tool for small farmers, homesteaders, and permaculture students
 - Users design farms by drawing zones and plantings on interactive maps
 - AI analyzes screenshots and provides permaculture design recommendations
 - Emphasizes NATIVE species and permaculture principles
 - Target audience: beginners to intermediate permaculture practitioners
 
-GENERATE 15 BLOG TOPICS that help PermaCraft users succeed with their designs:
+GENERATE 15 BLOG TOPICS that help Permaculture.Studio users succeed with their designs:
 
 CONSIDER:
 - Current season: ${currentSeason} (${currentMonth})
@@ -569,13 +569,13 @@ export async function generateBlogPost(topic: TopicIdea): Promise<BlogPost> {
     // Get model for blog text generation
     const textModel = await getBlogTextModel();
 
-  const prompt = `Write an exceptional blog post about permaculture for PermaCraft readers.
+  const prompt = `Write an exceptional blog post about permaculture for Permaculture.Studio readers.
 
 **Topic:** ${topic.title}
 **Keywords:** ${topic.keywords.join(', ')}
 **Target Audience:** ${topic.target_audience}
 
-ABOUT PERMACRAFT READERS:
+ABOUT PERMACULTURE.STUDIO READERS:
 - Small farmers, homesteaders, suburban gardeners interested in permaculture
 - Planning their permaculture designs (not yet implementing)
 - Want practical, actionable design advice
@@ -584,8 +584,8 @@ ABOUT PERMACRAFT READERS:
 
 IMPORTANT - DO NOT MAKE UP FEATURES:
 - Write about permaculture principles and practices in general
-- DO NOT mention specific PermaCraft features, tools, or capabilities
-- DO NOT reference "PermaCraft map tools" or "placing on your map" unless the actual platform features are verified
+- DO NOT mention specific Permaculture.Studio features, tools, or capabilities
+- DO NOT reference "Permaculture.Studio map tools" or "placing on your map" unless the actual platform features are verified
 - Focus on timeless permaculture knowledge, not software features
 - This is educational content about permaculture, not a product tutorial
 

@@ -1,4 +1,4 @@
--- RAG (Retrieval-Augmented Generation) Schema for PermaCraft
+-- RAG (Retrieval-Augmented Generation) Schema for Permaculture.Studio
 -- Auto-scanned knowledge base from data/knowledge/ folder
 
 -- Source documents metadata

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Clock, TrendingUp, Zap, Eye } from 'lucide-react';
 
 export const metadata = {
-  title: 'Blog - PermaCraft',
+  title: 'Blog - Permaculture.Studio',
   description: 'Learn permaculture through expert articles and guides',
 };
 
@@ -60,7 +60,7 @@ export default async function BlogPage() {
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-2">
           <BookOpen className="h-8 w-8 text-primary" />
-          <h1 className="text-4xl font-bold">PermaCraft Blog</h1>
+          <h1 className="text-4xl font-bold">Permaculture.Studio Blog</h1>
         </div>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Expert permaculture guides, seasonal tips, and sustainable living insights.

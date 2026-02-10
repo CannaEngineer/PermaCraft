@@ -1422,7 +1422,7 @@ ls -la components/farm/
 ls -la app/api/feed/
 
 # Database schema check (optional)
-turso db shell permacraft
+turso db shell permaculture-studio
 SELECT is_public, COUNT(*) FROM farms GROUP BY is_public;
 SELECT post_type, COUNT(*) FROM farm_posts GROUP BY post_type;
 ```

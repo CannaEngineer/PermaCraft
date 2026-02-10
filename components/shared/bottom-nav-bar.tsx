@@ -172,7 +172,7 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
                   {/* Not Signed In */}
                   <div className="pb-4 border-b border-border">
                     <p className="text-sm font-medium text-foreground">
-                      Welcome to PermaCraft
+                      Welcome to Permaculture.Studio
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Sign in to create and manage your farms

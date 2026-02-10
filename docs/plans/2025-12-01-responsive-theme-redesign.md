@@ -1,4 +1,4 @@
-# PermaCraft Responsive Theme Redesign
+# Permaculture.Studio Responsive Theme Redesign
 
 **Date:** 2025-12-01
 **Status:** Design Complete, Ready for Implementation

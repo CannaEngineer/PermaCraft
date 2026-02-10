@@ -96,7 +96,7 @@ async function LearnContent() {
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">PermaCraft Learn</h1>
+        <h1 className="text-4xl font-bold mb-2">Permaculture.Studio Learn</h1>
         <p className="text-muted-foreground text-lg">
           Master permaculture design through hands-on lessons and AI-guided practice
         </p>

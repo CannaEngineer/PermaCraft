@@ -92,7 +92,7 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose }: AudioPlayerProps) 
           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 bg-gradient-to-r from-gray-700 to-gray-800">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <h3 className="text-sm font-bold text-green-400 tracking-wide">PERMACRAFT MUSIC PLAYER</h3>
+              <h3 className="text-sm font-bold text-green-400 tracking-wide">PERMACULTURE.STUDIO MUSIC PLAYER</h3>
             </div>
             <Button
               variant="ghost"
@@ -191,7 +191,7 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose }: AudioPlayerProps) 
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gradient-to-r from-gray-700 to-gray-800">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <h3 className="text-sm font-bold text-green-400 tracking-wide">PERMACRAFT MUSIC</h3>
+                <h3 className="text-sm font-bold text-green-400 tracking-wide">PERMACULTURE.STUDIO MUSIC</h3>
               </div>
               <Button
                 variant="ghost"

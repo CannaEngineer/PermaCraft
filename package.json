@@ -1,17 +1,17 @@
 {
-  "name": "permacraft",
+  "name": "permaculture-studio",
   "version": "0.1.0",
   "description": "AI-powered permaculture design platform with interactive mapping and terrain analysis",
-  "author": "PermaCraft Contributors",
+  "author": "Permaculture.Studio Contributors",
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/permacraft.git"
+    "url": "https://github.com/yourusername/permaculture-studio.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/permacraft/issues"
+    "url": "https://github.com/yourusername/permaculture-studio/issues"
   },
-  "homepage": "https://github.com/yourusername/permacraft#readme",
+  "homepage": "https://github.com/yourusername/permaculture-studio#readme",
   "keywords": [
     "permaculture",
     "agriculture",

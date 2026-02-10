@@ -1,6 +1,6 @@
-# Contributing to PermaCraft
+# Contributing to Permaculture.Studio
 
-Thank you for your interest in contributing to PermaCraft! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Permaculture.Studio! This document provides guidelines and instructions for contributing.
 
 ## 🌱 Code of Conduct
 
@@ -12,8 +12,8 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 
 ```bash
 # Fork the repository on GitHub, then:
-git clone https://github.com/your-username/permacraft.git
-cd permacraft
+git clone https://github.com/your-username/permaculture-studio.git
+cd permaculture-studio
 ```
 
 ### 2. Set Up Development Environment
@@ -113,7 +113,7 @@ npm run dev
 
 ### Good First Issues
 
-Look for issues labeled [`good first issue`](https://github.com/yourusername/permacraft/labels/good%20first%20issue) - these are beginner-friendly tasks.
+Look for issues labeled [`good first issue`](https://github.com/yourusername/permaculture-studio/labels/good%20first%20issue) - these are beginner-friendly tasks.
 
 ## 🔍 Pull Request Process
 
@@ -164,7 +164,7 @@ git push origin feature/your-feature-name
 ## 🏗️ Project Structure
 
 ```
-permacraft/
+permaculture-studio/
 ├── app/                    # Next.js app directory (routes)
 ├── components/             # React components
 │   ├── ui/                # shadcn/ui base components
@@ -186,7 +186,7 @@ permacraft/
 
 ### Before Reporting
 
-1. Check [existing issues](https://github.com/yourusername/permacraft/issues)
+1. Check [existing issues](https://github.com/yourusername/permaculture-studio/issues)
 2. Try the latest version
 3. Gather debug information
 
@@ -223,7 +223,7 @@ We welcome feature suggestions! Please:
 
 1. Check if the feature is already requested
 2. Clearly describe the use case
-3. Explain why it aligns with PermaCraft's mission
+3. Explain why it aligns with Permaculture.Studio's mission
 4. Include mockups or examples if applicable
 
 ## 🧪 Adding Tests
@@ -248,7 +248,7 @@ Documentation improvements are highly valued:
 
 - **GitHub Discussions**: For general questions
 - **GitHub Issues**: For bug reports and feature requests
-- **Discord**: [Join our community](https://discord.gg/permacraft) (if available)
+- **Discord**: [Join our community](https://discord.gg/permaculture-studio) (if available)
 
 ## 🎉 Recognition
 
@@ -257,4 +257,4 @@ Contributors will be:
 - Mentioned in release notes
 - Thanked in commit messages
 
-Thank you for making PermaCraft better! 🌱
+Thank you for making Permaculture.Studio better! 🌱

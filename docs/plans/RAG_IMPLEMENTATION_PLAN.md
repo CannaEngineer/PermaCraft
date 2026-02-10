@@ -1,10 +1,10 @@
-# RAG System Implementation Plan for PermaCraft
+# RAG System Implementation Plan for Permaculture.Studio
 **Date:** 2025-12-08
 **Status:** Planning
 
 ## Executive Summary
 
-This plan outlines the implementation of a Retrieval-Augmented Generation (RAG) system for PermaCraft's AI assistant. The RAG system will ground AI recommendations in authoritative permaculture literature, reducing hallucinations and providing educational, citation-backed responses.
+This plan outlines the implementation of a Retrieval-Augmented Generation (RAG) system for Permaculture.Studio's AI assistant. The RAG system will ground AI recommendations in authoritative permaculture literature, reducing hallucinations and providing educational, citation-backed responses.
 
 ## Current Architecture Analysis
 

@@ -123,7 +123,7 @@ export function LocationPicker({
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
         {
           headers: {
-            "User-Agent": "PermaCraft Farm Planner",
+            "User-Agent": "Permaculture.Studio Farm Planner",
           },
         }
       );

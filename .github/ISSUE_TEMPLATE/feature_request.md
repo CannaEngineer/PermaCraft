@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea for PermaCraft
+about: Suggest an idea for Permaculture.Studio
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''

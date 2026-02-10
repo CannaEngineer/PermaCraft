@@ -15,7 +15,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const lora = Lora({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
-  title: "PermaCraft - Permaculture Planning Platform",
+  title: "Permaculture.Studio - Permaculture Planning Platform",
   description: "AI-first map-based permaculture planning for small farmers",
 };
 

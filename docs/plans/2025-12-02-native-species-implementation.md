@@ -78,12 +78,12 @@ export interface Species {
 
 **Step 3: Run migration**
 
-Run: `turso db shell permacraft < lib/db/migrations/002_species_enhancements.sql`
+Run: `turso db shell permaculture-studio < lib/db/migrations/002_species_enhancements.sql`
 Expected: Success message, no errors
 
 **Step 4: Verify schema change**
 
-Run: `turso db shell permacraft "PRAGMA table_info(species);"`
+Run: `turso db shell permaculture-studio "PRAGMA table_info(species);"`
 Expected: New columns appear in output
 
 **Step 5: Commit**
@@ -227,12 +227,12 @@ WHERE id = 'sp-grape';
 
 **Step 2: Run seed script**
 
-Run: `turso db shell permacraft < data/seed-species-enhanced.sql`
+Run: `turso db shell permaculture-studio < data/seed-species-enhanced.sql`
 Expected: 9 rows updated
 
 **Step 3: Verify data**
 
-Run: `turso db shell permacraft "SELECT common_name, broad_regions, permaculture_functions FROM species LIMIT 3;"`
+Run: `turso db shell permaculture-studio "SELECT common_name, broad_regions, permaculture_functions FROM species LIMIT 3;"`
 Expected: See enhanced JSON data
 
 **Step 4: Commit**

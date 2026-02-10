@@ -1,8 +1,8 @@
-# CLAUDE.md - PermaCraft Development Guide
+# CLAUDE.md - Permaculture.Studio Development Guide
 
 ## Project Overview
 
-PermaCraft is an AI-first, map-based permaculture planning platform for small farmers, curious landowners, and permaculture students. Users draw zones and plantings on interactive maps, receive AI-powered design recommendations based on screenshot analysis, simulate growth over time, and share designs with a community.
+Permaculture.Studio is an AI-first, map-based permaculture planning platform for small farmers, curious landowners, and permaculture students. Users draw zones and plantings on interactive maps, receive AI-powered design recommendations based on screenshot analysis, simulate growth over time, and share designs with a community.
 
 ### Core Philosophy
 - **Native species first**: Always prioritize native plants; mark non-natives clearly
@@ -27,7 +27,7 @@ PermaCraft is an AI-first, map-based permaculture planning platform for small fa
 ## Project Structure
 
 ```
-permacraft/
+permaculture-studio/
 ├── app/
 │   ├── (app)/                    # Authenticated routes
 │   │   ├── dashboard/page.tsx    # User's farms list
@@ -82,7 +82,7 @@ export const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   defaultHeaders: {
     'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL,
-    'X-Title': 'PermaCraft',
+    'X-Title': 'Permaculture.Studio',
   },
 });
 ```
@@ -97,7 +97,7 @@ OPENROUTER_API_KEY=sk-or-...
 R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
-R2_BUCKET_NAME=permacraft-snapshots
+R2_BUCKET_NAME=permaculture-studio-snapshots
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -171,8 +171,8 @@ if (!farm) return new Response('Not found', { status: 404 });
 npm run dev
 
 # Database
-turso db shell permacraft              # Interactive SQL shell
-turso db tokens create permacraft      # Generate new auth token
+turso db shell permaculture-studio              # Interactive SQL shell
+turso db tokens create permaculture-studio      # Generate new auth token
 
 # Deployment
 vercel                                 # Deploy to Vercel

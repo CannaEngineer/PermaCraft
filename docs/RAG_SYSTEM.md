@@ -66,7 +66,7 @@ The RAG system automatically ingests permaculture PDFs, extracts text via OCR, a
 
 2. **Verify:**
    ```bash
-   turso db shell permacraft
+   turso db shell permaculture-studio
    ```
    ```sql
    SELECT COUNT(*) FROM knowledge_chunks WHERE embedding IS NOT NULL;
@@ -229,7 +229,7 @@ npx tsx scripts/test-embeddings.ts
 ### Database Issues
 ```bash
 # Reset RAG data
-turso db shell permacraft
+turso db shell permaculture-studio
 ```
 ```sql
 DELETE FROM knowledge_processing_queue;

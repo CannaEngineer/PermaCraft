@@ -1,6 +1,6 @@
 # Vercel Environment Variables
 
-This document lists ALL environment variables needed for PermaCraft deployment on Vercel.
+This document lists ALL environment variables needed for Permaculture.Studio deployment on Vercel.
 
 ## Required Variables (App Will Not Start Without These)
 
@@ -19,9 +19,9 @@ curl -sSfL https://get.tur.so/install.sh | bash  # Linux
 
 # Login and create database
 turso auth login
-turso db create permacraft
-turso db show permacraft  # Get URL
-turso db tokens create permacraft  # Get token
+turso db create permaculture-studio
+turso db show permaculture-studio  # Get URL
+turso db tokens create permaculture-studio  # Get token
 ```
 
 ---
@@ -65,7 +65,7 @@ OPENROUTER_API_KEY=sk-or-v1-your-key
 R2_ACCOUNT_ID=your-account-id
 R2_ACCESS_KEY_ID=your-access-key
 R2_SECRET_ACCESS_KEY=your-secret-key
-R2_BUCKET_NAME=permacraft-snapshots
+R2_BUCKET_NAME=permaculture-studio-snapshots
 R2_PUBLIC_URL=https://your-r2-domain.com
 ```
 
@@ -92,7 +92,7 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 
 ### Method 1: Vercel Dashboard (Recommended)
 
-1. Go to your project settings: `https://vercel.com/your-username/permacraft/settings`
+1. Go to your project settings: `https://vercel.com/your-username/permaculture-studio/settings`
 2. Click "Environment Variables"
 3. Add each variable:
    - **Key:** Variable name (e.g., `TURSO_DATABASE_URL`)

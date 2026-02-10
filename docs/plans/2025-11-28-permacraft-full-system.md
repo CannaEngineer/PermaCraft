@@ -1,4 +1,4 @@
-# PermaCraft Full System Implementation Plan
+# Permaculture.Studio Full System Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -62,7 +62,7 @@ OPENROUTER_API_KEY=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=permacraft-snapshots
+R2_BUCKET_NAME=permaculture-studio-snapshots
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -267,7 +267,7 @@ Run:
 ```bash
 curl -sSfL https://get.tur.so/install.sh | bash
 turso auth login
-turso db create permacraft
+turso db create permaculture-studio
 ```
 
 Expected: Database created
@@ -276,8 +276,8 @@ Expected: Database created
 
 Run:
 ```bash
-turso db show permacraft --url
-turso db tokens create permacraft
+turso db show permaculture-studio --url
+turso db tokens create permaculture-studio
 ```
 
 Save the URL and token to `.env.local`:
@@ -440,7 +440,7 @@ CREATE INDEX IF NOT EXISTS idx_species_native ON species(is_native);
 
 Run:
 ```bash
-turso db shell permacraft < lib/db/schema.sql
+turso db shell permaculture-studio < lib/db/schema.sql
 ```
 
 Expected: Schema created successfully
@@ -750,7 +750,7 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">PermaCraft</CardTitle>
+        <CardTitle className="text-2xl font-bold">Permaculture.Studio</CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -932,7 +932,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PermaCraft - Permaculture Planning Platform",
+  title: "Permaculture.Studio - Permaculture Planning Platform",
   description: "AI-first map-based permaculture planning for small farmers",
 };
 
@@ -1020,7 +1020,7 @@ export function Sidebar({ userName }: { userName: string }) {
       <div className="p-6">
         <div className="flex items-center space-x-2">
           <MapIcon className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">PermaCraft</span>
+          <span className="text-xl font-bold">Permaculture.Studio</span>
         </div>
       </div>
 
@@ -1864,7 +1864,7 @@ export const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   defaultHeaders: {
     "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    "X-Title": "PermaCraft",
+    "X-Title": "Permaculture.Studio",
   },
 });
 
@@ -2584,7 +2584,7 @@ VALUES
 
 Run:
 ```bash
-turso db shell permacraft < data/seed-species.sql
+turso db shell permaculture-studio < data/seed-species.sql
 ```
 
 **Step 3: Commit seed data**
@@ -2608,7 +2608,7 @@ git commit -m "feat: add seed species data"
 
 Create `README.md`:
 ```markdown
-# PermaCraft
+# Permaculture.Studio
 
 AI-first, map-based permaculture planning platform for small farmers and permaculture enthusiasts.
 
@@ -2650,9 +2650,9 @@ AI-first, map-based permaculture planning platform for small farmers and permacu
 
 3. Set up Turso database:
    ```bash
-   turso db create permacraft
-   turso db shell permacraft < lib/db/schema.sql
-   turso db shell permacraft < data/seed-species.sql
+   turso db create permaculture-studio
+   turso db shell permaculture-studio < lib/db/schema.sql
+   turso db shell permaculture-studio < data/seed-species.sql
    ```
 
 4. Configure environment variables (see `.env.example`)
@@ -2669,7 +2669,7 @@ AI-first, map-based permaculture planning platform for small farmers and permacu
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm start` - Start production server
-- `turso db shell permacraft` - Open database shell
+- `turso db shell permaculture-studio` - Open database shell
 
 ## License
 
@@ -2695,7 +2695,7 @@ OPENROUTER_API_KEY=sk-or-v1-your-key
 R2_ACCOUNT_ID=your-account-id
 R2_ACCESS_KEY_ID=your-access-key
 R2_SECRET_ACCESS_KEY=your-secret-key
-R2_BUCKET_NAME=permacraft-snapshots
+R2_BUCKET_NAME=permaculture-studio-snapshots
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -2900,7 +2900,7 @@ git commit -m "deploy: add Vercel configuration"
 
 ## Plan Complete
 
-This plan provides a complete implementation roadmap for PermaCraft from zero to production deployment.
+This plan provides a complete implementation roadmap for Permaculture.Studio from zero to production deployment.
 
 **Implementation Summary:**
 

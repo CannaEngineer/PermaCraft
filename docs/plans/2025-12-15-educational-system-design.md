@@ -1,4 +1,4 @@
-# Educational System Design - PermaCraft Learn
+# Educational System Design - Permaculture.Studio Learn
 
 **Date:** 2025-12-15
 **Status:** Design Complete - Ready for Implementation
@@ -9,7 +9,7 @@ An integrated educational system that teaches permaculture principles through st
 
 ## Core Philosophy
 
-- **Teach permaculture itself**, not just how to use PermaCraft
+- **Teach permaculture itself**, not just how to use Permaculture.Studio
 - **AI-first approach**: Personalized content, adaptive tutoring, practice farm grading
 - **Learning by doing**: Sandbox practice farms + real farm application
 - **Gamified progression**: Badges, XP, levels for motivation
@@ -904,7 +904,7 @@ export interface AITutorConversation {
 
 ## Related Documents
 
-- Product roadmap (where this fits in overall PermaCraft vision)
+- Product roadmap (where this fits in overall Permaculture.Studio vision)
 - AI prompt engineering guidelines
 - Content style guide for lesson writing
 - Accessibility standards

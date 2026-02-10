@@ -1,4 +1,4 @@
-# PermaCraft 🌱
+# Permaculture.Studio 🌱
 
 > AI-powered permaculture design platform combining interactive mapping with intelligent terrain analysis for regenerative agriculture planning.
 
@@ -71,20 +71,20 @@
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/permacraft.git
-cd permacraft
+git clone https://github.com/yourusername/permaculture-studio.git
+cd permaculture-studio
 
 # 2. Install dependencies
 npm install
 
 # 3. Set up Turso database
-turso db create permacraft
-turso db shell permacraft < lib/db/schema.sql
-turso db shell permacraft < data/seed-species.sql
+turso db create permaculture-studio
+turso db shell permaculture-studio < lib/db/schema.sql
+turso db shell permaculture-studio < data/seed-species.sql
 
 # 4. Get database credentials
-turso db show permacraft
-turso db tokens create permacraft
+turso db show permaculture-studio
+turso db tokens create permaculture-studio
 
 # 5. Configure environment variables
 cp .env.example .env.local
@@ -166,14 +166,14 @@ npm run start        # Start production server
 npm run lint         # Run ESLint
 
 # Database
-turso db shell permacraft                  # Open database shell
-turso db shell permacraft < migrations.sql # Run migrations
+turso db shell permaculture-studio                  # Open database shell
+turso db shell permaculture-studio < migrations.sql # Run migrations
 ```
 
 ### Project Structure
 
 ```
-permacraft/
+permaculture-studio/
 ├── app/                    # Next.js app directory
 │   ├── (app)/             # Authenticated routes
 │   │   ├── dashboard/     # User's farms list
@@ -222,7 +222,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - [ ] Watershed and water flow calculations
 - [ ] Companion planting guilds database
 
-See [GitHub Issues](https://github.com/yourusername/permacraft/issues) for current tasks.
+See [GitHub Issues](https://github.com/yourusername/permaculture-studio/issues) for current tasks.
 
 ---
 
@@ -255,8 +255,8 @@ Built with inspiration from permaculture pioneers and the global regenerative ag
 
 ## 📧 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/permacraft/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/permacraft/discussions)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/permaculture-studio/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/permaculture-studio/discussions)
 - **Email**: your-email@example.com
 
 ---

@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers deploying PermaCraft to production using Vercel (recommended) or other platforms.
+This guide covers deploying Permaculture.Studio to production using Vercel (recommended) or other platforms.
 
 ## Table of Contents
 

@@ -1,6 +1,6 @@
 # Deployment Instructions
 
-## Deploying PermaCraft to Vercel
+## Deploying Permaculture.Studio to Vercel
 
 ### Prerequisites
 

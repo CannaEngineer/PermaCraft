@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const targetWords = Math.floor(estimated_minutes * 80); // ~80 words per minute
 
     // Build AI prompt
-    const systemPrompt = `You are an expert permaculture educator creating lesson content for PermaCraft, an educational platform.
+    const systemPrompt = `You are an expert permaculture educator creating lesson content for Permaculture.Studio, an educational platform.
 
 CRITICAL REQUIREMENTS:
 1. Follow permaculture ethics: Earth Care, People Care, Fair Share

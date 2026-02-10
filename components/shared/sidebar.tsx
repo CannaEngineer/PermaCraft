@@ -48,7 +48,7 @@ export function Sidebar({
       <div className="p-6 border-b border-border xp-title-bar">
         <div className="flex items-center space-x-2">
           <MapIcon className="h-8 w-8" />
-          <span className="text-xl font-serif font-bold">PermaCraft</span>
+          <span className="text-xl font-serif font-bold">Permaculture.Studio</span>
         </div>
       </div>
 

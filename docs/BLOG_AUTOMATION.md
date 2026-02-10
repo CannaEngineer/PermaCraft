@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PermaCraft blog system features AI-powered automated content generation using OpenRouter's Claude Opus 4 model. The system is designed to generate 3 high-quality, SEO-optimized blog posts per day (one every 6 hours).
+The Permaculture.Studio blog system features AI-powered automated content generation using OpenRouter's Claude Opus 4 model. The system is designed to generate 3 high-quality, SEO-optimized blog posts per day (one every 6 hours).
 
 ## Features
 

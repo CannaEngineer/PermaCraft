@@ -1153,7 +1153,7 @@ return (
     <div className="p-6 border-b border-border">
       <div className="flex items-center space-x-2">
         <MapIcon className="h-8 w-8 text-primary" />
-        <span className="text-xl font-serif font-bold text-foreground">PermaCraft</span>
+        <span className="text-xl font-serif font-bold text-foreground">Permaculture.Studio</span>
       </div>
     </div>
 
