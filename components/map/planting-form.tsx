@@ -35,15 +35,6 @@ export function PlantingForm({ species, position, zones, onSubmit, onCancel }: P
     });
   };
 
-  // Center form in viewport
-  const formStyle: React.CSSProperties = {
-    position: 'fixed',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)', // Center in viewport
-    zIndex: 1000
-  };
-
   return (
     <>
       {/* Backdrop */}
@@ -52,11 +43,11 @@ export function PlantingForm({ species, position, zones, onSubmit, onCancel }: P
         onClick={onCancel}
       />
 
-      {/* Form */}
-      <div style={formStyle} className="z-[1000]">
+      {/* Form - Side-anchored panel (left on desktop, bottom on mobile) */}
+      <div className="fixed inset-y-0 left-0 z-[1000] w-[380px] max-w-[90vw] max-md:inset-x-0 max-md:inset-y-auto max-md:bottom-0 max-md:w-full max-md:h-[70vh] animate-in slide-in-from-left duration-200 max-md:slide-in-from-bottom">
         <form
           onSubmit={handleSubmit}
-          className="bg-card rounded-lg shadow-2xl border border-border w-80 overflow-hidden"
+          className="bg-card rounded-lg shadow-2xl border border-border h-full overflow-hidden flex flex-col max-md:rounded-t-lg max-md:rounded-b-none"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -77,7 +68,7 @@ export function PlantingForm({ species, position, zones, onSubmit, onCancel }: P
           </div>
 
           {/* Form Fields */}
-          <div className="p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {/* Custom Name */}
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">

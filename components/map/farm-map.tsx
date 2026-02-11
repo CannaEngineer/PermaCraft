@@ -12,6 +12,8 @@ import { CompassRose } from "./compass-rose";
 import { MapBottomDrawer } from "./map-bottom-drawer";
 import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
+import { SpeciesPickerCompact } from "./species-picker-compact";
+import { ZoneQuickLabelForm } from "./zone-quick-label-form";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
 import { MapControlsSheet } from "./map-controls-sheet";
@@ -130,11 +132,15 @@ export function FarmMap({
   const [terrainEnabled, setTerrainEnabled] = useState(false);
   const circleCenterMarker = useRef<maplibregl.Marker | null>(null);
 
+  // Drawing mode state for context labels
+  const [drawMode, setDrawMode] = useState<string>('simple_select');
+
   // Planting mode state
   const [plantingMode, setPlantingMode] = useState(false);
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [plantings, setPlantings] = useState<any[]>([]);
   const [showSpeciesPicker, setShowSpeciesPicker] = useState(false);
+  const [useCompactPicker, setUseCompactPicker] = useState(true); // Default to compact picker
   const [showPlantingForm, setShowPlantingForm] = useState(false);
   const [plantingClickPos, setPlantingClickPos] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
 
@@ -145,6 +151,11 @@ export function FarmMap({
 
   // Guild companion filter state
   const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
+
+  // Zone quick label form state
+  const [showQuickLabelForm, setShowQuickLabelForm] = useState(false);
+  const [quickLabelZoneId, setQuickLabelZoneId] = useState<string | null>(null);
+  const [quickLabelPosition, setQuickLabelPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Time Machine state - projection year for growth simulation
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
@@ -384,6 +395,38 @@ export function FarmMap({
         ? prev.filter(v => v !== vital)
         : [...prev, vital]
     );
+  };
+
+  // Handle quick label form save
+  const handleQuickLabelSave = (type: string, name?: string) => {
+    if (!draw.current || !quickLabelZoneId) return;
+
+    // Update the feature properties
+    const feature = draw.current.get(quickLabelZoneId);
+    if (feature) {
+      feature.properties = {
+        ...feature.properties,
+        user_zone_type: type,
+        name: name || ''
+      };
+      draw.current.add(feature);
+
+      // Trigger zones update
+      onZonesChange(draw.current.getAll().features);
+      updateColoredZones();
+    }
+
+    // Close the form
+    setShowQuickLabelForm(false);
+    setQuickLabelZoneId(null);
+    setQuickLabelPosition(null);
+  };
+
+  // Handle quick label form skip
+  const handleQuickLabelSkip = () => {
+    setShowQuickLabelForm(false);
+    setQuickLabelZoneId(null);
+    setQuickLabelPosition(null);
   };
 
   // Manage circle center marker
@@ -1100,6 +1143,43 @@ export function FarmMap({
         }
       };
 
+      const handleDrawCreate = (e: any) => {
+        // First, do the regular draw change handling
+        handleDrawChange(e);
+
+        // Then show the quick label form for the newly created zone
+        if (e.features && e.features.length > 0 && map.current) {
+          const newFeature = e.features[0];
+          const featureId = newFeature.id;
+
+          // Skip if it's a farm boundary (those are set programmatically)
+          if (newFeature.properties?.user_zone_type === "farm_boundary") {
+            return;
+          }
+
+          // Get the last coordinate of the feature to position the form nearby
+          let lastCoord: [number, number] | null = null;
+
+          if (newFeature.geometry.type === 'Polygon') {
+            const coords = newFeature.geometry.coordinates[0];
+            lastCoord = coords[coords.length - 2]; // -2 because last point repeats first
+          } else if (newFeature.geometry.type === 'LineString') {
+            const coords = newFeature.geometry.coordinates;
+            lastCoord = coords[coords.length - 1];
+          } else if (newFeature.geometry.type === 'Point') {
+            lastCoord = newFeature.geometry.coordinates;
+          }
+
+          if (lastCoord) {
+            // Convert map coordinates to screen coordinates
+            const point = map.current.project(lastCoord as [number, number]);
+            setQuickLabelZoneId(featureId);
+            setQuickLabelPosition({ x: point.x, y: point.y });
+            setShowQuickLabelForm(true);
+          }
+        }
+      };
+
       const handleDrawUpdate = (e: any) => {
         if (e.features && e.features.length > 0 && draw.current) {
           // Check if any updated feature is a farm boundary
@@ -1141,7 +1221,7 @@ export function FarmMap({
         handleDrawChange(e);
       };
 
-      map.current.on("draw.create", handleDrawChange);
+      map.current.on("draw.create", handleDrawCreate);
       map.current.on("draw.update", handleDrawUpdate);
       map.current.on("draw.delete", handleDrawDelete);
 
@@ -1196,6 +1276,11 @@ export function FarmMap({
 
       // Handle mode changes for both circle deselection and farm boundary protection
       map.current.on("draw.modechange", (e: any) => {
+        // Update draw mode state for context labels
+        if (e.mode) {
+          setDrawMode(e.mode);
+        }
+
         // Deactivate circle mode when switching to other draw tools
         // Modes: draw_point, draw_line_string, draw_polygon, simple_select, direct_select
         if (e.mode && (e.mode === 'draw_point' || e.mode === 'draw_line_string' || e.mode === 'draw_polygon')) {
@@ -2579,6 +2664,16 @@ export function FarmMap({
         </div>
       )}
 
+      {/* Drawing Mode Context Label */}
+      {drawMode !== 'simple_select' && drawMode !== 'direct_select' && (
+        <div className="absolute top-3 right-20 z-10 bg-green-600 text-white px-3 py-1.5 rounded-md text-xs font-medium shadow-lg animate-in fade-in duration-200">
+          {drawMode === 'draw_polygon' && '📐 Drawing Zone Area'}
+          {drawMode === 'draw_line_string' && '〰️ Drawing Path/Swale'}
+          {drawMode === 'draw_point' && '📍 Mark Location'}
+          {circleMode && '⭕ Drawing Circle Zone'}
+        </div>
+      )}
+
       {/* Compass Rose - Desktop Only */}
       <div className="hidden md:block">
         <CompassRose bearing={bearing} />
@@ -2625,8 +2720,29 @@ export function FarmMap({
         />
       ))}
 
-      {/* Species Picker Panel */}
-      {showSpeciesPicker && (
+      {/* Species Picker - Compact or Full Panel */}
+      {showSpeciesPicker && useCompactPicker && !companionFilterFor && (
+        <SpeciesPickerCompact
+          farmId={farm.id}
+          onSelectSpecies={(species) => {
+            setSelectedSpecies(species);
+            setPlantingMode(true);
+            setShowSpeciesPicker(false);
+          }}
+          onClose={() => {
+            setShowSpeciesPicker(false);
+            if (!selectedSpecies) {
+              setPlantingMode(false);
+            }
+          }}
+          onBrowseAll={() => {
+            setUseCompactPicker(false);
+          }}
+        />
+      )}
+
+      {/* Species Picker - Full Panel (when browsing all or using companion filter) */}
+      {showSpeciesPicker && (!useCompactPicker || companionFilterFor) && (
         <SpeciesPickerPanel
           farmId={farm.id}
           companionFilterFor={companionFilterFor}
@@ -2634,11 +2750,13 @@ export function FarmMap({
             setSelectedSpecies(species);
             setPlantingMode(true);
             setShowSpeciesPicker(false);
-            setCompanionFilterFor(undefined); // Clear companion filter after selection
+            setCompanionFilterFor(undefined);
+            setUseCompactPicker(true); // Reset to compact for next time
           }}
           onClose={() => {
             setShowSpeciesPicker(false);
-            setCompanionFilterFor(undefined); // Clear companion filter on close
+            setCompanionFilterFor(undefined);
+            setUseCompactPicker(true); // Reset to compact for next time
             if (!selectedSpecies) {
               setPlantingMode(false);
             }
@@ -2657,6 +2775,16 @@ export function FarmMap({
             setShowPlantingForm(false);
             setPlantingClickPos(null);
           }}
+        />
+      )}
+
+      {/* Zone Quick Label Form */}
+      {showQuickLabelForm && quickLabelZoneId && quickLabelPosition && (
+        <ZoneQuickLabelForm
+          position={quickLabelPosition}
+          zoneId={quickLabelZoneId}
+          onSave={handleQuickLabelSave}
+          onSkip={handleQuickLabelSkip}
         />
       )}
 

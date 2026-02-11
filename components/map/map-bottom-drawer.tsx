@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronDown, ChevronUp, Filter, Map, Activity, Settings, Clock, Leaf, Play, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
 
 type MapLayer = "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
@@ -75,6 +76,44 @@ export function MapBottomDrawer({
   // Use isCollapsed directly - remove forced expand
   const effectiveCollapsed = isCollapsed;
 
+  // Calculate badge counts for peek bar
+  const activeFilterCount = useMemo(() => {
+    return plantingFilters.length + vitalFilters.length;
+  }, [plantingFilters.length, vitalFilters.length]);
+
+  // Calculate low vitals (high importance functions with 0 count)
+  const lowVitalCount = useMemo(() => {
+    if (plantings.length === 0) return 0;
+
+    const functionCounts: Record<string, number> = {};
+    plantings.forEach((planting: any) => {
+      if (!planting.permaculture_functions) return;
+      try {
+        const functions: string[] = JSON.parse(planting.permaculture_functions);
+        functions.forEach((fn) => {
+          functionCounts[fn] = (functionCounts[fn] || 0) + 1;
+        });
+      } catch (error) {
+        // Ignore parse errors
+      }
+    });
+
+    // High importance functions to check
+    const highImportanceFunctions = [
+      'nitrogen_fixer', 'nitrogen_fixing',
+      'pollinator_support', 'pollinator', 'pollinator_attractor',
+      'edible_fruit', 'edible_nuts', 'edible'
+    ];
+
+    return highImportanceFunctions.filter(fn => !functionCounts[fn]).length > 0 ? 1 : 0;
+  }, [plantings]);
+
+  // Helper to open drawer to specific tab
+  const openTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setIsCollapsed(false);
+  };
+
   // Time machine playback effect
   useEffect(() => {
     if (!isPlaying || !onYearChange || currentYear === undefined) return;
@@ -100,19 +139,45 @@ export function MapBottomDrawer({
     >
       {/* Peek Tab - Always Visible When Collapsed */}
       {effectiveCollapsed && (
-        <div
-          className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border cursor-pointer hover:bg-accent/50 transition-colors"
-          onClick={() => setIsCollapsed(false)}
-        >
+        <div className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border">
           <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setIsCollapsed(false)}
+                className="text-sm font-semibold hover:text-primary transition-colors"
+              >
                 <Map className="inline h-4 w-4 mr-1" />
                 Map Info ▲
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {plantings.length} plantings
-              </span>
+              </button>
+
+              {plantings.length > 0 && (
+                <Badge
+                  onClick={(e) => { e.stopPropagation(); openTab('filters'); }}
+                  className="cursor-pointer hover:bg-primary/90 bg-primary text-primary-foreground"
+                >
+                  🌱 {plantings.length} {plantings.length === 1 ? 'planting' : 'plantings'}
+                </Badge>
+              )}
+
+              {lowVitalCount > 0 && plantings.length > 0 && (
+                <Badge
+                  onClick={(e) => { e.stopPropagation(); openTab('vitals'); }}
+                  variant="destructive"
+                  className="cursor-pointer hover:bg-destructive/90"
+                >
+                  ⚠️ Missing key functions
+                </Badge>
+              )}
+
+              {activeFilterCount > 0 && (
+                <Badge
+                  onClick={(e) => { e.stopPropagation(); openTab('filters'); }}
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-secondary/90"
+                >
+                  🔍 {activeFilterCount} {activeFilterCount === 1 ? 'filter' : 'filters'} active
+                </Badge>
+              )}
             </div>
           </div>
         </div>
