@@ -11,13 +11,6 @@ export function QuickActions() {
       color: 'bg-green-500/10 text-green-600 border-green-200',
     },
     {
-      label: 'Share Post',
-      description: 'Share with community',
-      href: '/gallery',
-      icon: Share2,
-      color: 'bg-blue-500/10 text-blue-600 border-blue-200',
-    },
-    {
       label: 'Start Learning',
       description: 'Browse lessons',
       href: '/learn',
@@ -32,13 +25,6 @@ export function QuickActions() {
       color: 'bg-amber-500/10 text-amber-600 border-amber-200',
     },
     {
-      label: 'AI Analysis',
-      description: 'Get recommendations',
-      href: '/dashboard',
-      icon: Sparkles,
-      color: 'bg-pink-500/10 text-pink-600 border-pink-200',
-    },
-    {
       label: 'Community',
       description: 'Connect & share',
       href: '/gallery',
@@ -48,7 +34,7 @@ export function QuickActions() {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
       {actions.map((action) => (
         <Link
           key={action.label}
