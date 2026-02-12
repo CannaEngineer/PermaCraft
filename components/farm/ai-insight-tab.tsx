@@ -13,10 +13,13 @@ import remarkGfm from 'remark-gfm';
 interface AIInsightTabProps {
   farmId: string;
   onPostCreated: () => void;
+  allFarms?: boolean; // If true, load conversations from all user's farms
 }
 
 interface Conversation {
   id: string;
+  farm_id?: string; // Added for cross-farm support
+  farm_name?: string; // Added for cross-farm support
   created_at: number;
   preview: string;
 }
@@ -28,9 +31,10 @@ interface AIMessage {
   created_at: number;
 }
 
-export function AIInsightTab({ farmId, onPostCreated }: AIInsightTabProps) {
+export function AIInsightTab({ farmId, onPostCreated, allFarms = false }: AIInsightTabProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string>('');
+  const [selectedFarmId, setSelectedFarmId] = useState<string>(farmId);
   const [aiMessages, setAiMessages] = useState<AIMessage[]>([]);
   const [selectedMessageId, setSelectedMessageId] = useState<string>('');
   const [commentary, setCommentary] = useState('');
@@ -40,20 +44,30 @@ export function AIInsightTab({ farmId, onPostCreated }: AIInsightTabProps) {
 
   useEffect(() => {
     loadConversations();
-  }, [farmId]);
+  }, [farmId, allFarms]);
 
   useEffect(() => {
     if (selectedConversationId) {
       loadMessages(selectedConversationId);
+      // Update selected farm ID if in allFarms mode
+      if (allFarms) {
+        const selectedConv = conversations.find(c => c.id === selectedConversationId);
+        if (selectedConv?.farm_id) {
+          setSelectedFarmId(selectedConv.farm_id);
+        }
+      }
     } else {
       setAiMessages([]);
       setSelectedMessageId('');
     }
-  }, [selectedConversationId]);
+  }, [selectedConversationId, allFarms, conversations]);
 
   const loadConversations = async () => {
     try {
-      const res = await fetch(`/api/farms/${farmId}/conversations`);
+      const endpoint = allFarms
+        ? '/api/user/ai-conversations'
+        : `/api/farms/${farmId}/conversations`;
+      const res = await fetch(endpoint);
       const data = await res.json();
       setConversations(data.conversations || []);
     } catch (error) {
@@ -89,8 +103,11 @@ export function AIInsightTab({ farmId, onPostCreated }: AIInsightTabProps) {
       const selectedMessage = aiMessages.find((m) => m.id === selectedMessageId);
       if (!selectedMessage) throw new Error('Message not found');
 
+      // Use selectedFarmId when in allFarms mode, otherwise use farmId prop
+      const targetFarmId = allFarms ? selectedFarmId : farmId;
+
       // Create post with full AI response
-      const postRes = await fetch(`/api/farms/${farmId}/posts`, {
+      const postRes = await fetch(`/api/farms/${targetFarmId}/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -147,6 +164,9 @@ export function AIInsightTab({ farmId, onPostCreated }: AIInsightTabProps) {
           <SelectContent>
             {conversations.map((conv) => (
               <SelectItem key={conv.id} value={conv.id}>
+                {allFarms && conv.farm_name && (
+                  <span className="font-medium">{conv.farm_name} - </span>
+                )}
                 {new Date(conv.created_at * 1000).toLocaleDateString()} - {conv.preview}
               </SelectItem>
             ))}

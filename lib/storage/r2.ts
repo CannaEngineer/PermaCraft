@@ -162,7 +162,10 @@ export async function uploadImageFromUrl(
 
     return publicUrl;
   } catch (error: any) {
-    console.error('Failed to upload image from URL:', error);
+    console.error('Failed to upload image from URL:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     // Return original URL as fallback
     return url;
   }

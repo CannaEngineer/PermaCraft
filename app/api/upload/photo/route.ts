@@ -61,7 +61,12 @@ export async function POST(request: NextRequest) {
       success: true,
     });
   } catch (error) {
-    console.error("Photo upload error:", error);
+    // Safely log error - AWS SDK errors can cause console.error to crash
+    console.error("Photo upload error:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
 
     if (error instanceof z.ZodError) {
       return Response.json(

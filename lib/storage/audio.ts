@@ -39,7 +39,10 @@ export const uploadAudio = async (audioKey: string, audioBuffer: Buffer, content
       })
     );
   } catch (error) {
-    console.error('Error uploading audio to R2:', error);
+    console.error('Error uploading audio to R2:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   }
 };
@@ -67,7 +70,10 @@ export const deleteAudio = async (audioKey: string): Promise<void> => {
       })
     );
   } catch (error) {
-    console.error('Error deleting audio from R2:', error);
+    console.error('Error deleting audio from R2:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   }
 };
