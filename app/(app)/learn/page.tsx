@@ -348,7 +348,6 @@ async function LearnContent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {paths.map((path, index) => {
-                const Icon = getIconComponent(path.icon_name);
                 const difficultyClass = difficultyColors[path.difficulty] || difficultyColors.beginner;
                 const isActive = activePathId === path.id;
 
@@ -361,7 +360,7 @@ async function LearnContent() {
                     <PathSelector
                       path={path}
                       isActive={isActive}
-                      iconComponent={Icon}
+                      iconName={path.icon_name}
                       difficultyClass={difficultyClass}
                     />
                   </div>

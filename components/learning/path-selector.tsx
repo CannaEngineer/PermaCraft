@@ -5,17 +5,24 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import * as Icons from 'lucide-react';
 import { BookOpen, CheckCircle2 } from 'lucide-react';
 import type { LearningPath } from '@/lib/db/schema';
 
 interface PathSelectorProps {
   path: LearningPath;
   isActive: boolean;
-  iconComponent: React.ComponentType<{ className?: string }>;
+  iconName: string;
   difficultyClass: string;
 }
 
-export function PathSelector({ path, isActive, iconComponent: Icon, difficultyClass }: PathSelectorProps) {
+function getIconComponent(iconName: string) {
+  const Icon = (Icons as any)[iconName] || Icons.BookOpen;
+  return Icon;
+}
+
+export function PathSelector({ path, isActive, iconName, difficultyClass }: PathSelectorProps) {
+  const Icon = getIconComponent(iconName);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
