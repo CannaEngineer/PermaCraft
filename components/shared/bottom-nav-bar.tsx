@@ -26,7 +26,7 @@ const primaryNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", requiresAuth: true },
   { name: "Community", href: "/gallery", icon: Users, label: "Community", requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, label: "Learn", requiresAuth: false },
-  { name: "Plants", href: "/plants", icon: Leaf, label: "Plants", requiresAuth: false },
+  { name: "Blog", href: "/learn/blog", icon: BookOpen, label: "Blog", requiresAuth: false },
 ];
 
 interface BottomNavBarProps {
@@ -215,16 +215,16 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
                       </p>
 
                       <Link
-                        href="/learn/blog"
+                        href="/plants"
                         onClick={() => setShowProfileMenu(false)}
                         className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-purple-600" />
+                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                          <Leaf className="w-5 h-5 text-green-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-sm">Blog</p>
-                          <p className="text-xs text-muted-foreground">Read articles & earn XP</p>
+                          <p className="font-medium text-sm">Plant Catalog</p>
+                          <p className="text-xs text-muted-foreground">Browse species</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>
@@ -319,16 +319,16 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
                       </p>
 
                       <Link
-                        href="/learn/blog"
+                        href="/plants"
                         onClick={() => setShowProfileMenu(false)}
                         className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-purple-600" />
+                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                          <Leaf className="w-5 h-5 text-green-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-sm">Blog</p>
-                          <p className="text-xs text-muted-foreground">Permaculture articles</p>
+                          <p className="font-medium text-sm">Plant Catalog</p>
+                          <p className="text-xs text-muted-foreground">Browse species</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>
