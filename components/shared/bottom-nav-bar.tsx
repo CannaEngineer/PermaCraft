@@ -3,17 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, Users, Leaf, Menu, Music, GraduationCap, BookOpen, Shield } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Leaf,
+  GraduationCap,
+  User,
+  BookOpen,
+  Shield,
+  LogOut,
+  Settings,
+  ChevronRight,
+  Sparkles,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
-  { name: "Community", href: "/gallery", icon: Users, requiresAuth: false },
-  { name: "Learn", href: "/learn", icon: GraduationCap, requiresAuth: false },
-  { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
+const primaryNavItems = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", requiresAuth: true },
+  { name: "Community", href: "/gallery", icon: Users, label: "Community", requiresAuth: false },
+  { name: "Learn", href: "/learn", icon: GraduationCap, label: "Learn", requiresAuth: false },
+  { name: "Plants", href: "/plants", icon: Leaf, label: "Plants", requiresAuth: false },
 ];
 
 interface BottomNavBarProps {
@@ -24,22 +37,20 @@ interface BottomNavBarProps {
 }
 
 /**
- * Mobile Bottom Navigation Bar
+ * World-Class Mobile Navigation
  *
- * Optimized for the "thumb zone" - bottom third of mobile screens
- * where users can easily reach with one hand.
- *
- * Features:
- * - Fixed to bottom of screen
- * - 6 items: Dashboard | Community | Learn | Plants | Music | Menu
- * - Music opens music player drawer
- * - Menu opens drawer with user info, theme toggle, and logout
- * - Active state highlighting
- * - Touch-friendly 44px minimum height
+ * Design Principles:
+ * - iOS/Material Design inspired bottom navigation
+ * - 4 primary destinations in bottom bar
+ * - Beautiful modal sheet for profile and settings
+ * - Clear visual hierarchy and generous spacing
+ * - Smooth animations and transitions
+ * - Touch-optimized with 48px minimum targets
+ * - Progressive disclosure of features
  */
-export function BottomNavBar({ userName, isAuthenticated, isAdmin, onMusicOpen }: BottomNavBarProps) {
+export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBarProps) {
   const pathname = usePathname();
-  const [showMenu, setShowMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const handleLogout = async () => {
     await fetch("/api/auth/sign-out", { method: "POST" });
@@ -47,224 +58,315 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, onMusicOpen }
   };
 
   // Filter navigation based on auth status
-  const visibleNav = navItems.filter(
+  const visibleNav = primaryNavItems.filter(
     (item) => !item.requiresAuth || isAuthenticated
   );
 
+  // Get user initials
+  const userInitials = userName
+    ? userName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "U";
+
   return (
     <>
-      {/* Bottom Navigation Bar - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-card border-t border-border safe-area-bottom xp-taskbar">
-        <div className="flex items-center justify-around h-16">
+      {/* Bottom Navigation Bar - iOS/Material Design Style */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/50 shadow-2xl safe-area-bottom">
+        {/* Navigation Items */}
+        <div className="flex items-center justify-around px-2 h-16">
           {visibleNav.map((item) => {
             const isActive = pathname === item.href;
+            const Icon = item.icon;
+
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "xp-menu-item flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation",
-                  isActive
-                    ? "active text-primary"
-                    : "text-muted-foreground active:text-primary"
+                  "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 min-w-[64px] touch-manipulation active:scale-95",
+                  isActive && "bg-primary/10"
                 )}
               >
-                <item.icon className={cn(
-                  "h-6 w-6 transition-transform",
+                <div className={cn(
+                  "relative transition-all duration-200",
                   isActive && "scale-110"
-                )} />
-                <span className={cn(
-                  "text-xs font-medium",
-                  isActive && "font-semibold"
                 )}>
-                  {item.name}
+                  <Icon
+                    className={cn(
+                      "h-6 w-6 transition-colors",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  {/* Active indicator dot */}
+                  {isActive && (
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "text-[11px] font-medium transition-colors leading-none",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  {item.label}
                 </span>
               </Link>
             );
           })}
 
-          {/* Music Button */}
+          {/* Profile/Menu Button */}
           <button
-            onClick={onMusicOpen}
-            className="xp-menu-item flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation text-muted-foreground active:text-primary"
-          >
-            <Music className="h-6 w-6 transition-transform active:scale-110" />
-            <span className="text-xs font-medium">
-              Music
-            </span>
-          </button>
-
-          {/* Menu Button */}
-          <button
-            onClick={() => setShowMenu(!showMenu)}
+            onClick={() => setShowProfileMenu(true)}
             className={cn(
-              "xp-menu-item flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors touch-manipulation",
-              showMenu
-                ? "active text-primary"
-                : "text-muted-foreground active:text-primary"
+              "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 min-w-[64px] touch-manipulation active:scale-95",
+              showProfileMenu && "bg-primary/10"
             )}
           >
-            <Menu className={cn(
-              "h-6 w-6 transition-transform",
-              showMenu && "scale-110"
-            )} />
-            <span className={cn(
-              "text-xs font-medium",
-              showMenu && "font-semibold"
+            <div className={cn(
+              "relative transition-all duration-200",
+              showProfileMenu && "scale-110"
             )}>
-              Menu
+              {isAuthenticated ? (
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-[10px] font-semibold bg-primary text-primary-foreground">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <User
+                  className={cn(
+                    "h-6 w-6 transition-colors",
+                    showProfileMenu ? "text-primary" : "text-muted-foreground"
+                  )}
+                  strokeWidth={showProfileMenu ? 2.5 : 2}
+                />
+              )}
+              {/* Admin badge */}
+              {isAdmin && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-background flex items-center justify-center">
+                  <Shield className="w-2 h-2 text-white" strokeWidth={3} />
+                </div>
+              )}
+            </div>
+            <span
+              className={cn(
+                "text-[11px] font-medium transition-colors leading-none",
+                showProfileMenu ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              {isAuthenticated ? "Profile" : "Menu"}
             </span>
           </button>
         </div>
       </nav>
 
-      {/* Menu Drawer Overlay */}
-      {showMenu && (
+      {/* Profile/Menu Modal Sheet */}
+      {showProfileMenu && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop with blur */}
           <div
-            className="md:hidden fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
-            onClick={() => setShowMenu(false)}
+            className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] animate-in fade-in duration-200"
+            onClick={() => setShowProfileMenu(false)}
           />
 
-          {/* Drawer */}
-          <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom xp-panel max-h-[80vh] overflow-y-auto">
-            <div className="p-6 space-y-4">
-              {isAuthenticated ? (
-                <>
-                  {/* User Info */}
-                  <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-lg font-semibold text-primary">
-                        {userName?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {userName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Signed in
-                      </p>
-                    </div>
-                  </div>
+          {/* Modal Sheet - iOS/Material Design Style */}
+          <div className="md:hidden fixed inset-x-0 bottom-0 z-[70] animate-in slide-in-from-bottom duration-300 safe-area-bottom">
+            <div className="bg-background/95 backdrop-blur-xl rounded-t-[28px] shadow-2xl border-t border-border/50 max-h-[85vh] overflow-hidden flex flex-col">
+              {/* Drag Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+              </div>
 
-                  {/* Additional Navigation Links */}
-                  <div className="space-y-2">
-                    <Link href="/learn/blog" onClick={() => setShowMenu(false)}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start h-12"
+              {/* Scrollable Content */}
+              <div className="overflow-y-auto overscroll-contain px-6 pb-6">
+                {isAuthenticated ? (
+                  <>
+                    {/* User Profile Section */}
+                    <div className="py-6">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 ring-2 ring-primary/10">
+                          <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
+                            {userInitials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-foreground truncate">
+                            {userName}
+                          </h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Premium Member
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator className="my-2" />
+
+                    {/* Navigation Links */}
+                    <div className="py-4 space-y-1">
+                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Quick Access
+                      </p>
+
+                      <Link
+                        href="/learn/blog"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
                       >
-                        <BookOpen className="h-4 w-4 mr-3" />
-                        Blog
-                      </Button>
-                    </Link>
-
-                    {isAdmin && (
-                      <Link href="/admin" onClick={() => setShowMenu(false)}>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start h-12 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                        >
-                          <Shield className="h-4 w-4 mr-3" />
-                          Admin Dashboard
-                        </Button>
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                          <BookOpen className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">Blog</p>
+                          <p className="text-xs text-muted-foreground">Read articles & earn XP</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>
-                    )}
-                  </div>
 
-                  {/* Theme Toggle */}
-                  <div className="py-3 border-y border-border">
-                    <p className="text-xs font-medium text-muted-foreground mb-3 px-1">
-                      APPEARANCE
-                    </p>
-                    <ThemeToggle />
-                  </div>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-amber-500/10 transition-colors active:scale-[0.98] touch-manipulation border border-amber-500/20"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center">
+                            <Shield className="w-5 h-5 text-amber-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm text-amber-900 dark:text-amber-100">Admin Dashboard</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-300">Manage platform</p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-amber-600" />
+                        </Link>
+                      )}
+                    </div>
 
-                  {/* Actions */}
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start h-12"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="h-4 w-4 mr-3" />
-                      Sign Out
-                    </Button>
+                    <Separator className="my-2" />
 
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start h-12"
-                      onClick={() => setShowMenu(false)}
-                    >
-                      Close Menu
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Not Signed In */}
-                  <div className="pb-4 border-b border-border">
-                    <p className="text-sm font-medium text-foreground">
-                      Welcome to Permaculture.Studio
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Sign in to create and manage your farms
-                    </p>
-                  </div>
+                    {/* Appearance Section */}
+                    <div className="py-4">
+                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Appearance
+                      </p>
+                      <div className="px-3">
+                        <ThemeToggle />
+                      </div>
+                    </div>
 
-                  {/* Additional Navigation Links */}
-                  <div className="space-y-2">
-                    <Link href="/learn/blog" onClick={() => setShowMenu(false)}>
+                    <Separator className="my-2" />
+
+                    {/* Actions */}
+                    <div className="py-4 space-y-2">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start h-12"
+                        className="w-full justify-start h-12 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={handleLogout}
                       >
-                        <BookOpen className="h-4 w-4 mr-3" />
-                        Blog
+                        <LogOut className="h-5 w-5 mr-3" />
+                        <span className="font-medium">Sign Out</span>
                       </Button>
-                    </Link>
-                  </div>
 
-                  {/* Theme Toggle */}
-                  <div className="py-3 border-y border-border">
-                    <p className="text-xs font-medium text-muted-foreground mb-3 px-1">
-                      APPEARANCE
-                    </p>
-                    <ThemeToggle />
-                  </div>
-
-                  {/* Auth Actions */}
-                  <div className="space-y-2">
-                    <Link href="/login" onClick={() => setShowMenu(false)}>
-                      <Button variant="default" className="w-full h-12">
-                        Log In
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-center h-12 text-muted-foreground"
+                        onClick={() => setShowProfileMenu(false)}
+                      >
+                        Close
                       </Button>
-                    </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Not Signed In State */}
+                    <div className="py-6">
+                      <div className="text-center space-y-2 mb-6">
+                        <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4">
+                          <Sparkles className="w-8 h-8 text-primary" />
+                        </div>
+                        <h3 className="text-xl font-bold">Welcome!</h3>
+                        <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
+                          Sign in to create farms, track progress, and join the community
+                        </p>
+                      </div>
 
-                    <Link href="/register" onClick={() => setShowMenu(false)}>
-                      <Button variant="outline" className="w-full h-12">
-                        Register
+                      {/* Auth Buttons */}
+                      <div className="space-y-3">
+                        <Link href="/login" onClick={() => setShowProfileMenu(false)}>
+                          <Button className="w-full h-12 text-base font-semibold rounded-xl">
+                            Sign In
+                          </Button>
+                        </Link>
+                        <Link href="/register" onClick={() => setShowProfileMenu(false)}>
+                          <Button variant="outline" className="w-full h-12 text-base font-semibold rounded-xl">
+                            Create Account
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+
+                    <Separator className="my-2" />
+
+                    {/* Quick Links */}
+                    <div className="py-4 space-y-1">
+                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Explore
+                      </p>
+
+                      <Link
+                        href="/learn/blog"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                          <BookOpen className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">Blog</p>
+                          <p className="text-xs text-muted-foreground">Permaculture articles</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </Link>
+                    </div>
+
+                    <Separator className="my-2" />
+
+                    {/* Appearance Section */}
+                    <div className="py-4">
+                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Appearance
+                      </p>
+                      <div className="px-3">
+                        <ThemeToggle />
+                      </div>
+                    </div>
+
+                    <Separator className="my-2" />
+
+                    {/* Close Button */}
+                    <div className="py-4">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-center h-12 text-muted-foreground"
+                        onClick={() => setShowProfileMenu(false)}
+                      >
+                        Close
                       </Button>
-                    </Link>
-
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start h-12"
-                      onClick={() => setShowMenu(false)}
-                    >
-                      Close Menu
-                    </Button>
-                  </div>
-                </>
-              )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </>
       )}
 
-      {/* Spacer for fixed bottom nav - prevents content from being hidden */}
+      {/* Safe area spacer */}
       <div className="md:hidden h-16" />
     </>
   );
