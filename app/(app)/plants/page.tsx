@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { SpeciesCard } from '@/components/species/species-card';
 import { SpeciesFilterSidebar } from '@/components/species/species-filter-sidebar';
 import { SpeciesDetailModal } from '@/components/species/species-detail-modal';
@@ -97,12 +98,12 @@ export default function PlantsPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
       <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container mx-auto p-4 md:p-6">
+        <div className="container mx-auto p-4 md:p-6 lg:p-8">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4 animate-in fade-in slide-in-from-top duration-500">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Leaf className="w-6 h-6 text-green-500" />
+              <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Leaf className="w-7 h-7 text-green-500" />
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-serif font-bold">
@@ -115,11 +116,12 @@ export default function PlantsPage() {
             </div>
 
             {/* Quick Native Filter Buttons - Desktop */}
-            <div className="hidden md:flex gap-2">
+            <div className="hidden md:flex gap-2 animate-in fade-in slide-in-from-top duration-500" style={{ animationDelay: '100ms' }}>
               <Button
                 variant={nativeFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setNativeFilter('all')}
+                className="rounded-xl"
               >
                 All Plants
               </Button>
@@ -127,7 +129,7 @@ export default function PlantsPage() {
                 variant={nativeFilter === 'native' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setNativeFilter('native')}
-                className={nativeFilter === 'native' ? 'bg-green-600 hover:bg-green-700' : ''}
+                className={`rounded-xl ${nativeFilter === 'native' ? 'bg-green-600 hover:bg-green-700' : ''}`}
               >
                 Native Only
               </Button>
@@ -135,6 +137,7 @@ export default function PlantsPage() {
                 variant={nativeFilter === 'naturalized' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setNativeFilter('naturalized')}
+                className="rounded-xl"
               >
                 Non-Native
               </Button>
@@ -142,7 +145,7 @@ export default function PlantsPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '200ms' }}>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -151,12 +154,12 @@ export default function PlantsPage() {
                 placeholder="Search plants..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-11"
+                className="pl-10 h-11 rounded-xl"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -167,7 +170,7 @@ export default function PlantsPage() {
             <Button
               variant="outline"
               size="default"
-              className="flex-shrink-0 relative h-11"
+              className="flex-shrink-0 relative h-11 rounded-xl"
               onClick={() => setShowMobileFilters(true)}
             >
               <SlidersHorizontal className="h-4 w-4 mr-2" />
@@ -182,35 +185,35 @@ export default function PlantsPage() {
 
           {/* Active Filter Tags */}
           {activeFilterCount > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '300ms' }}>
               {nativeFilter !== 'all' && (
-                <Badge variant="secondary" className="gap-2">
+                <Badge variant="secondary" className="gap-2 rounded-lg">
                   {nativeFilter === 'native' ? 'Native Only' : 'Non-Native'}
                   <button
                     onClick={() => setNativeFilter('all')}
-                    className="hover:bg-background/20 rounded-full p-0.5"
+                    className="hover:bg-background/20 rounded-full p-0.5 transition-colors"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               )}
               {layerFilter.map(layer => (
-                <Badge key={layer} variant="secondary" className="gap-2 capitalize">
+                <Badge key={layer} variant="secondary" className="gap-2 capitalize rounded-lg">
                   Layer: {layer}
                   <button
                     onClick={() => removeLayerFilter(layer)}
-                    className="hover:bg-background/20 rounded-full p-0.5"
+                    className="hover:bg-background/20 rounded-full p-0.5 transition-colors"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               ))}
               {functionFilter.map(fn => (
-                <Badge key={fn} variant="secondary" className="gap-2">
+                <Badge key={fn} variant="secondary" className="gap-2 rounded-lg">
                   {fn.replace(/_/g, ' ')}
                   <button
                     onClick={() => removeFunctionFilter(fn)}
-                    className="hover:bg-background/20 rounded-full p-0.5"
+                    className="hover:bg-background/20 rounded-full p-0.5 transition-colors"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -220,7 +223,7 @@ export default function PlantsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={clearAllFilters}
-                className="h-6 text-xs"
+                className="h-6 text-xs rounded-lg"
               >
                 Clear all
               </Button>
@@ -230,37 +233,42 @@ export default function PlantsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto p-4 md:p-6">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4 animate-pulse">
-              <Sparkles className="w-8 h-8 text-green-500" />
+            <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mb-4 animate-pulse">
+              <Sparkles className="w-7 h-7 text-green-500" />
             </div>
             <p className="text-muted-foreground">Loading plants...</p>
           </div>
         ) : filteredSpecies.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Search className="w-8 h-8 text-muted-foreground" />
+            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Search className="w-7 h-7 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-semibold mb-2">No plants found</h3>
             <p className="text-muted-foreground mb-4 max-w-md">
               Try adjusting your filters or search query
             </p>
-            <Button onClick={clearAllFilters} variant="outline">
+            <Button onClick={clearAllFilters} variant="outline" className="rounded-xl">
               Clear all filters
             </Button>
           </div>
         ) : (
           <>
             {/* Results Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-              {filteredSpecies.map(s => (
-                <SpeciesCard
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+              {filteredSpecies.map((s, index) => (
+                <div
                   key={s.id}
-                  species={s}
-                  onClick={() => setSelectedSpeciesId(s.id)}
-                />
+                  className="animate-in fade-in slide-in-from-bottom-2 duration-500"
+                  style={{ animationDelay: `${Math.min(index * 30, 600)}ms` }}
+                >
+                  <SpeciesCard
+                    species={s}
+                    onClick={() => setSelectedSpeciesId(s.id)}
+                  />
+                </div>
               ))}
             </div>
 
@@ -292,6 +300,7 @@ export default function PlantsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={clearAllFilters}
+                    className="rounded-xl"
                   >
                     Clear All
                   </Button>
@@ -314,7 +323,7 @@ export default function PlantsPage() {
             {/* Apply Button Footer */}
             <div className="flex-shrink-0 p-4 border-t border-border">
               <Button
-                className="w-full h-12"
+                className="w-full h-12 rounded-xl"
                 onClick={() => setShowMobileFilters(false)}
               >
                 Show {filteredSpecies.length} Results
