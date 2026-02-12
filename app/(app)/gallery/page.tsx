@@ -13,6 +13,7 @@ import { TopContributors } from '@/components/feed/top-contributors';
 import { RecentActivity } from '@/components/feed/recent-activity';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Bookmark, TrendingUp, Users, Sprout, Heart, MessageCircle, Eye, Flame } from 'lucide-react';
 
@@ -328,21 +329,21 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Hero Section */}
+      {/* Hero Section - Clean & Minimal */}
       <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto p-4 md:p-8">
+        <div className="container mx-auto p-4 md:p-6 lg:p-8">
           <div className="max-w-[1600px] mx-auto">
             {/* Header */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-green-500/20 flex items-center justify-center">
-                  <Users className="w-8 h-8 text-primary" />
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500/20 to-green-500/20 flex items-center justify-center">
+                  <Users className="w-7 h-7 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-serif font-bold mb-1">
+                  <h1 className="text-3xl md:text-4xl font-serif font-bold">
                     Community
                   </h1>
-                  <p className="text-muted-foreground text-lg">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {hashtag
                       ? `Exploring #${hashtag}`
                       : 'Share knowledge, grow together'}
@@ -351,16 +352,16 @@ export default async function CommunityPage({ searchParams }: PageProps) {
               </div>
 
               {/* Quick Actions */}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 {session && <CreatePostButton />}
                 <Link href="/gallery/saved">
-                  <Button variant="outline" size="default" className="gap-2">
+                  <Button variant="outline" size="default" className="gap-2 rounded-xl">
                     <Bookmark className="w-4 h-4" />
                     <span className="hidden sm:inline">Saved</span>
                   </Button>
                 </Link>
                 <Link href="/gallery/trending">
-                  <Button variant="outline" size="default" className="gap-2">
+                  <Button variant="outline" size="default" className="gap-2 rounded-xl">
                     <Flame className="w-4 h-4 text-orange-500" />
                     <span className="hidden sm:inline">Trending</span>
                   </Button>
@@ -368,80 +369,52 @@ export default async function CommunityPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* Community Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{communityStats.users}</p>
-                    <p className="text-xs text-muted-foreground">Farmers</p>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Community Stats - With Animations */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                { icon: Users, label: 'Farmers', value: communityStats.users, color: 'blue', delay: '0ms' },
+                { icon: Sprout, label: 'Farms', value: communityStats.farms, color: 'green', delay: '50ms' },
+                { icon: MessageCircle, label: 'Posts', value: communityStats.posts, color: 'purple', delay: '100ms' },
+                { icon: Heart, label: 'Reactions', value: communityStats.reactions.toLocaleString(), color: 'red', delay: '150ms' },
+                { icon: Eye, label: 'Comments', value: communityStats.comments.toLocaleString(), color: 'amber', delay: '200ms' },
+              ].map((stat, index) => {
+                const Icon = stat.icon;
+                const colorClasses = {
+                  blue: 'bg-blue-500/10 text-blue-500',
+                  green: 'bg-green-500/10 text-green-500',
+                  purple: 'bg-purple-500/10 text-purple-500',
+                  red: 'bg-red-500/10 text-red-500',
+                  amber: 'bg-amber-500/10 text-amber-500',
+                };
 
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <Sprout className="w-5 h-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{communityStats.farms}</p>
-                    <p className="text-xs text-muted-foreground">Farms</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{communityStats.posts}</p>
-                    <p className="text-xs text-muted-foreground">Posts</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-red-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{communityStats.reactions.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">Reactions</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                    <Eye className="w-5 h-5 text-amber-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{communityStats.comments.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">Comments</p>
-                  </div>
-                </CardContent>
-              </Card>
+                return (
+                  <Card
+                    key={stat.label}
+                    className="hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2"
+                    style={{ animationDelay: stat.delay }}
+                  >
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClasses[stat.color as keyof typeof colorClasses]}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xl md:text-2xl font-bold">{stat.value}</p>
+                        <p className="text-xs text-muted-foreground">{stat.label}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-
-            {/* Featured Farms Carousel */}
-            <FeaturedFarms />
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="container mx-auto p-4 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1600px] mx-auto">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 max-w-[1600px] mx-auto">
           {/* Left Sidebar - Discovery & Social */}
-          <aside className="lg:col-span-3 space-y-6 order-2 lg:order-1">
+          <aside className="lg:col-span-3 space-y-6 order-2 lg:order-1 animate-in fade-in duration-500" style={{ animationDelay: '100ms' }}>
             <div className="lg:sticky lg:top-6 space-y-6">
               {/* Who to Follow */}
               {session && <WhoToFollow currentUserId={session.user.id} />}
@@ -456,8 +429,8 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
           {/* Center Feed */}
           <main className="lg:col-span-6 space-y-6 order-1 lg:order-2">
-            {/* Search */}
-            <div className="bg-card rounded-lg border p-4 shadow-sm">
+            {/* Search - Clean, No Card Wrapper */}
+            <div className="animate-in fade-in duration-500">
               <UniversalSearch
                 context="community"
                 placeholder="Search posts, farms, and people..."
@@ -465,26 +438,37 @@ export default async function CommunityPage({ searchParams }: PageProps) {
               />
             </div>
 
+            {/* Featured Farms - Moved Here */}
+            <div className="animate-in fade-in duration-500" style={{ animationDelay: '100ms' }}>
+              <FeaturedFarms />
+            </div>
+
+            <Separator className="my-6" />
+
             {/* Post Type Tabs */}
-            <PostTypeTabs />
+            <div className="animate-in fade-in duration-500" style={{ animationDelay: '200ms' }}>
+              <PostTypeTabs />
+            </div>
 
             {/* Active Filters */}
             <ActiveFilters />
 
             {/* Feed */}
-            <GalleryLayoutWrapper
-              initialData={initialData}
-              filterType={type}
-              filterHashtag={hashtag}
-              filterClimateZones={climateZones}
-              filterFarmSize={farmSize}
-              filterSoilTypes={soilTypes}
-              currentUserId={session?.user.id}
-            />
+            <div className="animate-in fade-in duration-500" style={{ animationDelay: '300ms' }}>
+              <GalleryLayoutWrapper
+                initialData={initialData}
+                filterType={type}
+                filterHashtag={hashtag}
+                filterClimateZones={climateZones}
+                filterFarmSize={farmSize}
+                filterSoilTypes={soilTypes}
+                currentUserId={session?.user.id}
+              />
+            </div>
           </main>
 
           {/* Right Sidebar - Activity & Filters */}
-          <aside className="lg:col-span-3 space-y-6 order-3">
+          <aside className="lg:col-span-3 space-y-6 order-3 animate-in fade-in duration-500" style={{ animationDelay: '200ms' }}>
             <div className="lg:sticky lg:top-6 space-y-6">
               {/* Recent Activity */}
               <RecentActivity />
