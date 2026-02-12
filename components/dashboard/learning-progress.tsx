@@ -227,64 +227,95 @@ export async function LearningProgress({ userId }: LearningProgressProps) {
 
       <CardContent className="space-y-4">
         {/* Progress Bar */}
-        <div>
-          <Progress value={data.percentComplete} className="h-2" />
-          <p className="text-xs text-muted-foreground text-center mt-1">
-            {Math.round(data.percentComplete)}% {data.hasActivePath ? 'of path' : 'overall'}
-          </p>
-        </div>
+        {data.hasActivePath && (
+          <div>
+            <Progress value={data.percentComplete} className="h-2" />
+            <p className="text-xs text-muted-foreground text-center mt-1">
+              {Math.round(data.percentComplete)}% complete
+            </p>
+          </div>
+        )}
 
-        {/* Next Lesson CTA */}
+        {/* Next Lessons List */}
         {data.nextLessons.length > 0 ? (
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold flex items-center gap-1">
                 <Play className="w-3 h-3 text-primary" />
-                Continue Learning
+                Next Lessons
               </h4>
+              {data.hasActivePath && progress?.path_slug && (
+                <Link href={`/learn/paths/${progress.path_slug}`}>
+                  <Button variant="ghost" size="sm" className="h-6 text-xs rounded-lg">
+                    View Path
+                    <ArrowRight className="w-3 h-3 ml-1" />
+                  </Button>
+                </Link>
+              )}
             </div>
-            <Link
-              href={`/learn/lessons/${(data.nextLessons[0] as any).slug}`}
-              className="block p-3 rounded-xl border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/30 transition-all group"
-            >
-              <p className="font-medium text-sm line-clamp-1 mb-1 group-hover:text-primary transition-colors">
-                {(data.nextLessons[0] as any).title}
-              </p>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{(data.nextLessons[0] as any).estimated_minutes} min</span>
-                <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">
-                  <Sparkles className="h-2 w-2 mr-1" />
-                  +{(data.nextLessons[0] as any).xp_reward} XP
-                </Badge>
-              </div>
-            </Link>
 
-            {/* Additional lessons */}
-            {data.nextLessons.length > 1 && (
-              <div className="mt-2 space-y-1">
-                {data.nextLessons.slice(1, 3).map((lesson: any) => (
-                  <Link
-                    key={lesson.id}
-                    href={`/learn/lessons/${lesson.slug}`}
-                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors text-xs"
-                  >
-                    <Circle className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                    <span className="flex-1 line-clamp-1 text-muted-foreground">{lesson.title}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
+            {/* Lesson List */}
+            <div className="space-y-2">
+              {data.nextLessons.map((lesson: any, index: number) => (
+                <Link
+                  key={lesson.id}
+                  href={`/learn/lessons/${lesson.slug}`}
+                  className={`block p-3 rounded-lg border transition-all group ${
+                    index === 0
+                      ? 'border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/40'
+                      : 'border-border bg-muted/30 hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-start gap-2 mb-1">
+                    {index === 0 ? (
+                      <Play className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <Circle className="w-3 h-3 text-muted-foreground flex-shrink-0 mt-1" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-medium text-sm line-clamp-1 ${index === 0 ? 'group-hover:text-primary' : ''} transition-colors`}>
+                        {lesson.title}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                        <span>{lesson.estimated_minutes} min</span>
+                        <span>•</span>
+                        <span className="text-green-600">+{lesson.xp_reward} XP</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground mb-3">
-              {data.hasActivePath ? 'Path completed! 🎉' : 'No lessons available'}
-            </p>
-            <Button asChild size="sm" variant="outline" className="rounded-xl">
-              <Link href="/learn">
-                {data.hasActivePath ? 'Choose New Path' : 'Browse Lessons'}
-              </Link>
-            </Button>
+            {data.hasActivePath && data.totalLessons > 0 && data.completedCount === data.totalLessons ? (
+              // Actually completed the path
+              <>
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                </div>
+                <p className="text-sm font-semibold mb-1">Path Complete! 🎉</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  You've mastered all {data.totalLessons} lessons
+                </p>
+                <Button asChild size="sm" variant="outline" className="rounded-xl">
+                  <Link href="/learn">Choose New Path</Link>
+                </Button>
+              </>
+            ) : (
+              // Just started or no lessons found
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {data.hasActivePath ? 'Loading lessons...' : 'Choose a path to start'}
+                </p>
+                <Button asChild size="sm" className="rounded-xl">
+                  <Link href="/learn">
+                    {data.hasActivePath ? 'View Path' : 'Browse Paths'}
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         )}
 
