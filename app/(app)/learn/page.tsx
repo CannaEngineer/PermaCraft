@@ -217,7 +217,7 @@ async function LearnContent() {
                 <p className="text-muted-foreground">
                   {activePathDetails.nextLesson
                     ? `Next up: ${(activePathDetails.nextLesson as any).title}`
-                    : 'You've completed this path! Time to celebrate 🎉'}
+                    : "You've completed this path! Time to celebrate 🎉"}
                 </p>
               </>
             ) : (
