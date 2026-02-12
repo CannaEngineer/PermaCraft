@@ -6,8 +6,14 @@ import { PostTypeTabs } from '@/components/feed/post-type-tabs';
 import { TrendingHashtags } from '@/components/feed/trending-hashtags';
 import { FilterSidebar } from '@/components/feed/filter-sidebar';
 import { ActiveFilters } from '@/components/feed/active-filters';
+import { CreatePostButton } from '@/components/feed/create-post-button';
+import { FeaturedFarms } from '@/components/feed/featured-farms';
+import { CommunityStats } from '@/components/feed/community-stats';
+import { WhoToFollow } from '@/components/feed/who-to-follow';
+import { TopContributors } from '@/components/feed/top-contributors';
+import { RecentActivity } from '@/components/feed/recent-activity';
 import Link from 'next/link';
-import { Bookmark } from 'lucide-react';
+import { Bookmark, TrendingUp, Users, Sprout } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -241,7 +247,7 @@ async function fetchFilterOptions() {
   }
 }
 
-export default async function GalleryPage({ searchParams }: PageProps) {
+export default async function CommunityPage({ searchParams }: PageProps) {
   const session = await getSession();
   const params = await searchParams;
 
@@ -272,60 +278,112 @@ export default async function GalleryPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <div className="container mx-auto py-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <h1 className="text-3xl font-bold">Community Gallery</h1>
-          <Link
-            href="/gallery/saved"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent hover:bg-accent/80 transition-colors text-sm font-medium"
-          >
-            <Bookmark className="w-4 h-4" />
-            Saved Posts
-          </Link>
-        </div>
-        <p className="text-muted-foreground mt-2">
-          {hashtag ? `Posts tagged with #${hashtag}` : 'Discover farms and permaculture designs from the community'}
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Hero Section */}
+      <div className="border-b bg-card/50 backdrop-blur-sm">
+        <div className="container mx-auto py-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Sprout className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                    Community
+                  </h1>
+                  <p className="text-muted-foreground">
+                    {hashtag
+                      ? `Exploring #${hashtag}`
+                      : 'Share knowledge, grow together'}
+                  </p>
+                </div>
+              </div>
+              <CommunityStats />
+            </div>
 
-      {/* Two Column Layout: Feed + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {/* Main Feed Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Search Community Content */}
-          <div>
-            <UniversalSearch
-              context="community"
-              placeholder="Search public farms and posts..."
-              className="w-full"
-            />
+            {/* Quick Actions */}
+            <div className="flex items-center gap-3">
+              {session && <CreatePostButton />}
+              <Link
+                href="/gallery/saved"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-accent transition-colors text-sm font-medium"
+              >
+                <Bookmark className="w-4 h-4" />
+                <span className="hidden sm:inline">Saved</span>
+              </Link>
+              <Link
+                href="/gallery/trending"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-accent transition-colors text-sm font-medium"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span className="hidden sm:inline">Trending</span>
+              </Link>
+            </div>
           </div>
 
-          {/* Post Type Filter Tabs */}
-          <PostTypeTabs />
-
-          {/* Active Filters */}
-          <ActiveFilters />
-
-          {/* Feed with Layout Toggle */}
-          <GalleryLayoutWrapper
-            initialData={initialData}
-            filterType={type}
-            filterHashtag={hashtag}
-            filterClimateZones={climateZones}
-            filterFarmSize={farmSize}
-            filterSoilTypes={soilTypes}
-            currentUserId={session?.user.id}
-          />
+          {/* Featured Farms Carousel */}
+          <FeaturedFarms />
         </div>
+      </div>
 
-        {/* Sidebar Column */}
-        <aside className="space-y-6">
-          <FilterSidebar availableFilters={filterOptions} />
-          <TrendingHashtags />
-        </aside>
+      {/* Main Content Area */}
+      <div className="container mx-auto py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1600px] mx-auto">
+          {/* Left Sidebar - Discovery & Social */}
+          <aside className="lg:col-span-3 space-y-6">
+            <div className="sticky top-6 space-y-6">
+              {/* Who to Follow */}
+              {session && <WhoToFollow currentUserId={session.user.id} />}
+
+              {/* Top Contributors */}
+              <TopContributors />
+
+              {/* Trending Hashtags */}
+              <TrendingHashtags />
+            </div>
+          </aside>
+
+          {/* Center Feed */}
+          <main className="lg:col-span-6 space-y-6">
+            {/* Search */}
+            <div className="bg-card rounded-lg border p-4">
+              <UniversalSearch
+                context="community"
+                placeholder="Search posts, farms, and people..."
+                className="w-full"
+              />
+            </div>
+
+            {/* Post Type Tabs */}
+            <PostTypeTabs />
+
+            {/* Active Filters */}
+            <ActiveFilters />
+
+            {/* Feed */}
+            <GalleryLayoutWrapper
+              initialData={initialData}
+              filterType={type}
+              filterHashtag={hashtag}
+              filterClimateZones={climateZones}
+              filterFarmSize={farmSize}
+              filterSoilTypes={soilTypes}
+              currentUserId={session?.user.id}
+            />
+          </main>
+
+          {/* Right Sidebar - Activity & Filters */}
+          <aside className="lg:col-span-3 space-y-6">
+            <div className="sticky top-6 space-y-6">
+              {/* Recent Activity */}
+              <RecentActivity />
+
+              {/* Advanced Filters */}
+              <FilterSidebar availableFilters={filterOptions} />
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );
