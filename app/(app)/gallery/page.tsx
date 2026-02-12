@@ -8,12 +8,13 @@ import { FilterSidebar } from '@/components/feed/filter-sidebar';
 import { ActiveFilters } from '@/components/feed/active-filters';
 import { CreatePostButton } from '@/components/feed/create-post-button';
 import { FeaturedFarms } from '@/components/feed/featured-farms';
-import { CommunityStats } from '@/components/feed/community-stats';
 import { WhoToFollow } from '@/components/feed/who-to-follow';
 import { TopContributors } from '@/components/feed/top-contributors';
 import { RecentActivity } from '@/components/feed/recent-activity';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { Bookmark, TrendingUp, Users, Sprout } from 'lucide-react';
+import { Bookmark, TrendingUp, Users, Sprout, Heart, MessageCircle, Eye, Flame } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -247,6 +248,53 @@ async function fetchFilterOptions() {
   }
 }
 
+async function fetchCommunityStats() {
+  try {
+    // Get total users with public farms
+    const usersResult = await db.execute({
+      sql: `SELECT COUNT(DISTINCT user_id) as count FROM farms WHERE is_public = 1`,
+      args: [],
+    });
+
+    // Get total public farms
+    const farmsResult = await db.execute({
+      sql: `SELECT COUNT(*) as count FROM farms WHERE is_public = 1`,
+      args: [],
+    });
+
+    // Get total posts
+    const postsResult = await db.execute({
+      sql: `SELECT COUNT(*) as count FROM farm_posts WHERE is_published = 1`,
+      args: [],
+    });
+
+    // Get engagement stats (reactions + comments)
+    const engagementResult = await db.execute({
+      sql: `
+        SELECT
+          SUM(reaction_count) as total_reactions,
+          SUM(comment_count) as total_comments
+        FROM farm_posts
+        WHERE is_published = 1
+      `,
+      args: [],
+    });
+
+    const engagement = engagementResult.rows[0] as any;
+
+    return {
+      users: (usersResult.rows[0] as any)?.count || 0,
+      farms: (farmsResult.rows[0] as any)?.count || 0,
+      posts: (postsResult.rows[0] as any)?.count || 0,
+      reactions: engagement?.total_reactions || 0,
+      comments: engagement?.total_comments || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching community stats:', error);
+    return { users: 0, farms: 0, posts: 0, reactions: 0, comments: 0 };
+  }
+}
+
 export default async function CommunityPage({ searchParams }: PageProps) {
   const session = await getSession();
   const params = await searchParams;
@@ -266,7 +314,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
       : [params.soil_types]
     : [];
 
-  const [initialData, filterOptions] = await Promise.all([
+  const [initialData, filterOptions, communityStats] = await Promise.all([
     fetchInitialFeed(session?.user.id || null, {
       type,
       hashtag,
@@ -275,64 +323,126 @@ export default async function CommunityPage({ searchParams }: PageProps) {
       soilTypes,
     }),
     fetchFilterOptions(),
+    fetchCommunityStats(),
   ]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
       <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto py-8">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sprout className="w-6 h-6 text-primary" />
+        <div className="container mx-auto p-4 md:p-8">
+          <div className="max-w-[1600px] mx-auto">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-green-500/20 flex items-center justify-center">
+                  <Users className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  <h1 className="text-3xl md:text-4xl font-serif font-bold mb-1">
                     Community
                   </h1>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-lg">
                     {hashtag
                       ? `Exploring #${hashtag}`
                       : 'Share knowledge, grow together'}
                   </p>
                 </div>
               </div>
-              <CommunityStats />
+
+              {/* Quick Actions */}
+              <div className="flex flex-wrap items-center gap-3">
+                {session && <CreatePostButton />}
+                <Link href="/gallery/saved">
+                  <Button variant="outline" size="default" className="gap-2">
+                    <Bookmark className="w-4 h-4" />
+                    <span className="hidden sm:inline">Saved</span>
+                  </Button>
+                </Link>
+                <Link href="/gallery/trending">
+                  <Button variant="outline" size="default" className="gap-2">
+                    <Flame className="w-4 h-4 text-orange-500" />
+                    <span className="hidden sm:inline">Trending</span>
+                  </Button>
+                </Link>
+              </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex items-center gap-3">
-              {session && <CreatePostButton />}
-              <Link
-                href="/gallery/saved"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-accent transition-colors text-sm font-medium"
-              >
-                <Bookmark className="w-4 h-4" />
-                <span className="hidden sm:inline">Saved</span>
-              </Link>
-              <Link
-                href="/gallery/trending"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-accent transition-colors text-sm font-medium"
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span className="hidden sm:inline">Trending</span>
-              </Link>
+            {/* Community Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{communityStats.users}</p>
+                    <p className="text-xs text-muted-foreground">Farmers</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Sprout className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{communityStats.farms}</p>
+                    <p className="text-xs text-muted-foreground">Farms</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <MessageCircle className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{communityStats.posts}</p>
+                    <p className="text-xs text-muted-foreground">Posts</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <Heart className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{communityStats.reactions.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Reactions</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <Eye className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{communityStats.comments.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Comments</p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Featured Farms Carousel */}
+            <FeaturedFarms />
           </div>
-
-          {/* Featured Farms Carousel */}
-          <FeaturedFarms />
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto p-4 md:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1600px] mx-auto">
           {/* Left Sidebar - Discovery & Social */}
-          <aside className="lg:col-span-3 space-y-6">
-            <div className="sticky top-6 space-y-6">
+          <aside className="lg:col-span-3 space-y-6 order-2 lg:order-1">
+            <div className="lg:sticky lg:top-6 space-y-6">
               {/* Who to Follow */}
               {session && <WhoToFollow currentUserId={session.user.id} />}
 
@@ -345,9 +455,9 @@ export default async function CommunityPage({ searchParams }: PageProps) {
           </aside>
 
           {/* Center Feed */}
-          <main className="lg:col-span-6 space-y-6">
+          <main className="lg:col-span-6 space-y-6 order-1 lg:order-2">
             {/* Search */}
-            <div className="bg-card rounded-lg border p-4">
+            <div className="bg-card rounded-lg border p-4 shadow-sm">
               <UniversalSearch
                 context="community"
                 placeholder="Search posts, farms, and people..."
@@ -374,8 +484,8 @@ export default async function CommunityPage({ searchParams }: PageProps) {
           </main>
 
           {/* Right Sidebar - Activity & Filters */}
-          <aside className="lg:col-span-3 space-y-6">
-            <div className="sticky top-6 space-y-6">
+          <aside className="lg:col-span-3 space-y-6 order-3">
+            <div className="lg:sticky lg:top-6 space-y-6">
               {/* Recent Activity */}
               <RecentActivity />
 
