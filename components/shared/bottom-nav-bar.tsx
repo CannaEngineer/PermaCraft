@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, ImageIcon, Leaf, Menu, Music, GraduationCap } from "lucide-react";
+import { MapIcon, LayoutDashboard, Users, Leaf, Menu, Music, GraduationCap, BookOpen, Shield } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
-  { name: "Gallery", href: "/gallery", icon: ImageIcon, requiresAuth: false },
+  { name: "Community", href: "/gallery", icon: Users, requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, requiresAuth: false },
   { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
 ];
@@ -18,6 +19,7 @@ const navItems = [
 interface BottomNavBarProps {
   userName: string | null;
   isAuthenticated: boolean;
+  isAdmin?: boolean;
   onMusicOpen?: () => void;
 }
 
@@ -29,13 +31,13 @@ interface BottomNavBarProps {
  *
  * Features:
  * - Fixed to bottom of screen
- * - 6 items: Dashboard | Gallery | Learn | Plants | Music | Menu
+ * - 6 items: Dashboard | Community | Learn | Plants | Music | Menu
  * - Music opens music player drawer
- * - Menu opens drawer with user info and logout
+ * - Menu opens drawer with user info, theme toggle, and logout
  * - Active state highlighting
  * - Touch-friendly 44px minimum height
  */
-export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomNavBarProps) {
+export function BottomNavBar({ userName, isAuthenticated, isAdmin, onMusicOpen }: BottomNavBarProps) {
   const pathname = usePathname();
   const [showMenu, setShowMenu] = useState(false);
 
@@ -126,7 +128,7 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
           />
 
           {/* Drawer */}
-          <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom xp-panel">
+          <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-card border-t border-border rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 safe-area-bottom xp-panel max-h-[80vh] overflow-y-auto">
             <div className="p-6 space-y-4">
               {isAuthenticated ? (
                 <>
@@ -145,6 +147,39 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
                         Signed in
                       </p>
                     </div>
+                  </div>
+
+                  {/* Additional Navigation Links */}
+                  <div className="space-y-2">
+                    <Link href="/learn/blog" onClick={() => setShowMenu(false)}>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12"
+                      >
+                        <BookOpen className="h-4 w-4 mr-3" />
+                        Blog
+                      </Button>
+                    </Link>
+
+                    {isAdmin && (
+                      <Link href="/admin" onClick={() => setShowMenu(false)}>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start h-12 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        >
+                          <Shield className="h-4 w-4 mr-3" />
+                          Admin Dashboard
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+
+                  {/* Theme Toggle */}
+                  <div className="py-3 border-y border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-3 px-1">
+                      APPEARANCE
+                    </p>
+                    <ThemeToggle />
                   </div>
 
                   {/* Actions */}
@@ -177,6 +212,27 @@ export function BottomNavBar({ userName, isAuthenticated, onMusicOpen }: BottomN
                     <p className="text-xs text-muted-foreground">
                       Sign in to create and manage your farms
                     </p>
+                  </div>
+
+                  {/* Additional Navigation Links */}
+                  <div className="space-y-2">
+                    <Link href="/learn/blog" onClick={() => setShowMenu(false)}>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12"
+                      >
+                        <BookOpen className="h-4 w-4 mr-3" />
+                        Blog
+                      </Button>
+                    </Link>
+                  </div>
+
+                  {/* Theme Toggle */}
+                  <div className="py-3 border-y border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-3 px-1">
+                      APPEARANCE
+                    </p>
+                    <ThemeToggle />
                   </div>
 
                   {/* Auth Actions */}

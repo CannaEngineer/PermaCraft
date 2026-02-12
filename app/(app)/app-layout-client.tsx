@@ -42,6 +42,7 @@ export default function AppLayoutClient({
         <BottomNavBar
           userName={userName}
           isAuthenticated={isAuthenticated}
+          isAdmin={isAdmin}
           onMusicOpen={() => setIsMusicPlayerOpen(true)}
         />
 

@@ -39,64 +39,86 @@ export default async function AdminDashboardPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold flex items-center gap-3">
-          <Shield className="h-8 w-8" />
-          Admin Dashboard
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Manage content, users, and monitor platform performance
-        </p>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Hero Section */}
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
+        <div className="container mx-auto p-4 md:p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-background flex items-center justify-center border-2 border-amber-500/20">
+              <Shield className="w-8 h-8 text-amber-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-serif font-bold">
+                Admin Dashboard
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Manage content, users, and monitor platform performance
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Lessons</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.lessons}</div>
-            <p className="text-xs text-muted-foreground">Published</p>
-          </CardContent>
-        </Card>
+      {/* Main Content */}
+      <div className="container mx-auto p-4 md:p-6 space-y-8">
+        {/* Quick Stats */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-2 hover:border-green-500/30 transition-all">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <BookOpen className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{stats.lessons}</div>
+                  <p className="text-xs text-muted-foreground">Lessons</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Blog Posts</CardTitle>
-            <Newspaper className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.blogPosts}</div>
-            <p className="text-xs text-muted-foreground">Published</p>
-          </CardContent>
-        </Card>
+          <Card className="border-2 hover:border-purple-500/30 transition-all">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <Newspaper className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{stats.blogPosts}</div>
+                  <p className="text-xs text-muted-foreground">Blog Posts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.users}</div>
-            <p className="text-xs text-muted-foreground">Registered</p>
-          </CardContent>
-        </Card>
+          <Card className="border-2 hover:border-blue-500/30 transition-all">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{stats.users}</div>
+                  <p className="text-xs text-muted-foreground">Total Users</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeUsers}</div>
-            <p className="text-xs text-muted-foreground">Last 7 days</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-2 hover:border-amber-500/30 transition-all">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{stats.activeUsers}</div>
+                  <p className="text-xs text-muted-foreground">Active (7d)</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
       {/* Admin Sections */}
       <div>
@@ -285,6 +307,7 @@ export default async function AdminDashboardPage() {
             </Card>
           </Link>
         </div>
+      </div>
       </div>
     </div>
   );

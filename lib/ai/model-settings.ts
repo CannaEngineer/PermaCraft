@@ -75,7 +75,8 @@ export async function getModelSettings(): Promise<ModelSettings> {
       args: ['default'],
     });
 
-    if (result.rows.length === 0) {
+    // Check if rows exists and has data
+    if (!result || !result.rows || result.rows.length === 0) {
       console.warn('No model settings found in database, using defaults');
       cachedSettings = DEFAULT_SETTINGS;
       cacheTimestamp = now;
