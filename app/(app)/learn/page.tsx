@@ -333,7 +333,7 @@ async function LearnContent() {
           )}
 
           <Separator className="my-8" id="browse-paths" />
-        <div className="max-w-7xl mx-auto">
+
           {/* Learning Paths */}
           <section className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
             <div className="mb-5">
