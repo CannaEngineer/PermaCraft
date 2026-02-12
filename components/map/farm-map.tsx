@@ -131,6 +131,7 @@ export function FarmMap({
   const [circleCenter, setCircleCenter] = useState<[number, number] | null>(null);
   const [terrainEnabled, setTerrainEnabled] = useState(false);
   const circleCenterMarker = useRef<maplibregl.Marker | null>(null);
+  const updateColoredZonesRef = useRef<(() => void) | null>(null);
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
@@ -413,7 +414,7 @@ export function FarmMap({
 
       // Trigger zones update
       onZonesChange(draw.current.getAll().features);
-      updateColoredZones();
+      updateColoredZonesRef.current?.();
     }
 
     // Close the form
@@ -1068,6 +1069,9 @@ export function FarmMap({
         // Ensure layers stay on top after data updates
         ensureCustomLayersOnTop();
       };
+
+      // Store the function in ref so it can be called from other handlers
+      updateColoredZonesRef.current = updateColoredZones;
 
       map.current.on("load", () => {
         if (!map.current) return;
