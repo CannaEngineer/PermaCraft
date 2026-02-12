@@ -6,7 +6,8 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { area } from "@turf/area";
 import type { Feature, Polygon } from "geojson";
 import { generateGridLines } from '@/lib/map/measurement-grid';
-import type { FeatureCollection } from 'geojson';
+import { HelpCircle, X, Search, MapPin, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface BoundaryDrawerProps {
   onBoundaryComplete: (boundary: Feature<Polygon>, areaAcres: number) => void;
@@ -22,6 +23,8 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const updateGrid = () => {
     if (!map.current) return;
@@ -38,7 +41,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
       },
       gridUnit,
       zoom,
-      'auto' // Use auto grid density
+      'auto'
     );
 
     const gridLineSource = map.current.getSource('grid-lines') as maplibregl.GeoJSONSource;
@@ -84,7 +87,6 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
       if (results && results.length > 0) {
         const { lat, lon } = results[0];
 
-        // Fly to the location
         map.current.flyTo({
           center: [parseFloat(lon), parseFloat(lat)],
           zoom: 15,
@@ -92,6 +94,8 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         });
 
         setSearchError(null);
+        setShowSearch(false);
+        setSearchQuery("");
       } else {
         setSearchError('Location not found. Try a different search term.');
       }
@@ -136,13 +140,12 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
           },
         ],
       },
-      center: [-98.5795, 39.8283], // Center of US
+      center: [-98.5795, 39.8283],
       zoom: 4,
-      maxZoom: 18, // Max zoom to ensure tile availability across all layers
+      maxZoom: 18,
       minZoom: 1,
     });
 
-    // Add geocoder search (users can search for their location)
     map.current.addControl(new maplibregl.NavigationControl(), "top-right");
 
     // Initialize drawing in polygon mode
@@ -188,11 +191,9 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
 
     map.current.addControl(draw.current as any, "top-right");
 
-    // Add grid layers on map load
     map.current.on('load', () => {
       if (!map.current) return;
 
-      // Add grid layers
       map.current.addSource('grid-lines', {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] }
@@ -233,33 +234,25 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
       updateGrid();
     });
 
-    // Update grid on zoom/move end
     map.current.on('moveend', updateGrid);
     map.current.on('zoomend', updateGrid);
 
-    // Listen for polygon creation
     const handleCreate = (e: any) => {
       const features = draw.current!.getAll().features;
       if (features.length > 0) {
         const feature = features[0] as Feature<Polygon>;
 
-        // Calculate area in square meters
         const areaSquareMeters = area(feature);
-        // Convert to acres (1 acre = 4046.86 square meters)
         const acres = areaSquareMeters / 4046.86;
 
         setAreaAcres(acres);
         setIsComplete(true);
 
-        // Auto-zoom for small urban plots
-        // If plot is less than 0.25 acres (~10,000 sq ft), zoom in close for better detail
         if (acres < 0.25 && map.current) {
-          // Calculate center of polygon
           const coords = feature.geometry.coordinates[0];
           const centerLng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
           const centerLat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
 
-          // Zoom to level 18 for small plots (max available across all tile sources)
           map.current.flyTo({
             center: [centerLng, centerLat],
             zoom: 18,
@@ -268,7 +261,6 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         }
         onBoundaryComplete(feature, acres);
 
-        // Zoom to fit boundary
         const coordinates = feature.geometry.coordinates[0];
         const bounds = coordinates.reduce((bounds, coord) => {
           return bounds.extend(coord as [number, number]);
@@ -315,11 +307,75 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
 
   return (
     <div className="relative">
-      <div ref={mapContainer} className="h-[400px] w-full rounded-lg overflow-hidden" />
+      <div ref={mapContainer} className="h-[400px] md:h-[500px] w-full rounded-lg overflow-hidden" />
 
-      {/* Search box */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-        <div className="flex flex-col gap-2">
+      {/* Grid unit toggle - top right, minimal */}
+      <button
+        type="button"
+        onClick={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
+        className="absolute top-3 right-3 md:top-4 md:right-4 z-10 bg-background/95 backdrop-blur-sm px-2 py-1 md:px-3 md:py-1.5 rounded-lg shadow-lg text-xs md:text-sm font-medium hover:bg-background transition-colors border border-border"
+      >
+        {gridUnit === 'imperial' ? 'ft' : 'm'}
+      </button>
+
+      {/* Mobile-optimized bottom controls - Thumb Zone */}
+      <div className="absolute bottom-4 left-4 right-4 z-10 flex flex-col gap-2">
+        {/* Search toggle button */}
+        {!showSearch && !isComplete && (
+          <button
+            type="button"
+            onClick={() => setShowSearch(true)}
+            className="md:hidden self-start bg-background/95 backdrop-blur-xl rounded-full px-4 py-3 shadow-lg font-medium text-sm flex items-center gap-2 border border-border hover:bg-background transition-all active:scale-95"
+          >
+            <MapPin className="w-4 h-4" />
+            Find Location
+          </button>
+        )}
+
+        {/* Search box - bottom for thumb access on mobile */}
+        {showSearch && (
+          <div className="md:hidden bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl p-4 border border-border animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search for your property..."
+                className="flex-1 bg-transparent focus:outline-none text-sm placeholder:text-muted-foreground"
+                disabled={searching}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowSearch(false)}
+                className="p-1 hover:bg-muted rounded-full transition-colors flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={handleSearchClick}
+                disabled={searching || !searchQuery.trim()}
+                className="flex-1 h-10 rounded-xl font-semibold"
+                size="sm"
+              >
+                {searching ? "Searching..." : "Search"}
+              </Button>
+            </div>
+            {searchError && (
+              <div className="mt-2 text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg">
+                {searchError}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Desktop search - top center */}
+        <div className="hidden md:block absolute top-4 left-1/2 -translate-x-1/2">
           <div className="flex gap-2">
             <input
               type="text"
@@ -327,64 +383,91 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search for your location..."
-              className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded shadow text-sm w-64 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="bg-background/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary border border-border"
               disabled={searching}
             />
             <button
               type="button"
               onClick={handleSearchClick}
               disabled={searching || !searchQuery.trim()}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded shadow text-sm font-medium transition-colors"
+              className="bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground text-primary-foreground px-4 py-2 rounded-lg shadow-lg text-sm font-medium transition-colors"
             >
               {searching ? "Searching..." : "Search"}
             </button>
           </div>
           {searchError && (
-            <div className="bg-red-100 text-red-700 text-xs px-3 py-2 rounded shadow">
+            <div className="mt-2 bg-destructive/10 text-destructive text-xs px-3 py-2 rounded-lg shadow">
               {searchError}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Grid unit toggle */}
-      <div className="absolute top-4 right-4 z-10">
-        <button
-          type="button"
-          onClick={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
-          className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded shadow text-sm font-medium text-gray-900 hover:bg-white transition-colors"
-        >
-          {gridUnit === 'imperial' ? 'Feet' : 'Meters'} ⟷
-        </button>
-      </div>
-
-      {/* Instructions */}
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4 max-w-sm">
-        <h3 className="font-semibold mb-2">Draw Your Farm Boundary</h3>
-        <ol className="text-sm space-y-1 text-gray-700">
-          <li>1. Search or pan to find your property</li>
-          <li>2. Click the polygon tool (top-right)</li>
-          <li>3. Click points around your property boundary</li>
-          <li>4. Double-click the last point to finish</li>
-        </ol>
+        {/* Area display - prominent when complete */}
         {areaAcres !== null && (
-          <div className="mt-3 pt-3 border-t">
-            <p className="font-semibold text-green-600">
-              Area: {areaAcres.toFixed(2)} acres
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              ({(areaAcres * 0.404686).toFixed(2)} hectares)
-            </p>
+          <div className="bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl p-4 border-2 border-primary/20 animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-muted-foreground">Boundary Area</p>
+                <p className="text-xl font-bold text-green-600">
+                  {areaAcres.toFixed(2)} acres
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {(areaAcres * 0.404686).toFixed(2)} hectares
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Help button - collapsed by default */}
+        {!isComplete && (
+          <button
+            type="button"
+            onClick={() => setShowInstructions(!showInstructions)}
+            className="self-start bg-background/95 backdrop-blur-xl rounded-full px-4 py-3 shadow-lg font-medium text-sm flex items-center gap-2 border border-border hover:bg-background transition-all active:scale-95"
+          >
+            <HelpCircle className="w-4 h-4" />
+            {showInstructions ? "Hide Help" : "How to Draw"}
+          </button>
+        )}
+
+        {/* Instructions - bottom sheet style */}
+        {showInstructions && (
+          <div className="bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl p-5 border border-border animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-base">Draw Your Boundary</h3>
+              <button
+                type="button"
+                onClick={() => setShowInstructions(false)}
+                className="p-1 hover:bg-muted rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <ol className="space-y-2.5 text-sm text-muted-foreground">
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">1</span>
+                <span className="pt-0.5">Find your property using search or pan/zoom</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">2</span>
+                <span className="pt-0.5">Tap the polygon tool in the top-right corner</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">3</span>
+                <span className="pt-0.5">Tap points around your property boundary</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">4</span>
+                <span className="pt-0.5">Double-tap the last point to finish drawing</span>
+              </li>
+            </ol>
           </div>
         )}
       </div>
-
-      {/* Validation badge */}
-      {isComplete && (
-        <div className="absolute bottom-4 left-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg font-semibold">
-          ✓ Boundary Complete
-        </div>
-      )}
     </div>
   );
 }
