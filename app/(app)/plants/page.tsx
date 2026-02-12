@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { SpeciesCard } from '@/components/species/species-card';
 import { SpeciesFilterSidebar } from '@/components/species/species-filter-sidebar';
 import { SpeciesDetailModal } from '@/components/species/species-detail-modal';
 import type { Species } from '@/lib/db/schema';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Leaf, Sparkles } from 'lucide-react';
 import { Drawer } from 'vaul';
-import { FAB } from '@/components/ui/fab';
 
 export default function PlantsPage() {
   const [species, setSpecies] = useState<Species[]>([]);
@@ -78,89 +78,207 @@ export default function PlantsPage() {
     layerFilter.length +
     functionFilter.length;
 
-  return (
-    <div className="flex h-screen">
-      {/* Desktop Sidebar - Hidden on Mobile */}
-      <div className="hidden md:block md:w-56 lg:w-64 overflow-y-auto border-r">
-        <SpeciesFilterSidebar
-          nativeFilter={nativeFilter}
-          onNativeFilterChange={setNativeFilter}
-          layerFilter={layerFilter}
-          onLayerFilterChange={setLayerFilter}
-          functionFilter={functionFilter}
-          onFunctionFilterChange={setFunctionFilter}
-        />
-      </div>
+  const clearAllFilters = () => {
+    setNativeFilter('all');
+    setLayerFilter([]);
+    setFunctionFilter([]);
+    setSearchQuery('');
+  };
 
-      {/* Main content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 md:p-6 pb-20 md:pb-6">
+  const removeLayerFilter = (layer: string) => {
+    setLayerFilter(layerFilter.filter(l => l !== layer));
+  };
+
+  const removeFunctionFilter = (fn: string) => {
+    setFunctionFilter(functionFilter.filter(f => f !== fn));
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Hero Section */}
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
+        <div className="container mx-auto p-4 md:p-6">
           {/* Header */}
-          <div className="mb-4 md:mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Plant Catalog</h1>
-            <p className="text-sm md:text-base text-muted-foreground">
-              Browse native and naturalized species for your permaculture design
-            </p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Leaf className="w-6 h-6 text-green-500" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-serif font-bold">
+                  Plant Catalog
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {filteredSpecies.length} species available
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Native Filter Buttons - Desktop */}
+            <div className="hidden md:flex gap-2">
+              <Button
+                variant={nativeFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setNativeFilter('all')}
+              >
+                All Plants
+              </Button>
+              <Button
+                variant={nativeFilter === 'native' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setNativeFilter('native')}
+                className={nativeFilter === 'native' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                Native Only
+              </Button>
+              <Button
+                variant={nativeFilter === 'naturalized' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setNativeFilter('naturalized')}
+              >
+                Non-Native
+              </Button>
+            </div>
           </div>
 
-          {/* Search and Mobile Filter Button */}
-          <div className="mb-4 md:mb-6 flex gap-2">
+          {/* Search Bar */}
+          <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search by common or scientific name..."
+                placeholder="Search plants..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            {/* Mobile Filter Button */}
+
+            {/* Filter Button */}
             <Button
               variant="outline"
               size="default"
-              className="md:hidden flex-shrink-0 relative"
+              className="flex-shrink-0 relative h-11"
               onClick={() => setShowMobileFilters(true)}
             >
-              <SlidersHorizontal className="h-4 w-4" />
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Filters</span>
               {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-semibold">
                   {activeFilterCount}
                 </span>
               )}
             </Button>
           </div>
 
-          {/* Results */}
-          {loading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading species...
+          {/* Active Filter Tags */}
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {nativeFilter !== 'all' && (
+                <Badge variant="secondary" className="gap-2">
+                  {nativeFilter === 'native' ? 'Native Only' : 'Non-Native'}
+                  <button
+                    onClick={() => setNativeFilter('all')}
+                    className="hover:bg-background/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {layerFilter.map(layer => (
+                <Badge key={layer} variant="secondary" className="gap-2 capitalize">
+                  Layer: {layer}
+                  <button
+                    onClick={() => removeLayerFilter(layer)}
+                    className="hover:bg-background/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {functionFilter.map(fn => (
+                <Badge key={fn} variant="secondary" className="gap-2">
+                  {fn.replace(/_/g, ' ')}
+                  <button
+                    onClick={() => removeFunctionFilter(fn)}
+                    className="hover:bg-background/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-6 text-xs"
+              >
+                Clear all
+              </Button>
             </div>
-          ) : (
-            <>
-              <div className="mb-4 text-sm text-muted-foreground">
-                {filteredSpecies.length} species found
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredSpecies.map(s => (
-                  <SpeciesCard
-                    key={s.id}
-                    species={s}
-                    onClick={() => setSelectedSpeciesId(s.id)}
-                  />
-                ))}
-              </div>
-            </>
           )}
         </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto p-4 md:p-6">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4 animate-pulse">
+              <Sparkles className="w-8 h-8 text-green-500" />
+            </div>
+            <p className="text-muted-foreground">Loading plants...</p>
+          </div>
+        ) : filteredSpecies.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No plants found</h3>
+            <p className="text-muted-foreground mb-4 max-w-md">
+              Try adjusting your filters or search query
+            </p>
+            <Button onClick={clearAllFilters} variant="outline">
+              Clear all filters
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Results Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+              {filteredSpecies.map(s => (
+                <SpeciesCard
+                  key={s.id}
+                  species={s}
+                  onClick={() => setSelectedSpeciesId(s.id)}
+                />
+              ))}
+            </div>
+
+            {/* Load More Hint */}
+            {filteredSpecies.length > 20 && (
+              <div className="text-center mt-8 text-sm text-muted-foreground">
+                Showing {filteredSpecies.length} species
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Mobile Filter Drawer */}
       <Drawer.Root open={showMobileFilters} onOpenChange={setShowMobileFilters}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40 md:hidden" />
-          <Drawer.Content className="md:hidden bg-card flex flex-col rounded-t-xl h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
+          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
+          <Drawer.Content className="bg-card flex flex-col rounded-t-xl h-[85vh] mt-24 fixed bottom-0 left-0 right-0 z-50">
             {/* Handle */}
             <div className="flex-shrink-0 p-4 border-b border-border">
               <div className="mx-auto w-12 h-1.5 rounded-full bg-muted mb-4" />
@@ -173,11 +291,7 @@ export default function PlantsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      setNativeFilter('all');
-                      setLayerFilter([]);
-                      setFunctionFilter([]);
-                    }}
+                    onClick={clearAllFilters}
                   >
                     Clear All
                   </Button>
@@ -200,7 +314,7 @@ export default function PlantsPage() {
             {/* Apply Button Footer */}
             <div className="flex-shrink-0 p-4 border-t border-border">
               <Button
-                className="w-full"
+                className="w-full h-12"
                 onClick={() => setShowMobileFilters(false)}
               >
                 Show {filteredSpecies.length} Results
@@ -214,16 +328,6 @@ export default function PlantsPage() {
       <SpeciesDetailModal
         speciesId={selectedSpeciesId}
         onClose={() => setSelectedSpeciesId(null)}
-      />
-
-      {/* Context-Aware FAB - Focus Search on Mobile */}
-      <FAB
-        icon={<Search className="h-6 w-6" />}
-        onAction={() => {
-          searchInputRef.current?.focus();
-          searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }}
-        ariaLabel="Focus search"
       />
     </div>
   );

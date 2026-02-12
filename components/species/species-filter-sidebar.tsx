@@ -3,26 +3,27 @@
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 const LAYERS = [
-  'canopy',
-  'understory',
-  'shrub',
-  'herbaceous',
-  'groundcover',
-  'vine',
-  'root',
-  'aquatic'
+  { value: 'canopy', label: 'Canopy', icon: '🌳', desc: 'Tall trees' },
+  { value: 'understory', label: 'Understory', icon: '🌲', desc: 'Small trees' },
+  { value: 'shrub', label: 'Shrub', icon: '🌿', desc: 'Bushes' },
+  { value: 'herbaceous', label: 'Herbaceous', icon: '🌱', desc: 'Herbs' },
+  { value: 'groundcover', label: 'Groundcover', icon: '🍃', desc: 'Low plants' },
+  { value: 'vine', label: 'Vine', icon: '🌾', desc: 'Climbing' },
+  { value: 'root', label: 'Root', icon: '🥕', desc: 'Root crops' },
+  { value: 'aquatic', label: 'Aquatic', icon: '💧', desc: 'Water plants' },
 ];
 
 const FUNCTIONS = [
-  'nitrogen_fixer',
-  'wildlife_habitat',
-  'edible_fruit',
-  'edible_nuts',
-  'pollinator_support',
-  'erosion_control',
-  'medicinal'
+  { value: 'nitrogen_fixer', label: 'Nitrogen Fixer', icon: '🌱' },
+  { value: 'wildlife_habitat', label: 'Wildlife Habitat', icon: '🦋' },
+  { value: 'edible_fruit', label: 'Edible Fruit', icon: '🍎' },
+  { value: 'edible_nuts', label: 'Edible Nuts', icon: '🥜' },
+  { value: 'pollinator_support', label: 'Pollinator Support', icon: '🐝' },
+  { value: 'erosion_control', label: 'Erosion Control', icon: '🏔️' },
+  { value: 'medicinal', label: 'Medicinal', icon: '💊' },
 ];
 
 interface SpeciesFilterSidebarProps {
@@ -59,64 +60,152 @@ export function SpeciesFilterSidebar({
   };
 
   return (
-    <div className="space-y-6 p-4 bg-card">
+    <div className="space-y-6 p-4 md:p-6 bg-card">
+      {/* Native Status */}
       <div>
-        <h3 className="font-semibold mb-3">Native Status</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-sm">Native Status</h3>
+          {nativeFilter !== 'all' && (
+            <Badge variant="secondary" className="text-xs">
+              1 active
+            </Badge>
+          )}
+        </div>
         <RadioGroup value={nativeFilter} onValueChange={onNativeFilterChange}>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="all" id="all" />
-            <Label htmlFor="all">All Plants</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="native" id="native" />
-            <Label htmlFor="native">Native Only</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="naturalized" id="naturalized" />
-            <Label htmlFor="naturalized">Naturalized/Non-Native</Label>
+          <div className="space-y-2">
+            <label
+              htmlFor="all"
+              className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                nativeFilter === 'all'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50 hover:bg-accent'
+              }`}
+            >
+              <RadioGroupItem value="all" id="all" className="flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-sm">All Plants</p>
+                <p className="text-xs text-muted-foreground">No preference</p>
+              </div>
+            </label>
+
+            <label
+              htmlFor="native"
+              className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                nativeFilter === 'native'
+                  ? 'border-green-600 bg-green-500/5'
+                  : 'border-border hover:border-green-600/50 hover:bg-accent'
+              }`}
+            >
+              <RadioGroupItem value="native" id="native" className="flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-sm">Native Only</p>
+                  <span className="text-lg">🌿</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Indigenous species</p>
+              </div>
+            </label>
+
+            <label
+              htmlFor="naturalized"
+              className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                nativeFilter === 'naturalized'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50 hover:bg-accent'
+              }`}
+            >
+              <RadioGroupItem value="naturalized" id="naturalized" className="flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-sm">Non-Native</p>
+                <p className="text-xs text-muted-foreground">Introduced species</p>
+              </div>
+            </label>
           </div>
         </RadioGroup>
       </div>
 
+      {/* Divider */}
+      <div className="border-t" />
+
+      {/* Layer Filter */}
       <div>
-        <h3 className="font-semibold mb-3">Layer</h3>
-        <div className="space-y-2">
-          {LAYERS.map(layer => (
-            <div key={layer} className="flex items-center space-x-2">
-              <Checkbox
-                id={`layer-${layer}`}
-                checked={layerFilter.includes(layer)}
-                onCheckedChange={() => handleLayerToggle(layer)}
-              />
-              <Label
-                htmlFor={`layer-${layer}`}
-                className="capitalize cursor-pointer"
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-sm">Plant Layer</h3>
+          {layerFilter.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {layerFilter.length} active
+            </Badge>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-2">
+          {LAYERS.map(layer => {
+            const isChecked = layerFilter.includes(layer.value);
+            return (
+              <label
+                key={layer.value}
+                htmlFor={`layer-${layer.value}`}
+                className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                  isChecked
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50 hover:bg-accent'
+                }`}
               >
-                {layer}
-              </Label>
-            </div>
-          ))}
+                <Checkbox
+                  id={`layer-${layer.value}`}
+                  checked={isChecked}
+                  onCheckedChange={() => handleLayerToggle(layer.value)}
+                  className="flex-shrink-0"
+                />
+                <span className="text-2xl">{layer.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm capitalize">{layer.label}</p>
+                  <p className="text-xs text-muted-foreground">{layer.desc}</p>
+                </div>
+              </label>
+            );
+          })}
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="border-t" />
+
+      {/* Functions Filter */}
       <div>
-        <h3 className="font-semibold mb-3">Functions</h3>
-        <div className="space-y-2">
-          {FUNCTIONS.map(fn => (
-            <div key={fn} className="flex items-center space-x-2">
-              <Checkbox
-                id={`fn-${fn}`}
-                checked={functionFilter.includes(fn)}
-                onCheckedChange={() => handleFunctionToggle(fn)}
-              />
-              <Label
-                htmlFor={`fn-${fn}`}
-                className="capitalize cursor-pointer text-sm"
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-sm">Functions</h3>
+          {functionFilter.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {functionFilter.length} active
+            </Badge>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-2">
+          {FUNCTIONS.map(fn => {
+            const isChecked = functionFilter.includes(fn.value);
+            return (
+              <label
+                key={fn.value}
+                htmlFor={`fn-${fn.value}`}
+                className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                  isChecked
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50 hover:bg-accent'
+                }`}
               >
-                {fn.replace(/_/g, ' ')}
-              </Label>
-            </div>
-          ))}
+                <Checkbox
+                  id={`fn-${fn.value}`}
+                  checked={isChecked}
+                  onCheckedChange={() => handleFunctionToggle(fn.value)}
+                  className="flex-shrink-0"
+                />
+                <span className="text-xl">{fn.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{fn.label}</p>
+                </div>
+              </label>
+            );
+          })}
         </div>
       </div>
     </div>

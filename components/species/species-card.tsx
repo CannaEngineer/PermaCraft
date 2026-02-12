@@ -1,68 +1,160 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { Species } from '@/lib/db/schema';
+import { Leaf, MapPin, Layers, Droplets, Sun } from 'lucide-react';
 
 interface SpeciesCardProps {
   species: Species;
   onClick?: () => void;
 }
 
+const layerIcons: Record<string, any> = {
+  canopy: '🌳',
+  understory: '🌲',
+  shrub: '🌿',
+  herbaceous: '🌱',
+  groundcover: '🍃',
+  vine: '🌾',
+  root: '🥕',
+  aquatic: '💧',
+};
+
+const getLayerColor = (layer: string) => {
+  const colors: Record<string, string> = {
+    canopy: 'bg-green-700/10 text-green-700 border-green-200',
+    understory: 'bg-green-600/10 text-green-600 border-green-200',
+    shrub: 'bg-green-500/10 text-green-500 border-green-200',
+    herbaceous: 'bg-green-400/10 text-green-400 border-green-200',
+    groundcover: 'bg-lime-500/10 text-lime-600 border-lime-200',
+    vine: 'bg-amber-500/10 text-amber-600 border-amber-200',
+    root: 'bg-orange-500/10 text-orange-600 border-orange-200',
+    aquatic: 'bg-blue-500/10 text-blue-600 border-blue-200',
+  };
+  return colors[layer] || 'bg-gray-500/10 text-gray-600 border-gray-200';
+};
+
 export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
   const regions = species.broad_regions
-    ? JSON.parse(species.broad_regions).join(', ')
-    : 'Various';
+    ? JSON.parse(species.broad_regions).slice(0, 2)
+    : [];
 
   const functions = species.permaculture_functions
-    ? JSON.parse(species.permaculture_functions)
+    ? JSON.parse(species.permaculture_functions).slice(0, 3)
     : [];
+
+  const layerIcon = layerIcons[species.layer] || '🌱';
+  const layerColorClass = getLayerColor(species.layer);
 
   return (
     <Card
-      className="hover:shadow-lg transition-shadow cursor-pointer"
+      className="group hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-2 hover:border-primary/50 hover:scale-[1.02]"
       onClick={onClick}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-semibold text-base leading-tight">
-              {species.common_name}
-            </h3>
-            <p className="text-sm text-muted-foreground italic">
-              {species.scientific_name}
-            </p>
-          </div>
-          {species.is_native === 1 && (
-            <Badge variant="default" className="bg-green-600 shrink-0">
-              Native
+      {/* Header with gradient background */}
+      <div className={`h-24 relative ${layerColorClass} border-b-2`}>
+        <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent" />
+        <div className="absolute top-3 right-3">
+          {species.is_native === 1 ? (
+            <Badge className="bg-green-600 hover:bg-green-700 shadow-lg">
+              🌿 Native
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="shadow">
+              Naturalized
             </Badge>
           )}
         </div>
+        <div className="absolute bottom-3 left-3 text-4xl">
+          {layerIcon}
+        </div>
+      </div>
+
+      <CardHeader className="pb-3 pt-4">
+        <div className="space-y-1">
+          <h3 className="font-bold text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+            {species.common_name}
+          </h3>
+          <p className="text-xs text-muted-foreground italic line-clamp-1">
+            {species.scientific_name}
+          </p>
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="font-medium">Layer:</span>{' '}
-            <span className="capitalize">{species.layer}</span>
+
+      <CardContent className="space-y-3">
+        {/* Layer Badge */}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={`text-xs capitalize ${layerColorClass}`}>
+            <Layers className="w-3 h-3 mr-1" />
+            {species.layer}
+          </Badge>
+        </div>
+
+        {/* Key Info Grid */}
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {/* Hardiness Zones */}
+          {species.min_hardiness_zone && species.max_hardiness_zone && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">
+                Zones {species.min_hardiness_zone}-{species.max_hardiness_zone}
+              </span>
+            </div>
+          )}
+
+          {/* Sun Requirements */}
+          {species.sun_requirements && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Sun className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate capitalize">
+                {species.sun_requirements}
+              </span>
+            </div>
+          )}
+
+          {/* Water Requirements */}
+          {species.water_requirements && (
+            <div className="flex items-center gap-1 text-muted-foreground col-span-2">
+              <Droplets className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate capitalize">
+                {species.water_requirements}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Regions */}
+        {regions.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {regions.map((region: string) => (
+              <Badge key={region} variant="outline" className="text-xs bg-muted/50">
+                {region}
+              </Badge>
+            ))}
           </div>
-          <div>
-            <span className="font-medium">Zones:</span>{' '}
-            {species.min_hardiness_zone && species.max_hardiness_zone
-              ? `${species.min_hardiness_zone}-${species.max_hardiness_zone}`
-              : 'Not specified'}
-          </div>
-          <div>
-            <span className="font-medium">Regions:</span>{' '}
-            {regions}
-          </div>
-          {functions.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {functions.slice(0, 3).map((fn: string) => (
-                <Badge key={fn} variant="outline" className="text-xs">
+        )}
+
+        {/* Functions */}
+        {functions.length > 0 && (
+          <div className="pt-2 border-t">
+            <div className="flex flex-wrap gap-1">
+              {functions.map((fn: string) => (
+                <Badge
+                  key={fn}
+                  variant="secondary"
+                  className="text-xs bg-primary/5 text-primary border-primary/20"
+                >
                   {fn.replace(/_/g, ' ')}
                 </Badge>
               ))}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* Tap to learn more hint */}
+        <div className="pt-2 text-center">
+          <p className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
+            Tap to learn more →
+          </p>
         </div>
       </CardContent>
     </Card>
