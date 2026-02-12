@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { BadgeGrid } from '@/components/learning/badge-grid';
 import Link from 'next/link';
 import * as Icons from 'lucide-react';
@@ -150,11 +151,11 @@ async function LearnContent() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
       <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto p-4 md:p-8">
+        <div className="container mx-auto p-4 md:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500/20 to-blue-500/20 flex items-center justify-center">
-                <GraduationCap className="w-8 h-8 text-primary" />
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500/20 to-blue-500/20 flex items-center justify-center">
+                <GraduationCap className="w-7 h-7 text-primary" />
               </div>
               <div className="flex-1">
                 <h1 className="text-3xl md:text-4xl font-serif font-bold mb-2">
@@ -168,11 +169,11 @@ async function LearnContent() {
 
             {/* User Progress Card */}
             {session && progress && (
-              <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-background border-2 border-primary/20">
+              <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-background border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Level & XP */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
                       <div className="flex items-center gap-2 mb-2">
                         <Trophy className="w-5 h-5 text-amber-500" />
                         <h3 className="font-semibold">Your Level</h3>
@@ -193,7 +194,7 @@ async function LearnContent() {
                     </div>
 
                     {/* Completion Stats */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '200ms' }}>
                       <div className="flex items-center gap-2 mb-2">
                         <Target className="w-5 h-5 text-blue-500" />
                         <h3 className="font-semibold">Progress</h3>
@@ -210,7 +211,7 @@ async function LearnContent() {
                     </div>
 
                     {/* Recent Badges */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '300ms' }}>
                       <div className="flex items-center gap-2 mb-2">
                         <Sparkles className="w-5 h-5 text-purple-500" />
                         <h3 className="font-semibold">Achievements</h3>
@@ -232,9 +233,9 @@ async function LearnContent() {
                             );
                           })}
                           <Link href="/learn?tab=badges">
-                            <Button variant="ghost" size="sm" className="w-full">
+                            <Button variant="ghost" size="sm" className="w-full rounded-xl group">
                               View all badges
-                              <ArrowRight className="w-4 h-4 ml-2" />
+                              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-all" />
                             </Button>
                           </Link>
                         </div>
@@ -251,17 +252,20 @@ async function LearnContent() {
 
             {/* Continue Learning Section */}
             {session && nextLessons.length > 0 && (
-              <div className="mt-6">
-                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '400ms' }}>
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <Play className="w-5 h-5 text-primary" />
                   Continue Learning
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {nextLessons.map((lesson: any) => {
+                  {nextLessons.map((lesson: any, index: number) => {
                     const Icon = getIconComponent(lesson.topic_icon);
                     return (
                       <Link key={lesson.id} href={`/learn/lessons/${lesson.slug}`}>
-                        <Card className="hover:shadow-lg transition-all hover:scale-[1.02] h-full border-2 hover:border-primary/50">
+                        <Card
+                          className="hover:shadow-lg transition-all hover:scale-[1.02] h-full border-2 hover:border-primary/50 animate-in fade-in slide-in-from-bottom-2 duration-500"
+                          style={{ animationDelay: `${450 + index * 50}ms` }}
+                        >
                           <CardHeader className="pb-3">
                             <div className="flex items-start gap-2">
                               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -297,30 +301,33 @@ async function LearnContent() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto p-4 md:p-8">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Learning Paths */}
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-6">
+          <section className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-2xl font-serif font-bold flex items-center gap-2">
-                  <Icons.Map className="w-6 h-6 text-primary" />
+                <h2 className="text-xl font-semibold flex items-center gap-2 mb-1">
+                  <Icons.Map className="w-5 h-5 text-primary" />
                   Learning Paths
                 </h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground">
                   Structured journeys tailored to your goals
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paths.map((path) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+              {paths.map((path, index) => {
                 const Icon = getIconComponent(path.icon_name);
                 const difficultyClass = difficultyColors[path.difficulty] || difficultyColors.beginner;
 
                 return (
                   <Link key={path.id} href={`/learn/paths/${path.slug}`}>
-                    <Card className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] border-2 hover:border-primary/50">
+                    <Card
+                      className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] border-2 hover:border-primary/50 animate-in fade-in slide-in-from-bottom-2"
+                      style={{ animationDelay: `${150 + index * 50}ms` }}
+                    >
                       {/* Header with gradient */}
                       <div className="h-24 bg-gradient-to-br from-primary/10 via-primary/5 to-background relative overflow-hidden border-b">
                         <div className="absolute inset-0 bg-[url('/patterns/topography.svg')] opacity-5" />
@@ -363,10 +370,12 @@ async function LearnContent() {
             </div>
           </section>
 
+          <Separator className="my-8" />
+
           {/* Topics and Badges Tabs */}
-          <section>
+          <section className="animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '200ms' }}>
             <Tabs defaultValue="topics" className="w-full">
-              <TabsList className="mb-6 grid w-full max-w-md grid-cols-2">
+              <TabsList className="mb-6 grid w-full max-w-md grid-cols-2 rounded-xl">
                 <TabsTrigger value="topics" className="gap-2">
                   <BookOpen className="w-4 h-4" />
                   Topics
@@ -383,21 +392,24 @@ async function LearnContent() {
               </TabsList>
 
               <TabsContent value="topics" className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="text-xl font-semibold">Browse by Topic</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h3 className="text-lg font-semibold mb-1">Browse by Topic</h3>
+                    <p className="text-sm text-muted-foreground">
                       Explore lessons organized by permaculture concepts
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {topics.map((topic) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                  {topics.map((topic, index) => {
                     const Icon = getIconComponent(topic.icon_name);
                     return (
                       <Link key={topic.id} href={`/learn/topics/${topic.slug}`}>
-                        <Card className="hover:shadow-lg transition-all cursor-pointer group h-full border-2 hover:border-primary/50 hover:scale-[1.02]">
+                        <Card
+                          className="hover:shadow-lg transition-all cursor-pointer group h-full border-2 hover:border-primary/50 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-2 duration-500"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
                           <CardHeader>
                             <div className="flex items-start gap-3">
                               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -421,15 +433,17 @@ async function LearnContent() {
               </TabsContent>
 
               <TabsContent value="badges" className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="text-xl font-semibold">Achievement Badges</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h3 className="text-lg font-semibold mb-1">Achievement Badges</h3>
+                    <p className="text-sm text-muted-foreground">
                       Earn badges by completing lessons and reaching milestones
                     </p>
                   </div>
                 </div>
-                <BadgeGrid badges={badges} />
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <BadgeGrid badges={badges} />
+                </div>
               </TabsContent>
             </Tabs>
           </section>
@@ -450,11 +464,11 @@ export default function LearnPage() {
 function LearnPageSkeleton() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="container mx-auto p-4 md:p-8">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <Skeleton className="h-16 w-full mb-4" />
           <Skeleton className="h-32 w-full mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i}>
                 <CardHeader>
