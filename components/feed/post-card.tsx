@@ -20,6 +20,7 @@ interface Author {
 interface Post {
   id: string;
   farm_id: string;
+  farm_name?: string;
   type: 'text' | 'photo' | 'ai_insight';
   content: string | null;
   media_urls: string[] | null;
