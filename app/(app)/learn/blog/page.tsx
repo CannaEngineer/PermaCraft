@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { BookOpen, Clock, TrendingUp, Zap, Eye, FileText, BarChart3, Timer, Sparkles } from 'lucide-react';
 
 export const metadata = {
@@ -58,11 +59,11 @@ export default async function BlogPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
       <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container mx-auto p-4 md:p-6">
+        <div className="container mx-auto p-4 md:p-6 lg:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-background flex items-center justify-center border-2 border-purple-500/20">
-                <BookOpen className="w-8 h-8 text-purple-500" />
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-background flex items-center justify-center border-2 border-purple-500/20">
+                <BookOpen className="w-7 h-7 text-purple-500" />
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-serif font-bold">
@@ -77,7 +78,7 @@ export default async function BlogPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-3 mt-6">
-            <Card className="border-2 hover:border-purple-500/30 transition-all">
+            <Card className="border-2 hover:border-purple-500/30 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: '0ms' }}>
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
@@ -91,7 +92,7 @@ export default async function BlogPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 hover:border-blue-500/30 transition-all">
+            <Card className="border-2 hover:border-blue-500/30 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: '50ms' }}>
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -105,7 +106,7 @@ export default async function BlogPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 hover:border-amber-500/30 transition-all">
+            <Card className="border-2 hover:border-amber-500/30 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: '100ms' }}>
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
@@ -124,9 +125,9 @@ export default async function BlogPage() {
 
           {/* Popular Tags */}
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms' }}>
               {tags.map((tag: any) => (
-                <Badge key={tag.id} variant="secondary" className="text-xs hover:bg-primary/10 cursor-pointer transition-colors">
+                <Badge key={tag.id} variant="secondary" className="text-xs hover:bg-primary/10 cursor-pointer transition-colors rounded-lg">
                   {tag.name} ({tag.post_count})
                 </Badge>
               ))}
@@ -136,20 +137,23 @@ export default async function BlogPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto p-4 md:p-6">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
         {posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mb-4">
-              <BookOpen className="w-8 h-8 text-purple-500" />
+            <div className="w-14 h-14 rounded-full bg-purple-500/10 flex items-center justify-center mb-4">
+              <BookOpen className="w-7 h-7 text-purple-500" />
             </div>
             <h3 className="text-xl font-semibold mb-2">No blog posts yet</h3>
             <p className="text-muted-foreground">Check back soon for new content!</p>
           </div>
         ) : (
-          <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
+          <div className="grid gap-6 lg:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {posts.map((post, index) => (
               <Link key={post.id} href={`/learn/blog/${post.slug}`}>
-                <Card className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] border-2 hover:border-primary/50 overflow-hidden">
+                <Card
+                  className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] border-2 hover:border-primary/50 overflow-hidden animate-in fade-in slide-in-from-bottom-2"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
                   {/* Cover Image or Gradient Header */}
                   {post.cover_image_url ? (
                     <div className="w-full h-48 overflow-hidden bg-muted relative">
