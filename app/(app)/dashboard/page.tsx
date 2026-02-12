@@ -13,6 +13,15 @@ import { RecentCommunityPosts } from "@/components/dashboard/recent-community-po
 import { LatestBlogPost } from "@/components/dashboard/latest-blog-post";
 import { FarmActivityFeed } from "@/components/dashboard/farm-activity-feed";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
+import { Separator } from "@/components/ui/separator";
+
+// Get time-based greeting
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -74,24 +83,28 @@ export default async function DashboardPage() {
   const totalPlantings = farms.reduce((sum, farm) => sum + (farm.planting_count || 0), 0);
   const totalPosts = farms.reduce((sum, farm) => sum + (farm.post_count || 0), 0);
 
+  // Get first name for personalization
+  const firstName = session.user.name?.split(' ')[0] || session.user.name;
+
   return (
     <DashboardClient>
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        {/* Hero Section */}
+        {/* Hero Section - Clean & Minimal */}
         <div className="border-b bg-card/50 backdrop-blur-sm">
-          <div className="p-4 md:p-8">
+          <div className="container mx-auto p-4 md:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
-                <div className="flex-1">
-                  <h1 className="text-4xl font-serif font-bold mb-2">
-                    Welcome back, {session.user.name}! 👋
-                  </h1>
-                  <p className="text-muted-foreground text-lg">
-                    Your permaculture dashboard and command center
-                  </p>
-                </div>
+              {/* Greeting */}
+              <div className="mb-6">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  {getGreeting()}
+                </p>
+                <h1 className="text-3xl md:text-4xl font-serif font-bold">
+                  {firstName}
+                </h1>
+              </div>
 
-                {/* Quick Stats */}
+              {/* Stats - Prominent Cards */}
+              <div className="mb-6">
                 <DashboardStats
                   farmCount={farms.length}
                   plantingCount={totalPlantings}
@@ -100,40 +113,43 @@ export default async function DashboardPage() {
                 />
               </div>
 
-              {/* Search */}
+              {/* Quick Actions - iOS/Material Style */}
               <div className="mb-6">
-                <UniversalSearch
-                  context="my-farms"
-                  placeholder="Search your farms, zones, and conversations..."
-                  className="max-w-2xl"
-                />
+                <QuickActions />
               </div>
-
-              {/* Quick Actions */}
-              <QuickActions />
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="p-4 md:p-8">
+        {/* Main Content */}
+        <div className="container mx-auto p-4 md:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column - Farms & Activity */}
-              <div className="lg:col-span-2 space-y-6">
+            {/* Search - Prominent Position */}
+            <div className="mb-8">
+              <UniversalSearch
+                context="my-farms"
+                placeholder="Search your farms, zones, and conversations..."
+                className="max-w-2xl"
+              />
+            </div>
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+              {/* Left Column - Primary Content (2/3 width) */}
+              <div className="lg:col-span-2 space-y-8">
                 {/* My Farms Section */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
+                <section className="animate-in fade-in duration-500">
+                  <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h2 className="text-2xl font-serif font-bold flex items-center gap-2">
-                        <MapIcon className="w-6 h-6 text-primary" />
+                      <h2 className="text-xl font-semibold flex items-center gap-2 mb-1">
+                        <MapIcon className="w-5 h-5 text-primary" />
                         My Farms
                       </h2>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground">
                         {farms.length} {farms.length === 1 ? 'farm' : 'farms'} in your portfolio
                       </p>
                     </div>
-                    <Button asChild variant="default">
+                    <Button asChild size="default" className="rounded-xl">
                       <Link href="/farm/new">
                         <PlusIcon className="h-4 w-4 mr-2" />
                         New Farm
@@ -142,18 +158,18 @@ export default async function DashboardPage() {
                   </div>
 
                   {farms.length === 0 ? (
-                    <Card className="border-dashed">
-                      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                          <MapIcon className="h-8 w-8 text-primary" />
+                    <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-all duration-300">
+                      <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4">
+                          <MapIcon className="h-10 w-10 text-primary" />
                         </div>
-                        <h3 className="text-xl font-serif font-semibold mb-2">
+                        <h3 className="text-xl font-semibold mb-2">
                           No farms yet
                         </h3>
-                        <p className="text-muted-foreground mb-6 max-w-md">
+                        <p className="text-muted-foreground mb-6 max-w-sm">
                           Create your first farm to start planning your permaculture design.
                         </p>
-                        <Button asChild variant="default" size="lg">
+                        <Button asChild size="lg" className="rounded-xl h-12">
                           <Link href="/farm/new">
                             <PlusIcon className="h-5 w-5 mr-2" />
                             Create Your First Farm
@@ -163,19 +179,27 @@ export default async function DashboardPage() {
                     </Card>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {farms.map((farm) => (
-                        <FarmCard key={farm.id} farm={farm} />
+                      {farms.map((farm, index) => (
+                        <div
+                          key={farm.id}
+                          className="animate-in fade-in slide-in-from-bottom duration-500"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <FarmCard farm={farm} />
+                        </div>
                       ))}
                     </div>
                   )}
                 </section>
 
+                <Separator className="my-8" />
+
                 {/* Farm Activity Feed */}
                 {farms.length > 0 && (
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-serif font-bold flex items-center gap-2">
-                        <Sparkles className="w-6 h-6 text-purple-500" />
+                  <section className="animate-in fade-in duration-500" style={{ animationDelay: '200ms' }}>
+                    <div className="flex items-center justify-between mb-5">
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-purple-500" />
                         Recent Activity
                       </h2>
                     </div>
@@ -183,19 +207,21 @@ export default async function DashboardPage() {
                   </section>
                 )}
 
+                {farms.length > 0 && <Separator className="my-8" />}
+
                 {/* Recent Community Posts */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
+                <section className="animate-in fade-in duration-500" style={{ animationDelay: '300ms' }}>
+                  <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h2 className="text-2xl font-serif font-bold flex items-center gap-2">
-                        <Users className="w-6 h-6 text-blue-500" />
+                      <h2 className="text-xl font-semibold flex items-center gap-2 mb-1">
+                        <Users className="w-5 h-5 text-blue-500" />
                         Community Highlights
                       </h2>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground">
                         See what others are sharing
                       </p>
                     </div>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="ghost" size="sm" className="rounded-lg">
                       <Link href="/gallery">
                         View All
                         <ArrowRight className="h-4 w-4 ml-2" />
@@ -206,19 +232,19 @@ export default async function DashboardPage() {
                 </section>
               </div>
 
-              {/* Right Column - Learning & Blog */}
+              {/* Right Column - Secondary Content (1/3 width) */}
               <div className="space-y-6">
                 {/* Learning Progress */}
-                <section>
+                <section className="animate-in fade-in duration-500" style={{ animationDelay: '100ms' }}>
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-serif font-bold flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5 text-green-500" />
+                    <h3 className="text-base font-semibold flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4 text-green-500" />
                       Learning
-                    </h2>
-                    <Button asChild variant="ghost" size="sm">
+                    </h3>
+                    <Button asChild variant="ghost" size="sm" className="h-8 text-xs rounded-lg">
                       <Link href="/learn">
                         Browse
-                        <ArrowRight className="h-4 w-4 ml-2" />
+                        <ArrowRight className="h-3 w-3 ml-1" />
                       </Link>
                     </Button>
                   </div>
@@ -226,51 +252,51 @@ export default async function DashboardPage() {
                 </section>
 
                 {/* Latest Blog Post */}
-                <section>
+                <section className="animate-in fade-in duration-500" style={{ animationDelay: '200ms' }}>
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-serif font-bold flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-amber-500" />
+                    <h3 className="text-base font-semibold flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-purple-500" />
                       Latest Article
-                    </h2>
-                    <Button asChild variant="ghost" size="sm">
+                    </h3>
+                    <Button asChild variant="ghost" size="sm" className="h-8 text-xs rounded-lg">
                       <Link href="/learn/blog">
                         All Posts
-                        <ArrowRight className="h-4 w-4 ml-2" />
+                        <ArrowRight className="h-3 w-3 ml-1" />
                       </Link>
                     </Button>
                   </div>
                   <LatestBlogPost />
                 </section>
 
-                {/* Helpful Resources */}
-                <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Sprout className="w-4 h-4" />
+                {/* Getting Started Card */}
+                <Card className="bg-gradient-to-br from-primary/5 via-primary/3 to-background border-primary/20 shadow-sm hover:shadow-md transition-shadow duration-300 animate-in fade-in duration-500" style={{ animationDelay: '300ms' }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Sprout className="w-4 h-4 text-primary" />
                       Getting Started
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-1">
                     <Link
                       href="/learn"
-                      className="flex items-center justify-between p-2 rounded hover:bg-background/50 transition-colors"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-background/60 transition-all duration-200 active:scale-[0.98] group"
                     >
                       <span className="text-sm font-medium">Browse Lessons</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                     </Link>
                     <Link
                       href="/plants"
-                      className="flex items-center justify-between p-2 rounded hover:bg-background/50 transition-colors"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-background/60 transition-all duration-200 active:scale-[0.98] group"
                     >
                       <span className="text-sm font-medium">Explore Plants</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                     </Link>
                     <Link
                       href="/gallery"
-                      className="flex items-center justify-between p-2 rounded hover:bg-background/50 transition-colors"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-background/60 transition-all duration-200 active:scale-[0.98] group"
                     >
                       <span className="text-sm font-medium">Join Community</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                     </Link>
                   </CardContent>
                 </Card>
