@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { BadgeGrid } from '@/components/learning/badge-grid';
+import { PathSelector } from '@/components/learning/path-selector';
 import Link from 'next/link';
 import * as Icons from 'lucide-react';
 import { GraduationCap, BookOpen, Trophy, Target, Sparkles, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
@@ -135,17 +136,62 @@ const difficultyColors: Record<string, string> = {
   advanced: 'bg-purple-500/10 text-purple-600 border-purple-200',
 };
 
+async function getActivePathDetails(userId: string, pathId: string) {
+  // Get path info
+  const pathResult = await db.execute({
+    sql: 'SELECT * FROM learning_paths WHERE id = ?',
+    args: [pathId],
+  });
+  const path = pathResult.rows[0];
+
+  // Get all lessons in this path
+  const lessonsResult = await db.execute({
+    sql: `
+      SELECT
+        l.*,
+        pl.order_index,
+        t.name as topic_name,
+        CASE WHEN lc.lesson_id IS NOT NULL THEN 1 ELSE 0 END as is_completed
+      FROM path_lessons pl
+      JOIN lessons l ON pl.lesson_id = l.id
+      JOIN topics t ON l.topic_id = t.id
+      LEFT JOIN lesson_completions lc ON l.id = lc.lesson_id AND lc.user_id = ?
+      WHERE pl.learning_path_id = ?
+      ORDER BY pl.order_index ASC
+    `,
+    args: [userId, pathId],
+  });
+
+  // Calculate progress
+  const totalLessons = lessonsResult.rows.length;
+  const completedLessons = lessonsResult.rows.filter((l: any) => l.is_completed).length;
+  const percentComplete = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+  // Find next incomplete lesson
+  const nextLesson = lessonsResult.rows.find((l: any) => !l.is_completed);
+
+  return {
+    path,
+    lessons: lessonsResult.rows,
+    totalLessons,
+    completedLessons,
+    percentComplete,
+    nextLesson,
+  };
+}
+
 async function LearnContent() {
   const session = await getSession();
   const paths = await getLearningPaths();
   const topics = await getTopics();
   const progress = session ? await getUserProgress(session.user.id) : null;
   const badges = await getBadgesWithStatus(session?.user.id);
-  const recentBadges = session ? await getRecentlyEarnedBadges(session.user.id) : [];
-  const nextLessons = session ? await getNextLessons(session.user.id, 3) : [];
-  const completedCount = session ? await getCompletedLessonsCount(session.user.id) : 0;
-  const totalCount = await getTotalLessonsCount();
-  const completionPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  // Get active path details if user has one
+  const activePathId = (progress as any)?.learning_path_id;
+  const activePathDetails = session && activePathId
+    ? await getActivePathDetails(session.user.id, activePathId)
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -153,149 +199,19 @@ async function LearnContent() {
       <div className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500/20 to-blue-500/20 flex items-center justify-center">
                 <GraduationCap className="w-7 h-7 text-primary" />
               </div>
               <div className="flex-1">
                 <h1 className="text-3xl md:text-4xl font-serif font-bold mb-2">
-                  Permaculture Learning Center
+                  Permaculture Learning
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                  Master regenerative design through guided lessons and hands-on practice
+                  {activePathDetails ? 'Follow your path, one lesson at a time' : 'Choose a learning path to begin your journey'}
                 </p>
               </div>
             </div>
-
-            {/* User Progress Card */}
-            {session && progress && (
-              <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-background border-2 border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Level & XP */}
-                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Trophy className="w-5 h-5 text-amber-500" />
-                        <h3 className="font-semibold">Your Level</h3>
-                      </div>
-                      <div className="text-3xl font-bold text-primary">
-                        {getLevelName(progress.current_level)}
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Total XP</span>
-                          <span className="font-semibold">{progress.total_xp.toLocaleString()}</span>
-                        </div>
-                        <Progress value={progress.total_xp % 100} className="h-2" />
-                        <p className="text-xs text-muted-foreground">
-                          {100 - (progress.total_xp % 100)} XP to level {progress.current_level + 1}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Completion Stats */}
-                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '200ms' }}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Target className="w-5 h-5 text-blue-500" />
-                        <h3 className="font-semibold">Progress</h3>
-                      </div>
-                      <div className="text-3xl font-bold">
-                        {completedCount} <span className="text-lg text-muted-foreground">/ {totalCount}</span>
-                      </div>
-                      <div className="space-y-2">
-                        <Progress value={completionPercent} className="h-2" />
-                        <p className="text-xs text-muted-foreground">
-                          {Math.round(completionPercent)}% of lessons completed
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Recent Badges */}
-                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '300ms' }}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-5 h-5 text-purple-500" />
-                        <h3 className="font-semibold">Achievements</h3>
-                      </div>
-                      {recentBadges.length > 0 ? (
-                        <div className="space-y-2">
-                          {recentBadges.slice(0, 2).map((badge: any) => {
-                            const Icon = getIconComponent(badge.icon_name);
-                            return (
-                              <div
-                                key={badge.id}
-                                className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-200"
-                              >
-                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                                  <Icon className="w-4 h-4 text-amber-600" />
-                                </div>
-                                <span className="text-sm font-medium flex-1 truncate">{badge.name}</span>
-                              </div>
-                            );
-                          })}
-                          <Link href="/learn?tab=badges">
-                            <Button variant="ghost" size="sm" className="w-full rounded-xl group">
-                              View all badges
-                              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-all" />
-                            </Button>
-                          </Link>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          Complete lessons to earn badges
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Continue Learning Section */}
-            {session && nextLessons.length > 0 && (
-              <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '400ms' }}>
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <Play className="w-5 h-5 text-primary" />
-                  Continue Learning
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {nextLessons.map((lesson: any, index: number) => {
-                    const Icon = getIconComponent(lesson.topic_icon);
-                    return (
-                      <Link key={lesson.id} href={`/learn/lessons/${lesson.slug}`}>
-                        <Card
-                          className="hover:shadow-lg transition-all hover:scale-[1.02] h-full border-2 hover:border-primary/50 animate-in fade-in slide-in-from-bottom-2 duration-500"
-                          style={{ animationDelay: `${450 + index * 50}ms` }}
-                        >
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start gap-2">
-                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <Icon className="w-5 h-5 text-primary" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <CardTitle className="text-base line-clamp-2">{lesson.title}</CardTitle>
-                                <p className="text-xs text-muted-foreground mt-1">{lesson.topic_name}</p>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Icons.Clock className="w-3 h-3" />
-                                {lesson.estimated_minutes} min
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Icons.Star className="w-3 h-3" />
-                                {lesson.xp_reward} XP
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -303,68 +219,152 @@ async function LearnContent() {
       {/* Main Content */}
       <div className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
+          {/* Active Learning Path Section */}
+          {activePathDetails && (
+            <section className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-background border-2 border-primary/20 overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icons.BookOpen className="w-5 h-5 text-primary" />
+                        <CardTitle className="text-xl">Your Learning Path</CardTitle>
+                      </div>
+                      <CardDescription className="text-base">
+                        {(activePathDetails.path as any)?.name}
+                      </CardDescription>
+                    </div>
+                    <Link href="/learn#browse-paths">
+                      <Button variant="ghost" size="sm" className="rounded-xl">
+                        Switch Path
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Progress */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        {activePathDetails.completedLessons} of {activePathDetails.totalLessons} lessons
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {Math.round(activePathDetails.percentComplete)}%
+                      </span>
+                    </div>
+                    <Progress value={activePathDetails.percentComplete} className="h-3" />
+                  </div>
+
+                  {/* Next Lesson CTA */}
+                  {activePathDetails.nextLesson ? (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Play className="w-4 h-4 text-primary" />
+                        Continue with Lesson {(activePathDetails.nextLesson as any).order_index + 1}
+                      </h3>
+                      <Link href={`/learn/lessons/${(activePathDetails.nextLesson as any).slug}`}>
+                        <Card className="border-2 border-primary hover:border-primary/70 hover:shadow-lg transition-all cursor-pointer group">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                              {(activePathDetails.nextLesson as any).title}
+                            </CardTitle>
+                            <CardDescription>
+                              {(activePathDetails.nextLesson as any).description}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Icons.Clock className="w-4 h-4" />
+                                  {(activePathDetails.nextLesson as any).estimated_minutes} min
+                                </span>
+                                <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+                                  <Sparkles className="h-3 w-3 mr-1" />
+                                  +{(activePathDetails.nextLesson as any).xp_reward} XP
+                                </Badge>
+                              </div>
+                              <ArrowRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle2 className="w-8 h-8 text-green-500" />
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">Path Complete! 🎉</h3>
+                      <p className="text-muted-foreground mb-4">
+                        You've finished all lessons in this path
+                      </p>
+                      <Button asChild className="rounded-xl">
+                        <Link href="#browse-paths">Choose New Path</Link>
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* No Active Path - Prompt to Choose */}
+          {session && !activePathDetails && (
+            <section className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <Card className="bg-gradient-to-br from-green-500/5 via-green-500/3 to-background border-2 border-dashed border-green-500/30">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+                    <Icons.Map className="w-8 h-8 text-green-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-2">Choose Your Learning Path</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md">
+                    Follow a structured journey tailored to your goals. Focus on one path at a time for best results.
+                  </p>
+                  <Button asChild size="lg" className="rounded-xl">
+                    <Link href="#browse-paths">
+                      Browse Learning Paths
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          <Separator className="my-8" id="browse-paths" />
+        <div className="max-w-7xl mx-auto">
           {/* Learning Paths */}
           <section className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-xl font-semibold flex items-center gap-2 mb-1">
-                  <Icons.Map className="w-5 h-5 text-primary" />
-                  Learning Paths
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Structured journeys tailored to your goals
-                </p>
-              </div>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold flex items-center gap-2 mb-1">
+                <Icons.Map className="w-5 h-5 text-primary" />
+                {activePathDetails ? 'Switch to a Different Path' : 'Choose Your Learning Path'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {activePathDetails ? 'Change direction and start a new journey' : 'Select a structured journey tailored to your goals'}
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {paths.map((path, index) => {
                 const Icon = getIconComponent(path.icon_name);
                 const difficultyClass = difficultyColors[path.difficulty] || difficultyColors.beginner;
+                const isActive = activePathId === path.id;
 
                 return (
-                  <Link key={path.id} href={`/learn/paths/${path.slug}`}>
-                    <Card
-                      className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] border-2 hover:border-primary/50 animate-in fade-in slide-in-from-bottom-2"
-                      style={{ animationDelay: `${150 + index * 50}ms` }}
-                    >
-                      {/* Header with gradient */}
-                      <div className="h-24 bg-gradient-to-br from-primary/10 via-primary/5 to-background relative overflow-hidden border-b">
-                        <div className="absolute inset-0 bg-[url('/patterns/topography.svg')] opacity-5" />
-                        <div className="absolute bottom-3 left-4 flex items-center gap-2">
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Icon className="w-5 h-5 text-primary" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <CardHeader className="pt-4">
-                        <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                          {path.name}
-                        </CardTitle>
-                        <div className="flex gap-2 mt-2">
-                          <Badge variant="outline" className={difficultyClass}>
-                            {path.difficulty}
-                          </Badge>
-                          <Badge variant="outline">
-                            <BookOpen className="w-3 h-3 mr-1" />
-                            {path.estimated_lessons} lessons
-                          </Badge>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-3">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {path.description}
-                        </p>
-                        <div className="pt-2 border-t">
-                          <p className="text-xs text-muted-foreground italic">
-                            👤 {path.target_audience}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                  <div
+                    key={path.id}
+                    className="animate-in fade-in slide-in-from-bottom-2"
+                    style={{ animationDelay: `${150 + index * 50}ms` }}
+                  >
+                    <PathSelector
+                      path={path}
+                      isActive={isActive}
+                      iconComponent={Icon}
+                      difficultyClass={difficultyClass}
+                    />
+                  </div>
                 );
               })}
             </div>
