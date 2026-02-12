@@ -4,11 +4,14 @@ import { db } from '@/lib/db';
 import { LearningPath, Topic, UserProgress } from '@/lib/db/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BadgeGrid } from '@/components/learning/badge-grid';
 import Link from 'next/link';
 import * as Icons from 'lucide-react';
+import { GraduationCap, BookOpen, Trophy, Target, Sparkles, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
 
 async function getUserProgress(userId: string) {
   const result = await db.execute({
@@ -74,15 +77,62 @@ async function getRecentlyEarnedBadges(userId: string) {
   }));
 }
 
+async function getNextLessons(userId: string, limit: number = 3) {
+  const result = await db.execute({
+    sql: `
+      SELECT
+        l.id,
+        l.title,
+        l.slug,
+        l.description,
+        l.estimated_minutes,
+        l.xp_reward,
+        t.name as topic_name,
+        t.icon_name as topic_icon
+      FROM lessons l
+      JOIN topics t ON l.topic_id = t.id
+      LEFT JOIN lesson_completions lc ON l.id = lc.lesson_id AND lc.user_id = ?
+      WHERE lc.lesson_id IS NULL
+      ORDER BY l.order_index ASC
+      LIMIT ?
+    `,
+    args: [userId, limit],
+  });
+
+  return result.rows;
+}
+
+async function getCompletedLessonsCount(userId: string) {
+  const result = await db.execute({
+    sql: `SELECT COUNT(*) as count FROM lesson_completions WHERE user_id = ?`,
+    args: [userId],
+  });
+  return (result.rows[0] as any)?.count || 0;
+}
+
+async function getTotalLessonsCount() {
+  const result = await db.execute({
+    sql: `SELECT COUNT(*) as count FROM lessons`,
+    args: [],
+  });
+  return (result.rows[0] as any)?.count || 0;
+}
+
 function getIconComponent(iconName: string) {
   const Icon = (Icons as any)[iconName] || Icons.BookOpen;
   return Icon;
 }
 
 function getLevelName(level: number) {
-  const levels = ['Seedling', 'Sprout', 'Sapling', 'Tree', 'Grove', 'Forest'];
+  const levels = ['Seedling 🌱', 'Sprout 🌿', 'Sapling 🌲', 'Tree 🌳', 'Grove 🌲🌳', 'Forest 🌲🌳🌲'];
   return levels[Math.min(level, levels.length - 1)];
 }
+
+const difficultyColors: Record<string, string> = {
+  beginner: 'bg-green-500/10 text-green-600 border-green-200',
+  intermediate: 'bg-blue-500/10 text-blue-600 border-blue-200',
+  advanced: 'bg-purple-500/10 text-purple-600 border-purple-200',
+};
 
 async function LearnContent() {
   const session = await getSession();
@@ -91,162 +141,300 @@ async function LearnContent() {
   const progress = session ? await getUserProgress(session.user.id) : null;
   const badges = await getBadgesWithStatus(session?.user.id);
   const recentBadges = session ? await getRecentlyEarnedBadges(session.user.id) : [];
+  const nextLessons = session ? await getNextLessons(session.user.id, 3) : [];
+  const completedCount = session ? await getCompletedLessonsCount(session.user.id) : 0;
+  const totalCount = await getTotalLessonsCount();
+  const completionPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Permaculture.Studio Learn</h1>
-        <p className="text-muted-foreground text-lg">
-          Master permaculture design through hands-on lessons and AI-guided practice
-        </p>
-      </div>
-
-      {/* User Progress (if authenticated) */}
-      {session && progress && (
-        <Card className="mb-8 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
-          <CardHeader>
-            <CardTitle>Your Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-6 mb-4">
-              <div>
-                <div className="text-3xl font-bold">{getLevelName(progress.current_level)}</div>
-                <div className="text-sm text-muted-foreground">Level {progress.current_level}</div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Hero Section */}
+      <div className="border-b bg-card/50 backdrop-blur-sm">
+        <div className="container mx-auto p-4 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500/20 to-blue-500/20 flex items-center justify-center">
+                <GraduationCap className="w-8 h-8 text-primary" />
               </div>
               <div className="flex-1">
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm">Total XP</span>
-                  <span className="text-sm font-medium">{progress.total_xp}</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-600 transition-all"
-                    style={{ width: `${(progress.total_xp % 100)}%` }}
-                  />
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {100 - (progress.total_xp % 100)} XP to next level
-                </div>
+                <h1 className="text-3xl md:text-4xl font-serif font-bold mb-2">
+                  Permaculture Learning Center
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Master regenerative design through guided lessons and hands-on practice
+                </p>
               </div>
             </div>
 
-            {/* Recently Earned Badges */}
-            {recentBadges.length > 0 && (
-              <div className="border-t pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Recently Earned</h3>
-                  <Link href="/learn?tab=badges" className="text-xs text-primary hover:underline">
-                    View all badges →
-                  </Link>
-                </div>
-                <div className="flex gap-2">
-                  {recentBadges.map((badge: any) => {
-                    const Icon = getIconComponent(badge.icon_name);
-                    return (
-                      <div
-                        key={badge.id}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950 dark:to-amber-950 border border-yellow-200 dark:border-yellow-800"
-                        title={badge.description}
-                      >
-                        <div className="rounded-full p-1.5 bg-yellow-100 dark:bg-yellow-900">
-                          <Icon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        </div>
-                        <span className="text-xs font-medium">{badge.name}</span>
+            {/* User Progress Card */}
+            {session && progress && (
+              <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-background border-2 border-primary/20">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Level & XP */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Trophy className="w-5 h-5 text-amber-500" />
+                        <h3 className="font-semibold">Your Level</h3>
                       </div>
+                      <div className="text-3xl font-bold text-primary">
+                        {getLevelName(progress.current_level)}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Total XP</span>
+                          <span className="font-semibold">{progress.total_xp.toLocaleString()}</span>
+                        </div>
+                        <Progress value={progress.total_xp % 100} className="h-2" />
+                        <p className="text-xs text-muted-foreground">
+                          {100 - (progress.total_xp % 100)} XP to level {progress.current_level + 1}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Completion Stats */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target className="w-5 h-5 text-blue-500" />
+                        <h3 className="font-semibold">Progress</h3>
+                      </div>
+                      <div className="text-3xl font-bold">
+                        {completedCount} <span className="text-lg text-muted-foreground">/ {totalCount}</span>
+                      </div>
+                      <div className="space-y-2">
+                        <Progress value={completionPercent} className="h-2" />
+                        <p className="text-xs text-muted-foreground">
+                          {Math.round(completionPercent)}% of lessons completed
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Recent Badges */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-5 h-5 text-purple-500" />
+                        <h3 className="font-semibold">Achievements</h3>
+                      </div>
+                      {recentBadges.length > 0 ? (
+                        <div className="space-y-2">
+                          {recentBadges.slice(0, 2).map((badge: any) => {
+                            const Icon = getIconComponent(badge.icon_name);
+                            return (
+                              <div
+                                key={badge.id}
+                                className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-200"
+                              >
+                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                  <Icon className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <span className="text-sm font-medium flex-1 truncate">{badge.name}</span>
+                              </div>
+                            );
+                          })}
+                          <Link href="/learn?tab=badges">
+                            <Button variant="ghost" size="sm" className="w-full">
+                              View all badges
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </Link>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Complete lessons to earn badges
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Continue Learning Section */}
+            {session && nextLessons.length > 0 && (
+              <div className="mt-6">
+                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Play className="w-5 h-5 text-primary" />
+                  Continue Learning
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {nextLessons.map((lesson: any) => {
+                    const Icon = getIconComponent(lesson.topic_icon);
+                    return (
+                      <Link key={lesson.id} href={`/learn/lessons/${lesson.slug}`}>
+                        <Card className="hover:shadow-lg transition-all hover:scale-[1.02] h-full border-2 hover:border-primary/50">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start gap-2">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <Icon className="w-5 h-5 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-base line-clamp-2">{lesson.title}</CardTitle>
+                                <p className="text-xs text-muted-foreground mt-1">{lesson.topic_name}</p>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Icons.Clock className="w-3 h-3" />
+                                {lesson.estimated_minutes} min
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Icons.Star className="w-3 h-3" />
+                                {lesson.xp_reward} XP
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
                     );
                   })}
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </div>
+      </div>
 
-      {/* Learning Paths */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-4">Learning Paths</h2>
-        <p className="text-muted-foreground mb-6">
-          Choose a path tailored to your context and goals
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paths.map((path) => {
-            const Icon = getIconComponent(path.icon_name);
-            return (
-              <Link key={path.id} href={`/learn/paths/${path.slug}`}>
-                <Card className="h-full hover-lift transition-smooth cursor-pointer">
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <Icon className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{path.name}</CardTitle>
-                        <div className="flex gap-2 mt-2">
-                          <Badge variant="secondary">{path.difficulty}</Badge>
-                          <Badge variant="outline">{path.estimated_lessons} lessons</Badge>
+      {/* Main Content */}
+      <div className="container mx-auto p-4 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Learning Paths */}
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-serif font-bold flex items-center gap-2">
+                  <Icons.Route className="w-6 h-6 text-primary" />
+                  Learning Paths
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Structured journeys tailored to your goals
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paths.map((path) => {
+                const Icon = getIconComponent(path.icon_name);
+                const difficultyClass = difficultyColors[path.difficulty] || difficultyColors.beginner;
+
+                return (
+                  <Link key={path.id} href={`/learn/paths/${path.slug}`}>
+                    <Card className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] border-2 hover:border-primary/50">
+                      {/* Header with gradient */}
+                      <div className="h-24 bg-gradient-to-br from-primary/10 via-primary/5 to-background relative overflow-hidden border-b">
+                        <div className="absolute inset-0 bg-[url('/patterns/topography.svg')] opacity-5" />
+                        <div className="absolute bottom-3 left-4 flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <Icon className="w-5 h-5 text-primary" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-2">{path.description}</p>
-                    <p className="text-xs text-muted-foreground italic">
-                      {path.target_audience}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
 
-      {/* Topics and Badges Tabs */}
-      <section>
-        <Tabs defaultValue="topics" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="topics">Browse by Topic</TabsTrigger>
-            <TabsTrigger value="badges">
-              Badges
-              {session && (
-                <Badge variant="secondary" className="ml-2">
-                  {badges.filter(b => b.earned).length}/{badges.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="topics">
-            <p className="text-muted-foreground mb-6">
-              Explore lessons organized by permaculture concepts
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {topics.map((topic) => {
-                const Icon = getIconComponent(topic.icon_name);
-                return (
-                  <Link key={topic.id} href={`/learn/topics/${topic.slug}`}>
-                    <Card className="hover-lift transition-smooth cursor-pointer">
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <Icon className="h-5 w-5 text-primary" />
-                          <CardTitle className="text-base">{topic.name}</CardTitle>
+                      <CardHeader className="pt-4">
+                        <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                          {path.name}
+                        </CardTitle>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline" className={difficultyClass}>
+                            {path.difficulty}
+                          </Badge>
+                          <Badge variant="outline">
+                            <BookOpen className="w-3 h-3 mr-1" />
+                            {path.estimated_lessons} lessons
+                          </Badge>
                         </div>
-                        <CardDescription className="text-sm">{topic.description}</CardDescription>
                       </CardHeader>
+
+                      <CardContent className="space-y-3">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {path.description}
+                        </p>
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground italic">
+                            👤 {path.target_audience}
+                          </p>
+                        </div>
+                      </CardContent>
                     </Card>
                   </Link>
                 );
               })}
             </div>
-          </TabsContent>
+          </section>
 
-          <TabsContent value="badges">
-            <p className="text-muted-foreground mb-6">
-              Earn badges by completing lessons and reaching milestones
-            </p>
-            <BadgeGrid badges={badges} />
-          </TabsContent>
-        </Tabs>
-      </section>
+          {/* Topics and Badges Tabs */}
+          <section>
+            <Tabs defaultValue="topics" className="w-full">
+              <TabsList className="mb-6 grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="topics" className="gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  Topics
+                </TabsTrigger>
+                <TabsTrigger value="badges" className="gap-2">
+                  <Trophy className="w-4 h-4" />
+                  Badges
+                  {session && (
+                    <Badge variant="secondary" className="ml-2">
+                      {badges.filter(b => b.earned).length}/{badges.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="topics" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold">Browse by Topic</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Explore lessons organized by permaculture concepts
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {topics.map((topic) => {
+                    const Icon = getIconComponent(topic.icon_name);
+                    return (
+                      <Link key={topic.id} href={`/learn/topics/${topic.slug}`}>
+                        <Card className="hover:shadow-lg transition-all cursor-pointer group h-full border-2 hover:border-primary/50 hover:scale-[1.02]">
+                          <CardHeader>
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <Icon className="w-6 h-6 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-base group-hover:text-primary transition-colors line-clamp-1">
+                                  {topic.name}
+                                </CardTitle>
+                                <CardDescription className="text-sm line-clamp-2 mt-1">
+                                  {topic.description}
+                                </CardDescription>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="badges" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold">Achievement Badges</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Earn badges by completing lessons and reaching milestones
+                    </p>
+                  </div>
+                </div>
+                <BadgeGrid badges={badges} />
+              </TabsContent>
+            </Tabs>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
@@ -261,22 +449,26 @@ export default function LearnPage() {
 
 function LearnPageSkeleton() {
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl">
-      <Skeleton className="h-12 w-64 mb-2" />
-      <Skeleton className="h-6 w-96 mb-8" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-full mb-2" />
-              <Skeleton className="h-4 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-full" />
-            </CardContent>
-          </Card>
-        ))}
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <div className="container mx-auto p-4 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          <Skeleton className="h-16 w-full mb-4" />
+          <Skeleton className="h-32 w-full mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-full mb-2" />
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
