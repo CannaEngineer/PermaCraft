@@ -74,16 +74,24 @@ export default function NewFarmPage() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Create New Farm</h1>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Header */}
+      <div className="border-b bg-card/50 backdrop-blur-sm">
+        <div className="container mx-auto p-4 md:p-6">
+          <h1 className="text-2xl md:text-3xl font-serif font-bold">Create New Farm</h1>
+          <p className="text-sm text-muted-foreground mt-1">Set up your permaculture design space</p>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Farm Details</CardTitle>
-            <CardDescription>Basic information about your farm</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6 pb-6">
+        {/* Farm Details Card */}
+        <div className="container mx-auto px-4 md:px-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Farm Details</CardTitle>
+              <CardDescription>Basic information about your farm</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Farm Name *</Label>
               <Input
@@ -121,24 +129,28 @@ export default function NewFarmPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Farm Boundary *</CardTitle>
-            <CardDescription>Draw the boundary of your property</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <BoundaryDrawer key="farm-boundary-drawer" onBoundaryComplete={handleBoundaryComplete} />
-          </CardContent>
-        </Card>
-
-        {error && (
-          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded">
-            {error}
+        {/* Farm Boundary - Full Width */}
+        <div>
+          <div className="container mx-auto px-4 md:px-6 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Farm Boundary *</h3>
+              <p className="text-sm text-muted-foreground">Draw the boundary of your property on the map</p>
+            </div>
           </div>
-        )}
+          <BoundaryDrawer key="farm-boundary-drawer" onBoundaryComplete={handleBoundaryComplete} />
+        </div>
 
-        <div className="flex gap-4">
+        {/* Error and Actions */}
+        <div className="container mx-auto px-4 md:px-6 space-y-4">
+          {error && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-4">
           <Button
             type="button"
             variant="outline"
@@ -149,6 +161,7 @@ export default function NewFarmPage() {
           <Button type="submit" disabled={loading || !boundary}>
             {loading ? "Creating..." : "Create Farm"}
           </Button>
+        </div>
         </div>
       </form>
     </div>

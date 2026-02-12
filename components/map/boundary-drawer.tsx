@@ -17,6 +17,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
+  const searchMarker = useRef<maplibregl.Marker | null>(null);
   const [areaAcres, setAreaAcres] = useState<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [gridUnit, setGridUnit] = useState<'imperial' | 'metric'>('imperial');
@@ -86,9 +87,24 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
 
       if (results && results.length > 0) {
         const { lat, lon } = results[0];
+        const lngLat: [number, number] = [parseFloat(lon), parseFloat(lat)];
 
+        // Remove existing marker if any
+        if (searchMarker.current) {
+          searchMarker.current.remove();
+        }
+
+        // Add a marker at the search location
+        searchMarker.current = new maplibregl.Marker({
+          color: '#16a34a', // Green color to match theme
+          scale: 1.2,
+        })
+          .setLngLat(lngLat)
+          .addTo(map.current);
+
+        // Fly to the location
         map.current.flyTo({
-          center: [parseFloat(lon), parseFloat(lat)],
+          center: lngLat,
           zoom: 15,
           duration: 2000
         });
@@ -245,6 +261,12 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         const areaSquareMeters = area(feature);
         const acres = areaSquareMeters / 4046.86;
 
+        // Remove search marker when boundary is created
+        if (searchMarker.current) {
+          searchMarker.current.remove();
+          searchMarker.current = null;
+        }
+
         setAreaAcres(acres);
         setIsComplete(true);
 
@@ -291,6 +313,10 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
     map.current.on("draw.delete", handleDelete);
 
     return () => {
+      if (searchMarker.current) {
+        searchMarker.current.remove();
+        searchMarker.current = null;
+      }
       if (map.current) {
         map.current.off('moveend', updateGrid);
         map.current.off('zoomend', updateGrid);
@@ -307,7 +333,7 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
 
   return (
     <div className="relative">
-      <div ref={mapContainer} className="h-[400px] md:h-[500px] w-full rounded-lg overflow-hidden" />
+      <div ref={mapContainer} className="h-[400px] md:h-[500px] w-full overflow-hidden" />
 
       {/* Grid unit toggle - top right, minimal */}
       <button
