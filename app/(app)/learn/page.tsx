@@ -304,7 +304,7 @@ async function LearnContent() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-serif font-bold flex items-center gap-2">
-                  <Icons.Route className="w-6 h-6 text-primary" />
+                  <Icons.Map className="w-6 h-6 text-primary" />
                   Learning Paths
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
