@@ -164,11 +164,11 @@ async function getActivePathDetails(userId: string, pathId: string) {
 
   // Calculate progress
   const totalLessons = lessonsResult.rows.length;
-  const completedLessons = lessonsResult.rows.filter((l: any) => l.is_completed).length;
+  const completedLessons = lessonsResult.rows.filter((l: any) => l.is_completed === 1).length;
   const percentComplete = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
   // Find next incomplete lesson
-  const nextLesson = lessonsResult.rows.find((l: any) => !l.is_completed);
+  const nextLesson = lessonsResult.rows.find((l: any) => l.is_completed !== 1);
 
   return {
     path,
@@ -195,23 +195,60 @@ async function LearnContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Hero Section */}
-      <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto p-4 md:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500/20 to-blue-500/20 flex items-center justify-center">
-                <GraduationCap className="w-7 h-7 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-3xl md:text-4xl font-serif font-bold mb-2">
-                  Permaculture Learning
+      {/* Hero Section - Engaging & Directive */}
+      <div className="border-b bg-gradient-to-br from-green-500/5 via-primary/5 to-background backdrop-blur-sm">
+        <div className="container mx-auto p-6 md:p-8 lg:p-12">
+          <div className="max-w-4xl mx-auto text-center">
+            {activePathDetails ? (
+              // Has Active Path - Celebrate Progress
+              <>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                    {activePathDetails.completedLessons} of {activePathDetails.totalLessons} lessons complete
+                  </span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">
+                  Keep Going! 🌱
                 </h1>
-                <p className="text-muted-foreground text-lg">
-                  {activePathDetails ? 'Follow your path, one lesson at a time' : 'Choose a learning path to begin your journey'}
+                <p className="text-xl text-muted-foreground mb-2">
+                  You're mastering <span className="font-semibold text-foreground">{(activePathDetails.path as any)?.name}</span>
                 </p>
-              </div>
-            </div>
+                <p className="text-muted-foreground">
+                  {activePathDetails.nextLesson
+                    ? `Next up: ${(activePathDetails.nextLesson as any).title}`
+                    : 'You've completed this path! Time to celebrate 🎉'}
+                </p>
+              </>
+            ) : (
+              // No Active Path - Inspire Action
+              <>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4 animate-in fade-in slide-in-from-top duration-500">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Start Your Journey</span>
+                </div>
+                <h1 className="text-4xl md:text-6xl font-serif font-bold mb-6 bg-gradient-to-r from-green-600 via-primary to-blue-600 bg-clip-text text-transparent animate-in fade-in slide-in-from-top duration-500" style={{ animationDelay: '100ms' }}>
+                  Master Permaculture Design
+                </h1>
+                <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-top duration-500" style={{ animationDelay: '200ms' }}>
+                  Learn to create regenerative systems through expert-guided lessons and hands-on practice
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground animate-in fade-in slide-in-from-top duration-500" style={{ animationDelay: '300ms' }}>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span>Step-by-step guidance</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span>Earn badges & XP</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span>Apply to real projects</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -309,26 +346,94 @@ async function LearnContent() {
             </section>
           )}
 
-          {/* No Active Path - Prompt to Choose */}
-          {session && !activePathDetails && (
-            <section className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <Card className="bg-gradient-to-br from-green-500/5 via-green-500/3 to-background border-2 border-dashed border-green-500/30">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
-                    <Icons.Map className="w-8 h-8 text-green-500" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-2">Choose Your Learning Path</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md">
-                    Follow a structured journey tailored to your goals. Focus on one path at a time for best results.
-                  </p>
-                  <Button asChild size="lg" className="rounded-xl">
-                    <Link href="#browse-paths">
-                      Browse Learning Paths
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+          {/* No Active Path - Featured Recommended Path */}
+          {session && !activePathDetails && paths.length > 0 && (
+            <section className="mb-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="text-center mb-6">
+                <Badge className="mb-3 bg-gradient-to-r from-green-600 to-primary">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Recommended For You
+                </Badge>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">Start Here</h2>
+                <p className="text-muted-foreground">
+                  Most learners begin with this path
+                </p>
+              </div>
+
+              {/* Featured Path Card - First beginner path */}
+              {(() => {
+                const featuredPath = paths.find(p => p.difficulty === 'beginner') || paths[0];
+                const Icon = getIconComponent(featuredPath.icon_name);
+                return (
+                  <Card className="max-w-3xl mx-auto bg-gradient-to-br from-primary/10 via-primary/5 to-background border-2 border-primary/30 overflow-hidden">
+                    {/* Visual Header */}
+                    <div className="h-40 bg-gradient-to-br from-green-500 via-primary to-blue-500 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-[url('/patterns/topography.svg')] opacity-20" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <div className="absolute bottom-6 left-6 right-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <Icon className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 mb-1">
+                              {featuredPath.difficulty.charAt(0).toUpperCase() + featuredPath.difficulty.slice(1)}
+                            </Badge>
+                            <h3 className="text-2xl font-bold text-white">{featuredPath.name}</h3>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <CardContent className="p-6">
+                      <p className="text-lg mb-4">{featuredPath.description}</p>
+
+                      <div className="flex flex-wrap gap-4 mb-6">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icons.BookOpen className="w-4 h-4 text-primary" />
+                          <span className="font-medium">{featuredPath.estimated_lessons} lessons</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icons.Users className="w-4 h-4 text-primary" />
+                          <span>{featuredPath.target_audience}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Trophy className="w-4 h-4 text-amber-500" />
+                          <span>Earn certificates & badges</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button
+                          size="lg"
+                          className="flex-1 rounded-xl h-12 text-base"
+                          onClick={async () => {
+                            const response = await fetch('/api/learning/set-path', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ learning_path_id: featuredPath.id }),
+                            });
+                            if (response.ok) window.location.reload();
+                          }}
+                        >
+                          <Play className="w-5 h-5 mr-2" />
+                          Start This Path
+                        </Button>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="rounded-xl h-12"
+                          asChild
+                        >
+                          <Link href="#browse-paths">
+                            See All Paths
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
             </section>
           )}
 
@@ -336,13 +441,14 @@ async function LearnContent() {
 
           {/* Learning Paths */}
           <section className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold flex items-center gap-2 mb-1">
-                <Icons.Map className="w-5 h-5 text-primary" />
-                {activePathDetails ? 'Switch to a Different Path' : 'Choose Your Learning Path'}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                {activePathDetails ? 'Explore Other Learning Paths' : 'All Learning Paths'}
               </h2>
-              <p className="text-sm text-muted-foreground">
-                {activePathDetails ? 'Change direction and start a new journey' : 'Select a structured journey tailored to your goals'}
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                {activePathDetails
+                  ? 'Want to switch directions? Choose a new path to follow'
+                  : 'Each path is a structured journey designed to build your skills step-by-step'}
               </p>
             </div>
 

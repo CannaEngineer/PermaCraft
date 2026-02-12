@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import * as Icons from 'lucide-react';
-import { BookOpen, CheckCircle2 } from 'lucide-react';
+import { BookOpen, CheckCircle2, Play } from 'lucide-react';
 import type { LearningPath } from '@/lib/db/schema';
 
 interface PathSelectorProps {
@@ -53,64 +53,84 @@ export function PathSelector({ path, isActive, iconName, difficultyClass }: Path
 
   return (
     <Card
-      className={`h-full transition-all duration-300 cursor-pointer group border-2 ${
+      className={`h-full transition-all duration-300 group border-2 overflow-hidden ${
         isActive
-          ? 'border-primary bg-primary/5'
-          : 'hover:shadow-xl hover:scale-[1.02] hover:border-primary/50'
+          ? 'border-primary bg-primary/5 shadow-lg'
+          : 'hover:shadow-xl hover:scale-[1.02] hover:border-primary/50 cursor-pointer'
       }`}
-      onClick={handleSelectPath}
+      onClick={!isActive ? handleSelectPath : undefined}
     >
-      {/* Header with gradient */}
-      <div className="h-24 bg-gradient-to-br from-primary/10 via-primary/5 to-background relative overflow-hidden border-b">
-        <div className="absolute inset-0 bg-[url('/patterns/topography.svg')] opacity-5" />
-        <div className="absolute bottom-3 left-4 flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Icon className="w-5 h-5 text-primary" />
+      {/* Visual Header with Gradient */}
+      <div className="h-32 bg-gradient-to-br from-green-500 via-primary to-blue-500 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/patterns/topography.svg')] opacity-20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
+        {/* Icon and Badge */}
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
+          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <Icon className="w-6 h-6 text-white" />
           </div>
           {isActive && (
-            <Badge className="bg-primary">
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
               <CheckCircle2 className="w-3 h-3 mr-1" />
-              Active
+              Current Path
             </Badge>
           )}
         </div>
+
+        {/* Path Name */}
+        <div className="absolute bottom-3 left-3 right-3">
+          <h3 className="text-xl font-bold text-white line-clamp-1 mb-1">
+            {path.name}
+          </h3>
+          <div className="flex gap-2">
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs">
+              {path.difficulty.charAt(0).toUpperCase() + path.difficulty.slice(1)}
+            </Badge>
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs">
+              <BookOpen className="w-3 h-3 mr-1" />
+              {path.estimated_lessons} lessons
+            </Badge>
+          </div>
+        </div>
       </div>
 
-      <CardHeader className="pt-4">
-        <CardTitle className={`text-lg ${!isActive && 'group-hover:text-primary'} transition-colors`}>
-          {path.name}
-        </CardTitle>
-        <div className="flex gap-2 mt-2">
-          <Badge variant="outline" className={difficultyClass}>
-            {path.difficulty}
-          </Badge>
-          <Badge variant="outline">
-            <BookOpen className="w-3 h-3 mr-1" />
-            {path.estimated_lessons} lessons
-          </Badge>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground line-clamp-2">
+      <CardContent className="p-4 space-y-3">
+        <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
           {path.description}
         </p>
-        <div className="pt-2 border-t">
-          <p className="text-xs text-muted-foreground italic">
-            👤 {path.target_audience}
-          </p>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
+          <Icons.Users className="w-4 h-4" />
+          <span className="line-clamp-1">{path.target_audience}</span>
         </div>
-        {!isActive && (
+
+        {!isActive ? (
           <Button
-            className="w-full rounded-xl mt-2"
+            className="w-full rounded-xl"
+            size="sm"
             disabled={loading}
             onClick={(e) => {
               e.stopPropagation();
               handleSelectPath();
             }}
           >
-            {loading ? 'Setting...' : 'Start This Path'}
+            {loading ? (
+              <>
+                <Icons.Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 mr-2" />
+                Start Path
+              </>
+            )}
           </Button>
+        ) : (
+          <div className="text-center py-2 text-sm font-medium text-primary">
+            ✓ Following this path
+          </div>
         )}
       </CardContent>
     </Card>
