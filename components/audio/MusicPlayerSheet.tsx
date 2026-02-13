@@ -19,7 +19,7 @@ export function MusicPlayerSheet({ open, onOpenChange }: MusicPlayerSheetProps) 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-[400px] p-0 bg-gradient-to-b from-muted/90 to-background dark:from-gray-700 dark:to-gray-900 border-l border-border"
+        className="w-[400px] p-0 bg-gradient-to-b from-gray-700 to-gray-900 border-l border-border"
       >
         {/* Accessible title for screen readers */}
         <SheetHeader className="sr-only">

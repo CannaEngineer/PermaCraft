@@ -2,7 +2,7 @@
 
 import { useTheme } from './ThemeProvider';
 import { Button } from '@/components/ui/button';
-import { Palmtree, MonitorIcon, Moon } from 'lucide-react';
+import { Palmtree, MonitorIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +19,6 @@ export function ThemeToggle() {
         <Button variant="outline" size="sm" className="gap-2">
           {theme === 'windows-xp' ? (
             <MonitorIcon className="h-4 w-4" />
-          ) : theme === 'dark' ? (
-            <Moon className="h-4 w-4" />
           ) : (
             <Palmtree className="h-4 w-4" />
           )}
@@ -30,11 +28,7 @@ export function ThemeToggle() {
       <DropdownMenuContent align="end" className="xp-panel">
         <DropdownMenuItem onClick={() => setTheme('modern')} className="xp-menu-item">
           <Palmtree className="h-4 w-4 mr-2" />
-          Modern Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')} className="xp-menu-item">
-          <Moon className="h-4 w-4 mr-2" />
-          Dark Mode
+          Modern (Default)
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('windows-xp')} className="xp-menu-item">
           <MonitorIcon className="h-4 w-4 mr-2" />
