@@ -2,7 +2,6 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import type { Farm, Zone } from "@/lib/db/schema";
-import { FarmEditorClient } from "./farm-editor-client";
 import { FarmFeedClient } from "@/components/feed/farm-feed-client";
 import { FarmPublicView } from "@/components/farm/farm-public-view";
 import { ImmersiveMapEditor } from "@/components/immersive-map/immersive-map-editor";
@@ -175,37 +174,13 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     );
   }
 
-  // Check feature flag
-  const useImmersiveEditor = process.env.NEXT_PUBLIC_USE_IMMERSIVE_EDITOR === 'true';
-
-  // If owner, show editor (immersive or classic based on flag)
-  if (useImmersiveEditor) {
-    return (
-      <ImmersiveMapEditor
-        farm={farm}
-        initialZones={zones}
-        isOwner={isOwner}
-        initialIsPublic={!!farm.is_public}
-      />
-    );
-  } else {
-    return (
-      <div>
-        <FarmEditorClient
-          farm={farm}
-          initialZones={zones}
-          isOwner={isOwner}
-          initialIsPublic={!!farm.is_public}
-        />
-        <div className="mt-8 px-4 pb-8">
-          <h2 className="text-2xl font-bold mb-4 text-center">Farm Feed</h2>
-          <FarmFeedClient
-            farmId={id}
-            initialData={initialFeedData}
-            currentUserId={session.user.id}
-          />
-        </div>
-      </div>
-    );
-  }
+  // If owner, show immersive editor
+  return (
+    <ImmersiveMapEditor
+      farm={farm}
+      initialZones={zones}
+      isOwner={isOwner}
+      initialIsPublic={!!farm.is_public}
+    />
+  );
 }
