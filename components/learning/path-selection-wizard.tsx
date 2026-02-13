@@ -205,6 +205,15 @@ function WizardStepOne({ onSelect }: { onSelect: (landSize: LandSize) => void })
               key={option.value}
               className="cursor-pointer hover:border-primary hover:shadow-lg transition-all group"
               onClick={() => onSelect(option.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelect(option.value);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-label={`Select ${option.label}`}
             >
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
@@ -255,6 +264,15 @@ function WizardStepTwo({ onSelect }: { onSelect: (experience: Experience) => voi
             key={option.value}
             className="cursor-pointer hover:border-primary hover:shadow-lg transition-all group"
             onClick={() => onSelect(option.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(option.value);
+              }
+            }}
+            tabIndex={0}
+            role="button"
+            aria-label={`Select ${option.label}`}
           >
             <CardContent className="p-6 text-center">
               <h3 className="font-semibold mb-2">{option.label}</h3>
@@ -360,6 +378,15 @@ function WizardStepThree({
                 key={path.id}
                 className="cursor-pointer hover:border-primary hover:shadow-lg transition-all"
                 onClick={() => onSelectPath(path.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectPath(path.id);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label={`Select ${path.name} learning path`}
               >
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-2">
