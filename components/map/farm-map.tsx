@@ -665,6 +665,7 @@ export function FarmMap({
                 "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
               ],
               tileSize: 256, // Standard web mercator tile size
+              maxzoom: 18, // Lock tiles at z18, prevent requests beyond this level
               attribution: 'Tiles &copy; Esri',
             },
           },
@@ -1465,6 +1466,7 @@ export function FarmMap({
                 "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
               ],
               tileSize: 256,
+              maxzoom: 18, // Satellite tiles locked at z18 (provider max)
               attribution: 'Tiles &copy; Esri',
             },
           },
@@ -1487,6 +1489,7 @@ export function FarmMap({
                   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
                 ],
                 tileSize: 256,
+                maxzoom: 18, // Satellite tiles locked at z18 (provider max)
                 attribution: 'Tiles &copy; Esri',
               },
             },
@@ -1502,6 +1505,7 @@ export function FarmMap({
                   `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg?access_token=${mapboxToken}`,
                 ],
                 tileSize: 256,
+                maxzoom: 18, // Satellite tiles locked at z18 (provider max)
                 attribution: '© <a href="https://www.mapbox.com/">Mapbox</a>',
               },
             },
@@ -1521,6 +1525,7 @@ export function FarmMap({
                 "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
               ],
               tileSize: 256,
+              maxzoom: 18, // Satellite tiles locked at z18 (provider max)
             },
             'terrain-dem': {
               type: 'raster-dem',
@@ -1543,6 +1548,7 @@ export function FarmMap({
                 "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
               ],
               tileSize: 256,
+              maxzoom: 18, // ESRI topo tiles locked at z18
               attribution: 'Tiles &copy; Esri',
             },
           },
