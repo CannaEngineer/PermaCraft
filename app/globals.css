@@ -763,3 +763,32 @@
     background: linear-gradient(90deg, transparent 0%, #808080 50%, transparent 100%);
   }
 }
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 10s linear infinite;
+}
+
+.marquee-container {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    animation: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

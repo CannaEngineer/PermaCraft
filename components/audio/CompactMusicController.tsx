@@ -66,11 +66,17 @@ export function CompactMusicController({ onOpenPlayer }: CompactMusicControllerP
         </Button>
       </div>
 
-      {/* Track info - basic version for now */}
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-mono text-green-600 dark:text-green-400 truncate">
-          {currentTrack ? `${currentTrack.artist} - ${currentTrack.title}` : '*** READY ***'}
-        </div>
+      {/* Track info with marquee */}
+      <div className="flex-1 min-w-0 marquee-container">
+        {currentTrack ? (
+          <div className="marquee text-sm font-mono text-green-600 dark:text-green-400">
+            {currentTrack.artist} - {currentTrack.title} &nbsp;&nbsp;&nbsp; {currentTrack.artist} - {currentTrack.title}
+          </div>
+        ) : (
+          <div className="text-sm font-mono text-green-600 dark:text-green-400 text-center">
+            *** READY ***
+          </div>
+        )}
       </div>
     </div>
   );
