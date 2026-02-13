@@ -12,8 +12,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { learning_path_id } = body;
 
-    if (!learning_path_id) {
-      return NextResponse.json({ error: 'learning_path_id is required' }, { status: 400 });
+    // Allow null to reset path (for "Switch Path" action)
+    // Only validate if learning_path_id is provided and not null
+    if (learning_path_id !== null && learning_path_id !== undefined) {
+      // Validate that the learning path exists
+      const pathResult = await db.execute({
+        sql: 'SELECT id FROM learning_paths WHERE id = ?',
+        args: [learning_path_id],
+      });
+
+      if (pathResult.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Invalid learning path' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if user_progress record exists
