@@ -60,7 +60,7 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={closeDrawer}
-        className="fixed inset-0 bg-black/10 z-34"
+        className="fixed inset-0 bg-black/10 z-[45]"
       />
 
       {/* Drawer */}
@@ -79,7 +79,7 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        className="fixed inset-x-0 bottom-16 md:bottom-0 z-35 glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl"
+        className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl pb-16 md:pb-0"
         style={{ willChange: 'transform' }}
       >
         {/* Grab Tab - hangs above drawer */}
