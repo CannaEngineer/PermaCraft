@@ -7,6 +7,7 @@ import { MapIcon, LayoutDashboard, Users, Leaf, GraduationCap, LogOut, Shield, B
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import AudioPlayer from "@/components/audio/AudioPlayer";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
@@ -43,7 +44,7 @@ export function Sidebar({
     : [];
 
   return (
-    <div className="flex flex-col h-full bg-card pb-80 xp-panel">
+    <div className="flex flex-col h-full bg-card xp-panel">
       {/* Logo/Brand */}
       <div className="p-6 border-b border-border xp-title-bar">
         <div className="flex items-center space-x-2">
@@ -62,7 +63,7 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-4 space-y-2">
+      <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {[...visibleNav, ...adminNav].map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -83,8 +84,13 @@ export function Sidebar({
         })}
       </nav>
 
+      {/* Audio Player - Winamp style */}
+      <div className="border-t border-border">
+        <AudioPlayer mode="sidebar" />
+      </div>
+
       {/* Theme Toggle */}
-      <div className="px-4 pb-4">
+      <div className="px-4 py-3 border-t border-border">
         <ThemeToggle />
       </div>
 

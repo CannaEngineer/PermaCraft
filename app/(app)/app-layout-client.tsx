@@ -28,13 +28,13 @@ export default function AppLayoutClient({
         {/* Offline Indicator */}
         <OfflineIndicator />
 
-        {/* Desktop Sidebar - hidden on mobile */}
+        {/* Desktop Sidebar - hidden on mobile, now includes audio player */}
         <aside className="hidden md:block md:w-64 flex-shrink-0 bg-card border-r border-border">
           <Sidebar userName={userName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
         </aside>
 
-        {/* Main content area */}
-        <main className="flex-1 overflow-auto bg-background pb-16 md:pb-80">
+        {/* Main content area - no bottom padding on desktop now */}
+        <main className="flex-1 overflow-auto bg-background pb-16 md:pb-0">
           {children}
         </main>
 
@@ -46,10 +46,11 @@ export default function AppLayoutClient({
           onMusicOpen={() => setIsMusicPlayerOpen(true)}
         />
 
-        {/* Audio Player - desktop fixed bottom, mobile drawer */}
+        {/* Audio Player - mobile drawer only (desktop is in sidebar) */}
         <AudioPlayer
           isMobileOpen={isMusicPlayerOpen}
           onMobileClose={() => setIsMusicPlayerOpen(false)}
+          mode="sidebar"
         />
 
         {/* Toast Notifications */}
