@@ -9,6 +9,7 @@ import { UniversalSearch } from "@/components/search/universal-search";
 import { DashboardClient } from "./dashboard-client";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { LearningProgress } from "@/components/dashboard/learning-progress";
+import { DashboardFAB } from "@/components/dashboard/dashboard-fab";
 import { RecentCommunityPosts } from "@/components/dashboard/recent-community-posts";
 import { LatestBlogPost } from "@/components/dashboard/latest-blog-post";
 import { FarmActivityFeed } from "@/components/dashboard/farm-activity-feed";
@@ -305,6 +306,9 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Dashboard FAB */}
+      <DashboardFAB />
     </DashboardClient>
   );
 }
