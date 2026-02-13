@@ -151,6 +151,7 @@ export function FarmMap({
   const circleCenterMarker = useRef<maplibregl.Marker | null>(null);
   const updateColoredZonesRef = useRef<(() => void) | null>(null);
   const updateGridRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
+  const updateGridDebouncedRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
@@ -449,6 +450,18 @@ export function FarmMap({
     setQuickLabelPosition(null);
   };
 
+  // Debounce utility for performance optimization
+  const debounce = <T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+  ): ((...args: Parameters<T>) => void) => {
+    let timeout: NodeJS.Timeout | null = null;
+    return (...args: Parameters<T>) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
   // Handle zoom changes for progressive visual enhancements
   const handleZoomChange = useCallback(() => {
     if (!map.current) return;
@@ -506,7 +519,7 @@ export function FarmMap({
     if (showFine !== currentGridIsFine) {
       const newSubdivision = showFine ? 'fine' : 'coarse';
       setGridSubdivision(newSubdivision);
-      updateGridRef.current?.(newSubdivision);
+      updateGridDebouncedRef.current?.(newSubdivision);
     }
   }, [gridSubdivision, currentZoom, hasShownPrecisionToast, toast]);
 
@@ -2512,6 +2525,15 @@ export function FarmMap({
 
   // Store updateGrid in ref so it can be called from handleZoomChange
   updateGridRef.current = updateGrid;
+
+  // Create debounced version for performance during rapid zoom changes
+  if (!updateGridDebouncedRef.current) {
+    updateGridDebouncedRef.current = debounce((subdivision?: 'coarse' | 'fine') => {
+      if (updateGridRef.current) {
+        updateGridRef.current(subdivision);
+      }
+    }, 150);
+  }
 
   // Trigger grid update when density or unit changes
   useEffect(() => {
