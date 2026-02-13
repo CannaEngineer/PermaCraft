@@ -61,6 +61,35 @@ permaculture-studio/
 └── data/                         # Seed data (species, etc.)
 ```
 
+## Immersive Map Editor
+
+The farm detail page has two implementations:
+
+1. **Classic Editor** (`FarmEditorClient`) - Original implementation
+2. **Immersive Editor** (`ImmersiveMapEditor`) - Full-screen experience
+
+### Feature Flag
+
+Controlled via `NEXT_PUBLIC_USE_IMMERSIVE_EDITOR` environment variable.
+
+### Components
+
+Located in `components/immersive-map/`:
+- `immersive-map-editor.tsx` - Main component
+- `collapsible-header.tsx` - Auto-collapsing header
+- `map-control-panel.tsx` - Map settings panel
+- `drawing-toolbar.tsx` - Drawing tools (conditional)
+- `bottom-drawer.tsx` - Slide-up details drawer
+- `chat-overlay.tsx` - AI chat overlay
+
+### State Management
+
+Uses `ImmersiveMapUIContext` (in `contexts/`) for centralized panel visibility.
+
+### Design Reference
+
+See `docs/plans/2026-02-12-immersive-map-design.md` for full specifications.
+
 ## Key Files Reference
 
 ### Database (`lib/db/index.ts`)
