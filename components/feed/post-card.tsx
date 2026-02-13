@@ -10,6 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { PostActions } from './post-actions';
 import { CommentSection } from './comment-section';
+import { ExpandableText } from '@/components/shared/expandable-text';
 
 interface Author {
   id: string;
@@ -170,11 +171,12 @@ export function PostCard({ post, currentUserId, onUpdate, onDelete }: PostCardPr
         </button>
 
         {post.content && (
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {post.content}
-            </ReactMarkdown>
-          </div>
+          <ExpandableText
+            text={post.content}
+            maxLength={500}
+            expandLabel="Dive Deeper"
+            className="prose prose-sm max-w-none dark:prose-invert"
+          />
         )}
 
         {/* AI Response Excerpt for AI Insight posts */}
@@ -184,11 +186,12 @@ export function PostCard({ post, currentUserId, onUpdate, onDelete }: PostCardPr
               <SparklesIcon className="w-4 h-4 text-primary" />
               <p className="text-sm font-semibold text-primary">AI Response</p>
             </div>
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {post.ai_response_excerpt}
-              </ReactMarkdown>
-            </div>
+            <ExpandableText
+              text={post.ai_response_excerpt}
+              maxLength={800}
+              expandLabel="Read Full Analysis"
+              className="prose prose-sm max-w-none dark:prose-invert"
+            />
           </div>
         )}
 
