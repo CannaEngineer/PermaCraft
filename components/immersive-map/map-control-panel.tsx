@@ -2,7 +2,7 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { Layers, Grid3x3, Settings, HelpCircle, ChevronRight, Minimize2 } from "lucide-react";
+import { Layers, Grid, Settings, HelpCircle, ChevronRight, Minimize2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MapControlPanelProps {
@@ -132,7 +132,7 @@ export function MapControlPanel({
           className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Grid3x3 className="h-4 w-4" />
+            <Grid className="h-4 w-4" />
             <span className="text-sm font-medium">Grid Settings</span>
           </div>
           <ChevronRight
