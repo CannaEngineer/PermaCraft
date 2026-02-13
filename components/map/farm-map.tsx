@@ -132,6 +132,7 @@ export function FarmMap({
   const [currentZoom, setCurrentZoom] = useState<number>(farm.zoom_level);
   const [gridSubdivision, setGridSubdivision] = useState<'coarse' | 'fine'>('coarse');
   const [hasShownPrecisionToast, setHasShownPrecisionToast] = useState(false);
+  const [snapToGridEnabled, setSnapToGridEnabled] = useState(true);
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [showGridMenu, setShowGridMenu] = useState(false);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
@@ -541,6 +542,46 @@ export function FarmMap({
       }
     };
   }, [circleCenter, circleMode]);
+
+  // Keyboard shortcuts for snap-to-grid
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // S key - toggle snap-to-grid
+      if (e.key === 's' && !e.metaKey && !e.ctrlKey) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+        setSnapToGridEnabled(prev => {
+          const newValue = !prev;
+          toast({
+            title: `Snap to Grid ${newValue ? 'Enabled' : 'Disabled'}`,
+            duration: 2000,
+          });
+          return newValue;
+        });
+      }
+
+      // Shift key - temporarily disable snap while held
+      if (e.key === 'Shift') {
+        setSnapToGridEnabled(false);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Re-enable snap when Shift is released (if it was enabled before)
+      if (e.key === 'Shift') {
+        setSnapToGridEnabled(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [toast]);
 
   /**
    * Setup Grid Layers
