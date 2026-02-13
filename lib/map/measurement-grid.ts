@@ -104,34 +104,40 @@ export function generateGridLines(
   density: GridDensity = 'auto',
   subdivision: 'coarse' | 'fine' = 'coarse' // New parameter
 ): { lines: Feature<LineString>[], labels: Feature<Point>[], latLines: number[], lngLines: number[] } {
-  // Always use fixed grid interval for lines so AI has consistent reference
-  let interval = getFixedGridInterval(unit);
-
-  // Apply subdivision for fine grid at high zoom
-  if (subdivision === 'fine') {
-    interval = {
-      value: interval.value / 5, // 50ft → 10ft, 25m → 5m
-      unit: interval.unit
-    };
-  }
+  // Always use COARSE grid interval to establish the fixed origin
+  // This ensures grid alignment is consistent regardless of subdivision
+  const coarseInterval = getFixedGridInterval(unit);
 
   // If grid is off, return empty
-  if (interval.value === 0) {
+  if (coarseInterval.value === 0) {
     return { lines: [], labels: [], latLines: [], lngLines: [] };
   }
 
-  const intervalMeters = unit === 'imperial'
-    ? feetToMeters(interval.value)
-    : interval.value;
+  // Calculate coarse grid spacing in degrees (for establishing origin)
+  const coarseIntervalMeters = unit === 'imperial'
+    ? feetToMeters(coarseInterval.value)
+    : coarseInterval.value;
 
   const centerLat = (bounds.north + bounds.south) / 2;
+  const coarseLatStep = metersToDegreesLat(coarseIntervalMeters);
+  const coarseLngStep = metersToDegreesLng(coarseIntervalMeters, centerLat);
 
-  const latStep = metersToDegreesLat(intervalMeters);
-  const lngStep = metersToDegreesLng(intervalMeters, centerLat);
+  // Determine actual interval to use based on subdivision
+  // Fine grid: 10ft/5m, Coarse grid: 50ft/25m
+  const actualInterval = subdivision === 'fine'
+    ? { value: coarseInterval.value / 5, unit: coarseInterval.unit }
+    : coarseInterval;
+
+  const actualIntervalMeters = unit === 'imperial'
+    ? feetToMeters(actualInterval.value)
+    : actualInterval.value;
+
+  const latStep = metersToDegreesLat(actualIntervalMeters);
+  const lngStep = metersToDegreesLng(actualIntervalMeters, centerLat);
 
   // Add small buffer to ensure grid covers entire farm
-  const latBuffer = latStep * 2;
-  const lngBuffer = lngStep * 2;
+  const latBuffer = coarseLatStep * 2;
+  const lngBuffer = coarseLngStep * 2;
 
   const north = bounds.north + latBuffer;
   const south = bounds.south - latBuffer;
@@ -145,33 +151,42 @@ export function generateGridLines(
   const latLines: number[] = [];
   const lngLines: number[] = [];
 
+  // CRITICAL: Calculate origin based on COARSE grid to ensure consistency
+  // Fine grid will align with coarse grid (every 5th fine line = 1 coarse line)
+  const originLat = Math.floor(south / coarseLatStep) * coarseLatStep;
+  const originLng = Math.floor(west / coarseLngStep) * coarseLngStep;
+
   // Generate latitude lines (horizontal) - these are rows
   let count = 0;
-  for (let lat = Math.floor(south / latStep) * latStep; lat <= north && count < 50; lat += latStep) {
-    lines.push({
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: [[west, lat], [east, lat]]
-      }
-    });
-    latLines.push(lat);
+  for (let lat = originLat; lat <= north && count < 250; lat += latStep) {
+    if (lat >= south - latStep) {
+      lines.push({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: [[west, lat], [east, lat]]
+        }
+      });
+      latLines.push(lat);
+    }
     count++;
   }
 
   // Generate longitude lines (vertical) - these are columns
   count = 0;
-  for (let lng = Math.floor(west / lngStep) * lngStep; lng <= east && count < 50; lng += lngStep) {
-    lines.push({
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: [[lng, south], [lng, north]]
-      }
-    });
-    lngLines.push(lng);
+  for (let lng = originLng; lng <= east && count < 250; lng += lngStep) {
+    if (lng >= west - lngStep) {
+      lines.push({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: [[lng, south], [lng, north]]
+        }
+      });
+      lngLines.push(lng);
+    }
     count++;
   }
 
@@ -225,40 +240,48 @@ export function generateViewportLabels(
   density: GridDensity = 'auto',
   subdivision: 'coarse' | 'fine' = 'coarse' // New parameter
 ): Feature<Point>[] {
-  // Use fixed grid interval to match grid lines
-  let interval = getFixedGridInterval(unit);
-
-  // Apply subdivision for fine grid at high zoom
-  if (subdivision === 'fine') {
-    interval = {
-      value: interval.value / 5, // 50ft → 10ft, 25m → 5m
-      unit: interval.unit
-    };
-  }
+  // Always use COARSE grid to establish fixed origin (same as generateGridLines)
+  const coarseInterval = getFixedGridInterval(unit);
 
   // If grid is off, return empty
-  if (interval.value === 0) {
+  if (coarseInterval.value === 0) {
     return [];
   }
 
-  const intervalMeters = unit === 'imperial'
-    ? feetToMeters(interval.value)
-    : interval.value;
+  // Calculate coarse grid spacing (for origin calculation)
+  const coarseIntervalMeters = unit === 'imperial'
+    ? feetToMeters(coarseInterval.value)
+    : coarseInterval.value;
 
   const centerLat = (farmBounds.north + farmBounds.south) / 2;
-  const latStep = metersToDegreesLat(intervalMeters);
-  const lngStep = metersToDegreesLng(intervalMeters, centerLat);
+  const coarseLatStep = metersToDegreesLat(coarseIntervalMeters);
+  const coarseLngStep = metersToDegreesLng(coarseIntervalMeters, centerLat);
+
+  // Determine actual interval for rendering
+  const actualInterval = subdivision === 'fine'
+    ? { value: coarseInterval.value / 5, unit: coarseInterval.unit }
+    : coarseInterval;
+
+  const actualIntervalMeters = unit === 'imperial'
+    ? feetToMeters(actualInterval.value)
+    : actualInterval.value;
+
+  const latStep = metersToDegreesLat(actualIntervalMeters);
+  const lngStep = metersToDegreesLng(actualIntervalMeters, centerLat);
 
   // Find which grid lines intersect the viewport
   const visibleLabels: Feature<Point>[] = [];
 
-  // Calculate grid origin (southwest corner of farm)
-  const farmSouth = farmBounds.south - latStep * 2;
-  const farmWest = farmBounds.west - lngStep * 2;
+  // Calculate grid origin based on COARSE grid (ensures consistency)
+  const farmSouth = farmBounds.south - coarseLatStep * 2;
+  const farmWest = farmBounds.west - coarseLngStep * 2;
+
+  const originLat = Math.floor(farmSouth / coarseLatStep) * coarseLatStep;
+  const originLng = Math.floor(farmWest / coarseLngStep) * coarseLngStep;
 
   // Find latitude lines in viewport
   const vpLatLines: number[] = [];
-  for (let lat = Math.floor(farmSouth / latStep) * latStep; lat <= viewportBounds.north; lat += latStep) {
+  for (let lat = originLat; lat <= viewportBounds.north; lat += latStep) {
     if (lat >= viewportBounds.south) {
       vpLatLines.push(lat);
     }
@@ -266,15 +289,13 @@ export function generateViewportLabels(
 
   // Find longitude lines in viewport
   const vpLngLines: number[] = [];
-  for (let lng = Math.floor(farmWest / lngStep) * lngStep; lng <= viewportBounds.east; lng += lngStep) {
+  for (let lng = originLng; lng <= viewportBounds.east; lng += lngStep) {
     if (lng >= viewportBounds.west) {
       vpLngLines.push(lng);
     }
   }
 
-  // Calculate row/column indices based on farm origin
-  const originLat = Math.floor(farmSouth / latStep) * latStep;
-  const originLng = Math.floor(farmWest / lngStep) * lngStep;
+  // originLat and originLng already calculated above (based on COARSE grid)
 
   // Determine label skip interval based on zoom level
   // Much fewer labels when zoomed out for better readability and AI context

@@ -15,13 +15,14 @@ export const ZOOM_THRESHOLDS = {
 
 /**
  * Calculate satellite layer opacity based on zoom level
- * Progressive fade: 100% @ z18 → 60% @ z19 → 40% @ z20 → 30% @ z21
+ * Very subtle fade: 100% @ z18 → 95% @ z19 → 90% @ z20 → 85% @ z21
+ * Keeps satellite imagery highly visible while making grid slightly more prominent
  */
 export function getSatelliteOpacity(zoom: number): number {
   if (zoom <= 18) return 1.0;
-  if (zoom <= 19) return 1.0 - (zoom - 18) * 0.4; // 1.0 → 0.6
-  if (zoom <= 20) return 0.6 - (zoom - 19) * 0.2;  // 0.6 → 0.4
-  return Math.max(0.3, 0.4 - (zoom - 20) * 0.1);   // 0.4 → 0.3 (min)
+  if (zoom <= 19) return 1.0 - (zoom - 18) * 0.05; // 1.0 → 0.95
+  if (zoom <= 20) return 0.95 - (zoom - 19) * 0.05; // 0.95 → 0.90
+  return Math.max(0.85, 0.90 - (zoom - 20) * 0.05); // 0.90 → 0.85 (min)
 }
 
 /**
