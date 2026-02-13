@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -7,7 +8,8 @@ import { MapIcon, LayoutDashboard, Users, Leaf, GraduationCap, LogOut, Shield, B
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import AudioPlayer from "@/components/audio/AudioPlayer";
+import { CompactMusicController } from "@/components/audio/CompactMusicController";
+import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
@@ -27,6 +29,7 @@ export function Sidebar({
   isAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const [isMusicSheetOpen, setIsMusicSheetOpen] = React.useState(false);
 
   const handleLogout = async () => {
     await fetch("/api/auth/sign-out", { method: "POST" });
@@ -84,10 +87,16 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* Audio Player - Winamp style */}
+      {/* Compact Music Controller */}
       <div className="border-t border-border">
-        <AudioPlayer mode="sidebar" />
+        <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
       </div>
+
+      {/* Music Player Sheet (drawer) */}
+      <MusicPlayerSheet
+        open={isMusicSheetOpen}
+        onOpenChange={setIsMusicSheetOpen}
+      />
 
       {/* Theme Toggle */}
       <div className="px-4 py-3 border-t border-border">
