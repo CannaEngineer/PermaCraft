@@ -3,6 +3,7 @@
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { motion, PanInfo } from "framer-motion";
 import { ReactNode, useRef } from "react";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface BottomDrawerProps {
   children: ReactNode;
@@ -11,14 +12,21 @@ interface BottomDrawerProps {
 export function BottomDrawer({ children }: BottomDrawerProps) {
   const { drawerContent, drawerHeight, closeDrawer, setDrawerHeight } = useImmersiveMapUI();
   const dragConstraintsRef = useRef(null);
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   if (!drawerContent) return null;
 
-  const heightMap = {
-    peek: 'calc(100% - 80px)',
-    medium: '60vh',
-    max: '20vh',
-  };
+  const heightMap = isMobile
+    ? {
+        peek: 'calc(100% - 100px)',
+        medium: '50vh',
+        max: '15vh',
+      }
+    : {
+        peek: 'calc(100% - 80px)',
+        medium: '60vh',
+        max: '20vh',
+      };
 
   const handleDragEnd = (_event: any, info: PanInfo) => {
     const velocity = info.velocity.y;

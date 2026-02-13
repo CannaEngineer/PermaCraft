@@ -6,6 +6,7 @@ import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp } from "lucide-
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface CollapsibleHeaderProps {
   farm: Farm;
@@ -31,14 +32,15 @@ export function CollapsibleHeader({
   onDeleteClick,
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   return (
     <motion.header
       initial={false}
       animate={{
-        height: headerCollapsed ? 48 : 120,
-        paddingTop: headerCollapsed ? 8 : 16,
-        paddingBottom: headerCollapsed ? 8 : 12,
+        height: headerCollapsed ? (isMobile ? 0 : 48) : (isMobile ? 56 : 120),
+        paddingTop: headerCollapsed ? 0 : (isMobile ? 8 : 16),
+        paddingBottom: headerCollapsed ? 0 : (isMobile ? 8 : 12),
       }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
