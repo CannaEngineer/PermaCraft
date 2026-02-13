@@ -1296,6 +1296,12 @@ export function FarmMap({
             setQuickLabelZoneId(featureId);
             setQuickLabelPosition({ x: point.x, y: point.y });
             setShowQuickLabelForm(true);
+
+            // Deselect the feature to prevent the drawer from opening
+            // The quick label form is all we need after creation
+            if (draw.current) {
+              draw.current.changeMode('simple_select');
+            }
           }
         }
       };
