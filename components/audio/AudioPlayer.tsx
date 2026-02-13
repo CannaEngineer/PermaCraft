@@ -24,7 +24,13 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose, mode = 'sidebar' }: 
     setCurrentTrack
   } = useAudio();
 
-  const [isDesktopExpanded, setIsDesktopExpanded] = React.useState(false);
+  const [isDesktopExpanded, setIsDesktopExpanded] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('music-playlist-expanded');
+      return saved === null ? true : saved === 'true'; // Default true
+    }
+    return true;
+  });
 
   const currentTrack = currentTrackIndex !== null ? tracks[currentTrackIndex] : null;
 
@@ -47,7 +53,13 @@ const AudioPlayer = ({ isMobileOpen = false, onMobileClose, mode = 'sidebar' }: 
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsDesktopExpanded(!isDesktopExpanded)}
+              onClick={() => {
+                const newState = !isDesktopExpanded;
+                setIsDesktopExpanded(newState);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('music-playlist-expanded', String(newState));
+                }
+              }}
               className="h-6 text-gray-400 hover:text-white hover:bg-gray-700"
             >
               {isDesktopExpanded ? <Minimize2 className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
