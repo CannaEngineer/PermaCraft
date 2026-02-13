@@ -1,43 +1,37 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trophy, Sparkles, BookOpen, ArrowRight } from 'lucide-react';
+import { Trophy, Sparkles, BookOpen, ArrowRight, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import * as Icons from 'lucide-react';
 
 interface PathCelebrationProps {
   data: {
-    path: any;
+    path: {
+      id: string;
+      name: string;
+      icon_name: string;
+    };
     totalLessons: number;
     completedLessons: number;
-    userProgress: any;
+    userProgress: {
+      total_xp: number;
+    } | null;
   };
 }
 
 export function PathCelebration({ data }: PathCelebrationProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [countdown, setCountdown] = useState(3);
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  useEffect(() => {
-    // Countdown timer
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          handleContinue();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(countdownInterval);
-  }, []);
-
-  const handleContinue = async () => {
+  const handleContinue = useCallback(async () => {
     // Reset learning path to null to show wizard
+    setIsNavigating(true);
     try {
       await fetch('/api/learning/set-path', {
         method: 'POST',
@@ -47,10 +41,37 @@ export function PathCelebration({ data }: PathCelebrationProps) {
       router.refresh();
     } catch (error) {
       console.error('Error resetting path:', error);
-      // Fallback: just refresh
+      toast({
+        title: 'Something went wrong',
+        description: 'Refreshing to try again...',
+        variant: 'destructive',
+      });
       router.refresh();
     }
-  };
+    // Note: Don't set isNavigating to false - router.refresh will unmount component
+  }, [router, toast]);
+
+  useEffect(() => {
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, []);
+
+  useEffect(() => {
+    // Trigger navigation when countdown reaches 0
+    if (countdown === 0) {
+      handleContinue();
+    }
+  }, [countdown, handleContinue]);
 
   const getIconComponent = (iconName: string) => {
     const Icon = (Icons as any)[iconName] || Icons.BookOpen;
@@ -118,9 +139,18 @@ export function PathCelebration({ data }: PathCelebrationProps) {
             <p className="text-sm text-muted-foreground mb-4">
               Ready for your next challenge? {countdown > 0 && `(${countdown}s)`}
             </p>
-            <Button size="lg" onClick={handleContinue} className="w-full md:w-auto">
-              Choose Next Path
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button size="lg" onClick={handleContinue} disabled={isNavigating} className="w-full md:w-auto">
+              {isNavigating ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  Choose Next Path
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
