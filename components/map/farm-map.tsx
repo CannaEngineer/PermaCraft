@@ -26,6 +26,7 @@ import {
   isPrecisionMode,
   ZOOM_THRESHOLDS,
 } from "@/lib/map/zoom-enhancements";
+import { snapCoordinate, getGridSpacingDegrees } from "@/lib/map/snap-to-grid";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
 import type { FeatureCollection, LineString, Point } from "geojson";
@@ -1385,6 +1386,55 @@ export function FarmMap({
                 console.warn("Farm boundary cannot be moved or edited - restored to original position");
               }
             });
+          }
+
+          // Snap vertices to grid at zoom 20+ if snap is enabled
+          if (map.current && snapToGridEnabled) {
+            const zoom = map.current.getZoom();
+            if (zoom >= 20) {
+              const centerLat = farm.center_lat;
+              const gridSpacing = getGridSpacingDegrees(gridUnit, gridSubdivision, centerLat);
+
+              e.features.forEach((feature: any) => {
+                let modified = false;
+
+                if (feature.geometry.type === 'Point') {
+                  const [lng, lat] = feature.geometry.coordinates;
+                  const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled);
+
+                  if (snapped.snapped) {
+                    feature.geometry.coordinates = [snapped.lng, snapped.lat];
+                    modified = true;
+                  }
+                } else if (feature.geometry.type === 'Polygon') {
+                  feature.geometry.coordinates[0] = feature.geometry.coordinates[0].map((coord: number[]) => {
+                    const [lng, lat] = coord;
+                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled);
+
+                    if (snapped.snapped) {
+                      modified = true;
+                      return [snapped.lng, snapped.lat];
+                    }
+                    return coord;
+                  });
+                } else if (feature.geometry.type === 'LineString') {
+                  feature.geometry.coordinates = feature.geometry.coordinates.map((coord: number[]) => {
+                    const [lng, lat] = coord;
+                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled);
+
+                    if (snapped.snapped) {
+                      modified = true;
+                      return [snapped.lng, snapped.lat];
+                    }
+                    return coord;
+                  });
+                }
+
+                if (modified && draw.current) {
+                  draw.current.add(feature);
+                }
+              });
+            }
           }
         }
 
