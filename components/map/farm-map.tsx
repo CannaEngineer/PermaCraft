@@ -19,6 +19,13 @@ import { PlantingDetailPopup } from "./planting-detail-popup";
 import { MapControlsSheet } from "./map-controls-sheet";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
+import {
+  getSatelliteOpacity,
+  getGridThickness,
+  getZoneBoundaryThickness,
+  isPrecisionMode,
+  ZOOM_THRESHOLDS,
+} from "@/lib/map/zoom-enhancements";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
 import type { FeatureCollection, LineString, Point } from "geojson";
@@ -122,6 +129,7 @@ export function FarmMap({
   const [mapLayer, setMapLayer] = useState<MapLayer>("satellite");
   const [gridUnit, setGridUnit] = useState<"imperial" | "metric">("imperial");
   const [gridDensity, setGridDensity] = useState<GridDensity>("auto");
+  const [currentZoom, setCurrentZoom] = useState<number>(farm.zoom_level);
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [showGridMenu, setShowGridMenu] = useState(false);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
@@ -433,6 +441,45 @@ export function FarmMap({
     setQuickLabelZoneId(null);
     setQuickLabelPosition(null);
   };
+
+  // Handle zoom changes for progressive visual enhancements
+  const handleZoomChange = useCallback(() => {
+    if (!map.current) return;
+
+    const zoom = map.current.getZoom();
+    setCurrentZoom(zoom);
+
+    // Update satellite opacity if zoom > 18
+    if (zoom > ZOOM_THRESHOLDS.FADE_START) {
+      const opacity = getSatelliteOpacity(zoom);
+
+      // Update all raster layers
+      const style = map.current.getStyle();
+      Object.keys(style.sources).forEach((sourceId) => {
+        const source = style.sources[sourceId];
+        if (source.type === 'raster') {
+          // Find layers using this source
+          style.layers.forEach((layer) => {
+            if (layer.type === 'raster' && 'source' in layer && layer.source === sourceId) {
+              map.current!.setPaintProperty(layer.id, 'raster-opacity', opacity);
+            }
+          });
+        }
+      });
+    }
+
+    // Update grid thickness
+    const gridThickness = getGridThickness(zoom);
+    if (map.current.getLayer('grid-lines-layer')) {
+      map.current.setPaintProperty('grid-lines-layer', 'line-width', gridThickness);
+    }
+
+    // Update zone boundary thickness
+    const zoneBoundaryThickness = getZoneBoundaryThickness(zoom);
+    if (map.current.getLayer('colored-zones-stroke')) {
+      map.current.setPaintProperty('colored-zones-stroke', 'line-width', zoneBoundaryThickness);
+    }
+  }, []);
 
   // Manage circle center marker
   useEffect(() => {
@@ -1132,6 +1179,12 @@ export function FarmMap({
         }
       });
 
+      // Listen for zoom changes
+      map.current.on('zoom', handleZoomChange);
+
+      // Initial call to set correct opacity/thickness
+      handleZoomChange();
+
       // Store original farm boundary for restoration
       const farmBoundaryCache = new Map<string, any>();
 
@@ -1320,6 +1373,7 @@ export function FarmMap({
 
     return () => {
       if (map.current) {
+        map.current.off('zoom', handleZoomChange);
         map.current.remove();
         map.current = null;
       }
