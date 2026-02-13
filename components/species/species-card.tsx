@@ -50,28 +50,27 @@ export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
       className="group hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-2 hover:border-primary/50 hover:scale-[1.02]"
       onClick={onClick}
     >
-      {/* Header with gradient background */}
-      <div className={`h-24 relative ${layerColorClass} border-b-2`}>
-        <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent" />
-        <div className="absolute top-3 right-3">
+      {/* Header - COMPACT: no emoji, reduced height */}
+      <div className={`h-16 relative ${layerColorClass} border-b`}>
+        {/* Remove gradient overlay */}
+        {/* Remove large emoji icon */}
+
+        <div className="absolute top-2 right-2">
           {species.is_native === 1 ? (
-            <Badge className="bg-green-600 hover:bg-green-700 shadow-lg">
-              🌿 Native
+            <Badge className="bg-green-600 hover:bg-green-700 text-xs px-2 py-0.5">
+              Native  {/* NO EMOJI */}
             </Badge>
           ) : (
-            <Badge variant="secondary" className="shadow">
+            <Badge variant="secondary" className="text-xs px-2 py-0.5">
               Naturalized
             </Badge>
           )}
         </div>
-        <div className="absolute bottom-3 left-3 text-4xl">
-          {layerIcon}
-        </div>
       </div>
 
-      <CardHeader className="pb-3 pt-4">
-        <div className="space-y-1">
-          <h3 className="font-bold text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+      <CardHeader className="pb-2 pt-2">  {/* Reduced from pb-3 pt-4 */}
+        <div className="space-y-0.5">      {/* Reduced from space-y-1 */}
+          <h3 className="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
             {species.common_name}
           </h3>
           <p className="text-xs text-muted-foreground italic line-clamp-1">
@@ -80,7 +79,7 @@ export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 py-3">  {/* Reduced from space-y-3 */}
         {/* Layer Badge */}
         <div className="flex items-center gap-2">
           <Badge variant="outline" className={`text-xs capitalize ${layerColorClass}`}>
@@ -90,7 +89,7 @@ export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
         </div>
 
         {/* Key Info Grid */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="grid grid-cols-2 gap-1.5 text-xs">  {/* Reduced from gap-2 */}
           {/* Hardiness Zones */}
           {species.min_hardiness_zone && species.max_hardiness_zone && (
             <div className="flex items-center gap-1 text-muted-foreground">
@@ -124,9 +123,9 @@ export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
 
         {/* Regions */}
         {regions.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">  {/* Already gap-1, good */}
             {regions.map((region: string) => (
-              <Badge key={region} variant="outline" className="text-xs bg-muted/50">
+              <Badge key={region} variant="outline" className="text-xs px-1.5 py-0 bg-muted/50">
                 {region}
               </Badge>
             ))}
@@ -135,13 +134,13 @@ export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
 
         {/* Functions */}
         {functions.length > 0 && (
-          <div className="pt-2 border-t">
-            <div className="flex flex-wrap gap-1">
+          <div className="pt-1.5 border-t">  {/* Reduced from pt-2 */}
+            <div className="flex flex-wrap gap-1">  {/* Already gap-1, good */}
               {functions.map((fn: string) => (
                 <Badge
                   key={fn}
                   variant="secondary"
-                  className="text-xs bg-primary/5 text-primary border-primary/20"
+                  className="text-xs px-1.5 py-0 bg-primary/5 text-primary border-primary/20"
                 >
                   {fn.replace(/_/g, ' ')}
                 </Badge>
@@ -150,12 +149,6 @@ export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
           </div>
         )}
 
-        {/* Tap to learn more hint */}
-        <div className="pt-2 text-center">
-          <p className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
-            Tap to learn more →
-          </p>
-        </div>
       </CardContent>
     </Card>
   );
