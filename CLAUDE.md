@@ -187,6 +187,46 @@ if (!farm) return new Response('Not found', { status: 404 });
 - Drawing tools via `@mapbox/mapbox-gl-draw`
 - Store geometry as GeoJSON TEXT in database
 
+### Enhanced Zoom for Urban Plots
+The map supports zoom levels 1-21 with progressive enhancements for precision work on small urban plots.
+
+**Zoom Thresholds:**
+- Zoom 1-18: Standard satellite + design mode
+- Zoom 18+: Precision mode with progressive enhancements
+- Zoom 19+: Design mode emphasized (satellite fades, grid thickens)
+- Zoom 20+: Fine grid subdivision (50ft → 10ft, 25m → 5m) + snap-to-grid enabled
+- Zoom 21: Maximum precision (satellite at 30% opacity, thickest grid lines)
+
+**Progressive Visual Enhancements:**
+- **Satellite fade**: 100% opacity @ z18 → 60% @ z19 → 40% @ z20 → 30% @ z21
+- **Grid thickness**: 1px @ z18 → 1.5px @ z19 → 2px @ z20 → 2.5px @ z21
+- **Zone boundaries**: 2px @ z18 → 3px @ z19 → 4px @ z20 → 5px @ z21
+- **Fine grid**: Switches from 50ft/25m to 10ft/5m spacing at zoom 20+
+- **Dimension labels**: Show cell dimensions (e.g., "10ft × 10ft") at zoom 20+
+
+**Snap-to-Grid:**
+- Enabled automatically at zoom 20+ for precision placement
+- Magnetic snap radius: 5px @ z20 → 10px @ z21 (doubled on touch devices)
+- Toggle: Press `S` key (shows toast confirmation)
+- Temporary disable: Hold `Shift` key while drawing
+
+**Keyboard Shortcuts:**
+- `S` - Toggle snap-to-grid on/off
+- `Shift` - Hold to temporarily disable snap while drawing
+- `H` - Show help menu with all shortcuts
+
+**Implementation Files:**
+- `lib/map/zoom-enhancements.ts` - Core zoom utility functions
+- `lib/map/snap-to-grid.ts` - Snap-to-grid calculations
+- `lib/map/measurement-grid.ts` - Grid generation with subdivision support
+- `components/map/measurement-overlay.tsx` - SVG overlay for measurements
+- `components/map/farm-map.tsx` - Main map component with zoom integration
+
+**Limitations:**
+- Satellite tiles stop loading beyond zoom 18 (tiles are frozen/reused at higher zooms)
+- Grid regeneration is debounced (150ms) to prevent performance issues during rapid zooming
+- Fine grid only shows when zoom ≥ 20 (prevents clutter at lower zoom levels)
+
 ### AI Integration
 - Always include the permaculture system prompt
 - Send map screenshots as base64 data URLs
