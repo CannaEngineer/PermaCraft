@@ -131,6 +131,7 @@ export function FarmMap({
   const [gridDensity, setGridDensity] = useState<GridDensity>("auto");
   const [currentZoom, setCurrentZoom] = useState<number>(farm.zoom_level);
   const [gridSubdivision, setGridSubdivision] = useState<'coarse' | 'fine'>('coarse');
+  const [hasShownPrecisionToast, setHasShownPrecisionToast] = useState(false);
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [showGridMenu, setShowGridMenu] = useState(false);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
@@ -449,7 +450,19 @@ export function FarmMap({
     if (!map.current) return;
 
     const zoom = map.current.getZoom();
+    const prevZoom = currentZoom;
     setCurrentZoom(zoom);
+
+    // Show precision mode toast when first crossing zoom 18
+    if (!hasShownPrecisionToast && prevZoom <= 18 && zoom > 18) {
+      toast({
+        title: "🔍 Precision Mode Activated",
+        description: "Grid and measurements enhanced for detailed planning",
+        duration: 4000,
+      });
+      setHasShownPrecisionToast(true);
+      localStorage.setItem('precision-mode-toast-shown', 'true');
+    }
 
     // Update satellite opacity if zoom > 18
     if (zoom > ZOOM_THRESHOLDS.FADE_START) {
@@ -491,7 +504,15 @@ export function FarmMap({
       setGridSubdivision(newSubdivision);
       updateGridRef.current?.(newSubdivision);
     }
-  }, [gridSubdivision]);
+  }, [gridSubdivision, currentZoom, hasShownPrecisionToast, toast]);
+
+  // Check if precision mode toast has been shown before
+  useEffect(() => {
+    const shown = localStorage.getItem('precision-mode-toast-shown');
+    if (shown === 'true') {
+      setHasShownPrecisionToast(true);
+    }
+  }, []);
 
   // Manage circle center marker
   useEffect(() => {
