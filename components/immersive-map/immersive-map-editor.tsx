@@ -7,6 +7,7 @@ import { CollapsibleHeader } from "./collapsible-header";
 import { DrawingToolbar } from "./drawing-toolbar";
 import { BottomDrawer } from "./bottom-drawer";
 import { ChatOverlay } from "./chat-overlay";
+import { MapFAB } from "./map-fab";
 import { FarmMap } from "@/components/map/farm-map";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
@@ -185,6 +186,8 @@ function ImmersiveMapEditorContent({
   // Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showGoalsWizard, setShowGoalsWizard] = useState(false);
+  const [postDialogOpen, setPostDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   // Goals state
   const [goals, setGoals] = useState<FarmerGoal[]>([]);
@@ -594,6 +597,32 @@ function ImmersiveMapEditorContent({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed]);
 
+  // MapFAB action handlers
+  const handleCreatePost = () => {
+    setPostDialogOpen(true);
+  };
+
+  const handleUploadPhoto = () => {
+    // Open native file picker
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files) return;
+
+      // TODO: Upload to R2 and create post
+      console.log('Upload files:', files);
+      setUploadDialogOpen(true);
+    };
+    input.click();
+  };
+
+  const handleDropPin = () => {
+    openDrawer('species-picker', 'medium');
+  };
+
   return (
     <div className="fixed inset-0 bottom-16 md:bottom-0 md:left-64 overflow-hidden bg-background">
       {/* Map Layer (full viewport) */}
@@ -671,6 +700,13 @@ function ImmersiveMapEditorContent({
         onDeleteSuccess={() => {
           router.push("/dashboard");
         }}
+      />
+
+      {/* Map FAB */}
+      <MapFAB
+        onCreatePost={handleCreatePost}
+        onUploadPhoto={handleUploadPhoto}
+        onDropPin={handleDropPin}
       />
     </div>
   );
