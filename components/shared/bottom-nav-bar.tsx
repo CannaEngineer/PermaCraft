@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CompactMusicController } from "@/components/audio/CompactMusicController";
+import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
 
 const primaryNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", requiresAuth: true },
@@ -51,6 +53,7 @@ interface BottomNavBarProps {
 export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBarProps) {
   const pathname = usePathname();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isMusicSheetOpen, setIsMusicSheetOpen] = useState(false);
 
   const handleLogout = async () => {
     await fetch("/api/auth/sign-out", { method: "POST" });
@@ -249,6 +252,18 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
 
                     <Separator className="my-2" />
 
+                    {/* Music Player Section */}
+                    <div className="py-4">
+                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Music
+                      </p>
+                      <div className="px-3">
+                        <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
+                      </div>
+                    </div>
+
+                    <Separator className="my-2" />
+
                     {/* Appearance Section */}
                     <div className="py-4">
                       <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -336,6 +351,18 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
 
                     <Separator className="my-2" />
 
+                    {/* Music Player Section */}
+                    <div className="py-4">
+                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Music
+                      </p>
+                      <div className="px-3">
+                        <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
+                      </div>
+                    </div>
+
+                    <Separator className="my-2" />
+
                     {/* Appearance Section */}
                     <div className="py-4">
                       <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -365,6 +392,12 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
           </div>
         </>
       )}
+
+      {/* Music Player Sheet */}
+      <MusicPlayerSheet
+        open={isMusicSheetOpen}
+        onOpenChange={setIsMusicSheetOpen}
+      />
 
       {/* Safe area spacer */}
       <div className="md:hidden h-16" />
