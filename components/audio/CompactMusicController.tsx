@@ -7,9 +7,10 @@ import { SkipBack, SkipForward, Play, Pause } from 'lucide-react';
 
 interface CompactMusicControllerProps {
   onOpenPlayer: () => void;
+  variant?: 'sidebar' | 'mobile';
 }
 
-export function CompactMusicController({ onOpenPlayer }: CompactMusicControllerProps) {
+export function CompactMusicController({ onOpenPlayer, variant = 'sidebar' }: CompactMusicControllerProps) {
   const { isPlaying, play, pause, nextTrack, prevTrack, currentTrackIndex, tracks } = useAudio();
 
   const currentTrack = currentTrackIndex !== null ? tracks[currentTrackIndex] : null;
@@ -22,10 +23,14 @@ export function CompactMusicController({ onOpenPlayer }: CompactMusicControllerP
     }
   };
 
+  const containerClass = variant === 'mobile'
+    ? "flex items-center gap-3 px-4 py-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+    : "hidden md:flex items-center gap-3 px-3 py-2 border-t border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors h-14";
+
   return (
     <div
       onClick={onOpenPlayer}
-      className="hidden md:flex items-center gap-3 px-3 py-2 border-t border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors h-14"
+      className={containerClass}
     >
       {/* Controls */}
       <div className="flex items-center gap-1">

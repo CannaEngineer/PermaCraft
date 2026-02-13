@@ -258,7 +258,10 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
                         Music
                       </p>
                       <div className="px-3">
-                        <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
+                        <CompactMusicController
+                          onOpenPlayer={() => setIsMusicSheetOpen(true)}
+                          variant="mobile"
+                        />
                       </div>
                     </div>
 
@@ -357,7 +360,10 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
                         Music
                       </p>
                       <div className="px-3">
-                        <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
+                        <CompactMusicController
+                          onOpenPlayer={() => setIsMusicSheetOpen(true)}
+                          variant="mobile"
+                        />
                       </div>
                     </div>
 
