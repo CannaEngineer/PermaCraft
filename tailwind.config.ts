@@ -139,6 +139,10 @@ const config: Config = {
         "soft": "0 2px 8px rgba(0, 0, 0, 0.08)",
         "medium": "0 4px 12px rgba(0, 0, 0, 0.12)",
         "strong": "0 8px 24px rgba(0, 0, 0, 0.16)",
+        "glass": "0 8px 32px 0 var(--glass-shadow)",
+      },
+      backgroundImage: {
+        "glass": "linear-gradient(135deg, var(--glass-background) 0%, var(--glass-background-strong) 100%)",
       },
     },
   },
