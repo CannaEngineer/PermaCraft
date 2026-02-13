@@ -35,11 +35,11 @@ export function DrawingToolbar({
 
   return (
     <motion.div
-      initial={{ x: 100, opacity: 0 }}
+      initial={{ x: -100, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 100, opacity: 0 }}
+      exit={{ x: -100, opacity: 0 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed right-4 top-1/2 -translate-y-1/2 z-30 glass-panel rounded-2xl p-2 flex flex-col gap-2 w-16"
+      className="fixed left-4 top-1/2 -translate-y-1/2 z-30 glass-panel rounded-2xl p-2 flex flex-col gap-2 w-16"
     >
       {/* Zone Type Button */}
       <Button
