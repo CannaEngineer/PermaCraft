@@ -25,6 +25,7 @@ import {
   getGridThickness,
   getZoneBoundaryThickness,
   isPrecisionMode,
+  getZoomLabel,
   ZOOM_THRESHOLDS,
 } from "@/lib/map/zoom-enhancements";
 import { snapCoordinate, getGridSpacingDegrees } from "@/lib/map/snap-to-grid";
@@ -2565,6 +2566,15 @@ export function FarmMap({
         enabled={currentZoom >= 19}
         unit={gridUnit}
       />
+
+      {/* Zoom Level Indicator */}
+      <div className={`absolute top-4 right-4 z-10 rounded-lg shadow-md px-3 py-2 text-sm font-medium transition-colors ${
+        currentZoom > 18
+          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+          : 'bg-white text-slate-700'
+      }`}>
+        {getZoomLabel(currentZoom)}
+      </div>
 
       {/* Map Layer Selector - REMOVED - now in FAB menu */}
       <div className="hidden absolute top-4 left-4 z-10">
