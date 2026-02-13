@@ -2883,6 +2883,27 @@ export function FarmMap({
                 </div>
               </div>
             </div>
+
+            <h3 className="font-semibold mt-4 mb-2">Keyboard Shortcuts</h3>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Toggle snap-to-grid</span>
+                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">S</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Toggle grid visibility</span>
+                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">G</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Toggle measurements</span>
+                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">M</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Temp. disable snap (hold)</span>
+                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">Shift</kbd>
+              </div>
+            </div>
+
             <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
               <strong>How to use:</strong> Click a tool button in the top-right
               corner, then click on the map to draw. Your cursor will change to
