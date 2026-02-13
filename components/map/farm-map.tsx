@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapBottomDrawer } from "./map-bottom-drawer";
+import { MeasurementOverlay } from "./measurement-overlay";
 import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { SpeciesPickerCompact } from "./species-picker-compact";
@@ -2556,6 +2557,13 @@ export function FarmMap({
         ref={mapContainer}
         className="h-full w-full"
         style={{ cursor: plantingMode && selectedSpecies ? 'crosshair' : 'default' }}
+      />
+
+      {/* Measurement Overlay - shown at zoom 19+ for precision mode */}
+      <MeasurementOverlay
+        map={map.current}
+        enabled={currentZoom >= 19}
+        unit={gridUnit}
       />
 
       {/* Map Layer Selector - REMOVED - now in FAB menu */}
