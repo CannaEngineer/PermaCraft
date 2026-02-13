@@ -151,6 +151,58 @@
     --backdrop-light: hsl(0 0% 0% / 0.3);
     --backdrop-strong: hsl(0 0% 0% / 0.5);
   }
+
+  [data-theme='neon'] {
+    /* Primary Colors */
+    --primary: 280 100% 70%;              /* Electric purple */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 180 100% 70%;            /* Cyan */
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 330 100% 70%;               /* Hot pink */
+    --accent-foreground: 0 0% 100%;
+
+    /* Backgrounds */
+    --background: 240 10% 8%;             /* Dark purple-tinted */
+    --foreground: 280 100% 95%;           /* Light with purple tint */
+    --card: 240 10% 12%;
+    --card-foreground: 280 100% 95%;
+    --popover: 240 10% 10%;
+    --popover-foreground: 280 100% 95%;
+
+    /* Borders */
+    --border: 280 70% 40%;                /* Neon purple borders */
+    --input: 280 70% 40%;
+    --ring: 280 100% 70%;
+
+    /* Muted */
+    --muted: 240 10% 15%;
+    --muted-foreground: 280 50% 70%;
+
+    /* Destructive */
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Effects */
+    --neon-glow: 0 0 10px hsl(280 100% 70%);
+    --neon-glow-strong: 0 0 20px hsl(280 100% 70%);
+  }
+
+  /* Glow effects on interactive elements */
+  [data-theme='neon'] button:hover {
+    box-shadow: var(--neon-glow);
+  }
+
+  [data-theme='neon'] .neon-accent {
+    box-shadow: var(--neon-glow-strong);
+    animation: neon-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes neon-pulse {
+    0%, 100% { box-shadow: var(--neon-glow); }
+    50% { box-shadow: var(--neon-glow-strong); }
+  }
 }
 
 @layer base {
