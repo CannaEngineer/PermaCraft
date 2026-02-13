@@ -45,7 +45,7 @@ export function CollapsibleHeader({
         paddingBottom: headerCollapsed ? 0 : (isMobile ? 8 : 12),
       }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
+      className="fixed top-0 left-0 md:left-64 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
       style={{ willChange: 'height' }}
     >
       <div className="px-4 sm:px-6 h-full flex items-center justify-between gap-4">
@@ -68,7 +68,7 @@ export function CollapsibleHeader({
                 fontSize: headerCollapsed ? '1.125rem' : '1.875rem',
               }}
               transition={{ duration: 0.25 }}
-              className="font-serif font-bold text-foreground truncate"
+              className="font-serif font-bold text-foreground truncate max-w-full"
             >
               {farm.name}
             </motion.h1>
