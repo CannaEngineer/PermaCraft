@@ -11,16 +11,64 @@ import { PathCelebration } from '@/components/learning/path-celebration';
 
 type PageState = 'wizard' | 'dashboard' | 'celebration';
 
+// Lesson with joined topic fields and completion status
+interface LessonWithMetadata {
+  id: string;
+  topic_id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string;
+  content_type: string;
+  estimated_minutes: number;
+  difficulty: string;
+  prerequisite_lesson_ids: string | null;
+  xp_reward: number;
+  order_index: number;
+  created_at: number;
+  updated_at: number;
+  // Joined topic fields
+  topic_name: string;
+  topic_slug: string;
+  topic_icon: string;
+  // Completion status
+  is_completed: number;
+  isCompleted: boolean;
+}
+
+// Badge with earned timestamp
+interface BadgeWithEarnedAt {
+  id: string;
+  name: string;
+  description: string;
+  icon_name: string;
+  requirement_type: string;
+  requirement_value: number;
+  created_at: number;
+  earned_at: number;
+}
+
+// User progress record
+interface UserProgress {
+  id: string;
+  user_id: string;
+  learning_path_id: string | null;
+  current_level: number;
+  total_xp: number;
+  created_at: number;
+  updated_at: number;
+}
+
 interface WizardStateData {
   paths: LearningPath[];
 }
 
 interface PathDetailsData {
-  path: any;
+  path: LearningPath;
   totalLessons: number;
   completedLessons: number;
   percentComplete: number;
-  nextLesson: any;
+  nextLesson: LessonWithMetadata | undefined;
   curriculumByTopic: Array<{
     topic: {
       id: string;
@@ -28,10 +76,10 @@ interface PathDetailsData {
       slug: string;
       icon_name: string;
     };
-    lessons: Array<any & { isCompleted: boolean }>;
+    lessons: LessonWithMetadata[];
   }>;
-  earnedBadges: any[];
-  userProgress: any;
+  earnedBadges: BadgeWithEarnedAt[];
+  userProgress: UserProgress | undefined;
 }
 
 type LearnPageState =
@@ -45,7 +93,7 @@ async function getLearnPageState(userId: string): Promise<LearnPageState> {
     sql: 'SELECT * FROM user_progress WHERE user_id = ?',
     args: [userId]
   });
-  const progress = progressResult.rows[0] as any;
+  const progress = progressResult.rows[0] as unknown as UserProgress | undefined;
 
   // State: No path → wizard
   if (!progress?.learning_path_id) {
@@ -70,7 +118,7 @@ async function getActivePathDetails(userId: string, pathId: string) {
     sql: 'SELECT * FROM learning_paths WHERE id = ?',
     args: [pathId]
   });
-  const path = pathResult.rows[0];
+  const path = pathResult.rows[0] as unknown as LearningPath | undefined;
 
   // Path was deleted - reset user progress and redirect
   if (!path) {
@@ -86,7 +134,7 @@ async function getActivePathDetails(userId: string, pathId: string) {
     sql: 'SELECT * FROM user_progress WHERE user_id = ?',
     args: [userId]
   });
-  const userProgress = progressResult.rows[0];
+  const userProgress = progressResult.rows[0] as unknown as UserProgress | undefined;
 
   // Get all lessons in path with completion status
   const lessonsResult = await db.execute({
@@ -109,7 +157,7 @@ async function getActivePathDetails(userId: string, pathId: string) {
     args: [userId, pathId]
   });
 
-  const lessons = lessonsResult.rows as any[];
+  const lessons = lessonsResult.rows as unknown as LessonWithMetadata[];
 
   // Calculate progress
   const totalLessons = lessons.length;
@@ -159,7 +207,7 @@ async function getActivePathDetails(userId: string, pathId: string) {
     percentComplete,
     nextLesson,
     curriculumByTopic,
-    earnedBadges: badgesResult.rows,
+    earnedBadges: badgesResult.rows as unknown as BadgeWithEarnedAt[],
     userProgress,
   };
 }

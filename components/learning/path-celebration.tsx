@@ -8,6 +8,16 @@ import { Trophy, Sparkles, BookOpen, ArrowRight, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as Icons from 'lucide-react';
 
+interface UserProgress {
+  id: string;
+  user_id: string;
+  learning_path_id: string | null;
+  current_level: number;
+  total_xp: number;
+  created_at: number;
+  updated_at: number;
+}
+
 interface PathCelebrationProps {
   data: {
     path: {
@@ -17,9 +27,7 @@ interface PathCelebrationProps {
     };
     totalLessons: number;
     completedLessons: number;
-    userProgress: {
-      total_xp: number;
-    } | null;
+    userProgress: UserProgress | undefined;
   };
 }
 

@@ -130,7 +130,7 @@ export async function PathDashboard({ data }: PathDashboardProps) {
                 const TopicIcon = getIconComponent(topicGroup.topic.icon_name);
                 const topicCompleted = topicGroup.lessons.filter(l => l.isCompleted).length;
                 const topicTotal = topicGroup.lessons.length;
-                const topicProgress = (topicCompleted / topicTotal) * 100;
+                const topicProgress = topicTotal > 0 ? (topicCompleted / topicTotal) * 100 : 0;
 
                 return (
                   <Card key={topicGroup.topic.id}>
@@ -157,13 +157,15 @@ export async function PathDashboard({ data }: PathDashboardProps) {
 
                       <div className="space-y-2">
                         {topicGroup.lessons.map((lesson, index) => {
-                          const isNext = !lesson.isCompleted &&
-                            (index === 0 || topicGroup.lessons[index - 1].isCompleted);
+                          const firstIncompleteIndex = topicGroup.lessons.findIndex(l => !l.isCompleted);
+                          const isNext = !lesson.isCompleted && index === firstIncompleteIndex;
+                          const lessonStatus = lesson.isCompleted ? 'Completed' : isNext ? 'Next lesson' : 'Not started';
 
                           return (
                             <Link
                               key={lesson.id}
                               href={`/learn/lessons/${lesson.slug}`}
+                              aria-label={`${lesson.title} - ${lessonStatus} - ${lesson.estimated_minutes} minutes - ${lesson.xp_reward} XP`}
                               className={`block p-3 rounded-lg border transition-all group ${
                                 isNext
                                   ? 'border-2 border-primary bg-primary/5 hover:bg-primary/10'
