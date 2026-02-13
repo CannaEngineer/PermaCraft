@@ -11,6 +11,7 @@ import { MapFAB } from "./map-fab";
 import { FarmMap } from "@/components/map/farm-map";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
+import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
@@ -717,6 +718,17 @@ function ImmersiveMapEditorContent({
         onCreatePost={handleCreatePost}
         onUploadPhoto={handleUploadPhoto}
         onDropPin={handleDropPin}
+      />
+
+      {/* Create Post Dialog */}
+      <CreatePostDialog
+        open={postDialogOpen}
+        onOpenChange={setPostDialogOpen}
+        farmId={farm.id}
+        onPostCreated={() => {
+          setPostDialogOpen(false);
+          // TODO: Refresh posts feed if needed
+        }}
       />
     </div>
   );

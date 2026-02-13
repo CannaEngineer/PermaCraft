@@ -11,19 +11,29 @@ interface MapFABProps {
 }
 
 export function MapFAB({ onCreatePost, onUploadPhoto, onDropPin }: MapFABProps) {
-  const { enterDrawingMode } = useImmersiveMapUI();
+  const { enterDrawingMode, setActiveDrawTool } = useImmersiveMapUI();
+
+  const handleDrawShape = () => {
+    enterDrawingMode();
+    setActiveDrawTool('polygon');
+  };
+
+  const handleDropPin = () => {
+    enterDrawingMode();
+    setActiveDrawTool('point');
+  };
 
   const actions: FABAction[] = [
     {
       icon: <Square className="h-5 w-5" />,
       label: 'Draw Shape',
-      onClick: enterDrawingMode,
+      onClick: handleDrawShape,
       color: 'bg-blue-600 text-white'
     },
     {
       icon: <MapPin className="h-5 w-5" />,
       label: 'Drop Pin',
-      onClick: onDropPin,
+      onClick: handleDropPin,
       color: 'bg-green-600 text-white'
     },
     {
