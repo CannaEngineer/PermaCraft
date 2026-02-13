@@ -169,7 +169,7 @@ function ImmersiveMapEditorContent({
   const router = useRouter();
 
   // Get UI context
-  const { setChatOpen, openDrawer, setHeaderCollapsed } = useImmersiveMapUI();
+  const { chatOpen, setChatOpen, openDrawer, headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
 
   // Map state
   const [zones, setZones] = useState<Zone[]>(initialZones);
@@ -580,20 +580,20 @@ function ImmersiveMapEditorContent({
         const target = e.target as HTMLElement;
         // Don't trigger if typing in input
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-        setChatOpen((prev) => !prev);
+        setChatOpen(!chatOpen);
       }
 
       // H - Toggle header
       if (e.key === 'h' && !e.metaKey && !e.ctrlKey) {
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-        setHeaderCollapsed((prev) => !prev);
+        setHeaderCollapsed(!headerCollapsed);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setChatOpen, setHeaderCollapsed]);
+  }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed]);
 
   return (
     <div className="fixed inset-0 overflow-hidden">
