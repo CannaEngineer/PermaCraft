@@ -2,12 +2,10 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
-import { useMediaQuery } from "@/hooks/use-media-query";
-import { useRouter } from "next/navigation";
 
 interface CollapsibleHeaderProps {
   farm: Farm;
@@ -33,46 +31,29 @@ export function CollapsibleHeader({
   onDeleteClick,
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
-  const isMobile = useMediaQuery('(max-width: 767px)');
-  const router = useRouter();
 
   return (
     <motion.header
       initial={false}
       animate={{
-        height: headerCollapsed ? (isMobile ? 0 : 48) : (isMobile ? 56 : 120),
-        paddingTop: headerCollapsed ? 0 : (isMobile ? 8 : 16),
-        paddingBottom: headerCollapsed ? 0 : (isMobile ? 8 : 12),
+        height: headerCollapsed ? 48 : 120,
+        paddingTop: headerCollapsed ? 8 : 16,
+        paddingBottom: headerCollapsed ? 8 : 12,
       }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-0 left-0 md:left-64 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
-      style={{
-        willChange: 'height',
-        paddingTop: 'env(safe-area-inset-top)',
-        top: 'env(safe-area-inset-top)'
-      }}
+      className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
+      style={{ willChange: 'height' }}
     >
       <div className="px-4 sm:px-6 h-full flex items-center justify-between gap-4">
         {/* Left: Farm Identity */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            {/* Back button - mobile only */}
-            {isMobile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push('/dashboard')}
-                className="flex-shrink-0 h-8 w-8"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            )}
             <motion.h1
               animate={{
                 fontSize: headerCollapsed ? '1.125rem' : '1.875rem',
               }}
               transition={{ duration: 0.25 }}
-              className="font-serif font-bold text-foreground truncate max-w-full"
+              className="font-serif font-bold text-foreground truncate"
             >
               {farm.name}
             </motion.h1>
@@ -189,24 +170,6 @@ export function CollapsibleHeader({
           />
         </div>
       </div>
-
-      {/* Grab Tab - hangs below header when collapsed */}
-      <AnimatePresence>
-        {headerCollapsed && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setHeaderCollapsed(false)}
-            className="absolute left-1/2 -translate-x-1/2 -bottom-3 cursor-pointer"
-          >
-            <div className="w-12 h-6 bg-background/90 backdrop-blur-lg border border-border/50 rounded-b-lg shadow-md flex items-center justify-center">
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.header>
   );
 }
