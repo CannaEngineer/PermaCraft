@@ -2,11 +2,12 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useRouter } from "next/navigation";
 
 interface CollapsibleHeaderProps {
   farm: Farm;
@@ -33,6 +34,7 @@ export function CollapsibleHeader({
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const router = useRouter();
 
   return (
     <motion.header
@@ -50,6 +52,17 @@ export function CollapsibleHeader({
         {/* Left: Farm Identity */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
+            {/* Back button - mobile only */}
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => router.push('/dashboard')}
+                className="flex-shrink-0 h-8 w-8"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <motion.h1
               animate={{
                 fontSize: headerCollapsed ? '1.125rem' : '1.875rem',
