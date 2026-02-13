@@ -40,8 +40,8 @@ const ImmersiveMapUIContext = createContext<ImmersiveMapUIState | undefined>(und
 
 export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
-  const [controlPanelMinimized, setControlPanelMinimized] = useState(false);
-  const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | null>('layers');
+  const [controlPanelMinimized, setControlPanelMinimized] = useState(true);
+  const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | null>(null);
   const [drawingMode, setDrawingMode] = useState(false);
   const [activeDrawTool, setActiveDrawTool] = useState<'polygon' | 'circle' | 'point' | 'edit' | 'delete' | null>(null);
   const [drawerContent, setDrawerContent] = useState<'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | null>(null);

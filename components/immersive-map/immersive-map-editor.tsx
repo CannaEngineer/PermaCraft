@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ImmersiveMapUIProvider, useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { CollapsibleHeader } from "./collapsible-header";
-import { MapControlPanel } from "./map-control-panel";
 import { DrawingToolbar } from "./drawing-toolbar";
 import { BottomDrawer } from "./bottom-drawer";
 import { ChatOverlay } from "./chat-overlay";
@@ -622,18 +621,6 @@ function ImmersiveMapEditorContent({
         onOpenChat={() => setChatOpen(true)}
         onOpenGoals={() => setShowGoalsWizard(true)}
         onDeleteClick={() => setDeleteDialogOpen(true)}
-      />
-
-      {/* Map Control Panel */}
-      <MapControlPanel
-        currentLayer={currentMapLayer}
-        onLayerChange={setCurrentMapLayer}
-        gridUnit={gridUnit}
-        onGridUnitChange={setGridUnit}
-        gridDensity={gridDensity}
-        onGridDensityChange={setGridDensity}
-        terrainEnabled={terrainEnabled}
-        onTerrainToggle={() => setTerrainEnabled(!terrainEnabled)}
       />
 
       {/* Drawing Toolbar (conditional) */}
