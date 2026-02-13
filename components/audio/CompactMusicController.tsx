@@ -25,7 +25,7 @@ export function CompactMusicController({ onOpenPlayer }: CompactMusicControllerP
   return (
     <div
       onClick={onOpenPlayer}
-      className="hidden md:flex items-center gap-3 px-3 py-2 border-t border-border bg-muted/50 hover:bg-muted cursor-pointer transition-colors h-14"
+      className="hidden md:flex items-center gap-3 px-3 py-2 border-t border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors h-14"
     >
       {/* Controls */}
       <div className="flex items-center gap-1">
