@@ -118,17 +118,118 @@ export async function PathDashboard({ data }: PathDashboardProps) {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Curriculum Section - placeholder for now */}
+          {/* Curriculum Section */}
           <div>
-            <h3 className="text-xl font-bold mb-4">Your Learning Path</h3>
-            <p className="text-muted-foreground">Curriculum will be rendered here</p>
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Icons.BookOpen className="w-5 h-5 text-primary" />
+              Your Learning Path
+            </h3>
+
+            <div className="space-y-4">
+              {curriculumByTopic.map((topicGroup) => {
+                const TopicIcon = getIconComponent(topicGroup.topic.icon_name);
+                const topicCompleted = topicGroup.lessons.filter(l => l.isCompleted).length;
+                const topicTotal = topicGroup.lessons.length;
+                const topicProgress = (topicCompleted / topicTotal) * 100;
+
+                return (
+                  <Card key={topicGroup.topic.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <TopicIcon className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base">{topicGroup.topic.name}</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                              {topicCompleted} of {topicTotal} lessons
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={topicCompleted === topicTotal ? 'default' : 'secondary'}>
+                          {Math.round(topicProgress)}%
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Progress value={topicProgress} className="h-2 mb-4" />
+
+                      <div className="space-y-2">
+                        {topicGroup.lessons.map((lesson, index) => {
+                          const isNext = !lesson.isCompleted &&
+                            (index === 0 || topicGroup.lessons[index - 1].isCompleted);
+
+                          return (
+                            <Link
+                              key={lesson.id}
+                              href={`/learn/lessons/${lesson.slug}`}
+                              className={`block p-3 rounded-lg border transition-all group ${
+                                isNext
+                                  ? 'border-2 border-primary bg-primary/5 hover:bg-primary/10'
+                                  : lesson.isCompleted
+                                  ? 'bg-muted/30 hover:bg-muted/50'
+                                  : 'hover:bg-muted/30'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">
+                                  {lesson.isCompleted ? (
+                                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                  ) : isNext ? (
+                                    <Play className="w-5 h-5 text-primary" />
+                                  ) : (
+                                    <Circle className="w-5 h-5 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-medium ${isNext ? 'group-hover:text-primary' : ''} transition-colors`}>
+                                    {lesson.title}
+                                  </p>
+                                  <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                    <span>{lesson.estimated_minutes} min</span>
+                                    <span>•</span>
+                                    <span className="text-green-600">+{lesson.xp_reward} XP</span>
+                                  </div>
+                                </div>
+                                {isNext && (
+                                  <ArrowRight className="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Badges Section - placeholder for now */}
+          {/* Badges Section */}
           {earnedBadges.length > 0 && (
             <div>
-              <h3 className="text-xl font-bold mb-4">Your Badges</h3>
-              <p className="text-muted-foreground">{earnedBadges.length} badges earned</p>
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500" />
+                Your Badges
+              </h3>
+
+              <div className="flex gap-4 overflow-x-auto pb-4">
+                {earnedBadges.map((badge) => {
+                  const BadgeIcon = getIconComponent(badge.icon_name);
+                  return (
+                    <Card key={badge.id} className="flex-shrink-0 w-40">
+                      <CardContent className="p-4 text-center">
+                        <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
+                          <BadgeIcon className="w-6 h-6 text-amber-500" />
+                        </div>
+                        <p className="text-sm font-medium line-clamp-2">{badge.name}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
