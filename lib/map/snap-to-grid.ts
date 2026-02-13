@@ -41,13 +41,14 @@ export function snapCoordinate(
   lat: number,
   gridSpacingDegrees: number,
   zoom: number,
-  enabled: boolean = true
+  enabled: boolean = true,
+  isTouch: boolean = false
 ): { lng: number; lat: number; snapped: boolean } {
   if (!enabled) {
     return { lng, lat, snapped: false };
   }
 
-  const snapStrength = getSnapStrength(zoom);
+  const snapStrength = getSnapStrength(zoom, isTouch);
 
   // No snapping if strength is 0 (zoom < 20)
   if (snapStrength === 0) {

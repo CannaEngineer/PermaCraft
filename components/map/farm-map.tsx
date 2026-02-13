@@ -462,6 +462,11 @@ export function FarmMap({
     };
   };
 
+  // Detect touch device for enhanced touch targets
+  const isTouchDevice = () => {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  };
+
   // Handle zoom changes for progressive visual enhancements
   const handleZoomChange = useCallback(() => {
     if (!map.current) return;
@@ -1409,13 +1414,14 @@ export function FarmMap({
             if (zoom >= 20) {
               const centerLat = farm.center_lat;
               const gridSpacing = getGridSpacingDegrees(gridUnit, gridSubdivision, centerLat);
+              const isTouch = isTouchDevice();
 
               e.features.forEach((feature: any) => {
                 let modified = false;
 
                 if (feature.geometry.type === 'Point') {
                   const [lng, lat] = feature.geometry.coordinates;
-                  const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled);
+                  const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
 
                   if (snapped.snapped) {
                     feature.geometry.coordinates = [snapped.lng, snapped.lat];
@@ -1424,7 +1430,7 @@ export function FarmMap({
                 } else if (feature.geometry.type === 'Polygon') {
                   feature.geometry.coordinates[0] = feature.geometry.coordinates[0].map((coord: number[]) => {
                     const [lng, lat] = coord;
-                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled);
+                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
 
                     if (snapped.snapped) {
                       modified = true;
@@ -1435,7 +1441,7 @@ export function FarmMap({
                 } else if (feature.geometry.type === 'LineString') {
                   feature.geometry.coordinates = feature.geometry.coordinates.map((coord: number[]) => {
                     const [lng, lat] = coord;
-                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled);
+                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
 
                     if (snapped.snapped) {
                       modified = true;

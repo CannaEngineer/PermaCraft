@@ -78,9 +78,11 @@ export function shouldShowFineGrid(zoom: number): boolean {
  * Calculate snap-to-grid strength (pixel radius for magnetic snap)
  * No snap below zoom 20, increases to 15px max at zoom 21+
  */
-export function getSnapStrength(zoom: number): number {
+export function getSnapStrength(zoom: number, isTouch: boolean = false): number {
   if (zoom < 20) return 0;
-  return Math.min(15, (zoom - 19) * 5); // 0px @ z19 → 5px @ z20 → 10px @ z21
+  const baseStrength = Math.min(15, (zoom - 19) * 5); // 0px @ z19 → 5px @ z20 → 10px @ z21
+  // Double snap radius on touch devices for easier precision
+  return isTouch ? baseStrength * 2 : baseStrength;
 }
 
 /**
