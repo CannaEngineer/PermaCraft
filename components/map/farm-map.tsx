@@ -98,6 +98,8 @@ interface FarmMapProps {
   onMapReady?: (map: maplibregl.Map) => void;
   onMapLayerChange?: (layer: string) => void;
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
+  externalDrawingMode?: boolean;
+  externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | null;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -109,6 +111,8 @@ export function FarmMap({
   onMapReady,
   onMapLayerChange,
   onGetRecommendations,
+  externalDrawingMode,
+  externalDrawTool,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -2258,6 +2262,38 @@ export function FarmMap({
       updateGrid();
     }
   }, [gridDensity, gridUnit, updateGrid]);
+
+  // Handle external drawing mode from immersive editor context
+  useEffect(() => {
+    if (!draw.current) return;
+
+    if (externalDrawingMode && externalDrawTool) {
+      // Map tool names to MapboxDraw modes
+      const modeMap: Record<string, string> = {
+        'polygon': 'draw_polygon',
+        'circle': 'draw_polygon', // We'll handle circle with custom logic
+        'point': 'draw_point',
+        'edit': 'direct_select',
+        'delete': 'simple_select',
+      };
+
+      const mode = modeMap[externalDrawTool];
+      if (mode && drawMode !== mode) {
+        try {
+          draw.current.changeMode(mode as any);
+        } catch (e) {
+          console.error('Failed to change draw mode:', e);
+        }
+      }
+    } else if (!externalDrawingMode && drawMode !== 'simple_select') {
+      // Exit drawing mode
+      try {
+        draw.current.changeMode('simple_select');
+      } catch (e) {
+        console.error('Failed to exit draw mode:', e);
+      }
+    }
+  }, [externalDrawingMode, externalDrawTool, drawMode]);
 
   return (
     <div className="relative h-full w-full">

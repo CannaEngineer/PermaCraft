@@ -169,7 +169,15 @@ function ImmersiveMapEditorContent({
   const router = useRouter();
 
   // Get UI context
-  const { chatOpen, setChatOpen, openDrawer, headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
+  const {
+    chatOpen,
+    setChatOpen,
+    openDrawer,
+    headerCollapsed,
+    setHeaderCollapsed,
+    drawingMode,
+    activeDrawTool,
+  } = useImmersiveMapUI();
 
   // Map state
   const [zones, setZones] = useState<Zone[]>(initialZones);
@@ -636,6 +644,8 @@ function ImmersiveMapEditorContent({
           }}
           onMapLayerChange={setCurrentMapLayer}
           onGetRecommendations={() => {}}
+          externalDrawingMode={drawingMode}
+          externalDrawTool={activeDrawTool}
         />
       </div>
 
