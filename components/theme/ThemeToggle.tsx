@@ -56,8 +56,8 @@ export function ThemeToggle() {
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Choose Theme</DropdownMenuLabel>
+      <DropdownMenuContent align="start" className="w-56 z-[80]">
+        <DropdownMenuLabel className="text-foreground">Choose Theme</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {themes.map((themeOption) => {
           const Icon = themeOption.icon;
@@ -67,11 +67,11 @@ export function ThemeToggle() {
             <DropdownMenuItem
               key={themeOption.value}
               onClick={() => setTheme(themeOption.value as any)}
-              className="flex items-center gap-3 py-3 cursor-pointer"
+              className="flex items-center gap-3 py-3 cursor-pointer text-foreground"
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 text-foreground" />
               <div className="flex-1">
-                <p className="font-medium text-sm">{themeOption.label}</p>
+                <p className="font-medium text-sm text-foreground">{themeOption.label}</p>
                 <p className="text-xs text-muted-foreground">{themeOption.description}</p>
               </div>
               {isActive && <Check className="h-4 w-4 text-primary" />}
