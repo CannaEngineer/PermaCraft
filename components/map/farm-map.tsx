@@ -18,7 +18,7 @@ import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
 import { MapControlsSheet } from "./map-controls-sheet";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
-import { generateGridLines, generateViewportLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
+import { generateGridLines, generateViewportLabels, generateDimensionLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import {
   getSatelliteOpacity,
   getGridThickness,
@@ -671,6 +671,52 @@ export function FarmMap({
       });
     } else {
       console.log("grid-labels-layer already exists");
+    }
+
+    /**
+     * Grid Dimension Labels Source
+     *
+     * GeoJSON point features showing cell dimensions (e.g., "50ft × 50ft").
+     * Only shown at zoom 20+ for precision mode.
+     */
+    if (!map.current.getSource("grid-dimension-labels")) {
+      console.log("Adding grid-dimension-labels source");
+      map.current.addSource("grid-dimension-labels", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+    } else {
+      console.log("grid-dimension-labels source already exists");
+    }
+
+    /**
+     * Grid Dimension Labels Layer
+     *
+     * Shows cell dimensions at grid intersections at high zoom.
+     * Only visible at zoom 20+ to avoid clutter.
+     */
+    if (!map.current.getLayer("grid-dimension-labels-layer")) {
+      console.log("Adding grid-dimension-labels-layer");
+      map.current.addLayer({
+        id: "grid-dimension-labels-layer",
+        type: "symbol",
+        source: "grid-dimension-labels",
+        minzoom: 20, // Only show at high zoom
+        layout: {
+          "text-field": ["get", "label"],
+          "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+          "text-size": 10,
+          "text-anchor": "center",
+        },
+        paint: {
+          "text-color": "#64748b",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1,
+          "text-opacity": 0.7,
+        },
+      });
+    } else {
+      console.log("grid-dimension-labels-layer already exists");
     }
 
     console.log("setupGridLayers completed");
@@ -2327,6 +2373,19 @@ export function FarmMap({
       gridLabelSource.setData({
         type: "FeatureCollection",
         features: viewportLabels,
+      });
+    }
+
+    // Generate and update dimension labels (shown at zoom 20+)
+    const dimensionLabels = generateDimensionLabels(farmBounds, gridUnit, activeSubdivision);
+    const dimensionLabelSource = map.current.getSource(
+      "grid-dimension-labels"
+    ) as maplibregl.GeoJSONSource;
+
+    if (dimensionLabelSource) {
+      dimensionLabelSource.setData({
+        type: "FeatureCollection",
+        features: dimensionLabels,
       });
     }
   }, [gridUnit, gridDensity, gridSubdivision]);

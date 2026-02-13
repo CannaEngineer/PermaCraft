@@ -324,3 +324,59 @@ export function generateViewportLabels(
 
   return visibleLabels;
 }
+
+/**
+ * Generate dimension labels for grid cells at zoom 20+
+ * Shows cell dimensions (10ft × 10ft or 50ft × 50ft) at grid intersections
+ */
+export function generateDimensionLabels(
+  bounds: { north: number; south: number; east: number; west: number },
+  unit: GridUnit,
+  subdivision: 'coarse' | 'fine' = 'coarse'
+): Feature<Point>[] {
+  const features: Feature<Point>[] = [];
+
+  // Calculate spacing
+  let spacingFt = subdivision === 'fine' ? 10 : 50;
+  let spacingM = subdivision === 'fine' ? 5 : 25;
+
+  const displaySpacing = unit === 'imperial'
+    ? `${spacingFt}ft × ${spacingFt}ft`
+    : `${spacingM}m × ${spacingM}m`;
+
+  // Calculate grid spacing in degrees
+  const intervalMeters = unit === 'imperial'
+    ? feetToMeters(spacingFt)
+    : spacingM;
+
+  const centerLat = (bounds.north + bounds.south) / 2;
+  const latSpacing = metersToDegreesLat(intervalMeters);
+  const lngSpacing = metersToDegreesLng(intervalMeters, centerLat);
+
+  // Generate labels at every 4th intersection (to avoid clutter)
+  let latCount = 0;
+  for (let lat = Math.floor(bounds.south / latSpacing) * latSpacing; lat <= bounds.north; lat += latSpacing) {
+    latCount++;
+    if (latCount % 4 !== 0) continue;
+
+    let lngCount = 0;
+    for (let lng = Math.floor(bounds.west / lngSpacing) * lngSpacing; lng <= bounds.east; lng += lngSpacing) {
+      lngCount++;
+      if (lngCount % 4 !== 0) continue;
+
+      features.push({
+        type: 'Feature',
+        properties: {
+          label: displaySpacing,
+          type: 'dimension',
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [lng, lat],
+        },
+      });
+    }
+  }
+
+  return features;
+}
