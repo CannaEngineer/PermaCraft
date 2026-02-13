@@ -6,7 +6,8 @@ import { LearningPath } from '@/lib/db/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Building2, Home, TreePine, Warehouse, Users, GraduationCap, Loader2 } from 'lucide-react';
+import { ArrowLeft, Building2, Home, TreePine, Wheat, Users, GraduationCap, Loader2 } from 'lucide-react';
+import * as Icons from 'lucide-react';
 
 interface PathSelectionWizardProps {
   paths: LearningPath[];
@@ -181,7 +182,7 @@ function WizardStepOne({ onSelect }: { onSelect: (landSize: LandSize) => void })
     },
     {
       value: 'farm' as LandSize,
-      icon: Warehouse,
+      icon: Wheat,
       label: 'Farm',
       description: '20+ acres'
     },
@@ -281,14 +282,8 @@ function WizardStepThree({
   onSelectPath: (pathId: string) => void;
   isSelecting: boolean;
 }) {
-  const getIconComponent = (iconName: string) => {
-    const IconsModule = require('lucide-react');
-    const Icon = IconsModule[iconName] || IconsModule.BookOpen;
-    return Icon;
-  };
-
   const recommendedPath = recommendations.recommended.path;
-  const RecommendedIcon = getIconComponent(recommendedPath.icon_name);
+  const RecommendedIcon = (Icons as any)[recommendedPath.icon_name] || Icons.BookOpen;
 
   return (
     <div>
@@ -359,7 +354,7 @@ function WizardStepThree({
       {showAllPaths && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {allPaths.map((path) => {
-            const Icon = getIconComponent(path.icon_name);
+            const Icon = (Icons as any)[path.icon_name] || Icons.BookOpen;
             return (
               <Card
                 key={path.id}
