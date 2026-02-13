@@ -36,6 +36,7 @@ export function CompactMusicController({ onOpenPlayer }: CompactMusicControllerP
             e.stopPropagation();
             prevTrack();
           }}
+          aria-label="Previous track"
           className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
         >
           <SkipBack className="h-4 w-4" />
@@ -48,6 +49,7 @@ export function CompactMusicController({ onOpenPlayer }: CompactMusicControllerP
             e.stopPropagation();
             handleTogglePlayPause();
           }}
+          aria-label={isPlaying ? "Pause" : "Play"}
           className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
         >
           {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -60,6 +62,7 @@ export function CompactMusicController({ onOpenPlayer }: CompactMusicControllerP
             e.stopPropagation();
             nextTrack();
           }}
+          aria-label="Next track"
           className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
         >
           <SkipForward className="h-4 w-4" />
