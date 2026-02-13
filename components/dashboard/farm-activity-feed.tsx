@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles, Sprout, MessageCircle } from 'lucide-react';
+import { ExpandableText } from '@/components/shared/expandable-text';
 
 interface FarmActivityFeedProps {
   userId: string;
@@ -113,9 +114,13 @@ export async function FarmActivityFeed({ userId }: FarmActivityFeedProps) {
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">{activity.farm_name}</p>
                   {activity.type === 'ai_analysis' ? (
-                    <p className="text-sm line-clamp-2">
-                      {activity.user_query}
-                    </p>
+                    <ExpandableText
+                      text={activity.user_query}
+                      maxLength={200}
+                      expandLabel="More"
+                      showCollapseButton={false}
+                      className="text-sm"
+                    />
                   ) : (
                     <p className="text-sm">
                       Added <span className="font-medium">{activity.common_name}</span>

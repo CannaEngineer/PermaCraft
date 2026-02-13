@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Heart, MessageCircle, Sparkles } from 'lucide-react';
+import { ExpandableText } from '@/components/shared/expandable-text';
 
 interface RecentCommunityPostsProps {
   currentUserId: string;
@@ -88,9 +89,12 @@ export async function RecentCommunityPosts({ currentUserId }: RecentCommunityPos
                   <p className="text-xs text-muted-foreground mb-2">
                     {post.farm_name} · {formatRelativeTime(post.created_at)}
                   </p>
-                  <p className="text-sm line-clamp-2">
-                    {post.content || post.ai_response_excerpt || 'Shared a post'}
-                  </p>
+                  <ExpandableText
+                    text={post.content || post.ai_response_excerpt || 'Shared a post'}
+                    maxLength={300}
+                    expandLabel="Read More"
+                    className="text-sm"
+                  />
                   <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Heart className="w-3 h-3" />
