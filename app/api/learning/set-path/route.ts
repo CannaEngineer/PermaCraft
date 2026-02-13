@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
+import { z } from 'zod';
+
+const SetPathSchema = z.object({
+  learning_path_id: z.string().uuid().nullable()
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,12 +15,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { learning_path_id } = body;
+    const result = SetPathSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: result.error.issues },
+        { status: 400 }
+      );
+    }
+    const { learning_path_id } = result.data;
 
-    // Allow null to reset path (for "Switch Path" action)
-    // Only validate if learning_path_id is provided and not null
-    if (learning_path_id !== null && learning_path_id !== undefined) {
-      // Validate that the learning path exists
+    // Validate that the learning path exists (if not null)
+    if (learning_path_id !== null) {
       const pathResult = await db.execute({
         sql: 'SELECT id FROM learning_paths WHERE id = ?',
         args: [learning_path_id],
@@ -56,7 +66,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      learning_path_id
+    });
   } catch (error) {
     console.error('Error setting learning path:', error);
     return NextResponse.json(
