@@ -72,6 +72,9 @@ function getMatchReasons(path: LearningPath, answers: { land_size: string; exper
   if (answers.land_size === 'balcony' && path.slug === 'urban-food-producer') {
     reasons.push('Perfect for small spaces like balconies and patios');
   }
+  if (answers.land_size === 'small_yard' && path.slug === 'urban-food-producer') {
+    reasons.push('Great for small yards and compact spaces');
+  }
   if (answers.land_size === 'suburban' && path.slug === 'suburban-homesteader') {
     reasons.push('Designed for suburban lots (0.5-2 acres)');
   }
