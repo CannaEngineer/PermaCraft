@@ -12,6 +12,7 @@ import { FarmMap } from "@/components/map/farm-map";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
+import { PhotoUploadDialog } from "./photo-upload-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
@@ -612,20 +613,7 @@ function ImmersiveMapEditorContent({
   };
 
   const handleUploadPhoto = () => {
-    // Open native file picker
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = true;
-    input.onchange = async (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (!files) return;
-
-      // TODO: Upload to R2 and create post
-      console.log('Upload files:', files);
-      setUploadDialogOpen(true);
-    };
-    input.click();
+    setUploadDialogOpen(true);
   };
 
   const handleDropPin = () => {
@@ -727,6 +715,17 @@ function ImmersiveMapEditorContent({
         farmId={farm.id}
         onPostCreated={() => {
           setPostDialogOpen(false);
+          // TODO: Refresh posts feed if needed
+        }}
+      />
+
+      {/* Photo Upload Dialog */}
+      <PhotoUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        farmId={farm.id}
+        onPhotoUploaded={() => {
+          setUploadDialogOpen(false);
           // TODO: Refresh posts feed if needed
         }}
       />
