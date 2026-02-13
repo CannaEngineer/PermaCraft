@@ -16,6 +16,143 @@ import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
 
+/**
+ * Build legend context text for AI
+ */
+const buildLegendContext = (currentMapLayer: string, zones: Zone[]) => {
+  const layerNames: Record<string, string> = {
+    satellite: "Satellite Imagery",
+    terrain: "Terrain Map",
+    topo: "OpenTopoMap",
+    usgs: "USGS Topographic",
+    street: "Street Map",
+  };
+
+  const zonesList = zones
+    .map((z) => {
+      const name = z.name || (z.properties ? JSON.parse(z.properties).name : null) || "Unlabeled";
+      const type = z.zone_type || "other";
+      return `  - ${name}: ${type}`;
+    })
+    .join("\n");
+
+  return `
+Map Configuration:
+- Layer: ${layerNames[currentMapLayer as keyof typeof layerNames] || currentMapLayer}
+- Grid System: A1, B2, C3 (columns west-to-east, rows south-to-north)
+- Grid Spacing: 50ft (imperial) / 25m (metric)
+
+Farm Boundary: Purple dashed outline (immutable)
+
+Zones on map:
+${zonesList || "  - No zones labeled yet"}
+  `.trim();
+};
+
+const buildNativeSpeciesContext = (nativeSpecies: any[]) => {
+  if (nativeSpecies.length === 0) {
+    return 'No native species data available yet.';
+  }
+
+  const speciesList = nativeSpecies.map(s => {
+    const functions = s.permaculture_functions
+      ? JSON.parse(s.permaculture_functions).join(', ')
+      : '';
+
+    const zones = s.min_hardiness_zone && s.max_hardiness_zone
+      ? `Zones ${s.min_hardiness_zone}-${s.max_hardiness_zone}`
+      : '';
+
+    return `  - ${s.common_name} (${s.scientific_name}): ${s.layer}, ${s.mature_height_ft}ft, ${zones}, functions: ${functions}`;
+  }).join('\n');
+
+  return `
+Native Species Available for This Farm (Perfect Matches):
+${speciesList}
+
+When suggesting plants, prioritize these natives and explain their permaculture functions.
+  `.trim();
+};
+
+const buildPlantingsContext = (plantings: any[]) => {
+  if (plantings.length === 0) {
+    return 'No plantings added to this farm yet.';
+  }
+
+  const currentYear = new Date().getFullYear();
+
+  const plantingsList = plantings.map(p => {
+    const age = currentYear - (p.planted_year || currentYear);
+    const customName = p.name ? ` "${p.name}"` : '';
+    const size = p.mature_height_ft ? ` (mature: ${p.mature_height_ft}ft high)` : '';
+    const notes = p.notes ? ` - Notes: ${p.notes}` : '';
+    const commonName = p.common_name || 'Unknown plant';
+    const scientificName = p.scientific_name || 'Unknown species';
+    const layer = p.layer || 'unknown';
+
+    return `  - ${commonName}${customName} (${scientificName}): ${layer} layer, planted ${p.planted_year || currentYear} (${age} years old)${size}, at ${(p.lat || 0).toFixed(6)}, ${(p.lng || 0).toFixed(6)}${notes}`;
+  }).join('\n');
+
+  return `
+Existing Plantings on This Farm (${plantings.length} total):
+${plantingsList}
+
+IMPORTANT: When suggesting new plantings:
+- DO NOT suggest duplicates of species already planted
+- Consider spacing requirements relative to existing plantings
+- Suggest companion plants that work well with what's already there
+- Consider the mature size and spacing of existing plants
+- Recommend guild arrangements around established plantings
+  `.trim();
+};
+
+const buildGoalsContext = (goals: FarmerGoal[]) => {
+  if (goals.length === 0) {
+    return 'No specific goals defined yet. The farmer has not set any specific objectives.';
+  }
+
+  const goalsList = goals.map(goal => {
+    const priorityMap: Record<number, string> = {
+      1: 'lowest',
+      2: 'low',
+      3: 'medium',
+      4: 'high',
+      5: 'highest'
+    };
+    const priorityText = priorityMap[goal.priority] || 'medium';
+
+    const timelineText = {
+      'short': 'short-term (1 year)',
+      'medium': 'medium-term (2-3 years)',
+      'long': 'long-term (4+ years)'
+    }[goal.timeline as keyof { short: string; medium: string; long: string }] || goal.timeline;
+
+    let goalText = `  - ${goal.description} (${goal.goal_category}, ${priorityText} priority, ${timelineText})`;
+
+    if (goal.targets) {
+      try {
+        const targets = JSON.parse(goal.targets as string);
+        if (Array.isArray(targets) && targets.length > 0) {
+          goalText += ` - Targets: ${targets.join(', ')}`;
+        }
+      } catch (e) {
+        console.error("Failed to parse targets for goal:", goal.id);
+      }
+    }
+
+    return goalText;
+  }).join('\n');
+
+  return `
+FARMER GOALS (${goals.length} total):
+${goalsList}
+
+When making recommendations, prioritize suggestions that help achieve these specific goals,
+especially those with higher priority ratings. Align your suggestions with the appropriate
+timeline horizons (short, medium, or long-term).
+  `.trim();
+};
+
 interface ImmersiveMapEditorProps {
   farm: Farm;
   initialZones: Zone[];
@@ -162,26 +299,277 @@ function ImmersiveMapEditorContent({
     setHasUnsavedChanges(true);
   };
 
-  // AI screenshot capture (placeholder for now - will implement in next task)
+  // AI screenshot capture
   const captureMapScreenshot = useCallback(async (): Promise<string> => {
-    // TODO: Implement screenshot capture (copy from FarmEditorClient)
-    console.log("Screenshot capture not yet implemented");
-    return "";
-  }, []);
+    if (!mapContainerRef.current || !mapRef.current) {
+      throw new Error("Map not ready");
+    }
 
-  // AI analyze handler (placeholder for now - will implement in next task)
+    // Wait for map to be fully loaded
+    await new Promise<void>((resolve) => {
+      let idleCount = 0;
+
+      const checkReady = () => {
+        const style = mapRef.current!.getStyle();
+        const sourcesLoaded = Object.keys(style.sources).every(sourceId => {
+          const source = mapRef.current!.getSource(sourceId);
+          return !source || !(source as any)._tiles || Object.keys((source as any)._tiles).length === 0 ||
+                 Object.values((source as any)._tiles).every((tile: any) => tile.state === 'loaded');
+        });
+
+        if (sourcesLoaded && mapRef.current!.loaded() && !mapRef.current!.isMoving()) {
+          idleCount++;
+          if (idleCount >= 3) {
+            setTimeout(() => resolve(), 500);
+          } else {
+            setTimeout(checkReady, 200);
+          }
+        } else {
+          idleCount = 0;
+          mapRef.current!.once("idle", checkReady);
+        }
+      };
+
+      checkReady();
+
+      setTimeout(() => resolve(), 10000);
+    });
+
+    const canvas = mapRef.current.getCanvas();
+
+    const captureCanvasOnRender = (): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        let captured = false;
+
+        const captureHandler = () => {
+          if (captured) return;
+          captured = true;
+
+          try {
+            const dataUrl = canvas.toDataURL("image/png", 1.0);
+            if (dataUrl.length < 50000) {
+              reject(new Error("Canvas is blank"));
+            } else {
+              resolve(dataUrl);
+            }
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        mapRef.current!.once('render', captureHandler);
+        mapRef.current!.triggerRepaint();
+
+        setTimeout(() => {
+          if (!captured) {
+            captured = true;
+            reject(new Error("Screenshot capture timed out"));
+          }
+        }, 3000);
+      });
+    };
+
+    const canvasDataUrl = await captureCanvasOnRender();
+
+    const tempImg = document.createElement('img');
+    tempImg.src = canvasDataUrl;
+    tempImg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0';
+    tempImg.className = 'temp-screenshot-canvas';
+
+    await new Promise((resolve) => {
+      tempImg.onload = resolve;
+      tempImg.onerror = resolve;
+    });
+
+    const mapCanvas = mapContainerRef.current.querySelector('canvas');
+    if (mapCanvas && mapCanvas.parentElement) {
+      mapCanvas.parentElement.insertBefore(tempImg, mapCanvas);
+      (mapCanvas as HTMLElement).style.opacity = '0';
+    }
+
+    const screenshotData = await toPng(mapContainerRef.current, {
+      quality: 0.9,
+      pixelRatio: 1,
+      cacheBust: false,
+      skipFonts: true,
+      filter: (node) => {
+        if (node.classList) {
+          if (node.classList.contains('temp-screenshot-canvas')) return true;
+          if (node.classList.contains('maplibregl-ctrl')) return false;
+          if (node.classList.contains('mapboxgl-ctrl')) return false;
+        }
+        if ((node as HTMLElement).hasAttribute?.('data-bottom-drawer')) {
+          return false;
+        }
+        return true;
+      },
+    });
+
+    tempImg.remove();
+    if (mapCanvas) {
+      (mapCanvas as HTMLElement).style.opacity = '1';
+    }
+
+    if (!screenshotData || screenshotData === "data:,") {
+      throw new Error("Screenshot is empty");
+    }
+
+    const base64Length = screenshotData.replace(/^data:image\/\w+;base64,/, "").length;
+    if (base64Length < 1000) {
+      throw new Error("Screenshot appears to be blank.");
+    }
+
+    return screenshotData;
+  }, [mapContainerRef, mapRef]);
+
+  // AI analyze handler
   const handleAnalyze = useCallback(
     async (query: string, conversationId?: string) => {
-      // TODO: Implement AI analysis (copy from FarmEditorClient)
-      console.log("AI analysis not yet implemented");
+      if (!mapContainerRef.current || !mapRef.current) {
+        throw new Error("Map not ready");
+      }
+
+      const currentLayerScreenshot = await captureMapScreenshot();
+
+      const originalLayer = currentMapLayer;
+      const isTopoLayer = originalLayer === "usgs" || originalLayer === "topo" || originalLayer === "terrain";
+      const secondLayer = isTopoLayer ? "satellite" : "usgs";
+
+      let secondScreenshot: string;
+
+      const currentStyle = mapRef.current.getStyle();
+
+      let secondStyle;
+      if (isTopoLayer) {
+        secondStyle = {
+          version: 8 as const,
+          sources: {
+            satellite: {
+              type: "raster" as const,
+              tiles: [
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+              ],
+              tileSize: 256,
+              maxzoom: 19,
+            },
+          },
+          layers: [{ id: "satellite", type: "raster" as const, source: "satellite" }],
+        };
+      } else {
+        secondStyle = {
+          version: 8 as const,
+          sources: {
+            usgs: {
+              type: "raster" as const,
+              tiles: [
+                "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+              ],
+              tileSize: 256,
+              maxzoom: 16,
+            },
+          },
+          layers: [{ id: "usgs", type: "raster" as const, source: "usgs" }],
+        };
+      }
+
+      mapRef.current.setStyle(secondStyle);
+
+      await new Promise<void>((resolve) => {
+        const onStyleData = () => {
+          mapRef.current!.once("idle", () => {
+            setTimeout(() => resolve(), 1000);
+          });
+        };
+
+        if (mapRef.current!.isStyleLoaded()) {
+          onStyleData();
+        } else {
+          mapRef.current!.once("styledata", onStyleData);
+        }
+
+        setTimeout(() => resolve(), 15000);
+      });
+
+      secondScreenshot = await captureMapScreenshot();
+
+      mapRef.current.setStyle(currentStyle);
+
+      await new Promise<void>((resolve) => {
+        mapRef.current!.once("styledata", () => {
+          mapRef.current!.once("idle", () => {
+            setTimeout(() => resolve(), 500);
+          });
+        });
+        setTimeout(() => resolve(), 10000);
+      });
+
+      const allCoords: number[][] = [];
+      zones.forEach((zone) => {
+        const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
+        if (geom.type === 'Point') {
+          allCoords.push(geom.coordinates);
+        } else if (geom.type === 'LineString') {
+          allCoords.push(...geom.coordinates);
+        } else if (geom.type === 'Polygon') {
+          allCoords.push(...geom.coordinates[0]);
+        }
+      });
+
+      const farmBounds = allCoords.length > 0 ? {
+        north: Math.max(...allCoords.map(c => c[1])),
+        south: Math.min(...allCoords.map(c => c[1])),
+        east: Math.max(...allCoords.map(c => c[0])),
+        west: Math.min(...allCoords.map(c => c[0])),
+      } : {
+        north: farm.center_lat + 0.001,
+        south: farm.center_lat - 0.001,
+        east: farm.center_lng + 0.001,
+        west: farm.center_lng - 0.001,
+      };
+
+      const analyzeRes = await fetch("/api/ai/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          farmId: farm.id,
+          conversationId,
+          query,
+          screenshots: [
+            { type: isTopoLayer ? "topo" : "satellite", data: currentLayerScreenshot },
+            { type: isTopoLayer ? "satellite" : "topo", data: secondScreenshot },
+          ],
+          mapLayer: currentMapLayer,
+          legendContext: buildLegendContext(currentMapLayer, zones),
+          nativeSpeciesContext: buildNativeSpeciesContext(nativeSpecies),
+          plantingsContext: buildPlantingsContext(plantings),
+          goalsContext: buildGoalsContext(goals),
+          zones: zones.map((zone) => {
+            const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
+            return {
+              type: zone.zone_type,
+              name: zone.name || "Unlabeled",
+              geometryType: geom.type,
+            };
+          }),
+        }),
+      });
+
+      if (!analyzeRes.ok) {
+        const errorData = await analyzeRes.json().catch(() => ({ error: "Unknown error" }));
+        const errorMessage = errorData.message || errorData.error || "Analysis failed";
+        throw new Error(errorMessage);
+      }
+
+      const data = await analyzeRes.json();
       return {
-        response: "Not implemented",
-        conversationId: "",
-        analysisId: "",
-        screenshot: "",
+        response: data.response,
+        conversationId: data.conversationId,
+        analysisId: data.analysisId,
+        screenshot: currentLayerScreenshot,
+        generatedImageUrl: data.generatedImageUrl,
       };
     },
-    []
+    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, nativeSpecies, plantings, goals]
   );
 
   // Keyboard shortcuts
