@@ -11,6 +11,7 @@ import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapBottomDrawer } from "./map-bottom-drawer";
 import { MeasurementOverlay } from "./measurement-overlay";
+import { ZoomDebugOverlay } from "./zoom-debug-overlay";
 import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
 import { SpeciesPickerCompact } from "./species-picker-compact";
@@ -2603,6 +2604,9 @@ export function FarmMap({
       }`}>
         {getZoomLabel(currentZoom)}
       </div>
+
+      {/* Zoom Debug Overlay - TEMPORARY for debugging */}
+      <ZoomDebugOverlay map={map.current} snapEnabled={snapToGridEnabled} />
 
       {/* Map Layer Selector - REMOVED - now in FAB menu */}
       <div className="hidden absolute top-4 left-4 z-10">
