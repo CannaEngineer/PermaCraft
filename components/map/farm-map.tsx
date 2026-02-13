@@ -130,6 +130,7 @@ export function FarmMap({
   const [gridUnit, setGridUnit] = useState<"imperial" | "metric">("imperial");
   const [gridDensity, setGridDensity] = useState<GridDensity>("auto");
   const [currentZoom, setCurrentZoom] = useState<number>(farm.zoom_level);
+  const [gridSubdivision, setGridSubdivision] = useState<'coarse' | 'fine'>('coarse');
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [showGridMenu, setShowGridMenu] = useState(false);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
@@ -144,6 +145,7 @@ export function FarmMap({
   const [terrainEnabled, setTerrainEnabled] = useState(false);
   const circleCenterMarker = useRef<maplibregl.Marker | null>(null);
   const updateColoredZonesRef = useRef<(() => void) | null>(null);
+  const updateGridRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
@@ -479,7 +481,17 @@ export function FarmMap({
     if (map.current.getLayer('colored-zones-stroke')) {
       map.current.setPaintProperty('colored-zones-stroke', 'line-width', zoneBoundaryThickness);
     }
-  }, []);
+
+    // Regenerate grid if crossing fine grid threshold (zoom 20)
+    const showFine = zoom >= ZOOM_THRESHOLDS.FINE_GRID;
+    const currentGridIsFine = gridSubdivision === 'fine';
+
+    if (showFine !== currentGridIsFine) {
+      const newSubdivision = showFine ? 'fine' : 'coarse';
+      setGridSubdivision(newSubdivision);
+      updateGridRef.current?.(newSubdivision);
+    }
+  }, [gridSubdivision]);
 
   // Manage circle center marker
   useEffect(() => {
@@ -2251,8 +2263,11 @@ export function FarmMap({
    * - Spacing: 50 feet (imperial) or 25 meters (metric)
    * - Example: "D4" refers to column D, row 4
    */
-  const updateGrid = useCallback(() => {
+  const updateGrid = useCallback((subdivision?: 'coarse' | 'fine') => {
     if (!map.current) return;
+
+    // Use provided subdivision or fall back to state
+    const activeSubdivision = subdivision !== undefined ? subdivision : gridSubdivision;
 
     // Get farm bounds (from farm_boundary zone or all zones)
     const farmBounds = getFarmBounds();
@@ -2276,7 +2291,7 @@ export function FarmMap({
      * This ensures the grid is always visible regardless of pan/zoom.
      * Now adaptive - spacing adjusts with zoom level and user preference.
      */
-    const { lines } = generateGridLines(farmBounds, gridUnit, zoom, gridDensity);
+    const { lines } = generateGridLines(farmBounds, gridUnit, zoom, gridDensity, activeSubdivision);
 
     /**
      * Generate labels ONLY for visible viewport
@@ -2291,7 +2306,7 @@ export function FarmMap({
      * - Low zoom: Sparse labels (every 4th intersection)
      * - High zoom: Dense labels (every intersection)
      */
-    const viewportLabels = generateViewportLabels(farmBounds, viewport, gridUnit, zoom, gridDensity);
+    const viewportLabels = generateViewportLabels(farmBounds, viewport, gridUnit, zoom, gridDensity, activeSubdivision);
 
     // Update GeoJSON sources with new data
     const gridLineSource = map.current.getSource(
@@ -2314,7 +2329,10 @@ export function FarmMap({
         features: viewportLabels,
       });
     }
-  }, [gridUnit, gridDensity]);
+  }, [gridUnit, gridDensity, gridSubdivision]);
+
+  // Store updateGrid in ref so it can be called from handleZoomChange
+  updateGridRef.current = updateGrid;
 
   // Trigger grid update when density or unit changes
   useEffect(() => {

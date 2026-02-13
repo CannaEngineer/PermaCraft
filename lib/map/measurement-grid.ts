@@ -101,10 +101,19 @@ export function generateGridLines(
   },
   unit: GridUnit,
   zoom: number = 15,
-  density: GridDensity = 'auto'
+  density: GridDensity = 'auto',
+  subdivision: 'coarse' | 'fine' = 'coarse' // New parameter
 ): { lines: Feature<LineString>[], labels: Feature<Point>[], latLines: number[], lngLines: number[] } {
   // Always use fixed grid interval for lines so AI has consistent reference
-  const interval = getFixedGridInterval(unit);
+  let interval = getFixedGridInterval(unit);
+
+  // Apply subdivision for fine grid at high zoom
+  if (subdivision === 'fine') {
+    interval = {
+      value: interval.value / 5, // 50ft → 10ft, 25m → 5m
+      unit: interval.unit
+    };
+  }
 
   // If grid is off, return empty
   if (interval.value === 0) {
@@ -213,10 +222,19 @@ export function generateViewportLabels(
   },
   unit: GridUnit,
   zoom: number,
-  density: GridDensity = 'auto'
+  density: GridDensity = 'auto',
+  subdivision: 'coarse' | 'fine' = 'coarse' // New parameter
 ): Feature<Point>[] {
   // Use fixed grid interval to match grid lines
-  const interval = getFixedGridInterval(unit);
+  let interval = getFixedGridInterval(unit);
+
+  // Apply subdivision for fine grid at high zoom
+  if (subdivision === 'fine') {
+    interval = {
+      value: interval.value / 5, // 50ft → 10ft, 25m → 5m
+      unit: interval.unit
+    };
+  }
 
   // If grid is off, return empty
   if (interval.value === 0) {
