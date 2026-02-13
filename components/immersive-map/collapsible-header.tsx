@@ -46,7 +46,11 @@ export function CollapsibleHeader({
       }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       className="fixed top-0 left-0 md:left-64 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
-      style={{ willChange: 'height' }}
+      style={{
+        willChange: 'height',
+        paddingTop: 'env(safe-area-inset-top)',
+        top: 'env(safe-area-inset-top)'
+      }}
     >
       <div className="px-4 sm:px-6 h-full flex items-center justify-between gap-4">
         {/* Left: Farm Identity */}
