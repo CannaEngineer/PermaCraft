@@ -18,14 +18,14 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
 
   const heightMap = isMobile
     ? {
-        peek: 'calc(100% - 100px)',
-        medium: '50vh',
-        max: '15vh',
+        peek: 'calc(100% - 120px)',
+        medium: '45vh',
+        max: '10vh',
       }
     : {
-        peek: 'calc(100% - 80px)',
-        medium: '60vh',
-        max: '20vh',
+        peek: 'calc(100% - 100px)',
+        medium: '55vh',
+        max: '15vh',
       };
 
   const handleDragEnd = (_event: any, info: PanInfo) => {
@@ -79,12 +79,19 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        className="fixed inset-x-0 bottom-0 z-35 glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl"
+        className="fixed inset-x-0 bottom-16 md:bottom-0 z-35 glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl"
         style={{ willChange: 'transform' }}
       >
-        {/* Drag Handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+        {/* Grab Tab - hangs above drawer */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-6 cursor-grab active:cursor-grabbing">
+          <div className="w-16 h-8 bg-background/90 backdrop-blur-lg border border-border/50 rounded-t-lg shadow-md flex items-center justify-center">
+            <div className="w-8 h-1 bg-muted-foreground/40 rounded-full" />
+          </div>
+        </div>
+
+        {/* Drag Handle - bigger now */}
+        <div className="flex justify-center pt-4 pb-3 cursor-grab active:cursor-grabbing">
+          <div className="w-16 h-1.5 bg-muted-foreground/40 rounded-full" />
         </div>
 
         {/* Content */}

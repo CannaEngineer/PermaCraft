@@ -185,6 +185,24 @@ export function CollapsibleHeader({
           />
         </div>
       </div>
+
+      {/* Grab Tab - hangs below header when collapsed */}
+      <AnimatePresence>
+        {headerCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setHeaderCollapsed(false)}
+            className="absolute left-1/2 -translate-x-1/2 -bottom-3 cursor-pointer"
+          >
+            <div className="w-12 h-6 bg-background/90 backdrop-blur-lg border border-border/50 rounded-b-lg shadow-md flex items-center justify-center">
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }

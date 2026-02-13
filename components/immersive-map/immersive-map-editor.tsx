@@ -596,7 +596,7 @@ function ImmersiveMapEditorContent({
   }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed]);
 
   return (
-    <div className="fixed inset-0 md:left-64 overflow-hidden bg-background">
+    <div className="fixed inset-0 bottom-16 md:bottom-0 md:left-64 overflow-hidden bg-background">
       {/* Map Layer (full viewport) */}
       <div ref={mapContainerRef} className="absolute inset-0 z-0">
         <FarmMap
