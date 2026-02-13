@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
+import type { LearningPath } from '@/lib/db/schema';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LearnPageHeader } from '@/components/learning/learn-page-header';
 import { PathSelectionWizard } from '@/components/learning/path-selection-wizard';
@@ -10,10 +11,33 @@ import { PathCelebration } from '@/components/learning/path-celebration';
 
 type PageState = 'wizard' | 'dashboard' | 'celebration';
 
-interface LearnPageState {
-  state: PageState;
-  data: any;
+interface WizardStateData {
+  paths: LearningPath[];
 }
+
+interface PathDetailsData {
+  path: any;
+  totalLessons: number;
+  completedLessons: number;
+  percentComplete: number;
+  nextLesson: any;
+  curriculumByTopic: Array<{
+    topic: {
+      id: string;
+      name: string;
+      slug: string;
+      icon_name: string;
+    };
+    lessons: Array<any & { isCompleted: boolean }>;
+  }>;
+  earnedBadges: any[];
+  userProgress: any;
+}
+
+type LearnPageState =
+  | { state: 'wizard'; data: WizardStateData }
+  | { state: 'dashboard'; data: PathDetailsData }
+  | { state: 'celebration'; data: PathDetailsData };
 
 async function getLearnPageState(userId: string): Promise<LearnPageState> {
   // Get user progress
@@ -26,7 +50,7 @@ async function getLearnPageState(userId: string): Promise<LearnPageState> {
   // State: No path → wizard
   if (!progress?.learning_path_id) {
     const pathsResult = await db.execute('SELECT * FROM learning_paths ORDER BY difficulty, name');
-    return { state: 'wizard', data: { paths: pathsResult.rows } };
+    return { state: 'wizard' as const, data: { paths: pathsResult.rows as unknown as LearningPath[] } };
   }
 
   // State: Has path → fetch complete dashboard data
@@ -36,8 +60,8 @@ async function getLearnPageState(userId: string): Promise<LearnPageState> {
   const isComplete = pathDetails.completedLessons === pathDetails.totalLessons && pathDetails.totalLessons > 0;
 
   return isComplete
-    ? { state: 'celebration', data: pathDetails }
-    : { state: 'dashboard', data: pathDetails };
+    ? { state: 'celebration' as const, data: pathDetails }
+    : { state: 'dashboard' as const, data: pathDetails };
 }
 
 async function getActivePathDetails(userId: string, pathId: string) {
@@ -47,6 +71,15 @@ async function getActivePathDetails(userId: string, pathId: string) {
     args: [pathId]
   });
   const path = pathResult.rows[0];
+
+  // Path was deleted - reset user progress and redirect
+  if (!path) {
+    await db.execute({
+      sql: 'UPDATE user_progress SET learning_path_id = NULL WHERE user_id = ?',
+      args: [userId]
+    });
+    redirect('/learn');
+  }
 
   // Get user progress
   const progressResult = await db.execute({
