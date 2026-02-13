@@ -678,7 +678,7 @@ export function FarmMap({
         },
         center: [farm.center_lng, farm.center_lat],
         zoom: farm.zoom_level,
-        maxZoom: 18, // Max zoom to ensure tile availability across all layers
+        maxZoom: 21, // Extended zoom for precision on small urban plots
         minZoom: 1,
         // @ts-ignore - preserveDrawingBuffer is valid but missing from type definitions
         preserveDrawingBuffer: true, // Attempts to preserve canvas for screenshots (unreliable)
