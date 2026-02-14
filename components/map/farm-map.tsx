@@ -2807,6 +2807,8 @@ export function FarmMap({
   useEffect(() => {
     if (!map.current) return;
 
+    let cleanupFn: (() => void) | undefined;
+
     // Wait for map to be fully loaded
     const startAnimation = () => {
       if (map.current && map.current.getLayer('line-arrows')) {
@@ -2816,15 +2818,12 @@ export function FarmMap({
 
     // Start animation after a short delay to ensure layer exists
     const timeoutId = setTimeout(() => {
-      const cleanup = startAnimation();
-      // Store cleanup function in case we need it later
-      if (cleanup) {
-        return cleanup;
-      }
+      cleanupFn = startAnimation();
     }, 500);
 
     return () => {
       clearTimeout(timeoutId);
+      cleanupFn?.();
     };
   }, []);
 
