@@ -16,12 +16,17 @@ export function ImageryProcessingStatus({ farmId, imageryId }: ImageryProcessing
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // Don't poll if already in terminal state
+    if (status === 'completed' || status === 'failed') {
+      return;
+    }
+
     const interval = setInterval(() => {
       checkStatus();
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(interval);
-  }, [imageryId]);
+  }, [imageryId, status]);
 
   async function checkStatus() {
     try {
@@ -30,11 +35,6 @@ export function ImageryProcessingStatus({ farmId, imageryId }: ImageryProcessing
 
       setStatus(data.processing_status);
       setErrorMessage(data.error_message);
-
-      // Stop polling if completed or failed
-      if (data.processing_status === 'completed' || data.processing_status === 'failed') {
-        return;
-      }
     } catch (error) {
       console.error('Failed to check status:', error);
     }
