@@ -395,3 +395,18 @@ export interface AITutorConversation {
   created_at: number;
   updated_at: number;
 }
+
+// Annotation System Types
+
+export interface Annotation {
+  id: string;
+  farm_id: string;
+  feature_id: string;
+  feature_type: 'zone' | 'planting' | 'line';
+  design_rationale: string;
+  rich_notes: string | null;
+  tags: string | null; // JSON array as TEXT
+  created_at: number;
+  updated_at: number;
+  created_by: string;
+}
