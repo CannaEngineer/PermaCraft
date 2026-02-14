@@ -439,3 +439,29 @@ export interface SwaleProperties {
   estimated_volume_gallons?: number;
   overflow_destination_id?: string;
 }
+
+export interface CustomImagery {
+  id: string;
+  farm_id: string;
+  user_id: string;
+  label: string;
+  source_url: string;
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message: string | null;
+  tile_url_template: string | null;
+  bounds: string; // JSON [[west, south], [east, north]]
+  alignment_corners: string | null; // JSON [[lng1, lat1], ...]
+  opacity: number;
+  visible: number; // SQLite boolean
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ImageryBounds {
+  southwest: [number, number];
+  northeast: [number, number];
+}
+
+export interface ImageryAlignment {
+  corners: [[number, number], [number, number], [number, number], [number, number]];
+}
