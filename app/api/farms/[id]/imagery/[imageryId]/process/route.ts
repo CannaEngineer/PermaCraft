@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { requireAuth } from '@/lib/auth/session';
 import { generateTiles } from '@/lib/imagery/tiler';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string; imageryId: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const session = await requireAuth();
 
   const { id: farmId, imageryId } = params;
 

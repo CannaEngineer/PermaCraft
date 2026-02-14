@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { requireAuth } from '@/lib/auth/session';
 import { calculateSwaleVolume } from '@/lib/water/calculations';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const session = await requireAuth();
 
   const farmId = params.id;
   const body = await request.json();
