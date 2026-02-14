@@ -416,3 +416,26 @@ export interface LineStyle {
   opacity: number; // 0-1
   arrowDirection?: 'none' | 'forward' | 'reverse' | 'both';
 }
+
+export interface WaterProperties {
+  flow_type: 'surface' | 'underground' | 'seasonal';
+  flow_rate_estimate?: string;
+  source_feature_id?: string;
+  destination_feature_id?: string;
+}
+
+export interface CatchmentProperties {
+  is_catchment: boolean;
+  rainfall_inches_per_year?: number;
+  estimated_capture_gallons?: number;
+  destination_feature_id?: string;
+}
+
+export interface SwaleProperties {
+  is_swale: boolean;
+  length_feet?: number;
+  cross_section_width_feet?: number;
+  cross_section_depth_feet?: number;
+  estimated_volume_gallons?: number;
+  overflow_destination_id?: string;
+}
