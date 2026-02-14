@@ -446,3 +446,35 @@ export interface DesignLayer {
   display_order: number;
   created_at: number;
 }
+
+// Guild Builder Types
+
+export interface GuildTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  climate_zones: string | null; // JSON string array
+  focal_species_id: string;
+  companion_species: string; // JSON CompanionSpecies[]
+  spacing_rules: string | null; // JSON SpacingRules
+  benefits: string | null; // JSON string array
+  is_public: number; // SQLite boolean
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CompanionSpecies {
+  species_id: string;
+  layer: string;
+  min_distance_feet: number;
+  max_distance_feet: number;
+  count: number;
+  cardinal_direction?: 'N' | 'S' | 'E' | 'W' | 'any';
+}
+
+export interface SpacingRules {
+  canopy_radius_feet: number;
+  understory_radius_feet?: number;
+  shrub_radius_feet?: number;
+}
