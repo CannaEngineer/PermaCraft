@@ -40,7 +40,7 @@ export async function POST(
   });
 
   // Return PDF as downloadable file
-  return new NextResponse(pdfBuffer.buffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${farmName.replace(/\s+/g, '-')}-${Date.now()}.pdf"`
