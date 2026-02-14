@@ -21,9 +21,9 @@ interface ImmersiveMapUIState {
   setActiveDrawTool: (tool: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | null) => void;
 
   // Bottom Drawer
-  drawerContent: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | null;
+  drawerContent: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | null;
   drawerHeight: 'peek' | 'medium' | 'max';
-  openDrawer: (content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label', height?: 'peek' | 'medium' | 'max') => void;
+  openDrawer: (content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details', height?: 'peek' | 'medium' | 'max') => void;
   closeDrawer: () => void;
   setDrawerHeight: (height: 'peek' | 'medium' | 'max') => void;
 
@@ -44,7 +44,7 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | null>('layers');
   const [drawingMode, setDrawingMode] = useState(false);
   const [activeDrawTool, setActiveDrawTool] = useState<'polygon' | 'circle' | 'point' | 'edit' | 'delete' | null>(null);
-  const [drawerContent, setDrawerContent] = useState<'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | null>(null);
+  const [drawerContent, setDrawerContent] = useState<'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | null>(null);
   const [drawerHeight, setDrawerHeight] = useState<'peek' | 'medium' | 'max'>('medium');
   const [chatOpen, setChatOpen] = useState(false);
   const [mapInteracted, setMapInteracted] = useState(false);
@@ -64,7 +64,7 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   };
 
   const openDrawer = (
-    content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label',
+    content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details',
     height: 'peek' | 'medium' | 'max' = 'medium'
   ) => {
     setDrawerContent(content);

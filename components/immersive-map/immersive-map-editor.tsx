@@ -9,6 +9,7 @@ import { BottomDrawer } from "./bottom-drawer";
 import { ChatOverlay } from "./chat-overlay";
 import { MapFAB } from "./map-fab";
 import { FarmMap } from "@/components/map/farm-map";
+import { AnnotationPanel } from "@/components/annotations/annotation-panel";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
@@ -175,6 +176,8 @@ function ImmersiveMapEditorContent({
     chatOpen,
     setChatOpen,
     openDrawer,
+    closeDrawer,
+    drawerContent,
     headerCollapsed,
     setHeaderCollapsed,
     drawingMode,
@@ -217,6 +220,12 @@ function ImmersiveMapEditorContent({
 
   // Zone type for drawing
   const [currentZoneType, setCurrentZoneType] = useState<string>("other");
+
+  // Selected feature for annotation panel
+  const [selectedFeature, setSelectedFeature] = useState<{
+    id: string;
+    type: 'zone' | 'planting' | 'line';
+  } | null>(null);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -584,6 +593,12 @@ function ImmersiveMapEditorContent({
     [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, nativeSpecies, plantings, goals]
   );
 
+  // Handle feature selection for annotation panel
+  const handleFeatureSelect = useCallback((featureId: string, featureType: 'zone' | 'planting' | 'line') => {
+    setSelectedFeature({ id: featureId, type: featureType });
+    openDrawer('details', 'medium');
+  }, [openDrawer]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -660,7 +675,19 @@ function ImmersiveMapEditorContent({
 
       {/* Bottom Drawer */}
       <BottomDrawer>
-        <div>Drawer content goes here</div>
+        {drawerContent === 'details' && selectedFeature ? (
+          <AnnotationPanel
+            farmId={farm.id}
+            featureId={selectedFeature.id}
+            featureType={selectedFeature.type}
+            onClose={() => {
+              closeDrawer();
+              setSelectedFeature(null);
+            }}
+          />
+        ) : (
+          <div>Drawer content goes here</div>
+        )}
       </BottomDrawer>
 
       {/* Chat Overlay */}
