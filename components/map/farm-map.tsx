@@ -5,7 +5,7 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Farm, Zone } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
-import { Layers, Tag, HelpCircle, Circle, Leaf, MapPin, Square } from "lucide-react";
+import { Layers, Tag, HelpCircle, Circle, Leaf, MapPin, Square, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
@@ -31,6 +31,7 @@ import {
 import { snapCoordinate, getGridSpacingDegrees } from "@/lib/map/snap-to-grid";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
+import { animateFlowArrows } from "@/lib/map/water-flow-animation";
 import type { FeatureCollection, LineString, Point } from "geojson";
 import "../../app/mapbox-draw-override.css";
 
@@ -187,6 +188,14 @@ export function FarmMap({
   // Create Post state
   const [showCreatePost, setShowCreatePost] = useState(false);
 
+  // Line drawing state
+  const [lines, setLines] = useState<any[]>([]);
+  const [showLineForm, setShowLineForm] = useState(false);
+  const [lineFeature, setLineFeature] = useState<any | null>(null);
+
+  // Custom imagery state
+  const [customImagery, setCustomImagery] = useState<any[]>([]);
+
   // Helper function to ensure custom layers are always on top
   const ensureCustomLayersOnTop = useCallback(() => {
     if (!map.current) return;
@@ -198,6 +207,8 @@ export function FarmMap({
       'colored-zones-stroke',
       'colored-lines',
       'colored-points',
+      'design-lines',
+      'line-arrows',
       'grid-lines-layer',
       'grid-labels-layer',
     ];
@@ -232,6 +243,125 @@ export function FarmMap({
       console.error('Failed to load plantings:', error);
     }
   }, [farm.id]);
+
+  // Load lines from API
+  const loadLines = useCallback(async () => {
+    if (!map.current) return;
+
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/lines`);
+      const data = await response.json();
+      setLines(data.lines || []);
+
+      const lineFeatures = (data.lines || []).map((line: any) => {
+        const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
+        const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
+
+        return {
+          type: 'Feature' as const,
+          id: line.id,
+          geometry,
+          properties: {
+            id: line.id,
+            line_type: line.line_type,
+            label: line.label,
+            ...style
+          }
+        };
+      });
+
+      const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData({
+          type: 'FeatureCollection',
+          features: lineFeatures
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load lines:', error);
+    }
+  }, [farm.id]);
+
+  // Load custom imagery from API
+  const loadCustomImagery = useCallback(async () => {
+    if (!map.current) return;
+
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/imagery`);
+      const data = await response.json();
+
+      const completedImagery = (data.imagery || []).filter(
+        (img: any) => img.processing_status === 'completed' && img.tile_url_template
+      );
+
+      setCustomImagery(completedImagery);
+
+      // Add imagery layers to map
+      completedImagery.forEach((imagery: any) => {
+        addImageryLayer(imagery);
+      });
+    } catch (error) {
+      console.error('Failed to load custom imagery:', error);
+    }
+  }, [farm.id]);
+
+  // Add imagery layer to map
+  const addImageryLayer = useCallback((imagery: any) => {
+    if (!map.current) return;
+
+    const sourceId = `imagery-source-${imagery.id}`;
+    const layerId = `imagery-layer-${imagery.id}`;
+
+    // Check if layer already exists
+    if (map.current.getLayer(layerId)) {
+      return;
+    }
+
+    // Parse bounds
+    const bounds = JSON.parse(imagery.bounds);
+
+    // Add raster source
+    map.current.addSource(sourceId, {
+      type: 'raster',
+      tiles: [imagery.tile_url_template],
+      tileSize: 256,
+      bounds: [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]]
+    });
+
+    // Add raster layer (insert below zones layer)
+    map.current.addLayer(
+      {
+        id: layerId,
+        type: 'raster',
+        source: sourceId,
+        paint: {
+          'raster-opacity': imagery.opacity || 1.0
+        },
+        layout: {
+          visibility: imagery.visible ? 'visible' : 'none'
+        }
+      },
+      'colored-zones-fill' // Insert below zones layer
+    );
+  }, []);
+
+  // Update imagery layer visibility
+  const updateImageryVisibility = useCallback((imageryId: string, visible: boolean) => {
+    if (!map.current) return;
+    const layerId = `imagery-layer-${imageryId}`;
+    if (map.current.getLayer(layerId)) {
+      map.current.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+    }
+  }, []);
+
+  // Update imagery layer opacity
+  const updateImageryOpacity = useCallback((imageryId: string, opacity: number) => {
+    if (!map.current) return;
+    const layerId = `imagery-layer-${imageryId}`;
+    if (map.current.getLayer(layerId)) {
+      map.current.setPaintProperty(layerId, 'raster-opacity', opacity);
+    }
+  }, []);
 
   // Note: Initial planting load is handled in map "load" event
   // This ensures plantings are loaded after map is fully initialized
@@ -499,6 +629,23 @@ export function FarmMap({
     return layerMatch && vitalMatch;
   });
 
+  // Filter lines by design layer (Track 1 integration)
+  const filteredLines = lines.filter(line => {
+    // If no layer filters active, show all lines
+    if (plantingFilters.length === 0) return true;
+
+    // If line has no layer_ids, show it (not assigned to any layer)
+    if (!line.layer_ids) return true;
+
+    // Parse layer_ids (stored as JSON array string)
+    const layerIds = typeof line.layer_ids === 'string'
+      ? JSON.parse(line.layer_ids)
+      : line.layer_ids;
+
+    // Show line if any of its layers are in the active filter
+    return Array.isArray(layerIds) && layerIds.some((id: string) => plantingFilters.includes(id));
+  });
+
   // Toggle layer filter
   const toggleLayerFilter = (layer: string) => {
     setPlantingFilters(prev =>
@@ -516,6 +663,38 @@ export function FarmMap({
         : [...prev, vital]
     );
   };
+
+  // Update line rendering when filters change
+  useEffect(() => {
+    if (!map.current) return;
+
+    const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
+    if (!source) return;
+
+    // Convert filtered lines to GeoJSON features
+    const lineFeatures = filteredLines.map((line: any) => {
+      const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
+      const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
+
+      return {
+        type: 'Feature' as const,
+        id: line.id,
+        geometry,
+        properties: {
+          id: line.id,
+          line_type: line.line_type,
+          label: line.label,
+          ...style
+        }
+      };
+    });
+
+    // Update the source with filtered lines
+    source.setData({
+      type: 'FeatureCollection',
+      features: lineFeatures
+    });
+  }, [filteredLines]);
 
   // Handle quick label form save
   const handleQuickLabelSave = (type: string, name?: string) => {
@@ -1375,8 +1554,68 @@ export function FarmMap({
           addColoredZoneLayers();
         }, 100);
 
+        // Add lines source and layers
+        if (!map.current.getSource('lines-source')) {
+          map.current.addSource('lines-source', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+          });
+        }
+
+        // Add lines layer
+        if (!map.current.getLayer('design-lines')) {
+          map.current.addLayer({
+            id: 'design-lines',
+            type: 'line',
+            source: 'lines-source',
+            paint: {
+              'line-color': ['get', 'color'],
+              'line-width': ['get', 'width'],
+              'line-dasharray': ['coalesce', ['get', 'dashArray'], ['literal', [1, 0]]],
+              'line-opacity': ['get', 'opacity']
+            }
+          });
+        }
+
+        // Load arrow icon for directional lines
+        map.current.loadImage('/icons/arrow.svg').then((response) => {
+          if (response?.data && map.current && !map.current.hasImage('arrow-icon')) {
+            map.current.addImage('arrow-icon', response.data);
+          }
+        }).catch((error) => {
+          console.error('Failed to load arrow icon:', error);
+        });
+
+        // Add arrows layer
+        if (!map.current.getLayer('line-arrows')) {
+          map.current.addLayer({
+            id: 'line-arrows',
+            type: 'symbol',
+            source: 'lines-source',
+            filter: ['!=', ['get', 'arrowDirection'], 'none'],
+            layout: {
+              'symbol-placement': 'line',
+              'symbol-spacing': 100,
+              'icon-image': 'arrow-icon',
+              'icon-size': 0.5,
+              'icon-rotation-alignment': 'map',
+              'icon-rotate': [
+                'case',
+                ['==', ['get', 'arrowDirection'], 'reverse'], 180,
+                0
+              ]
+            }
+          });
+        }
+
         // Load plantings from API
         loadPlantings();
+
+        // Load lines from API
+        loadLines();
+
+        // Load custom imagery from API
+        loadCustomImagery();
 
         // Load initial zones
         if (draw.current && zones.length > 0) {
@@ -1445,11 +1684,24 @@ export function FarmMap({
         }
       };
 
+      const handleLineCreate = async (feature: any) => {
+        // Store the feature for the line form
+        setLineFeature(feature);
+        setShowLineForm(true);
+
+        // For now, remove the feature from the draw layer
+        // It will be added to the lines-source after the form is submitted
+        if (draw.current) {
+          draw.current.delete(feature.id);
+          draw.current.changeMode('simple_select');
+        }
+      };
+
       const handleDrawCreate = (e: any) => {
         // First, do the regular draw change handling
         handleDrawChange(e);
 
-        // Then show the quick label form for the newly created zone
+        // Then show the appropriate form for the newly created feature
         if (e.features && e.features.length > 0 && map.current) {
           const newFeature = e.features[0];
           const featureId = newFeature.id;
@@ -1459,15 +1711,18 @@ export function FarmMap({
             return;
           }
 
+          // Handle LineString separately
+          if (newFeature.geometry.type === 'LineString') {
+            handleLineCreate(newFeature);
+            return;
+          }
+
           // Get the last coordinate of the feature to position the form nearby
           let lastCoord: [number, number] | null = null;
 
           if (newFeature.geometry.type === 'Polygon') {
             const coords = newFeature.geometry.coordinates[0];
             lastCoord = coords[coords.length - 2]; // -2 because last point repeats first
-          } else if (newFeature.geometry.type === 'LineString') {
-            const coords = newFeature.geometry.coordinates;
-            lastCoord = coords[coords.length - 1];
           } else if (newFeature.geometry.type === 'Point') {
             lastCoord = newFeature.geometry.coordinates;
           }
@@ -2646,6 +2901,30 @@ export function FarmMap({
       updateGrid();
     }
   }, [gridDensity, gridUnit, updateGrid]);
+
+  // Animate flow arrows for water paths
+  useEffect(() => {
+    if (!map.current) return;
+
+    let cleanupFn: (() => void) | undefined;
+
+    // Wait for map to be fully loaded
+    const startAnimation = () => {
+      if (map.current && map.current.getLayer('line-arrows')) {
+        return animateFlowArrows(map.current, 'line-arrows');
+      }
+    };
+
+    // Start animation after a short delay to ensure layer exists
+    const timeoutId = setTimeout(() => {
+      cleanupFn = startAnimation();
+    }, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      cleanupFn?.();
+    };
+  }, []);
 
   // Handle external drawing mode from immersive editor context
   useEffect(() => {

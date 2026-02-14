@@ -465,6 +465,78 @@ export interface Comment {
   updated_at: number;
 }
 
+// Line Drawing System Types (Track 2)
+
+export interface Line {
+  id: string;
+  farm_id: string;
+  user_id: string;
+  geometry: string; // GeoJSON LineString as TEXT
+  line_type: 'swale' | 'flow_path' | 'fence' | 'hedge' | 'contour' | 'custom';
+  label: string | null;
+  style: string; // JSON: LineStyle
+  layer_ids: string | null; // JSON array
+  created_at: number;
+  updated_at: number;
+}
+
+export interface LineStyle {
+  color: string; // Hex
+  width: number; // Pixels
+  dashArray?: number[]; // [2, 2] for dashed
+  opacity: number; // 0-1
+  arrowDirection?: 'none' | 'forward' | 'reverse' | 'both';
+}
+
+export interface WaterProperties {
+  flow_type: 'surface' | 'underground' | 'seasonal';
+  flow_rate_estimate?: string;
+  source_feature_id?: string;
+  destination_feature_id?: string;
+}
+
+export interface CatchmentProperties {
+  is_catchment: boolean;
+  rainfall_inches_per_year?: number;
+  estimated_capture_gallons?: number;
+  destination_feature_id?: string;
+}
+
+export interface SwaleProperties {
+  is_swale: boolean;
+  length_feet?: number;
+  cross_section_width_feet?: number;
+  cross_section_depth_feet?: number;
+  estimated_volume_gallons?: number;
+  overflow_destination_id?: string;
+}
+
+export interface CustomImagery {
+  id: string;
+  farm_id: string;
+  user_id: string;
+  label: string;
+  source_url: string;
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message: string | null;
+  tile_url_template: string | null;
+  bounds: string; // JSON [[west, south], [east, north]]
+  alignment_corners: string | null; // JSON [[lng1, lat1], ...]
+  opacity: number;
+  visible: number; // SQLite boolean
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ImageryBounds {
+  southwest: [number, number];
+  northeast: [number, number];
+}
+
+export interface ImageryAlignment {
+  corners: [[number, number], [number, number], [number, number], [number, number]];
+}
+
 // Phasing System Types
 
 export interface Phase {
