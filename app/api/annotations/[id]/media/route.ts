@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const r2 = new S3Client({
@@ -17,7 +16,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -95,7 +94,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

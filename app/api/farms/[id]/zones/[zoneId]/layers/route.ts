@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string; zoneId: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
