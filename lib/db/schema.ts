@@ -430,3 +430,17 @@ export interface ExternalLink {
   description: string | null;
   display_order: number;
 }
+
+// Design Layers Types
+
+export interface DesignLayer {
+  id: string;
+  farm_id: string;
+  name: string;
+  color: string | null;
+  description: string | null;
+  visible: number; // SQLite boolean (0/1)
+  locked: number; // SQLite boolean (0/1)
+  display_order: number;
+  created_at: number;
+}
