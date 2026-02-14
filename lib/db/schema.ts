@@ -395,3 +395,24 @@ export interface AITutorConversation {
   created_at: number;
   updated_at: number;
 }
+
+export interface Line {
+  id: string;
+  farm_id: string;
+  user_id: string;
+  geometry: string; // GeoJSON LineString as TEXT
+  line_type: 'swale' | 'flow_path' | 'fence' | 'hedge' | 'contour' | 'custom';
+  label: string | null;
+  style: string; // JSON: LineStyle
+  layer_ids: string | null; // JSON array
+  created_at: number;
+  updated_at: number;
+}
+
+export interface LineStyle {
+  color: string; // Hex
+  width: number; // Pixels
+  dashArray?: number[]; // [2, 2] for dashed
+  opacity: number; // 0-1
+  arrowDirection?: 'none' | 'forward' | 'reverse' | 'both';
+}
