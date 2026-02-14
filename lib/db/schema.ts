@@ -38,6 +38,7 @@ export interface Zone {
   geometry: string; // GeoJSON
   properties: string | null; // JSON - for farm_boundary: { name, area_acres, area_hectares }
   layer_ids: string | null; // JSON array of layer IDs
+  phase_id: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -87,6 +88,7 @@ export interface Planting {
   current_year: number;
   notes: string | null;
   layer_ids: string | null; // JSON array of layer IDs
+  phase_id: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -459,6 +461,21 @@ export interface Comment {
   content: string; // HTML from Tiptap
   parent_comment_id: string | null;
   resolved: number; // SQLite boolean
+  created_at: number;
+  updated_at: number;
+}
+
+// Phasing System Types
+
+export interface Phase {
+  id: string;
+  farm_id: string;
+  name: string;
+  description: string | null;
+  start_date: number | null; // Unix timestamp
+  end_date: number | null;
+  color: string; // Hex color
+  display_order: number;
   created_at: number;
   updated_at: number;
 }
