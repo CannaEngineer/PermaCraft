@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ImmersiveMapUIProvider, useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { CollapsibleHeader } from "./collapsible-header";
@@ -226,6 +226,9 @@ function ImmersiveMapEditorContent({
     id: string;
     type: 'zone' | 'planting' | 'line';
   } | null>(null);
+
+  // Visible layer IDs for filtering
+  const [visibleLayerIds, setVisibleLayerIds] = useState<string[]>([]);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -635,13 +638,41 @@ function ImmersiveMapEditorContent({
     openDrawer('species-picker', 'medium');
   };
 
+  // Filter zones by visible layers
+  const filteredZones = useMemo(() => {
+    if (visibleLayerIds.length === 0) {
+      // No layer filtering - show all zones
+      return zones;
+    }
+
+    return zones.filter(zone => {
+      // Parse layer_ids from zone
+      const layerIds = zone.layer_ids
+        ? JSON.parse(zone.layer_ids as any)
+        : [];
+
+      // Show zones with no layers assigned
+      if (layerIds.length === 0) {
+        return true;
+      }
+
+      // Show zones that belong to at least one visible layer
+      return layerIds.some((layerId: string) => visibleLayerIds.includes(layerId));
+    });
+  }, [zones, visibleLayerIds]);
+
+  // Handler for layer visibility changes
+  const handleLayerVisibilityChange = useCallback((layerIds: string[]) => {
+    setVisibleLayerIds(layerIds);
+  }, []);
+
   return (
     <div className="fixed inset-0 bottom-16 md:bottom-0 md:left-64 overflow-hidden bg-background">
       {/* Map Layer (full viewport) */}
       <div ref={mapContainerRef} className="absolute inset-0 z-0">
         <FarmMap
           farm={farm}
-          zones={zones}
+          zones={filteredZones}
           onZonesChange={handleZonesChange}
           onMapReady={(map) => {
             mapRef.current = map;

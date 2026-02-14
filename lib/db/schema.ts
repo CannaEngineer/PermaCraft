@@ -37,6 +37,7 @@ export interface Zone {
   zone_type: string; // 'farm_boundary' | 'zone' | 'feature'
   geometry: string; // GeoJSON
   properties: string | null; // JSON - for farm_boundary: { name, area_acres, area_hectares }
+  layer_ids: string | null; // JSON array of layer IDs
   created_at: number;
   updated_at: number;
 }
@@ -85,6 +86,7 @@ export interface Planting {
   planted_year: number | null;
   current_year: number;
   notes: string | null;
+  layer_ids: string | null; // JSON array of layer IDs
   created_at: number;
   updated_at: number;
 }
