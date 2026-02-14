@@ -31,6 +31,7 @@ import {
 import { snapCoordinate, getGridSpacingDegrees } from "@/lib/map/snap-to-grid";
 import type { Species } from "@/lib/db/schema";
 import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib/map/zone-types";
+import { animateFlowArrows } from "@/lib/map/water-flow-animation";
 import type { FeatureCollection, LineString, Point } from "geojson";
 import "../../app/mapbox-draw-override.css";
 
@@ -2803,6 +2804,31 @@ export function FarmMap({
       updateGrid();
     }
   }, [gridDensity, gridUnit, updateGrid]);
+
+  // Animate flow arrows for water paths
+  useEffect(() => {
+    if (!map.current) return;
+
+    // Wait for map to be fully loaded
+    const startAnimation = () => {
+      if (map.current && map.current.getLayer('line-arrows')) {
+        return animateFlowArrows(map.current, 'line-arrows');
+      }
+    };
+
+    // Start animation after a short delay to ensure layer exists
+    const timeoutId = setTimeout(() => {
+      const cleanup = startAnimation();
+      // Store cleanup function in case we need it later
+      if (cleanup) {
+        return cleanup;
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   // Handle external drawing mode from immersive editor context
   useEffect(() => {
