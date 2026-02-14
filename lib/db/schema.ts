@@ -410,3 +410,14 @@ export interface Annotation {
   updated_at: number;
   created_by: string;
 }
+
+export interface MediaAttachment {
+  id: string;
+  annotation_id: string;
+  type: 'image' | 'video';
+  file_url: string;
+  thumbnail_url: string | null;
+  caption: string | null;
+  display_order: number;
+  uploaded_at: number;
+}
