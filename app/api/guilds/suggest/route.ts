@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openrouter } from '@/lib/ai/openrouter';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { requireAuth } from '@/lib/auth/session';
 import { buildGuildSuggestionPrompt } from '@/lib/ai/guild-prompter';
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const session = await requireAuth();
 
   const body = await request.json();
 
