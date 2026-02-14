@@ -41,7 +41,7 @@ export interface ModelSettings {
 const DEFAULT_SETTINGS: ModelSettings = {
   blog_text_model: 'x-ai/grok-4.1-fast',
   blog_image_prompt_model: 'google/gemini-2.5-flash-lite',
-  blog_image_generation_model: 'openai/dall-e-3',
+  blog_image_generation_model: 'google/gemini-2.5-flash-image',
   lesson_generation_model: 'x-ai/grok-4.1-fast',
   ai_tutor_model: 'x-ai/grok-4.1-fast',
   map_analysis_vision_model: 'meta-llama/llama-3.2-90b-vision-instruct:free',

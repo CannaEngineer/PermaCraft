@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS model_settings (
   -- Blog Generation Models
   blog_text_model TEXT NOT NULL DEFAULT 'x-ai/grok-4.1-fast',
   blog_image_prompt_model TEXT NOT NULL DEFAULT 'google/gemini-2.5-flash-lite',
-  blog_image_generation_model TEXT NOT NULL DEFAULT 'openai/dall-e-3',
+  blog_image_generation_model TEXT NOT NULL DEFAULT 'google/gemini-2.5-flash-image',
 
   -- Lesson Generation Models
   lesson_generation_model TEXT NOT NULL DEFAULT 'x-ai/grok-4.1-fast',
@@ -56,7 +56,7 @@ INSERT OR REPLACE INTO model_settings (
   'default',
   'x-ai/grok-4.1-fast',
   'google/gemini-2.5-flash-lite',
-  'openai/dall-e-3',
+  'google/gemini-2.5-flash-image',
   'x-ai/grok-4.1-fast',
   'x-ai/grok-4.1-fast',
   'meta-llama/llama-3.2-90b-vision-instruct:free',
