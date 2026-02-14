@@ -71,6 +71,24 @@ export async function POST(request: NextRequest) {
       ],
     });
 
+    // Create default design layers
+    const defaultLayers = [
+      { name: 'Water Systems', color: '#0ea5e980' },
+      { name: 'Plantings', color: '#22c55e80' },
+      { name: 'Structures', color: '#ef444480' },
+      { name: 'Zones', color: '#eab30880' },
+      { name: 'Annotations', color: '#a855f780' },
+    ];
+
+    for (let i = 0; i < defaultLayers.length; i++) {
+      const { name, color } = defaultLayers[i];
+      await db.execute({
+        sql: `INSERT INTO design_layers (id, farm_id, name, color, display_order)
+              VALUES (?, ?, ?, ?, ?)`,
+        args: [crypto.randomUUID(), farmId, name, color, i]
+      });
+    }
+
     return Response.json({ id: farmId, message: "Farm created successfully" });
   } catch (error) {
     console.error("Failed to create farm:", error);
