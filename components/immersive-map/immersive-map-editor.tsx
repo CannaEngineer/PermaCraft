@@ -10,6 +10,7 @@ import { ChatOverlay } from "./chat-overlay";
 import { MapFAB } from "./map-fab";
 import { FarmMap } from "@/components/map/farm-map";
 import { AnnotationPanel } from "@/components/annotations/annotation-panel";
+import { CommentThread } from "@/components/comments/comment-thread";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
@@ -715,6 +716,13 @@ function ImmersiveMapEditorContent({
               closeDrawer();
               setSelectedFeature(null);
             }}
+          />
+        ) : drawerContent === 'comments' && selectedFeature ? (
+          <CommentThread
+            farmId={farm.id}
+            currentUserId={farm.user_id}
+            featureId={selectedFeature.id}
+            featureType={selectedFeature.type}
           />
         ) : (
           <div>Drawer content goes here</div>
