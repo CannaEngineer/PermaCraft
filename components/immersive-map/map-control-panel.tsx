@@ -2,10 +2,12 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { Layers, Grid, Settings, HelpCircle, ChevronRight, Minimize2 } from "lucide-react";
+import { Layers, Grid, Settings, HelpCircle, ChevronRight, Minimize2, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LayerPanel } from "@/components/layers/layer-panel";
 
 interface MapControlPanelProps {
+  farmId: string;
   currentLayer: string;
   onLayerChange: (layer: string) => void;
   gridUnit: 'imperial' | 'metric';
@@ -14,11 +16,13 @@ interface MapControlPanelProps {
   onGridDensityChange: (density: string) => void;
   terrainEnabled: boolean;
   onTerrainToggle: () => void;
+  onLayerVisibilityChange?: (layerIds: string[]) => void;
 }
 
-type PanelSection = 'layers' | 'grid' | 'options' | 'help';
+type PanelSection = 'layers' | 'grid' | 'options' | 'help' | 'design';
 
 export function MapControlPanel({
+  farmId,
   currentLayer,
   onLayerChange,
   gridUnit,
@@ -27,6 +31,7 @@ export function MapControlPanel({
   onGridDensityChange,
   terrainEnabled,
   onTerrainToggle,
+  onLayerVisibilityChange,
 }: MapControlPanelProps) {
   const { controlPanelMinimized, controlPanelSection, setControlPanelSection, toggleControlPanel } = useImmersiveMapUI();
 
@@ -238,6 +243,43 @@ export function MapControlPanel({
                     3D Terrain
                   </label>
                 </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Design Layers Section */}
+      <div className="mb-2">
+        <button
+          onClick={() => toggleSection('design')}
+          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            <span className="text-sm font-medium">Design Layers</span>
+          </div>
+          <ChevronRight
+            className={`h-4 w-4 transition-transform ${
+              controlPanelSection === 'design' ? 'rotate-90' : ''
+            }`}
+          />
+        </button>
+
+        <AnimatePresence>
+          {controlPanelSection === 'design' && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="pl-2 pr-2 py-2">
+                <LayerPanel
+                  farmId={farmId}
+                  onLayerVisibilityChange={onLayerVisibilityChange}
+                />
               </div>
             </motion.div>
           )}

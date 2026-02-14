@@ -9,8 +9,8 @@ interface ImmersiveMapUIState {
 
   // Control Panel
   controlPanelMinimized: boolean;
-  controlPanelSection: 'layers' | 'grid' | 'options' | 'help' | null;
-  setControlPanelSection: (section: 'layers' | 'grid' | 'options' | 'help' | null) => void;
+  controlPanelSection: 'layers' | 'grid' | 'options' | 'help' | 'design' | null;
+  setControlPanelSection: (section: 'layers' | 'grid' | 'options' | 'help' | 'design' | null) => void;
   toggleControlPanel: () => void;
 
   // Drawing Mode
@@ -41,7 +41,7 @@ const ImmersiveMapUIContext = createContext<ImmersiveMapUIState | undefined>(und
 export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [controlPanelMinimized, setControlPanelMinimized] = useState(false);
-  const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | null>('layers');
+  const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | 'design' | null>('layers');
   const [drawingMode, setDrawingMode] = useState(false);
   const [activeDrawTool, setActiveDrawTool] = useState<'polygon' | 'circle' | 'point' | 'edit' | 'delete' | null>(null);
   const [drawerContent, setDrawerContent] = useState<'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | null>(null);
