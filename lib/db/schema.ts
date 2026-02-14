@@ -421,3 +421,12 @@ export interface MediaAttachment {
   display_order: number;
   uploaded_at: number;
 }
+
+export interface ExternalLink {
+  id: string;
+  annotation_id: string;
+  url: string;
+  title: string;
+  description: string | null;
+  display_order: number;
+}
