@@ -281,6 +281,38 @@ export function FarmMap({
     }
   }, [farm.id]);
 
+  // Update line rendering when filters change
+  useEffect(() => {
+    if (!map.current) return;
+
+    const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
+    if (!source) return;
+
+    // Convert filtered lines to GeoJSON features
+    const lineFeatures = filteredLines.map((line: any) => {
+      const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
+      const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
+
+      return {
+        type: 'Feature' as const,
+        id: line.id,
+        geometry,
+        properties: {
+          id: line.id,
+          line_type: line.line_type,
+          label: line.label,
+          ...style
+        }
+      };
+    });
+
+    // Update the source with filtered lines
+    source.setData({
+      type: 'FeatureCollection',
+      features: lineFeatures
+    });
+  }, [filteredLines]);
+
   // Load custom imagery from API
   const loadCustomImagery = useCallback(async () => {
     if (!map.current) return;
@@ -527,6 +559,23 @@ export function FarmMap({
     }
 
     return layerMatch && vitalMatch;
+  });
+
+  // Filter lines by design layer (Track 1 integration)
+  const filteredLines = lines.filter(line => {
+    // If no layer filters active, show all lines
+    if (plantingFilters.length === 0) return true;
+
+    // If line has no layer_ids, show it (not assigned to any layer)
+    if (!line.layer_ids) return true;
+
+    // Parse layer_ids (stored as JSON array string)
+    const layerIds = typeof line.layer_ids === 'string'
+      ? JSON.parse(line.layer_ids)
+      : line.layer_ids;
+
+    // Show line if any of its layers are in the active filter
+    return Array.isArray(layerIds) && layerIds.some((id: string) => plantingFilters.includes(id));
   });
 
   // Toggle layer filter
