@@ -125,8 +125,9 @@ export interface FarmCollaborator {
   id: string;
   farm_id: string;
   user_id: string;
-  role: string;
-  created_at: number;
+  role: 'owner' | 'editor' | 'commenter' | 'viewer';
+  invited_by: string;
+  invited_at: number;
 }
 
 export interface RegionalKnowledge {
