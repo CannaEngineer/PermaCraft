@@ -367,6 +367,105 @@ export function FarmMap({
     }
   }, [farm.id, plantings, toast]);
 
+  /**
+   * Place a guild on the map at the specified center point
+   * @param guild Guild template with focal species and companions
+   * @param centerPoint [lng, lat] coordinates for guild center
+   */
+  const handlePlaceGuild = useCallback(async (guild: any, centerPoint: [number, number]) => {
+    try {
+      // Parse spacing rules
+      const spacingRules = typeof guild.spacing_rules === 'string'
+        ? JSON.parse(guild.spacing_rules)
+        : guild.spacing_rules;
+
+      // Parse companion species
+      const companions = typeof guild.companion_species === 'string'
+        ? JSON.parse(guild.companion_species)
+        : guild.companion_species;
+
+      // Place companions around focal species
+      for (let index = 0; index < companions.length; index++) {
+        const companion = companions[index];
+
+        // Calculate position based on spacing rules and cardinal direction
+        let angle: number;
+
+        if (companion.cardinal_direction && companion.cardinal_direction !== 'any') {
+          // Use specific cardinal direction
+          const directions: Record<string, number> = {
+            'N': 0,
+            'E': Math.PI / 2,
+            'S': Math.PI,
+            'W': (3 * Math.PI) / 2
+          };
+          angle = directions[companion.cardinal_direction] || 0;
+        } else {
+          // Distribute evenly around the circle
+          angle = (index / companions.length) * 2 * Math.PI;
+        }
+
+        // Use average of min and max distance
+        const distance = (companion.min_distance_feet + companion.max_distance_feet) / 2;
+
+        // Convert feet to degrees (approximate: 1 degree ≈ 364,000 feet at equator)
+        const distanceDegrees = distance / 364000;
+
+        const companionLng = centerPoint[0] + distanceDegrees * Math.cos(angle);
+        const companionLat = centerPoint[1] + distanceDegrees * Math.sin(angle);
+
+        // Create companion planting
+        const response = await fetch(`/api/farms/${farm.id}/plantings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            species_id: companion.species_id,
+            lat: companionLat,
+            lng: companionLng,
+            current_year: 0,
+            name: `${guild.name} - Companion`
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create companion planting');
+        }
+      }
+
+      // Create focal planting at center
+      const focalResponse = await fetch(`/api/farms/${farm.id}/plantings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          species_id: guild.focal_species_id,
+          lat: centerPoint[1],
+          lng: centerPoint[0],
+          current_year: 0,
+          name: guild.name
+        })
+      });
+
+      if (!focalResponse.ok) {
+        throw new Error('Failed to create focal planting');
+      }
+
+      // Reload plantings to show all guild members
+      await loadPlantings();
+
+      toast({
+        title: "Guild placed",
+        description: `${guild.name} with ${companions.length} companions has been placed.`,
+      });
+    } catch (error) {
+      console.error('Failed to place guild:', error);
+      toast({
+        title: "Failed to place guild",
+        description: "There was an error placing the guild. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [farm.id, loadPlantings, toast]);
+
   // Vital type definitions with alternates (matches farm-vitals.tsx)
   const vitalTypeMap = {
     'nitrogen_fixer': ['nitrogen_fixer', 'nitrogen_fixing'],
