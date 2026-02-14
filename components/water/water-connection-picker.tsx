@@ -40,14 +40,14 @@ export function WaterConnectionPicker({
   const loadWaterFeatures = async () => {
     try {
       const [zonesResponse, linesResponse] = await Promise.all([
-        fetch(`/api/farms/${farmId}/zones`).catch(() => ({ ok: false })),
-        fetch(`/api/farms/${farmId}/lines`).catch(() => ({ ok: false }))
+        fetch(`/api/farms/${farmId}/zones`).catch(() => ({ ok: false as false })),
+        fetch(`/api/farms/${farmId}/lines`).catch(() => ({ ok: false as false }))
       ]);
 
       const waterFeatures: WaterFeature[] = [];
 
       // Load zones if endpoint exists
-      if (zonesResponse.ok) {
+      if (zonesResponse.ok && 'json' in zonesResponse) {
         try {
           const zonesData = await zonesResponse.json();
           const zones = Array.isArray(zonesData) ? zonesData : [];
@@ -71,7 +71,7 @@ export function WaterConnectionPicker({
       }
 
       // Load lines
-      if (linesResponse.ok) {
+      if (linesResponse.ok && 'json' in linesResponse) {
         try {
           const linesData = await linesResponse.json();
           const lines = Array.isArray(linesData) ? linesData : [];

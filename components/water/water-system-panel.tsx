@@ -49,9 +49,9 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
   const loadWaterFeatures = async () => {
     try {
       // Load zones - try both with and without GET endpoint
-      const zonesResponse = await fetch(`/api/farms/${farmId}/zones`).catch(() => ({ ok: false }));
+      const zonesResponse = await fetch(`/api/farms/${farmId}/zones`).catch(() => ({ ok: false as false }));
 
-      if (!zonesResponse.ok) {
+      if (!zonesResponse.ok || !('json' in zonesResponse)) {
         setLoading(false);
         return;
       }

@@ -43,7 +43,9 @@ export function calculateSwaleVolume(
   volumeGallons: number;
   volumeLiters: number;
 } {
-  const lengthMeters = turf.length(lineGeometry, { units: 'meters' });
+  // Wrap LineString in a Feature for turf.length
+  const lineFeature = turf.lineString(lineGeometry.coordinates);
+  const lengthMeters = turf.length(lineFeature, { units: 'meters' });
   const lengthFeet = lengthMeters * 3.28084;
 
   // Triangular cross-section: (width * depth / 2) * length

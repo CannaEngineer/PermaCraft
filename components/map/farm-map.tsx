@@ -282,38 +282,6 @@ export function FarmMap({
     }
   }, [farm.id]);
 
-  // Update line rendering when filters change
-  useEffect(() => {
-    if (!map.current) return;
-
-    const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
-    if (!source) return;
-
-    // Convert filtered lines to GeoJSON features
-    const lineFeatures = filteredLines.map((line: any) => {
-      const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
-      const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
-
-      return {
-        type: 'Feature' as const,
-        id: line.id,
-        geometry,
-        properties: {
-          id: line.id,
-          line_type: line.line_type,
-          label: line.label,
-          ...style
-        }
-      };
-    });
-
-    // Update the source with filtered lines
-    source.setData({
-      type: 'FeatureCollection',
-      features: lineFeatures
-    });
-  }, [filteredLines]);
-
   // Load custom imagery from API
   const loadCustomImagery = useCallback(async () => {
     if (!map.current) return;
@@ -596,6 +564,38 @@ export function FarmMap({
         : [...prev, vital]
     );
   };
+
+  // Update line rendering when filters change
+  useEffect(() => {
+    if (!map.current) return;
+
+    const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
+    if (!source) return;
+
+    // Convert filtered lines to GeoJSON features
+    const lineFeatures = filteredLines.map((line: any) => {
+      const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
+      const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
+
+      return {
+        type: 'Feature' as const,
+        id: line.id,
+        geometry,
+        properties: {
+          id: line.id,
+          line_type: line.line_type,
+          label: line.label,
+          ...style
+        }
+      };
+    });
+
+    // Update the source with filtered lines
+    source.setData({
+      type: 'FeatureCollection',
+      features: lineFeatures
+    });
+  }, [filteredLines]);
 
   // Handle quick label form save
   const handleQuickLabelSave = (type: string, name?: string) => {
@@ -1479,14 +1479,12 @@ export function FarmMap({
         }
 
         // Load arrow icon for directional lines
-        map.current.loadImage('/icons/arrow.svg', (error, image) => {
-          if (error) {
-            console.error('Failed to load arrow icon:', error);
-            return;
+        map.current.loadImage('/icons/arrow.svg').then((response) => {
+          if (response?.data && map.current && !map.current.hasImage('arrow-icon')) {
+            map.current.addImage('arrow-icon', response.data);
           }
-          if (image && map.current && !map.current.hasImage('arrow-icon')) {
-            map.current.addImage('arrow-icon', image);
-          }
+        }).catch((error) => {
+          console.error('Failed to load arrow icon:', error);
         });
 
         // Add arrows layer
