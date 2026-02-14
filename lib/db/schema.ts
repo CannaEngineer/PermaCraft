@@ -446,3 +446,18 @@ export interface DesignLayer {
   display_order: number;
   created_at: number;
 }
+
+// Comments System Types
+
+export interface Comment {
+  id: string;
+  farm_id: string;
+  user_id: string;
+  feature_id: string | null;
+  feature_type: 'zone' | 'planting' | 'line' | 'general';
+  content: string; // HTML from Tiptap
+  parent_comment_id: string | null;
+  resolved: number; // SQLite boolean
+  created_at: number;
+  updated_at: number;
+}
