@@ -192,6 +192,9 @@ export function FarmMap({
   const [showLineForm, setShowLineForm] = useState(false);
   const [lineFeature, setLineFeature] = useState<any | null>(null);
 
+  // Custom imagery state
+  const [customImagery, setCustomImagery] = useState<any[]>([]);
+
   // Helper function to ensure custom layers are always on top
   const ensureCustomLayersOnTop = useCallback(() => {
     if (!map.current) return;
@@ -277,6 +280,87 @@ export function FarmMap({
       console.error('Failed to load lines:', error);
     }
   }, [farm.id]);
+
+  // Load custom imagery from API
+  const loadCustomImagery = useCallback(async () => {
+    if (!map.current) return;
+
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/imagery`);
+      const data = await response.json();
+
+      const completedImagery = (data.imagery || []).filter(
+        (img: any) => img.processing_status === 'completed' && img.tile_url_template
+      );
+
+      setCustomImagery(completedImagery);
+
+      // Add imagery layers to map
+      completedImagery.forEach((imagery: any) => {
+        addImageryLayer(imagery);
+      });
+    } catch (error) {
+      console.error('Failed to load custom imagery:', error);
+    }
+  }, [farm.id]);
+
+  // Add imagery layer to map
+  const addImageryLayer = useCallback((imagery: any) => {
+    if (!map.current) return;
+
+    const sourceId = `imagery-source-${imagery.id}`;
+    const layerId = `imagery-layer-${imagery.id}`;
+
+    // Check if layer already exists
+    if (map.current.getLayer(layerId)) {
+      return;
+    }
+
+    // Parse bounds
+    const bounds = JSON.parse(imagery.bounds);
+
+    // Add raster source
+    map.current.addSource(sourceId, {
+      type: 'raster',
+      tiles: [imagery.tile_url_template],
+      tileSize: 256,
+      bounds: [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]]
+    });
+
+    // Add raster layer (insert below zones layer)
+    map.current.addLayer(
+      {
+        id: layerId,
+        type: 'raster',
+        source: sourceId,
+        paint: {
+          'raster-opacity': imagery.opacity || 1.0
+        },
+        layout: {
+          visibility: imagery.visible ? 'visible' : 'none'
+        }
+      },
+      'colored-zones-fill' // Insert below zones layer
+    );
+  }, []);
+
+  // Update imagery layer visibility
+  const updateImageryVisibility = useCallback((imageryId: string, visible: boolean) => {
+    if (!map.current) return;
+    const layerId = `imagery-layer-${imageryId}`;
+    if (map.current.getLayer(layerId)) {
+      map.current.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+    }
+  }, []);
+
+  // Update imagery layer opacity
+  const updateImageryOpacity = useCallback((imageryId: string, opacity: number) => {
+    if (!map.current) return;
+    const layerId = `imagery-layer-${imageryId}`;
+    if (map.current.getLayer(layerId)) {
+      map.current.setPaintProperty(layerId, 'raster-opacity', opacity);
+    }
+  }, []);
 
   // Note: Initial planting load is handled in map "load" event
   // This ensures plantings are loaded after map is fully initialized
@@ -1382,6 +1466,9 @@ export function FarmMap({
 
         // Load lines from API
         loadLines();
+
+        // Load custom imagery from API
+        loadCustomImagery();
 
         // Load initial zones
         if (draw.current && zones.length > 0) {
