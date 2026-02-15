@@ -674,8 +674,8 @@ function ImmersiveMapEditorContent({
   // Farm context for GuildDesigner
   const farmContext = useMemo(() => ({
     climate_zone: farm.climate_zone || '',
-    soil_type: farm.soil_type,
-    rainfall_inches: farm.rainfall_inches
+    soil_type: farm.soil_type ?? undefined,
+    rainfall_inches: farm.rainfall_inches ?? undefined
   }), [farm]);
 
   // Filter zones by visible layers
