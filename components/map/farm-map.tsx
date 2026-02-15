@@ -109,6 +109,7 @@ interface FarmMapProps {
   onMapReady?: (map: maplibregl.Map) => void;
   onMapLayerChange?: (layer: string) => void;
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
+  onFeatureSelect?: (featureId: string, featureType: 'zone' | 'planting' | 'line', featureData?: any) => void;
   externalDrawingMode?: boolean;
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
 }
@@ -122,6 +123,7 @@ export function FarmMap({
   onMapReady,
   onMapLayerChange,
   onGetRecommendations,
+  onFeatureSelect,
   externalDrawingMode,
   externalDrawTool,
 }: FarmMapProps) {
