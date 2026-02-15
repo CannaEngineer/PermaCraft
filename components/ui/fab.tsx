@@ -58,12 +58,12 @@ export function FAB({
     <div className={cn("fixed bottom-[88px] right-6 z-[45] md:bottom-24 md:right-8", className)}>
       {/* Expanded Action Menu (Speed Dial) */}
       {actions && actions.length > 0 && isExpanded && (
-        <div className="absolute bottom-[72px] right-0 flex flex-col gap-3 mb-4">
+        <div className="absolute bottom-[72px] right-0 flex flex-col gap-3 mb-4 items-end">
           {actions.map((action, index) => (
             <button
               key={index}
               onClick={() => handleActionClick(action)}
-              className="group flex items-center gap-3 transition-all duration-200 ease-out animate-in slide-in-from-bottom-4"
+              className="group flex items-center justify-end gap-3 transition-all duration-200 ease-out animate-in slide-in-from-bottom-4"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               {/* Action Label */}
@@ -73,7 +73,7 @@ export function FAB({
               {/* Action Icon Button */}
               <div
                 className={cn(
-                  "h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95",
+                  "h-12 w-12 rounded-full shadow-lg flex items-center justify-center flex-shrink-0 transition-transform hover:scale-110 active:scale-95",
                   action.color || "bg-primary text-primary-foreground"
                 )}
               >
