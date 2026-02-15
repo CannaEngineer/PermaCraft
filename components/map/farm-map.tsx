@@ -1948,7 +1948,17 @@ export function FarmMap({
       // Handle feature selection when not in any drawing mode
       if (!circleMode && !externalDrawingMode && onFeatureSelect && map.current) {
         const features = map.current.queryRenderedFeatures(e.point, {
-          layers: ['plantings-layer', 'colored-zones-fill', 'colored-lines', 'colored-points']
+          layers: [
+            'plantings-layer',
+            'colored-zones-fill',
+            'colored-lines',
+            'colored-points',
+            // Include MapboxDraw layers for zone selection
+            'gl-draw-polygon-fill-inactive.cold',
+            'gl-draw-polygon-fill-inactive.hot',
+            'gl-draw-polygon-fill-active.cold',
+            'gl-draw-polygon-fill-active.hot',
+          ]
         });
 
         if (features.length > 0) {
@@ -1967,17 +1977,47 @@ export function FarmMap({
               lng: feature.properties.lng,
             };
             onFeatureSelect(feature.properties.id, 'planting', plantingData);
+
+            // Deselect all in MapboxDraw to prevent selection UI
+            if (draw.current) {
+              draw.current.changeMode('simple_select', { featureIds: [] });
+            }
             return;
           }
 
-          // Handle zone selection
+          // Handle zone selection (from colored layer)
           if (feature.layer.id === 'colored-zones-fill' && feature.properties) {
             onFeatureSelect(feature.properties.id || feature.id?.toString(), 'zone', {
               id: feature.properties.id || feature.id,
               name: feature.properties.name,
               zone_type: feature.properties.user_zone_type,
             });
+
+            // Deselect all in MapboxDraw to prevent selection UI
+            if (draw.current) {
+              draw.current.changeMode('simple_select', { featureIds: [] });
+            }
             return;
+          }
+
+          // Handle zone selection (from MapboxDraw layers)
+          if (feature.layer.id && feature.layer.id.startsWith('gl-draw-polygon')) {
+            const zoneId = feature.id?.toString();
+            if (zoneId && draw.current) {
+              // Get the feature from MapboxDraw to access its properties
+              const drawnFeature = draw.current.get(zoneId);
+              if (drawnFeature) {
+                onFeatureSelect(zoneId, 'zone', {
+                  id: zoneId,
+                  name: drawnFeature.properties?.name,
+                  zone_type: drawnFeature.properties?.user_zone_type,
+                });
+
+                // Deselect all in MapboxDraw to prevent selection UI and quick label form
+                draw.current.changeMode('simple_select', { featureIds: [] });
+                return;
+              }
+            }
           }
 
           // Handle line selection
@@ -1986,6 +2026,11 @@ export function FarmMap({
               id: feature.properties.id || feature.id,
               name: feature.properties.name,
             });
+
+            // Deselect all in MapboxDraw to prevent selection UI
+            if (draw.current) {
+              draw.current.changeMode('simple_select', { featureIds: [] });
+            }
             return;
           }
         }
