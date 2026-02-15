@@ -310,10 +310,18 @@ export function FeatureListPanel({
         </div>
 
         {/* Empty State */}
-        {Object.keys(groupedFeatures).length === 0 && (
+        {Object.keys(groupedFeatures).length === 0 && !debouncedQuery && (
           <div className="text-center py-8 text-muted-foreground">
             <p className="text-sm">No features yet.</p>
             <p className="text-xs mt-2">Use the FAB to add zones, plantings, or lines.</p>
+          </div>
+        )}
+
+        {/* No Search Results */}
+        {debouncedQuery && resultCount === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No features match "{debouncedQuery}"</p>
+            <p className="text-xs mt-2">Try different keywords.</p>
           </div>
         )}
       </div>
