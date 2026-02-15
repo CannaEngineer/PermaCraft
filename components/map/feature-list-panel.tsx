@@ -247,17 +247,19 @@ export function FeatureListPanel({
         </div>
 
         {/* Feature List */}
-        <div className="space-y-2 overflow-y-auto max-h-[400px]">
+        <ul role="list" className="space-y-2 overflow-y-auto max-h-[400px]">
           {Object.entries(groupedFeatures).map(([groupName, features]) => {
             const isExpanded = expandedGroups.has(groupName);
             const Icon = getGroupIcon(groupName);
 
             return (
-              <div key={groupName} className="border rounded-md">
+              <li key={groupName} className="border rounded-md">
                 {/* Group Header */}
                 <button
                   onClick={() => toggleGroup(groupName)}
                   className="w-full flex items-center gap-2 p-2 hover:bg-accent rounded-md transition-colors"
+                  aria-expanded={isExpanded}
+                  aria-label={`${groupName} group, ${features.length} features`}
                 >
                   {isExpanded ? (
                     <ChevronDown className="h-4 w-4" />
@@ -272,24 +274,26 @@ export function FeatureListPanel({
 
                 {/* Group Items */}
                 {isExpanded && (
-                  <div className="pl-8 pr-2 pb-2 space-y-1">
+                  <ul role="list" className="pl-8 pr-2 pb-2 space-y-1">
                     {features.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-2">
                         No features in this group
                       </div>
                     ) : (
                       features.map((feature: any) => (
-                        <div
+                        <li
                           key={feature.id}
                           className="p-2 hover:bg-accent rounded cursor-pointer transition-colors"
                           onClick={() => handleFeatureClick(feature)}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
                               handleFeatureClick(feature);
                             }
                           }}
+                          aria-label={`${feature.name || feature.common_name || feature.label || 'Unnamed'} feature`}
                         >
                           <div className="text-sm truncate">
                             {feature.name || feature.common_name || feature.label || 'Unnamed'}
@@ -299,15 +303,15 @@ export function FeatureListPanel({
                               {feature.scientific_name}
                             </div>
                           )}
-                        </div>
+                        </li>
                       ))
                     )}
-                  </div>
+                  </ul>
                 )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
 
         {/* Empty State */}
         {Object.keys(groupedFeatures).length === 0 && !debouncedQuery && (
