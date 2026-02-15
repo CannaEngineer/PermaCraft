@@ -636,6 +636,13 @@ function ImmersiveMapEditorContent({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed]);
 
+  // Farm context for GuildDesigner
+  const farmContext = useMemo(() => ({
+    climate_zone: farm.climate_zone || '',
+    soil_type: farm.soil_type ?? undefined,
+    rainfall_inches: farm.rainfall_inches ?? undefined
+  }), [farm]);
+
   // MapFAB action handlers
   const handleCreatePost = () => {
     setPostDialogOpen(true);
@@ -670,13 +677,6 @@ function ImmersiveMapEditorContent({
   const handleOpenExport = useCallback(() => {
     openDrawer('export', 'medium');
   }, [openDrawer]);
-
-  // Farm context for GuildDesigner
-  const farmContext = useMemo(() => ({
-    climate_zone: farm.climate_zone || '',
-    soil_type: farm.soil_type ?? undefined,
-    rainfall_inches: farm.rainfall_inches ?? undefined
-  }), [farm]);
 
   // Filter zones by visible layers
   const filteredZones = useMemo(() => {
