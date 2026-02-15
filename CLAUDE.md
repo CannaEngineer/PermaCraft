@@ -90,6 +90,39 @@ Uses `ImmersiveMapUIContext` (in `contexts/`) for centralized panel visibility.
 
 See `docs/plans/2026-02-12-immersive-map-design.md` for full specifications.
 
+### Feature Manager Tab
+
+Located in MapBottomDrawer, provides navigation and organization for farm features.
+
+**Features**:
+- Smart search across names, species, properties, functions
+- Three view modes: By Type, By Layer, By Phase
+- Click feature → pan map + open details
+- Auto-expand groups with search results
+- Keyboard accessible (Tab, Enter, Space)
+- Responsive design
+
+**Components**:
+- `components/map/feature-list-panel.tsx` - Main component
+- `lib/map/feature-search.ts` - Search utility (case-insensitive substring matching)
+- `lib/map/feature-grouping.ts` - Grouping logic (groupByType, groupByLayer, groupByPhase)
+
+**Usage**:
+```typescript
+<FeatureListPanel
+  zones={zones}
+  plantings={plantings}
+  lines={lines}
+  guilds={guilds}
+  phases={phases}
+  onFeatureSelect={handleFeatureSelect}
+  mapRef={mapRef}
+/>
+```
+
+**Local Storage**:
+- `feature-list-view` - Active view preference (type/layer/phase)
+
 ## Key Files Reference
 
 ### Database (`lib/db/index.ts`)
