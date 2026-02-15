@@ -222,6 +222,9 @@ function ImmersiveMapEditorContent({
   // Native species and plantings for AI context
   const [nativeSpecies, setNativeSpecies] = useState<any[]>([]);
   const [plantings, setPlantings] = useState<any[]>([]);
+  const [lines, setLines] = useState<any[]>([]);
+  const [guilds, setGuilds] = useState<any[]>([]);
+  const [farmPhases, setFarmPhases] = useState<any[]>([]);
 
   // Zone type for drawing
   const [currentZoneType, setCurrentZoneType] = useState<string>("other");
@@ -229,7 +232,7 @@ function ImmersiveMapEditorContent({
   // Selected feature for annotation panel
   const [selectedFeature, setSelectedFeature] = useState<{
     id: string;
-    type: 'zone' | 'planting' | 'line';
+    type: 'zone' | 'planting' | 'line' | 'guild' | 'phase';
   } | null>(null);
 
   // Visible layer IDs for filtering
@@ -247,6 +250,9 @@ function ImmersiveMapEditorContent({
       loadGoals();
       loadNativeSpecies();
       loadPlantings();
+      loadLines();
+      loadGuilds();
+      loadPhases();
     }
   }, [farm?.id]);
 
@@ -277,6 +283,36 @@ function ImmersiveMapEditorContent({
       setPlantings(data.plantings || []);
     } catch (error) {
       console.error('Failed to load plantings:', error);
+    }
+  };
+
+  const loadLines = async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/lines`);
+      const data = await response.json();
+      setLines(data.lines || []);
+    } catch (error) {
+      console.error('Failed to load lines:', error);
+    }
+  };
+
+  const loadGuilds = async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/guilds`);
+      const data = await response.json();
+      setGuilds(data.guilds || []);
+    } catch (error) {
+      console.error('Failed to load guilds:', error);
+    }
+  };
+
+  const loadPhases = async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/phases`);
+      const data = await response.json();
+      setFarmPhases(data.phases || []);
+    } catch (error) {
+      console.error('Failed to load phases:', error);
     }
   };
 
@@ -615,7 +651,7 @@ function ImmersiveMapEditorContent({
   }), [farm]);
 
   // Handle feature selection for annotation panel
-  const handleFeatureSelect = useCallback((featureId: string, featureType: 'zone' | 'planting' | 'line', featureData?: any) => {
+  const handleFeatureSelect = useCallback((featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase', featureData?: any) => {
     setSelectedFeature({ id: featureId, type: featureType });
 
     // If it's a planting, store it for guild building
@@ -763,7 +799,7 @@ function ImmersiveMapEditorContent({
 
       {/* Bottom Drawer */}
       <BottomDrawer>
-        {drawerContent === 'details' && selectedFeature ? (
+        {drawerContent === 'details' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
           <AnnotationPanel
             farmId={farm.id}
             featureId={selectedFeature.id}
@@ -773,7 +809,7 @@ function ImmersiveMapEditorContent({
               setSelectedFeature(null);
             }}
           />
-        ) : drawerContent === 'comments' && selectedFeature ? (
+        ) : drawerContent === 'comments' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
           <CommentThread
             farmId={farm.id}
             currentUserId={farm.user_id}

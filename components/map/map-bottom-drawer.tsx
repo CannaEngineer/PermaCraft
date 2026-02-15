@@ -17,6 +17,9 @@ interface MapBottomDrawerProps {
   gridDensity: GridDensity;
   zones: any[];
   plantings?: any[];
+  lines?: any[];
+  guilds?: any[];
+  phases?: any[];
 
   // Time Machine props
   isTimeMachineOpen?: boolean;
@@ -61,6 +64,9 @@ export function MapBottomDrawer({
   gridDensity,
   zones,
   plantings = [],
+  lines = [],
+  guilds = [],
+  phases = [],
   isTimeMachineOpen = false,
   onOpenTimeMachine,
   onCloseTimeMachine,
@@ -541,10 +547,10 @@ export function MapBottomDrawer({
               {onFeatureSelectFromList && mapRef ? (
                 <FeatureListPanel
                   zones={zones}
-                  plantings={plantings || []}
-                  lines={[]} // TODO: Pass lines when available
-                  guilds={[]} // TODO: Pass guilds when available
-                  phases={[]} // TODO: Pass phases when available
+                  plantings={plantings}
+                  lines={lines}
+                  guilds={guilds}
+                  phases={phases}
                   onFeatureSelect={onFeatureSelectFromList}
                   mapRef={mapRef}
                 />

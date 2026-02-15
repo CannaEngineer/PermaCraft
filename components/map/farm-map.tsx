@@ -109,7 +109,7 @@ interface FarmMapProps {
   onMapReady?: (map: maplibregl.Map) => void;
   onMapLayerChange?: (layer: string) => void;
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
-  onFeatureSelect?: (featureId: string, featureType: 'zone' | 'planting' | 'line', featureData?: any) => void;
+  onFeatureSelect?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase', featureData?: any) => void;
   externalDrawingMode?: boolean;
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
 }
@@ -194,6 +194,10 @@ export function FarmMap({
   const [lines, setLines] = useState<any[]>([]);
   const [showLineForm, setShowLineForm] = useState(false);
   const [lineFeature, setLineFeature] = useState<any | null>(null);
+
+  // Additional feature data
+  const [guilds, setGuilds] = useState<any[]>([]);
+  const [farmPhases, setFarmPhases] = useState<any[]>([]);
 
   // Custom imagery state
   const [customImagery, setCustomImagery] = useState<any[]>([]);
@@ -281,6 +285,28 @@ export function FarmMap({
       }
     } catch (error) {
       console.error('Failed to load lines:', error);
+    }
+  }, [farm.id]);
+
+  // Load guilds from API
+  const loadGuilds = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/guilds`);
+      const data = await response.json();
+      setGuilds(data.guilds || []);
+    } catch (error) {
+      console.error('Failed to load guilds:', error);
+    }
+  }, [farm.id]);
+
+  // Load phases from API
+  const loadFarmPhases = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/phases`);
+      const data = await response.json();
+      setFarmPhases(data.phases || []);
+    } catch (error) {
+      console.error('Failed to load phases:', error);
     }
   }, [farm.id]);
 
@@ -1615,6 +1641,12 @@ export function FarmMap({
 
         // Load lines from API
         loadLines();
+
+        // Load guilds from API
+        loadGuilds();
+
+        // Load phases from API
+        loadFarmPhases();
 
         // Load custom imagery from API
         loadCustomImagery();
@@ -3546,6 +3578,9 @@ export function FarmMap({
         gridDensity={gridDensity}
         zones={zones}
         plantings={plantings}
+        lines={lines}
+        guilds={guilds}
+        phases={farmPhases}
         isTimeMachineOpen={isTimeMachineOpen}
         onOpenTimeMachine={() => setIsTimeMachineOpen(true)}
         onCloseTimeMachine={() => setIsTimeMachineOpen(false)}
@@ -3565,6 +3600,8 @@ export function FarmMap({
           setPlantingMode(true);
           setShowSpeciesPicker(true);
         }}
+        onFeatureSelectFromList={onFeatureSelect}
+        mapRef={map}
       />
 
       {/* Render planting markers */}
