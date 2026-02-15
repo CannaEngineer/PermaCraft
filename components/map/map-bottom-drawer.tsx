@@ -31,6 +31,10 @@ interface MapBottomDrawerProps {
   onTogglePlantingFilter: (layer: string) => void;
   vitalFilters: string[];
   onToggleVitalFilter: (vital: string) => void;
+  phaseFilters?: string[];
+  onTogglePhaseFilter?: (phaseId: string) => void;
+  waterFilters?: string[];
+  onToggleWaterFilter?: (type: string) => void;
 
   // Vitals props
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
@@ -63,6 +67,10 @@ export function MapBottomDrawer({
   onTogglePlantingFilter,
   vitalFilters,
   onToggleVitalFilter,
+  phaseFilters = [],
+  onTogglePhaseFilter,
+  waterFilters = [],
+  onToggleWaterFilter,
   onGetRecommendations,
   onChangeLayer,
   onToggleGridUnit,
@@ -78,8 +86,8 @@ export function MapBottomDrawer({
 
   // Calculate badge counts for peek bar
   const activeFilterCount = useMemo(() => {
-    return plantingFilters.length + vitalFilters.length;
-  }, [plantingFilters.length, vitalFilters.length]);
+    return plantingFilters.length + vitalFilters.length + phaseFilters.length + waterFilters.length;
+  }, [plantingFilters.length, vitalFilters.length, phaseFilters.length, waterFilters.length]);
 
   // Calculate low vitals (high importance functions with 0 count)
   const lowVitalCount = useMemo(() => {
@@ -284,7 +292,7 @@ export function MapBottomDrawer({
 
           {activeTab === 'filters' && (
             <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Layer Filters */}
                 <div>
                   <div className="text-muted-foreground font-medium mb-3 text-xs">
@@ -353,6 +361,87 @@ export function MapBottomDrawer({
                     })}
                   </div>
                 </div>
+
+                {/* Implementation Phase Filters */}
+                {onTogglePhaseFilter && (
+                  <div>
+                    <div className="text-muted-foreground font-medium mb-3 text-xs">
+                      Filter by Phase
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {zones
+                        .filter((z: any) => z.phase_id)
+                        .reduce((acc: any[], zone: any) => {
+                          if (!acc.find((p: any) => p.id === zone.phase_id)) {
+                            acc.push({
+                              id: zone.phase_id,
+                              name: zone.phase_name || `Phase ${zone.phase_id}`,
+                              color: zone.phase_color || '#6366f1'
+                            });
+                          }
+                          return acc;
+                        }, [])
+                        .map((phase: any) => {
+                          const isActive = phaseFilters.length === 0 || phaseFilters.includes(phase.id);
+                          return (
+                            <button
+                              key={phase.id}
+                              onClick={() => onTogglePhaseFilter(phase.id)}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
+                                isActive
+                                  ? 'bg-muted/50 border border-primary/20'
+                                  : 'bg-muted/20 opacity-50 border border-transparent'
+                              }`}
+                            >
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: phase.color }}
+                              />
+                              <span className={isActive ? 'font-medium' : ''}>{phase.name}</span>
+                            </button>
+                          );
+                        })}
+                      {zones.filter((z: any) => z.phase_id).length === 0 && (
+                        <div className="text-xs text-muted-foreground italic py-2">
+                          No phases assigned yet
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Water Feature Filters */}
+                {onToggleWaterFilter && (
+                  <div>
+                    <div className="text-muted-foreground font-medium mb-3 text-xs">
+                      Filter by Water
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { value: 'catchment', label: 'Catchments', emoji: '☔' },
+                        { value: 'swale', label: 'Swales', emoji: '〰️' },
+                        { value: 'pond', label: 'Ponds', emoji: '🌊' },
+                        { value: 'water_flow', label: 'Water Flows', emoji: '💧' },
+                      ].map((water) => {
+                        const isActive = waterFilters.length === 0 || waterFilters.includes(water.value);
+                        return (
+                          <button
+                            key={water.value}
+                            onClick={() => onToggleWaterFilter(water.value)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
+                              isActive
+                                ? 'bg-muted/50 border border-primary/20'
+                                : 'bg-muted/20 opacity-50 border border-transparent'
+                            }`}
+                          >
+                            <span className="text-sm">{water.emoji}</span>
+                            <span className={isActive ? 'font-medium' : ''}>{water.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
