@@ -28,6 +28,19 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         max: '15vh',
       };
 
+  // Calculate max content height based on drawer position
+  const contentMaxHeight = isMobile
+    ? {
+        peek: 'calc(100vh - 120px - 120px)', // viewport - top position - extra space
+        medium: 'calc(55vh - 120px)',
+        max: 'calc(90vh - 120px)', // 90vh content area - handles/padding
+      }
+    : {
+        peek: 'calc(100vh - 100px - 120px)',
+        medium: 'calc(45vh - 100px)',
+        max: 'calc(85vh - 100px)', // 85vh content area - handles/padding
+      };
+
   const handleDragEnd = (_event: any, info: PanInfo) => {
     const velocity = info.velocity.y;
     const offset = info.offset.y;
@@ -95,7 +108,10 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         </div>
 
         {/* Content */}
-        <div className="px-4 pb-4 overflow-y-auto flex-1">
+        <div
+          className="px-4 pb-4 overflow-y-auto flex-1"
+          style={{ maxHeight: contentMaxHeight[drawerHeight] }}
+        >
           {children}
         </div>
       </motion.div>
