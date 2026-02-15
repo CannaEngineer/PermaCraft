@@ -2936,6 +2936,7 @@ export function FarmMap({
         'polygon': 'draw_polygon',
         'circle': 'draw_polygon', // We'll handle circle with custom logic
         'point': 'draw_point',
+        'line': 'draw_line_string',
         'edit': 'direct_select',
         'delete': 'simple_select',
       };
