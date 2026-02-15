@@ -139,6 +139,18 @@ export function FeatureListPanel({
     }
   }, [activeView, filteredFeatures, phases]);
 
+  // Auto-expand groups with search results
+  useEffect(() => {
+    if (debouncedQuery) {
+      // Expand all groups that have features when searching
+      const groupsWithFeatures = Object.entries(groupedFeatures)
+        .filter(([_, features]) => features.length > 0)
+        .map(([groupName]) => groupName);
+
+      setExpandedGroups(new Set(groupsWithFeatures));
+    }
+  }, [debouncedQuery, groupedFeatures]);
+
   const handleClearSearch = () => {
     setSearchQuery('');
   };
