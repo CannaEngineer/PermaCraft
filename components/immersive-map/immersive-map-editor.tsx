@@ -657,7 +657,7 @@ function ImmersiveMapEditorContent({
   };
 
   const handleOpenWaterSystem = useCallback(() => {
-    openDrawer('water-system', 'medium');
+    openDrawer('water-system', 'max');
   }, [openDrawer]);
 
   const handleOpenGuildDesigner = useCallback(() => {
@@ -671,11 +671,11 @@ function ImmersiveMapEditorContent({
   }, [openDrawer, farmContext]);
 
   const handleOpenPhaseManager = useCallback(() => {
-    openDrawer('phase-manager', 'medium');
+    openDrawer('phase-manager', 'max');
   }, [openDrawer]);
 
   const handleOpenExport = useCallback(() => {
-    openDrawer('export', 'medium');
+    openDrawer('export', 'max');
   }, [openDrawer]);
 
   // Filter zones by visible layers
