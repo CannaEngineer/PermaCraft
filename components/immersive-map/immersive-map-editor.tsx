@@ -765,21 +765,38 @@ function ImmersiveMapEditorContent({
             featureType={selectedFeature.type}
           />
         ) : drawerContent === 'water-system' ? (
-          <WaterSystemPanel farmId={farm.id} />
-        ) : drawerContent === 'guild-designer' && guildContext ? (
-          <GuildDesigner
-            farmId={farm.id}
-            focalSpecies={guildContext.focalSpecies}
-            farmContext={guildContext.farmContext}
-          />
+          <div className="p-4">
+            <WaterSystemPanel farmId={farm.id} />
+          </div>
+        ) : drawerContent === 'guild-designer' ? (
+          guildContext && guildContext.focalSpecies ? (
+            <GuildDesigner
+              farmId={farm.id}
+              focalSpecies={guildContext.focalSpecies}
+              farmContext={guildContext.farmContext}
+            />
+          ) : (
+            <div className="p-8 text-center space-y-4">
+              <div className="text-muted-foreground">
+                <p className="font-semibold">Select a focal species first</p>
+                <p className="text-sm mt-2">
+                  A guild is designed around a central "focal" plant. Please select a species from the map or species list to build a guild around it.
+                </p>
+              </div>
+            </div>
+          )
         ) : drawerContent === 'phase-manager' ? (
-          <PhaseManager farmId={farm.id} />
+          <div className="p-4">
+            <PhaseManager farmId={farm.id} />
+          </div>
         ) : drawerContent === 'export' ? (
-          <ExportPanel
-            farmId={farm.id}
-            farmName={farm.name}
-            mapInstance={mapRef.current}
-          />
+          <div className="p-4">
+            <ExportPanel
+              farmId={farm.id}
+              farmName={farm.name}
+              mapInstance={mapRef.current}
+            />
+          </div>
         ) : (
           <div className="p-4 text-muted-foreground">
             {drawerContent ? 'Panel loading...' : 'Select a feature or use the action menu'}
