@@ -3531,6 +3531,19 @@ export function FarmMap({
           currentYear={projectionYear}
           onClick={(p) => {
             setSelectedPlanting(p);
+            // Trigger feature selection when not in drawing mode
+            if (!externalDrawingMode && onFeatureSelect) {
+              onFeatureSelect(p.id, 'planting', {
+                id: p.id,
+                species_id: p.species_id,
+                common_name: p.common_name,
+                scientific_name: p.scientific_name,
+                layer: p.layer,
+                planted_year: p.planted_year,
+                lat: p.lat,
+                lng: p.lng,
+              });
+            }
           }}
         />
       ))}

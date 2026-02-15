@@ -665,6 +665,10 @@ function ImmersiveMapEditorContent({
     openDrawer('species-picker', 'medium');
   };
 
+  const handleAddPlant = () => {
+    openDrawer('species-picker', 'medium');
+  };
+
   const handleOpenWaterSystem = useCallback(() => {
     openDrawer('water-system', 'max');
   }, [openDrawer]);
@@ -853,6 +857,7 @@ function ImmersiveMapEditorContent({
         onCreatePost={handleCreatePost}
         onUploadPhoto={handleUploadPhoto}
         onDropPin={handleDropPin}
+        onAddPlant={handleAddPlant}
         onWaterSystem={handleOpenWaterSystem}
         onBuildGuild={handleOpenGuildDesigner}
         onTimeline={handleOpenPhaseManager}

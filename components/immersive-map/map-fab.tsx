@@ -1,19 +1,20 @@
 'use client';
 
 import { FAB, FABAction } from '@/components/ui/fab';
-import { Square, MapPin, MessageSquare, Upload, Waves, Sparkles, Calendar } from 'lucide-react';
+import { Square, MapPin, MessageSquare, Upload, Waves, Sparkles, Calendar, Leaf } from 'lucide-react';
 import { useImmersiveMapUI } from '@/contexts/immersive-map-ui-context';
 
 interface MapFABProps {
   onCreatePost: () => void;
   onUploadPhoto: () => void;
   onDropPin: () => void;
+  onAddPlant: () => void;
   onWaterSystem: () => void;
   onBuildGuild: () => void;
   onTimeline: () => void;
 }
 
-export function MapFAB({ onCreatePost, onUploadPhoto, onDropPin, onWaterSystem, onBuildGuild, onTimeline }: MapFABProps) {
+export function MapFAB({ onCreatePost, onUploadPhoto, onDropPin, onAddPlant, onWaterSystem, onBuildGuild, onTimeline }: MapFABProps) {
   const { enterDrawingMode, setActiveDrawTool } = useImmersiveMapUI();
 
   const handleDrawShape = () => {
@@ -27,6 +28,12 @@ export function MapFAB({ onCreatePost, onUploadPhoto, onDropPin, onWaterSystem, 
   };
 
   const actions: FABAction[] = [
+    {
+      icon: <Leaf className="h-5 w-5" />,
+      label: 'Add Plant',
+      onClick: onAddPlant,
+      color: 'bg-green-700 text-white'
+    },
     {
       icon: <Waves className="h-5 w-5" />,
       label: 'Water System',
