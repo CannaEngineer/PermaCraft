@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { searchFeatures } from '@/lib/map/feature-search';
 import { groupByType, groupByLayer, groupByPhase } from '@/lib/map/feature-grouping';
+import { center } from '@turf/center';
 
 interface FeatureListPanelProps {
   zones: any[];
@@ -28,6 +29,44 @@ const getGroupIcon = (groupName: string) => {
   if (groupName === 'Phases' || groupName.match(/Year|Unscheduled/)) return Calendar;
   return Square;
 };
+
+/**
+ * Get center coordinates for a feature
+ */
+function getFeatureCoordinates(feature: any, featureType: string): [number, number] | null {
+  if (featureType === 'planting') {
+    // Plantings are points
+    return [feature.lng, feature.lat];
+  }
+
+  if (featureType === 'zone' || featureType === 'line') {
+    // Zones and lines have GeoJSON geometry
+    if (feature.geometry) {
+      try {
+        const geojson = typeof feature.geometry === 'string' ? JSON.parse(feature.geometry) : feature.geometry;
+        const centerPoint = center(geojson);
+        return centerPoint.geometry.coordinates as [number, number];
+      } catch (error) {
+        console.error('Failed to parse geometry:', error);
+        return null;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Determine feature type from grouped features
+ */
+function getFeatureType(feature: any, allFeatures: { zones: any[]; plantings: any[]; lines: any[]; guilds: any[]; phases: any[] }): 'zone' | 'planting' | 'line' | 'guild' | 'phase' | null {
+  if (allFeatures.zones.some(z => z.id === feature.id)) return 'zone';
+  if (allFeatures.plantings.some(p => p.id === feature.id)) return 'planting';
+  if (allFeatures.lines.some(l => l.id === feature.id)) return 'line';
+  if (allFeatures.guilds.some(g => g.id === feature.id)) return 'guild';
+  if (allFeatures.phases.some(p => p.id === feature.id)) return 'phase';
+  return null;
+}
 
 export function FeatureListPanel({
   zones,
@@ -79,6 +118,8 @@ export function FeatureListPanel({
 
   const totalCount = zones.length + plantings.length + lines.length + guilds.length + phases.length;
 
+  const allFeatures = useMemo(() => ({ zones, plantings, lines, guilds, phases }), [zones, plantings, lines, guilds, phases]);
+
   // Save active view preference to localStorage
   const handleViewChange = (view: ViewMode) => {
     setActiveView(view);
@@ -112,6 +153,24 @@ export function FeatureListPanel({
       }
       return next;
     });
+  };
+
+  const handleFeatureClick = (feature: any) => {
+    const featureType = getFeatureType(feature, allFeatures);
+    if (!featureType) return;
+
+    // Pan map to feature
+    const coords = getFeatureCoordinates(feature, featureType);
+    if (coords && mapRef.current) {
+      mapRef.current.flyTo({
+        center: coords,
+        zoom: 18,
+        duration: 500
+      });
+    }
+
+    // Open details drawer
+    onFeatureSelect(feature.id, featureType);
   };
 
   return (
@@ -211,16 +270,20 @@ export function FeatureListPanel({
                         <div
                           key={feature.id}
                           className="p-2 hover:bg-accent rounded cursor-pointer transition-colors"
-                          onClick={() => {
-                            // TODO: Determine feature type and call onFeatureSelect
-                            console.log('Feature clicked:', feature);
+                          onClick={() => handleFeatureClick(feature)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleFeatureClick(feature);
+                            }
                           }}
                         >
-                          <div className="text-sm">
+                          <div className="text-sm truncate">
                             {feature.name || feature.common_name || feature.label || 'Unnamed'}
                           </div>
                           {feature.scientific_name && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground truncate">
                               {feature.scientific_name}
                             </div>
                           )}
