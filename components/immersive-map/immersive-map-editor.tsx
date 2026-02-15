@@ -607,6 +607,13 @@ function ImmersiveMapEditorContent({
     [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, nativeSpecies, plantings, goals]
   );
 
+  // Farm context for GuildDesigner
+  const farmContext = useMemo(() => ({
+    climate_zone: farm.climate_zone || '',
+    soil_type: farm.soil_type ?? undefined,
+    rainfall_inches: farm.rainfall_inches ?? undefined
+  }), [farm]);
+
   // Handle feature selection for annotation panel
   const handleFeatureSelect = useCallback((featureId: string, featureType: 'zone' | 'planting' | 'line', featureData?: any) => {
     setSelectedFeature({ id: featureId, type: featureType });
@@ -644,13 +651,6 @@ function ImmersiveMapEditorContent({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed]);
-
-  // Farm context for GuildDesigner
-  const farmContext = useMemo(() => ({
-    climate_zone: farm.climate_zone || '',
-    soil_type: farm.soil_type ?? undefined,
-    rainfall_inches: farm.rainfall_inches ?? undefined
-  }), [farm]);
 
   // MapFAB action handlers
   const handleCreatePost = () => {
