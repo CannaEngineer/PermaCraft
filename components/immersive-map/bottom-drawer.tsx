@@ -79,7 +79,7 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl pb-16 md:pb-0"
+        className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl pb-16 md:pb-0 flex flex-col"
         style={{ willChange: 'transform' }}
       >
         {/* Grab Tab - hangs above drawer */}
@@ -95,7 +95,7 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         </div>
 
         {/* Content */}
-        <div className="px-4 pb-4 overflow-y-auto max-h-[calc(80vh-48px)]">
+        <div className="px-4 pb-4 overflow-y-auto flex-1">
           {children}
         </div>
       </motion.div>
