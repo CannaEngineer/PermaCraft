@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronDown, ChevronRight, Square, Sprout, Minus, Sparkles, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { searchFeatures } from '@/lib/map/feature-search';
@@ -18,6 +18,16 @@ interface FeatureListPanelProps {
 }
 
 type ViewMode = 'type' | 'layer' | 'phase';
+
+// Icon mapping
+const getGroupIcon = (groupName: string) => {
+  if (groupName === 'Zones') return Square;
+  if (groupName === 'Plantings' || groupName.match(/Canopy|Understory|Shrub|Herbaceous|Groundcover|Vine|Root/)) return Sprout;
+  if (groupName === 'Lines') return Minus;
+  if (groupName === 'Guilds') return Sparkles;
+  if (groupName === 'Phases' || groupName.match(/Year|Unscheduled/)) return Calendar;
+  return Square;
+};
 
 export function FeatureListPanel({
   zones,
@@ -92,6 +102,18 @@ export function FeatureListPanel({
     setSearchQuery('');
   };
 
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupName)) {
+        next.delete(groupName);
+      } else {
+        next.add(groupName);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 space-y-4">
@@ -153,10 +175,72 @@ export function FeatureListPanel({
           </Button>
         </div>
 
-        {/* Feature List - TODO */}
-        <div className="text-sm text-muted-foreground">
-          Groups: {Object.keys(groupedFeatures).join(', ')}
+        {/* Feature List */}
+        <div className="space-y-2 overflow-y-auto max-h-[400px]">
+          {Object.entries(groupedFeatures).map(([groupName, features]) => {
+            const isExpanded = expandedGroups.has(groupName);
+            const Icon = getGroupIcon(groupName);
+
+            return (
+              <div key={groupName} className="border rounded-md">
+                {/* Group Header */}
+                <button
+                  onClick={() => toggleGroup(groupName)}
+                  className="w-full flex items-center gap-2 p-2 hover:bg-accent rounded-md transition-colors"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-sm">
+                    {groupName} ({features.length})
+                  </span>
+                </button>
+
+                {/* Group Items */}
+                {isExpanded && (
+                  <div className="pl-8 pr-2 pb-2 space-y-1">
+                    {features.length === 0 ? (
+                      <div className="text-xs text-muted-foreground py-2">
+                        No features in this group
+                      </div>
+                    ) : (
+                      features.map((feature: any) => (
+                        <div
+                          key={feature.id}
+                          className="p-2 hover:bg-accent rounded cursor-pointer transition-colors"
+                          onClick={() => {
+                            // TODO: Determine feature type and call onFeatureSelect
+                            console.log('Feature clicked:', feature);
+                          }}
+                        >
+                          <div className="text-sm">
+                            {feature.name || feature.common_name || feature.label || 'Unnamed'}
+                          </div>
+                          {feature.scientific_name && (
+                            <div className="text-xs text-muted-foreground">
+                              {feature.scientific_name}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {/* Empty State */}
+        {Object.keys(groupedFeatures).length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No features yet.</p>
+            <p className="text-xs mt-2">Use the FAB to add zones, plantings, or lines.</p>
+          </div>
+        )}
       </div>
     </div>
   );
