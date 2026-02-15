@@ -15,6 +15,10 @@ import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { PhotoUploadDialog } from "./photo-upload-dialog";
+import { WaterSystemPanel } from "@/components/water/water-system-panel";
+import { GuildDesigner } from "@/components/guilds/guild-designer";
+import { PhaseManager } from "@/components/phasing/phase-manager";
+import { ExportPanel } from "@/components/export/export-panel";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
@@ -230,6 +234,12 @@ function ImmersiveMapEditorContent({
 
   // Visible layer IDs for filtering
   const [visibleLayerIds, setVisibleLayerIds] = useState<string[]>([]);
+
+  // Guild context for GuildDesigner
+  const [guildContext, setGuildContext] = useState<{
+    focalSpecies: any;
+    farmContext: { climate_zone: string; soil_type?: string; rainfall_inches?: number };
+  } | null>(null);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -639,6 +649,35 @@ function ImmersiveMapEditorContent({
     openDrawer('species-picker', 'medium');
   };
 
+  const handleOpenWaterSystem = useCallback(() => {
+    openDrawer('water-system', 'medium');
+  }, [openDrawer]);
+
+  const handleOpenGuildDesigner = useCallback(() => {
+    // TODO: Implement species picker first, then transition to guild designer
+    // For now, open with placeholder context
+    setGuildContext({
+      focalSpecies: null,
+      farmContext: farmContext
+    });
+    openDrawer('guild-designer', 'max');
+  }, [openDrawer, farmContext]);
+
+  const handleOpenPhaseManager = useCallback(() => {
+    openDrawer('phase-manager', 'medium');
+  }, [openDrawer]);
+
+  const handleOpenExport = useCallback(() => {
+    openDrawer('export', 'medium');
+  }, [openDrawer]);
+
+  // Farm context for GuildDesigner
+  const farmContext = useMemo(() => ({
+    climate_zone: farm.climate_zone || '',
+    soil_type: farm.soil_type,
+    rainfall_inches: farm.rainfall_inches
+  }), [farm]);
+
   // Filter zones by visible layers
   const filteredZones = useMemo(() => {
     if (visibleLayerIds.length === 0) {
@@ -696,6 +735,7 @@ function ImmersiveMapEditorContent({
         onOpenChat={() => setChatOpen(true)}
         onOpenGoals={() => setShowGoalsWizard(true)}
         onDeleteClick={() => setDeleteDialogOpen(true)}
+        onExport={handleOpenExport}
       />
 
       {/* Drawing Toolbar (conditional) */}
@@ -724,8 +764,26 @@ function ImmersiveMapEditorContent({
             featureId={selectedFeature.id}
             featureType={selectedFeature.type}
           />
+        ) : drawerContent === 'water-system' ? (
+          <WaterSystemPanel farmId={farm.id} />
+        ) : drawerContent === 'guild-designer' && guildContext ? (
+          <GuildDesigner
+            farmId={farm.id}
+            focalSpecies={guildContext.focalSpecies}
+            farmContext={guildContext.farmContext}
+          />
+        ) : drawerContent === 'phase-manager' ? (
+          <PhaseManager farmId={farm.id} />
+        ) : drawerContent === 'export' ? (
+          <ExportPanel
+            farmId={farm.id}
+            farmName={farm.name}
+            mapInstance={mapRef.current}
+          />
         ) : (
-          <div>Drawer content goes here</div>
+          <div className="p-4 text-muted-foreground">
+            {drawerContent ? 'Panel loading...' : 'Select a feature or use the action menu'}
+          </div>
         )}
       </BottomDrawer>
 
@@ -772,6 +830,9 @@ function ImmersiveMapEditorContent({
         onCreatePost={handleCreatePost}
         onUploadPhoto={handleUploadPhoto}
         onDropPin={handleDropPin}
+        onWaterSystem={handleOpenWaterSystem}
+        onBuildGuild={handleOpenGuildDesigner}
+        onTimeline={handleOpenPhaseManager}
       />
 
       {/* Create Post Dialog */}
