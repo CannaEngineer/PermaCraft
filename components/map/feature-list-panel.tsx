@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { searchFeatures } from '@/lib/map/feature-search';
+import { groupByType, groupByLayer, groupByPhase } from '@/lib/map/feature-grouping';
 
 interface FeatureListPanelProps {
   zones: any[];
@@ -41,6 +42,14 @@ export function FeatureListPanel({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Load active view preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('feature-list-view');
+    if (saved === 'type' || saved === 'layer' || saved === 'phase') {
+      setActiveView(saved);
+    }
+  }, []);
+
   // Apply search filter
   const filteredFeatures = useMemo(() => {
     const allFeatures = { zones, plantings, lines, guilds, phases };
@@ -59,6 +68,25 @@ export function FeatureListPanel({
   }, [filteredFeatures]);
 
   const totalCount = zones.length + plantings.length + lines.length + guilds.length + phases.length;
+
+  // Save active view preference to localStorage
+  const handleViewChange = (view: ViewMode) => {
+    setActiveView(view);
+    localStorage.setItem('feature-list-view', view);
+    // Expand all groups when switching views
+    setExpandedGroups(new Set());
+  };
+
+  // Group features based on active view
+  const groupedFeatures = useMemo(() => {
+    if (activeView === 'type') {
+      return groupByType(filteredFeatures);
+    } else if (activeView === 'layer') {
+      return groupByLayer(filteredFeatures);
+    } else {
+      return groupByPhase(filteredFeatures, phases);
+    }
+  }, [activeView, filteredFeatures, phases]);
 
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -97,14 +125,37 @@ export function FeatureListPanel({
           </div>
         )}
 
-        {/* View Tabs - TODO */}
-        <div className="text-sm text-muted-foreground">
-          View tabs coming soon
+        {/* View Tabs */}
+        <div className="flex gap-1 border-b border-border">
+          <Button
+            variant={activeView === 'type' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewChange('type')}
+            className="rounded-b-none"
+          >
+            By Type
+          </Button>
+          <Button
+            variant={activeView === 'layer' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewChange('layer')}
+            className="rounded-b-none"
+          >
+            By Layer
+          </Button>
+          <Button
+            variant={activeView === 'phase' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewChange('phase')}
+            className="rounded-b-none"
+          >
+            By Phase
+          </Button>
         </div>
 
         {/* Feature List - TODO */}
         <div className="text-sm text-muted-foreground">
-          {resultCount} features to display
+          Groups: {Object.keys(groupedFeatures).join(', ')}
         </div>
       </div>
     </div>
