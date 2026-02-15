@@ -24,7 +24,7 @@ export interface OptimizedImage {
 export async function optimizeScreenshot(
   imageBuffer: Buffer,
   options: OptimizationOptions = {}
-): Promise<Buffer> {
+): Promise<OptimizedImage> {
   const {
     maxWidth = 1280,
     maxHeight = 960,
@@ -73,15 +73,34 @@ export async function optimizeScreenshot(
 
     const optimized = await pipeline.toBuffer();
 
-    // If still too large, reduce quality iteratively
-    if (optimized.byteLength > 200 * 1024 && quality > 60) {
+    // Prevent infinite recursion and warn about quality loss
+    if (optimized.byteLength > 200 * 1024) {
+      if (quality <= 60) {
+        console.warn('Could not optimize image below 200KB at quality 60');
+        const finalMetadata = await sharp(optimized).metadata();
+        return {
+          buffer: optimized,
+          format,
+          width: finalMetadata.width || 0,
+          height: finalMetadata.height || 0,
+          size: optimized.byteLength
+        };
+      }
       return optimizeScreenshot(imageBuffer, {
         ...options,
         quality: quality - 10
       });
     }
 
-    return optimized;
+    // Return full metadata
+    const finalMetadata = await sharp(optimized).metadata();
+    return {
+      buffer: optimized,
+      format,
+      width: finalMetadata.width || 0,
+      height: finalMetadata.height || 0,
+      size: optimized.byteLength
+    };
   } catch (error) {
     console.error('Screenshot optimization failed:', error);
     throw error;

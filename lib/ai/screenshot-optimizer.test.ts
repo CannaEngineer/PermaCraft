@@ -14,8 +14,12 @@ describe('Screenshot Optimizer', () => {
       quality: 85
     });
 
-    expect(optimized.byteLength).toBeLessThan(testImage.byteLength);
-    expect(optimized.byteLength).toBeLessThan(200 * 1024); // < 200KB
+    expect(optimized.size).toBeLessThan(testImage.byteLength);
+    expect(optimized.size).toBeLessThan(200 * 1024); // < 200KB
+    expect(optimized.buffer).toBeInstanceOf(Buffer);
+    expect(optimized.format).toBe('webp');
+    expect(optimized.width).toBeGreaterThan(0);
+    expect(optimized.height).toBeGreaterThan(0);
   });
 
   test('calculates optimal resolution based on detail level', () => {
