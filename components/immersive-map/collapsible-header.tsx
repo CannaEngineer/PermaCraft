@@ -2,7 +2,7 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
@@ -17,6 +17,7 @@ interface CollapsibleHeaderProps {
   onOpenChat: () => void;
   onOpenGoals: () => void;
   onDeleteClick: () => void;
+  onExport: () => void;
 }
 
 export function CollapsibleHeader({
@@ -29,6 +30,7 @@ export function CollapsibleHeader({
   onOpenChat,
   onOpenGoals,
   onDeleteClick,
+  onExport,
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
 
@@ -151,6 +153,17 @@ export function CollapsibleHeader({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Export Button - Desktop only */}
+          <Button
+            variant="outline"
+            size={headerCollapsed ? "icon" : "default"}
+            onClick={onExport}
+            className="hidden md:flex"
+          >
+            <Download className={headerCollapsed ? "h-4 w-4" : "h-4 w-4 sm:mr-2"} />
+            {!headerCollapsed && <span className="hidden sm:inline">Export</span>}
+          </Button>
 
           {/* Always visible: AI Chat */}
           <Button
