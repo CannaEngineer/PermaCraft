@@ -3415,6 +3415,32 @@ export function FarmMap({
         </div>
       )}
 
+      {/* Finish Line Button - Touch Devices Only */}
+      {drawMode === 'draw_line_string' && (
+        <div className="absolute top-14 right-20 z-10 md:hidden">
+          <Button
+            onClick={() => {
+              if (draw.current) {
+                // Get the feature being drawn
+                const features = draw.current.getAll();
+                if (features.features.length > 0) {
+                  // Changing mode to simple_select completes the drawing
+                  draw.current.changeMode('simple_select');
+                  toast({
+                    title: 'Line completed',
+                    description: 'Tap to continue editing or exit drawing mode'
+                  });
+                }
+              }
+            }}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+          >
+            ✓ Finish Line
+          </Button>
+        </div>
+      )}
+
       {/* Compass Rose - Desktop Only */}
       <div className="hidden md:block">
         <CompassRose bearing={bearing} />
