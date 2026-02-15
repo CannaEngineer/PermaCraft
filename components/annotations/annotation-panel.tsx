@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Trash2 } from 'lucide-react';
+import { DeleteFeatureDialog } from '@/components/shared/delete-feature-dialog';
 
 interface AnnotationPanelProps {
   farmId: string;
@@ -19,9 +21,12 @@ export function AnnotationPanel({
 }: AnnotationPanelProps) {
   const [annotation, setAnnotation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [featureName, setFeatureName] = useState<string>();
 
   useEffect(() => {
     loadAnnotation();
+    loadFeatureDetails();
   }, [farmId, featureId, featureType]);
 
   async function loadAnnotation() {
@@ -45,6 +50,37 @@ export function AnnotationPanel({
     }
   }
 
+  async function loadFeatureDetails() {
+    try {
+      let endpoint = '';
+      if (featureType === 'zone') {
+        endpoint = `/api/farms/${farmId}/zones`;
+      } else if (featureType === 'planting') {
+        endpoint = `/api/farms/${farmId}/plantings`;
+      }
+
+      if (endpoint) {
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        const features = featureType === 'zone' ? data.zones : data.plantings;
+        const feature = features?.find((f: any) => f.id === featureId);
+        if (feature) {
+          setFeatureName(feature.name || feature.common_name);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load feature details:', error);
+    }
+  }
+
+  const handleDeleteSuccess = () => {
+    if (onClose) {
+      onClose();
+    }
+    // The parent should refresh the map
+    window.location.reload();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -56,15 +92,27 @@ export function AnnotationPanel({
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Feature Details</h3>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
+        <h3 className="text-lg font-semibold">
+          {featureName || 'Feature Details'}
+        </h3>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeleteDialogOpen(true)}
           >
-            ✕
-          </button>
-        )}
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {annotation ? (
@@ -114,6 +162,17 @@ export function AnnotationPanel({
           {/* TODO: Create annotation form */}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteFeatureDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        farmId={farmId}
+        featureId={featureId}
+        featureType={featureType}
+        featureName={featureName}
+        onDeleteSuccess={handleDeleteSuccess}
+      />
     </div>
   );
 }
