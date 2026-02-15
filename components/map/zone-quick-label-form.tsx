@@ -174,15 +174,7 @@ export function ZoneQuickLabelForm({
             </label>
             <select
               value={zoneType}
-              onChange={(e) => {
-                setZoneType(e.target.value);
-                // Auto-save on type selection (unless it's the default "other")
-                if (e.target.value !== 'other') {
-                  setTimeout(() => {
-                    onSave(e.target.value, zoneName.trim() || undefined);
-                  }, 100);
-                }
-              }}
+              onChange={(e) => setZoneType(e.target.value)}
               className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-background"
               autoFocus
             >
