@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ChevronDown, ChevronUp, Filter, Map, Activity, Settings, Clock, Leaf, Play, Pause, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, Map, Activity, Settings, Clock, Leaf, Play, Pause, RotateCcw, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
+import { FeatureListPanel } from "./feature-list-panel";
 
 type MapLayer = "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
 type GridDensity = "auto" | "sparse" | "normal" | "dense" | "off";
@@ -46,9 +47,13 @@ interface MapBottomDrawerProps {
 
   // Actions
   onAddPlant?: () => void;
+
+  // Feature List props
+  onFeatureSelectFromList?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase') => void;
+  mapRef?: React.RefObject<any>;
 }
 
-type Tab = 'legend' | 'filters' | 'vitals' | 'settings' | 'timemachine';
+type Tab = 'legend' | 'filters' | 'vitals' | 'settings' | 'timemachine' | 'features';
 
 export function MapBottomDrawer({
   mapLayer,
@@ -76,6 +81,8 @@ export function MapBottomDrawer({
   onToggleGridUnit,
   onChangeGridDensity,
   onAddPlant,
+  onFeatureSelectFromList,
+  mapRef,
 }: MapBottomDrawerProps) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('filters');
@@ -227,6 +234,17 @@ export function MapBottomDrawer({
             >
               <Settings className="inline h-3 w-3 mr-1" />
               Settings
+            </button>
+            <button
+              onClick={() => setActiveTab('features')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'features'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              <List className="inline h-3 w-3 mr-1" />
+              Features
             </button>
             <button
               onClick={() => {
@@ -515,6 +533,26 @@ export function MapBottomDrawer({
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === 'features' && (
+            <div>
+              {onFeatureSelectFromList && mapRef ? (
+                <FeatureListPanel
+                  zones={zones}
+                  plantings={plantings || []}
+                  lines={[]} // TODO: Pass lines when available
+                  guilds={[]} // TODO: Pass guilds when available
+                  phases={[]} // TODO: Pass phases when available
+                  onFeatureSelect={onFeatureSelectFromList}
+                  mapRef={mapRef}
+                />
+              ) : (
+                <div className="p-4 text-sm text-muted-foreground">
+                  Feature list not available
+                </div>
+              )}
             </div>
           )}
 
