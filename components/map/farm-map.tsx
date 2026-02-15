@@ -110,7 +110,7 @@ interface FarmMapProps {
   onMapLayerChange?: (layer: string) => void;
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
   externalDrawingMode?: boolean;
-  externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | null;
+  externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
