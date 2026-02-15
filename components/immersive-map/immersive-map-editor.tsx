@@ -765,9 +765,7 @@ function ImmersiveMapEditorContent({
             featureType={selectedFeature.type}
           />
         ) : drawerContent === 'water-system' ? (
-          <div className="p-4">
-            <WaterSystemPanel farmId={farm.id} />
-          </div>
+          <WaterSystemPanel farmId={farm.id} />
         ) : drawerContent === 'guild-designer' ? (
           guildContext && guildContext.focalSpecies ? (
             <GuildDesigner
@@ -786,17 +784,13 @@ function ImmersiveMapEditorContent({
             </div>
           )
         ) : drawerContent === 'phase-manager' ? (
-          <div className="p-4">
-            <PhaseManager farmId={farm.id} />
-          </div>
+          <PhaseManager farmId={farm.id} />
         ) : drawerContent === 'export' ? (
-          <div className="p-4">
-            <ExportPanel
-              farmId={farm.id}
-              farmName={farm.name}
-              mapInstance={mapRef.current}
-            />
-          </div>
+          <ExportPanel
+            farmId={farm.id}
+            farmName={farm.name}
+            mapInstance={mapRef.current}
+          />
         ) : (
           <div className="p-4 text-muted-foreground">
             {drawerContent ? 'Panel loading...' : 'Select a feature or use the action menu'}
