@@ -2,11 +2,11 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { Square, Circle, MapPin, Edit, Trash2, Check } from "lucide-react";
+import { Square, Circle, MapPin, Edit, Trash2, Check, Minus } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface DrawingToolbarProps {
-  onToolSelect: (tool: 'polygon' | 'circle' | 'point' | 'edit' | 'delete') => void;
+  onToolSelect: (tool: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line') => void;
   onZoneTypeClick: () => void;
   currentZoneType: string;
 }
@@ -20,13 +20,14 @@ export function DrawingToolbar({
 
   if (!drawingMode) return null;
 
-  const handleToolClick = (tool: 'polygon' | 'circle' | 'point' | 'edit' | 'delete') => {
+  const handleToolClick = (tool: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line') => {
     setActiveDrawTool(tool);
     onToolSelect(tool);
   };
 
   const tools = [
     { id: 'polygon' as const, icon: Square, label: 'Draw Polygon' },
+    { id: 'line' as const, icon: Minus, label: 'Draw Line' },
     { id: 'circle' as const, icon: Circle, label: 'Draw Circle' },
     { id: 'point' as const, icon: MapPin, label: 'Add Point' },
     { id: 'edit' as const, icon: Edit, label: 'Edit Shape' },
