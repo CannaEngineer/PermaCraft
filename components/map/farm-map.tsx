@@ -1945,6 +1945,52 @@ export function FarmMap({
         return;
       }
 
+      // Handle feature selection when not in any drawing mode
+      if (!circleMode && !externalDrawingMode && onFeatureSelect && map.current) {
+        const features = map.current.queryRenderedFeatures(e.point, {
+          layers: ['plantings-layer', 'colored-zones-fill', 'colored-lines', 'colored-points']
+        });
+
+        if (features.length > 0) {
+          const feature = features[0];
+
+          // Handle planting selection
+          if (feature.layer.id === 'plantings-layer' && feature.properties) {
+            const plantingData = {
+              id: feature.properties.id,
+              species_id: feature.properties.species_id,
+              common_name: feature.properties.common_name,
+              scientific_name: feature.properties.scientific_name,
+              layer: feature.properties.layer,
+              planted_year: feature.properties.planted_year,
+              lat: feature.properties.lat,
+              lng: feature.properties.lng,
+            };
+            onFeatureSelect(feature.properties.id, 'planting', plantingData);
+            return;
+          }
+
+          // Handle zone selection
+          if (feature.layer.id === 'colored-zones-fill' && feature.properties) {
+            onFeatureSelect(feature.properties.id || feature.id?.toString(), 'zone', {
+              id: feature.properties.id || feature.id,
+              name: feature.properties.name,
+              zone_type: feature.properties.user_zone_type,
+            });
+            return;
+          }
+
+          // Handle line selection
+          if (feature.layer.id === 'colored-lines' && feature.properties) {
+            onFeatureSelect(feature.properties.id || feature.id?.toString(), 'line', {
+              id: feature.properties.id || feature.id,
+              name: feature.properties.name,
+            });
+            return;
+          }
+        }
+      }
+
       // Handle circle mode
       if (!circleMode || !draw.current) return;
 
@@ -2001,7 +2047,7 @@ export function FarmMap({
         map.current.off("touchend", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {

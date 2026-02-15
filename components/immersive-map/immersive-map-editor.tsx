@@ -608,10 +608,19 @@ function ImmersiveMapEditorContent({
   );
 
   // Handle feature selection for annotation panel
-  const handleFeatureSelect = useCallback((featureId: string, featureType: 'zone' | 'planting' | 'line') => {
+  const handleFeatureSelect = useCallback((featureId: string, featureType: 'zone' | 'planting' | 'line', featureData?: any) => {
     setSelectedFeature({ id: featureId, type: featureType });
+
+    // If it's a planting, store it for guild building
+    if (featureType === 'planting' && featureData) {
+      setGuildContext({
+        focalSpecies: featureData,
+        farmContext: farmContext
+      });
+    }
+
     openDrawer('details', 'medium');
-  }, [openDrawer]);
+  }, [openDrawer, farmContext]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -661,14 +670,16 @@ function ImmersiveMapEditorContent({
   }, [openDrawer]);
 
   const handleOpenGuildDesigner = useCallback(() => {
-    // TODO: Implement species picker first, then transition to guild designer
-    // For now, open with placeholder context
-    setGuildContext({
-      focalSpecies: null,
-      farmContext: farmContext
-    });
+    // If no focal species selected yet, ensure context exists but with null species
+    // (the drawer will show a message to select a plant)
+    if (!guildContext || !guildContext.focalSpecies) {
+      setGuildContext({
+        focalSpecies: null,
+        farmContext: farmContext
+      });
+    }
     openDrawer('guild-designer', 'max');
-  }, [openDrawer, farmContext]);
+  }, [openDrawer, farmContext, guildContext]);
 
   const handleOpenPhaseManager = useCallback(() => {
     openDrawer('phase-manager', 'max');
@@ -719,6 +730,7 @@ function ImmersiveMapEditorContent({
           }}
           onMapLayerChange={setCurrentMapLayer}
           onGetRecommendations={() => {}}
+          onFeatureSelect={handleFeatureSelect}
           externalDrawingMode={drawingMode}
           externalDrawTool={activeDrawTool}
         />
