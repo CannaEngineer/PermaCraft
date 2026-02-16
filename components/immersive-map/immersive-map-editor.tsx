@@ -19,10 +19,12 @@ import { WaterSystemPanel } from "@/components/water/water-system-panel";
 import { GuildDesigner } from "@/components/guilds/guild-designer";
 import { PhaseManager } from "@/components/phasing/phase-manager";
 import { ExportPanel } from "@/components/export/export-panel";
+import { SpeciesPickerPanel } from "@/components/map/species-picker-panel";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
+import { analyzeWithOptimization } from "@/lib/ai/optimized-analyze";
 
 /**
  * Build legend context text for AI
@@ -493,154 +495,59 @@ function ImmersiveMapEditorContent({
     return screenshotData;
   }, [mapContainerRef, mapRef]);
 
-  // AI analyze handler
+  // AI analyze handler (optimized)
   const handleAnalyze = useCallback(
     async (query: string, conversationId?: string) => {
       if (!mapContainerRef.current || !mapRef.current) {
         throw new Error("Map not ready");
       }
 
-      const currentLayerScreenshot = await captureMapScreenshot();
+      try {
+        // Capture screenshot
+        const screenshot = await captureMapScreenshot();
 
-      const originalLayer = currentMapLayer;
-      const isTopoLayer = originalLayer === "usgs" || originalLayer === "topo" || originalLayer === "terrain";
-      const secondLayer = isTopoLayer ? "satellite" : "usgs";
-
-      let secondScreenshot: string;
-
-      const currentStyle = mapRef.current.getStyle();
-
-      let secondStyle;
-      if (isTopoLayer) {
-        secondStyle = {
-          version: 8 as const,
-          sources: {
-            satellite: {
-              type: "raster" as const,
-              tiles: [
-                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-              ],
-              tileSize: 256,
-              maxzoom: 19,
-            },
+        // Use optimized analysis
+        const result = await analyzeWithOptimization({
+          userQuery: query,
+          screenshotDataURL: screenshot,
+          farmContext: {
+            zones,
+            plantings,
+            lines,
+            goals,
+            nativeSpecies
           },
-          layers: [{ id: "satellite", type: "raster" as const, source: "satellite" }],
-        };
-      } else {
-        secondStyle = {
-          version: 8 as const,
-          sources: {
-            usgs: {
-              type: "raster" as const,
-              tiles: [
-                "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
-              ],
-              tileSize: 256,
-              maxzoom: 16,
-            },
-          },
-          layers: [{ id: "usgs", type: "raster" as const, source: "usgs" }],
-        };
-      }
-
-      mapRef.current.setStyle(secondStyle);
-
-      await new Promise<void>((resolve) => {
-        const onStyleData = () => {
-          mapRef.current!.once("idle", () => {
-            setTimeout(() => resolve(), 1000);
-          });
-        };
-
-        if (mapRef.current!.isStyleLoaded()) {
-          onStyleData();
-        } else {
-          mapRef.current!.once("styledata", onStyleData);
-        }
-
-        setTimeout(() => resolve(), 15000);
-      });
-
-      secondScreenshot = await captureMapScreenshot();
-
-      mapRef.current.setStyle(currentStyle);
-
-      await new Promise<void>((resolve) => {
-        mapRef.current!.once("styledata", () => {
-          mapRef.current!.once("idle", () => {
-            setTimeout(() => resolve(), 500);
-          });
+          farmInfo: {
+            id: farm.id,
+            climate_zone: farm.climate_zone,
+            rainfall_inches: farm.rainfall_inches,
+            soil_type: farm.soil_type
+          }
         });
-        setTimeout(() => resolve(), 10000);
-      });
 
-      const allCoords: number[][] = [];
-      zones.forEach((zone) => {
-        const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
-        if (geom.type === 'Point') {
-          allCoords.push(geom.coordinates);
-        } else if (geom.type === 'LineString') {
-          allCoords.push(...geom.coordinates);
-        } else if (geom.type === 'Polygon') {
-          allCoords.push(...geom.coordinates[0]);
+        // Log metadata
+        console.log('Analysis complete:', result.metadata);
+
+        // Show toast (metadata display - simplified for now)
+        if (result.metadata.cached) {
+          console.log(`[Cached] Saved ${result.metadata.totalTokens} tokens`);
+        } else {
+          console.log(`[New] ${result.metadata.screenshotSize} bytes, ${result.metadata.totalTokens} tokens`);
         }
-      });
 
-      const farmBounds = allCoords.length > 0 ? {
-        north: Math.max(...allCoords.map(c => c[1])),
-        south: Math.min(...allCoords.map(c => c[1])),
-        east: Math.max(...allCoords.map(c => c[0])),
-        west: Math.min(...allCoords.map(c => c[0])),
-      } : {
-        north: farm.center_lat + 0.001,
-        south: farm.center_lat - 0.001,
-        east: farm.center_lng + 0.001,
-        west: farm.center_lng - 0.001,
-      };
-
-      const analyzeRes = await fetch("/api/ai/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          farmId: farm.id,
-          conversationId,
-          query,
-          screenshots: [
-            { type: isTopoLayer ? "topo" : "satellite", data: currentLayerScreenshot },
-            { type: isTopoLayer ? "satellite" : "topo", data: secondScreenshot },
-          ],
-          mapLayer: currentMapLayer,
-          legendContext: buildLegendContext(currentMapLayer, zones),
-          nativeSpeciesContext: buildNativeSpeciesContext(nativeSpecies),
-          plantingsContext: buildPlantingsContext(plantings),
-          goalsContext: buildGoalsContext(goals),
-          zones: zones.map((zone) => {
-            const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
-            return {
-              type: zone.zone_type,
-              name: zone.name || "Unlabeled",
-              geometryType: geom.type,
-            };
-          }),
-        }),
-      });
-
-      if (!analyzeRes.ok) {
-        const errorData = await analyzeRes.json().catch(() => ({ error: "Unknown error" }));
-        const errorMessage = errorData.message || errorData.error || "Analysis failed";
-        throw new Error(errorMessage);
+        return {
+          response: result.response,
+          conversationId: conversationId || 'new',
+          analysisId: 'new',
+          screenshot: screenshot,
+          generatedImageUrl: undefined
+        };
+      } catch (error) {
+        console.error('Analysis failed:', error);
+        throw error;
       }
-
-      const data = await analyzeRes.json();
-      return {
-        response: data.response,
-        conversationId: data.conversationId,
-        analysisId: data.analysisId,
-        screenshot: currentLayerScreenshot,
-        generatedImageUrl: data.generatedImageUrl,
-      };
     },
-    [farm.id, currentMapLayer, zones, mapContainerRef, mapRef, captureMapScreenshot, nativeSpecies, plantings, goals]
+    [farm.id, farm.climate_zone, farm.rainfall_inches, farm.soil_type, zones, plantings, lines, goals, nativeSpecies, captureMapScreenshot]
   );
 
   // Farm context for GuildDesigner
@@ -703,6 +610,19 @@ function ImmersiveMapEditorContent({
 
   const handleAddPlant = () => {
     openDrawer('species-picker', 'medium');
+  };
+
+  const handleSelectSpecies = (species: any) => {
+    // Close the drawer
+    closeDrawer();
+
+    // For now, just show a toast that the species was selected
+    // In the future, this should trigger planting mode on the map
+    console.log('Species selected:', species);
+
+    // TODO: Trigger planting mode on FarmMap component
+    // This would require passing the selected species to FarmMap
+    // and having FarmMap enter planting mode
   };
 
   const handleOpenWaterSystem = useCallback(() => {
@@ -842,6 +762,12 @@ function ImmersiveMapEditorContent({
             farmId={farm.id}
             farmName={farm.name}
             mapInstance={mapRef.current}
+          />
+        ) : drawerContent === 'species-picker' ? (
+          <SpeciesPickerPanel
+            farmId={farm.id}
+            onSelectSpecies={handleSelectSpecies}
+            onClose={closeDrawer}
           />
         ) : (
           <div className="p-4 text-muted-foreground">
