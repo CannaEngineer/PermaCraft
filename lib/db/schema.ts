@@ -39,6 +39,8 @@ export interface Zone {
   properties: string | null; // JSON - for farm_boundary: { name, area_acres, area_hectares }
   layer_ids: string | null; // JSON array of layer IDs
   phase_id: string | null;
+  catchment_properties: string | null; // JSON: CatchmentProperties
+  swale_properties: string | null; // JSON: SwaleProperties
   created_at: number;
   updated_at: number;
 }
@@ -476,6 +478,7 @@ export interface Line {
   label: string | null;
   style: string; // JSON: LineStyle
   layer_ids: string | null; // JSON array
+  water_properties: string | null; // JSON: WaterProperties
   created_at: number;
   updated_at: number;
 }

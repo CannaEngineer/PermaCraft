@@ -1,76 +1,84 @@
-import * as turf from '@turf/turf';
-import type { Polygon, LineString } from 'geojson';
-
 /**
- * Calculate catchment area in square feet and estimated capture volume
+ * Water harvesting calculation utilities
+ * Based on standard permaculture hydrology formulas
  */
-export function calculateCatchment(
-  polygon: Polygon,
-  rainfallInchesPerYear: number
-): {
-  areaSquareFeet: number;
-  areaAcres: number;
-  estimatedCaptureGallons: number;
-} {
-  const areaSquareMeters = turf.area(polygon);
-  const areaSquareFeet = areaSquareMeters * 10.764;
-  const areaAcres = areaSquareFeet / 43560;
 
-  // Calculate capture volume
-  const rainfallFeet = rainfallInchesPerYear / 12;
-  const volumeCubicFeet = areaSquareFeet * rainfallFeet;
-  const estimatedCaptureGallons = volumeCubicFeet * 7.48; // ft³ to gallons
-
-  return {
-    areaSquareFeet: Math.round(areaSquareFeet),
-    areaAcres: parseFloat(areaAcres.toFixed(3)),
-    estimatedCaptureGallons: Math.round(estimatedCaptureGallons)
-  };
+export interface RainfallCatchmentInput {
+  catchmentAreaSqFt: number;
+  annualRainfallInches: number;
+  runoffCoefficient?: number; // 0.0-1.0, default 0.9 for roofs
 }
 
-/**
- * Calculate swale volume based on length and cross-section
- * Assumes triangular cross-section
- */
-export function calculateSwaleVolume(
-  lineGeometry: LineString,
-  widthFeet: number,
-  depthFeet: number
-): {
+export interface SwaleVolumeInput {
   lengthFeet: number;
-  lengthMeters: number;
-  volumeCubicFeet: number;
-  volumeGallons: number;
-  volumeLiters: number;
-} {
-  // Wrap LineString in a Feature for turf.length
-  const lineFeature = turf.lineString(lineGeometry.coordinates);
-  const lengthMeters = turf.length(lineFeature, { units: 'meters' });
-  const lengthFeet = lengthMeters * 3.28084;
-
-  // Triangular cross-section: (width * depth / 2) * length
-  const volumeCubicFeet = (widthFeet * depthFeet / 2) * lengthFeet;
-  const volumeGallons = volumeCubicFeet * 7.48;
-  const volumeLiters = volumeGallons * 3.78541;
-
-  return {
-    lengthFeet: Math.round(lengthFeet),
-    lengthMeters: parseFloat(lengthMeters.toFixed(2)),
-    volumeCubicFeet: Math.round(volumeCubicFeet),
-    volumeGallons: Math.round(volumeGallons),
-    volumeLiters: Math.round(volumeLiters)
-  };
+  widthFeet: number;
+  depthFeet: number;
+  sideSlope?: number; // Default 2:1 (horizontal:vertical)
 }
 
 /**
- * Get average annual rainfall for a location (mock for now)
- * TODO: Integrate with NOAA API or use user input
+ * Calculate annual water capture from a catchment area
+ * Formula: Volume (gallons) = Area (sq ft) × Rainfall (inches) × 0.623 × Runoff Coefficient
  */
-export async function getAverageRainfall(
-  lat: number,
-  lng: number
-): Promise<number> {
-  // For MVP, return a placeholder
-  // In production, call NOAA Climate Data API
-  return 40; // inches per year (national average)
+export function calculateCatchmentCapture(input: RainfallCatchmentInput): number {
+  const { catchmentAreaSqFt, annualRainfallInches, runoffCoefficient = 0.9 } = input;
+  const gallonsPerInch = catchmentAreaSqFt * 0.623;
+  const annualCapture = gallonsPerInch * annualRainfallInches * runoffCoefficient;
+  return Math.round(annualCapture);
+}
+
+/**
+ * Calculate swale water holding capacity
+ * Formula for trapezoidal cross-section
+ */
+export function calculateSwaleCapacity(input: SwaleVolumeInput): number {
+  const { lengthFeet, widthFeet, depthFeet, sideSlope = 2 } = input;
+  const bottomWidth = widthFeet;
+  const topWidth = bottomWidth + (2 * depthFeet * sideSlope);
+  const avgWidth = (bottomWidth + topWidth) / 2;
+  const crossSectionArea = avgWidth * depthFeet;
+  const volumeCubicFeet = crossSectionArea * lengthFeet;
+  const volumeGallons = volumeCubicFeet * 7.48052;
+  return Math.round(volumeGallons);
+}
+
+/**
+ * Calculate area from GeoJSON geometry
+ */
+export function calculateAreaFromGeometry(geometry: any): number {
+  if (geometry.type !== 'Polygon' || !geometry.coordinates) return 0;
+  const coords = geometry.coordinates[0];
+  let area = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [x1, y1] = coords[i];
+    const [x2, y2] = coords[i + 1];
+    area += x1 * y2 - x2 * y1;
+  }
+  area = Math.abs(area / 2);
+  const feetPerDegree = 364000;
+  return Math.round(area * feetPerDegree * feetPerDegree);
+}
+
+/**
+ * Calculate length from GeoJSON LineString
+ */
+export function calculateLengthFromGeometry(geometry: any): number {
+  if (geometry.type !== 'LineString' || !geometry.coordinates) return 0;
+  const coords = geometry.coordinates;
+  let totalLength = 0;
+  const toRadians = (deg: number) => deg * (Math.PI / 180);
+  const R = 20902231; // Earth radius in feet
+
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [lon1, lat1] = coords[i];
+    const [lon2, lat2] = coords[i + 1];
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    totalLength += R * c;
+  }
+  return Math.round(totalLength);
 }
