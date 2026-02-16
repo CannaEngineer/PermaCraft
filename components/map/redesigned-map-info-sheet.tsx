@@ -70,7 +70,8 @@ export function RedesignedMapInfoSheet({
         <div className="px-3 md:px-4 py-2 md:py-3 flex items-center justify-between">
           <button
             onClick={() => setIsExpanded(true)}
-            className="flex-1 text-left"
+            className="flex-1 text-left min-h-[44px] flex flex-col justify-center"
+            aria-label="Expand map info sheet"
           >
             <div className={tokens.typography.subtitle}>Map Info</div>
             <div className="flex items-center gap-2 mt-1">
@@ -84,7 +85,8 @@ export function RedesignedMapInfoSheet({
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(true)}
-            className="h-7"
+            className="h-11 w-11 md:h-7 md:w-auto"
+            aria-label="Expand"
           >
             <ChevronUp className="h-4 w-4" />
           </Button>
@@ -96,13 +98,13 @@ export function RedesignedMapInfoSheet({
         <>
           {/* Header with section tabs */}
           <div className="border-b border-border bg-card/50">
-            <div className="px-4 py-2 flex items-center justify-between">
+            <div className="px-3 md:px-4 py-2 flex items-center justify-between">
               <div className="flex gap-1">
                 <Button
                   variant={activeSection === 'overview' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveSection('overview')}
-                  className="h-8 text-xs"
+                  className="h-9 md:h-8 text-xs px-3 md:px-4"
                 >
                   Overview
                 </Button>
@@ -110,7 +112,7 @@ export function RedesignedMapInfoSheet({
                   variant={activeSection === 'filters' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveSection('filters')}
-                  className="h-8 text-xs"
+                  className="h-9 md:h-8 text-xs px-3 md:px-4"
                 >
                   Filters
                 </Button>
@@ -118,7 +120,7 @@ export function RedesignedMapInfoSheet({
                   variant={activeSection === 'advanced' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveSection('advanced')}
-                  className="h-8 text-xs"
+                  className="h-9 md:h-8 text-xs px-3 md:px-4"
                 >
                   Advanced
                 </Button>
@@ -128,7 +130,8 @@ export function RedesignedMapInfoSheet({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsExpanded(false)}
-                className="h-7"
+                className="h-11 w-11 md:h-7 md:w-auto"
+                aria-label="Collapse"
               >
                 <ChevronDown className="h-4 w-4" />
               </Button>
