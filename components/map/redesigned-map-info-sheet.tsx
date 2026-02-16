@@ -1,7 +1,7 @@
 // components/map/redesigned-map-info-sheet.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { MAP_INFO_TOKENS as tokens } from '@/lib/design/map-info-tokens';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronUp, Leaf, Square, Droplets, Sparkles, Sprout, Activity, TrendingUp } from 'lucide-react';
@@ -53,6 +53,31 @@ export function RedesignedMapInfoSheet({
 }: RedesignedMapInfoSheetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'filters' | 'advanced'>('overview');
+
+  // Memoize quick actions to prevent recreation on every render
+  const quickActions = useMemo(() => [
+    { id: 'plant', label: 'Add Plant', icon: Leaf, onClick: onAddPlant },
+    { id: 'zone', label: 'Draw Zone', icon: Square, onClick: onDrawZone },
+    { id: 'water', label: 'Water System', icon: Droplets, onClick: onWaterSystem },
+    { id: 'guild', label: 'Build Guild', icon: Sparkles, onClick: onBuildGuild }
+  ], [onAddPlant, onDrawZone, onWaterSystem, onBuildGuild]);
+
+  // Memoize stats to prevent recreation
+  const quickStats = useMemo(() => [
+    { label: 'Plantings', value: plantingCount, icon: Sprout, color: 'success' as const },
+    { label: 'Zones', value: zoneCount, icon: Square, color: 'info' as const },
+    { label: 'Functions', value: functionCount, icon: Activity, color: 'warning' as const },
+    { label: 'Coverage', value: '78%', icon: TrendingUp, color: 'success' as const }
+  ], [plantingCount, zoneCount, functionCount]);
+
+  // Memoized clear handlers with debouncing
+  const handleClearLayerFilters = useCallback(() => {
+    activeLayerFilters.forEach(id => onToggleLayerFilter(id));
+  }, [activeLayerFilters, onToggleLayerFilter]);
+
+  const handleClearVitalFilters = useCallback(() => {
+    activeVitalFilters.forEach(id => onToggleVitalFilter(id));
+  }, [activeVitalFilters, onToggleVitalFilter]);
 
   return (
     <div
@@ -143,24 +168,8 @@ export function RedesignedMapInfoSheet({
             <div className="p-4 space-y-3">
               {activeSection === 'overview' && (
                 <>
-                  <QuickActionsBar
-                    actions={[
-                      { id: 'plant', label: 'Add Plant', icon: Leaf, onClick: onAddPlant },
-                      { id: 'zone', label: 'Draw Zone', icon: Square, onClick: onDrawZone },
-                      { id: 'water', label: 'Water System', icon: Droplets, onClick: onWaterSystem },
-                      { id: 'guild', label: 'Build Guild', icon: Sparkles, onClick: onBuildGuild }
-                    ]}
-                  />
-
-                  <QuickStatsCard
-                    title="Farm Overview"
-                    stats={[
-                      { label: 'Plantings', value: plantingCount, icon: Sprout, color: 'success' },
-                      { label: 'Zones', value: zoneCount, icon: Square, color: 'info' },
-                      { label: 'Functions', value: functionCount, icon: Activity, color: 'warning' },
-                      { label: 'Coverage', value: '78%', icon: TrendingUp, color: 'success' }
-                    ]}
-                  />
+                  <QuickActionsBar actions={quickActions} />
+                  <QuickStatsCard title="Farm Overview" stats={quickStats} />
                 </>
               )}
 
@@ -171,9 +180,7 @@ export function RedesignedMapInfoSheet({
                     filters={layerFilters}
                     activeFilters={activeLayerFilters}
                     onToggle={onToggleLayerFilter}
-                    onClearAll={() => {
-                      activeLayerFilters.forEach(id => onToggleLayerFilter(id));
-                    }}
+                    onClearAll={handleClearLayerFilters}
                   />
 
                   <CompactFilterPills
@@ -181,9 +188,7 @@ export function RedesignedMapInfoSheet({
                     filters={vitalFilters}
                     activeFilters={activeVitalFilters}
                     onToggle={onToggleVitalFilter}
-                    onClearAll={() => {
-                      activeVitalFilters.forEach(id => onToggleVitalFilter(id));
-                    }}
+                    onClearAll={handleClearVitalFilters}
                   />
                 </>
               )}
