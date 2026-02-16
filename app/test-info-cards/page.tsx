@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { QuickStatsCard } from '@/components/map/info-cards/quick-stats-card';
 import { CompactFilterPills } from '@/components/map/info-cards/compact-filter-pills';
-import { Sprout, Square, Activity, TrendingUp } from 'lucide-react';
+import { QuickActionsBar } from '@/components/map/info-cards/quick-actions-bar';
+import { Sprout, Square, Activity, TrendingUp, Leaf, Droplets, Sparkles } from 'lucide-react';
 
 export default function TestPage() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
@@ -36,6 +37,15 @@ export default function TestPage() {
           );
         }}
         onClearAll={() => setActiveFilters([])}
+      />
+
+      <QuickActionsBar
+        actions={[
+          { id: 'plant', label: 'Add Plant', icon: Leaf, onClick: () => alert('Add plant') },
+          { id: 'zone', label: 'Draw Zone', icon: Square, onClick: () => alert('Draw zone') },
+          { id: 'water', label: 'Water System', icon: Droplets, onClick: () => alert('Water'), badge: 3 },
+          { id: 'guild', label: 'Build Guild', icon: Sparkles, onClick: () => alert('Guild') }
+        ]}
       />
     </div>
   );
