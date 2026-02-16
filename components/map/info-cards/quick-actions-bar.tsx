@@ -39,15 +39,19 @@ export function QuickActionsBar({ actions, className }: QuickActionsBarProps) {
               key={action.id}
               variant={action.variant || 'outline'}
               className={cn(
-                'flex flex-col items-center justify-center h-auto py-3 gap-2 relative',
+                'flex flex-col items-center justify-center h-auto py-3 gap-2 relative min-h-[44px]',
                 tokens.animation.card
               )}
               onClick={action.onClick}
+              aria-label={action.badge ? `${action.label} (${action.badge} items)` : action.label}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-5 w-5" aria-hidden="true" />
               <span className="text-xs font-medium">{action.label}</span>
               {action.badge && (
-                <span className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                <span
+                  className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  aria-label={`${action.badge} notifications`}
+                >
                   {action.badge}
                 </span>
               )}

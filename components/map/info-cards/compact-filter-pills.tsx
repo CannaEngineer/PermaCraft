@@ -58,10 +58,20 @@ export function CompactFilterPills({
             <Badge
               key={filter.id}
               variant={isActive ? "default" : "outline"}
+              role="checkbox"
+              aria-checked={isActive}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggle(filter.id);
+                }
+              }}
               className={cn(
                 'cursor-pointer select-none',
                 tokens.animation.card,
-                isActive && 'pr-1'
+                isActive && 'pr-1',
+                'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
               )}
               onClick={() => onToggle(filter.id)}
             >
@@ -70,14 +80,15 @@ export function CompactFilterPills({
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: filter.color }}
+                    aria-hidden="true"
                   />
                 )}
                 <span>{filter.label}</span>
                 {filter.count !== undefined && (
-                  <span className="text-xs opacity-70">({filter.count})</span>
+                  <span className="text-xs opacity-70" aria-label={`${filter.count} items`}>({filter.count})</span>
                 )}
                 {isActive && (
-                  <X className="h-3 w-3 ml-1" />
+                  <X className="h-3 w-3 ml-1" aria-hidden="true" />
                 )}
               </span>
             </Badge>

@@ -45,18 +45,27 @@ export function QuickStatsCard({ stats, title, className }: QuickStatsCardProps)
           return (
             <div
               key={index}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  // Future: Handle stat click action
+                }
+              }}
+              aria-label={`${stat.label}: ${stat.value}`}
               className={cn(
                 tokens.colors.card.background,
                 tokens.spacing.card.padding,
                 'flex flex-col items-center justify-center text-center',
                 tokens.colors.card.hover,
-                'cursor-pointer'
+                'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
               )}
             >
               <div className={cn(
                 'p-2 rounded-full mb-2',
                 colorClass || 'bg-primary/10'
-              )}>
+              )} aria-hidden="true">
                 <Icon className="h-4 w-4" />
               </div>
               <div className={tokens.typography.value}>{stat.value}</div>
