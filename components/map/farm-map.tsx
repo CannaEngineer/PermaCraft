@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
 import { MapBottomDrawer } from "./map-bottom-drawer";
+import { RedesignedMapInfoSheet } from "./redesigned-map-info-sheet";
 import { MeasurementOverlay } from "./measurement-overlay";
 import { PlantingMarker } from "./planting-marker";
 import { SpeciesPickerPanel } from "./species-picker-panel";
@@ -115,6 +116,39 @@ interface FarmMapProps {
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
+
+// Layer colors for filter pills
+const LAYER_COLORS: Record<string, string> = {
+  canopy: '#166534',
+  understory: '#16a34a',
+  shrub: '#22c55e',
+  herbaceous: '#84cc16',
+  groundcover: '#a3e635',
+  vine: '#a855f7',
+  root: '#78350f',
+  aquatic: '#0284c7'
+};
+
+const LAYER_LABELS: Record<string, string> = {
+  canopy: 'Canopy',
+  understory: 'Understory',
+  shrub: 'Shrub',
+  herbaceous: 'Herbaceous',
+  groundcover: 'Groundcover',
+  vine: 'Vine',
+  root: 'Root',
+  aquatic: 'Aquatic'
+};
+
+const VITAL_LABELS: Record<string, string> = {
+  nitrogen_fixer: 'N-Fixers',
+  pollinator_support: 'Pollinators',
+  dynamic_accumulator: 'Accumulators',
+  wildlife_habitat: 'Wildlife',
+  edible_fruit: 'Edible',
+  medicinal: 'Medicinal',
+  erosion_control: 'Erosion Control'
+};
 
 export function FarmMap({
   farm,
@@ -3572,37 +3606,104 @@ export function FarmMap({
       </div>
 
       {/* Unified Bottom Drawer - Contains Vitals, Filters, and Legend in tabs */}
-      <MapBottomDrawer
-        mapLayer={mapLayer}
-        gridUnit={gridUnit}
-        gridDensity={gridDensity}
-        zones={zones}
-        plantings={plantings}
-        lines={lines}
-        guilds={guilds}
-        phases={farmPhases}
-        isTimeMachineOpen={isTimeMachineOpen}
-        onOpenTimeMachine={() => setIsTimeMachineOpen(true)}
-        onCloseTimeMachine={() => setIsTimeMachineOpen(false)}
-        currentYear={projectionYear}
-        onYearChange={setProjectionYear}
-        minYear={new Date().getFullYear()}
-        maxYear={new Date().getFullYear() + 20}
-        plantingFilters={plantingFilters}
-        onTogglePlantingFilter={toggleLayerFilter}
-        vitalFilters={vitalFilters}
-        onToggleVitalFilter={toggleVitalFilter}
-        onGetRecommendations={onGetRecommendations}
-        onChangeLayer={changeMapLayer}
-        onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
-        onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
-        onAddPlant={() => {
-          setPlantingMode(true);
-          setShowSpeciesPicker(true);
-        }}
-        onFeatureSelectFromList={onFeatureSelect}
-        mapRef={map}
-      />
+      {process.env.NEXT_PUBLIC_USE_REDESIGNED_INFO_SHEET === 'true' ? (
+        <RedesignedMapInfoSheet
+          plantingCount={filteredPlantings.length}
+          zoneCount={zones.filter(z => z.zone_type !== 'farm_boundary').length}
+          functionCount={(() => {
+            const functionSet = new Set<string>();
+            filteredPlantings.forEach(p => {
+              if (p.permaculture_functions) {
+                const functions = typeof p.permaculture_functions === 'string'
+                  ? JSON.parse(p.permaculture_functions)
+                  : p.permaculture_functions;
+                functions.forEach((fn: string) => functionSet.add(fn));
+              }
+            });
+            return functionSet.size;
+          })()}
+          layerFilters={Object.keys(LAYER_COLORS).map(layer => ({
+            id: layer,
+            label: LAYER_LABELS[layer] || layer,
+            color: LAYER_COLORS[layer],
+            count: plantings.filter(p => p.layer === layer).length
+          }))}
+          activeLayerFilters={plantingFilters}
+          onToggleLayerFilter={toggleLayerFilter}
+          vitalFilters={Object.keys(VITAL_LABELS).map(vital => ({
+            id: vital,
+            label: VITAL_LABELS[vital] || vital,
+            count: plantings.filter(p => {
+              if (!p.permaculture_functions) return false;
+              const functions = typeof p.permaculture_functions === 'string'
+                ? JSON.parse(p.permaculture_functions)
+                : p.permaculture_functions;
+              const vitalVariants = vitalTypeMap[vital as keyof typeof vitalTypeMap] || [vital];
+              return vitalVariants.some(variant => functions.includes(variant));
+            }).length
+          }))}
+          activeVitalFilters={vitalFilters}
+          onToggleVitalFilter={toggleVitalFilter}
+          onAddPlant={() => {
+            setPlantingMode(true);
+            setShowSpeciesPicker(true);
+          }}
+          onDrawZone={() => {
+            // Trigger drawing mode
+            if (draw.current) {
+              draw.current.changeMode('draw_polygon');
+            }
+          }}
+          onWaterSystem={() => {
+            // Open water system - placeholder
+            toast({
+              title: 'Water System',
+              description: 'Water system design tools coming soon!'
+            });
+          }}
+          onBuildGuild={() => {
+            // Open guild builder - placeholder
+            toast({
+              title: 'Guild Builder',
+              description: 'Guild builder coming soon!'
+            });
+          }}
+        >
+          {/* Advanced content placeholder */}
+        </RedesignedMapInfoSheet>
+      ) : (
+        <MapBottomDrawer
+          mapLayer={mapLayer}
+          gridUnit={gridUnit}
+          gridDensity={gridDensity}
+          zones={zones}
+          plantings={plantings}
+          lines={lines}
+          guilds={guilds}
+          phases={farmPhases}
+          isTimeMachineOpen={isTimeMachineOpen}
+          onOpenTimeMachine={() => setIsTimeMachineOpen(true)}
+          onCloseTimeMachine={() => setIsTimeMachineOpen(false)}
+          currentYear={projectionYear}
+          onYearChange={setProjectionYear}
+          minYear={new Date().getFullYear()}
+          maxYear={new Date().getFullYear() + 20}
+          plantingFilters={plantingFilters}
+          onTogglePlantingFilter={toggleLayerFilter}
+          vitalFilters={vitalFilters}
+          onToggleVitalFilter={toggleVitalFilter}
+          onGetRecommendations={onGetRecommendations}
+          onChangeLayer={changeMapLayer}
+          onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
+          onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
+          onAddPlant={() => {
+            setPlantingMode(true);
+            setShowSpeciesPicker(true);
+          }}
+          onFeatureSelectFromList={onFeatureSelect}
+          mapRef={map}
+        />
+      )}
 
       {/* Render planting markers */}
       {map.current && filteredPlantings.map(planting => (
