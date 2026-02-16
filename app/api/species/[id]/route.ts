@@ -3,10 +3,10 @@ import type { Species } from '@/lib/db/schema';
 
 export async function GET(
   request: Request,
-  { params }: { params: { speciesId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const species = await getSpeciesById(params.speciesId);
+    const species = await getSpeciesById(params.id);
 
     if (!species) {
       return Response.json(

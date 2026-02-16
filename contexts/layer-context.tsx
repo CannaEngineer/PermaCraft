@@ -55,10 +55,10 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
       setLayers(data.layers || []);
 
       // Update visible/locked sets
-      const visible = new Set(
+      const visible = new Set<string>(
         data.layers.filter((l: DesignLayer) => l.visible).map((l: DesignLayer) => l.id)
       );
-      const locked = new Set(
+      const locked = new Set<string>(
         data.layers.filter((l: DesignLayer) => l.locked).map((l: DesignLayer) => l.id)
       );
 
