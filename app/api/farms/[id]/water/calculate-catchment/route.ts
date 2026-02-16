@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { calculateCatchment } from '@/lib/water/calculations';
+import { calculateCatchmentCapture, calculateAreaFromGeometry } from '@/lib/water/calculations';
 
 export async function POST(
   request: NextRequest,
@@ -30,7 +30,12 @@ export async function POST(
   }
 
   const geometry = JSON.parse(zone.rows[0].geometry as string);
-  const result = calculateCatchment(geometry, body.rainfall_inches_per_year);
+  const areaSquareFeet = calculateAreaFromGeometry(geometry);
+  
+  const estimatedCaptureGallons = calculateCatchmentCapture({
+    catchmentAreaSqFt: areaSquareFeet,
+    annualRainfallInches: body.rainfall_inches_per_year
+  });
 
   // Update zone with catchment properties
   await db.execute({
@@ -39,12 +44,16 @@ export async function POST(
       JSON.stringify({
         is_catchment: true,
         rainfall_inches_per_year: body.rainfall_inches_per_year,
-        estimated_capture_gallons: result.estimatedCaptureGallons,
+        estimated_capture_gallons: estimatedCaptureGallons,
         destination_feature_id: body.destination_feature_id || null
       }),
       body.zone_id
     ]
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json({
+    areaSquareFeet,
+    estimatedCaptureGallons,
+    rainfallInchesPerYear: body.rainfall_inches_per_year
+  });
 }

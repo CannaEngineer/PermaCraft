@@ -35,6 +35,8 @@ import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib
 import { animateFlowArrows } from "@/lib/map/water-flow-animation";
 import type { FeatureCollection, LineString, Point } from "geojson";
 import "../../app/mapbox-draw-override.css";
+import { WaterPropertiesForm } from "./water-properties-form";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 /**
  * MapLibre Style Expression Generators
@@ -178,6 +180,7 @@ export function FarmMap({
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [zoneLabel, setZoneLabel] = useState("");
   const [zoneType, setZoneType] = useState<string>("other");
+  const [showWaterProperties, setShowWaterProperties] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [bearing, setBearing] = useState(0);
   const [pitch, setPitch] = useState(0);
@@ -3556,6 +3559,18 @@ export function FarmMap({
             >
               Save Zone
             </Button>
+
+            {/* Water Properties Button - Show for water-related zones */}
+            {(zoneType === 'pond' || zoneType === 'swale' || zoneType === 'water_body' || zoneType === 'water_flow') && (
+              <Button
+                onClick={() => setShowWaterProperties(true)}
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+              >
+                💧 Configure Water Properties
+              </Button>
+            )}
           </div>
 
           <p className="text-xs text-muted-foreground mt-3">
@@ -3838,6 +3853,35 @@ export function FarmMap({
         onCreatePost={() => setShowCreatePost(true)}
         hasPlantings={plantings.length > 0}
       />
+
+      {/* Water Properties Dialog */}
+      {selectedZone && showWaterProperties && (
+        <Dialog open={showWaterProperties} onOpenChange={setShowWaterProperties}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <WaterPropertiesForm
+              feature={zones.find(z => z.id === selectedZone)!}
+              featureType="zone"
+              onSave={async (properties) => {
+                try {
+                  const response = await fetch(`/api/farms/${farm.id}/zones/${selectedZone}/water-properties`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(properties)
+                  });
+
+                  if (!response.ok) throw new Error('Failed to save water properties');
+
+                  // Refresh zones
+                  window.location.reload(); // Simple refresh for now
+                } catch (error) {
+                  throw error;
+                }
+              }}
+              onClose={() => setShowWaterProperties(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

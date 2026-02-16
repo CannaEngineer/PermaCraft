@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { calculateSwaleVolume } from '@/lib/water/calculations';
+import { calculateSwaleCapacity } from '@/lib/water/calculations';
 
 export async function POST(
   request: NextRequest,
@@ -12,36 +12,18 @@ export async function POST(
   const farmId = params.id;
   const body = await request.json();
 
-  if (!body.zone_id || !body.cross_section_width_feet || !body.cross_section_depth_feet) {
+  if (!body.zone_id || !body.length_feet || !body.width_feet || !body.depth_feet) {
     return NextResponse.json(
-      { error: 'Missing required fields' },
+      { error: 'Missing required fields: zone_id, length_feet, width_feet, depth_feet' },
       { status: 400 }
     );
   }
 
-  // Get zone geometry (could also be a line)
-  const zone = await db.execute({
-    sql: 'SELECT geometry FROM zones WHERE id = ? AND farm_id = ?',
-    args: [body.zone_id, farmId]
+  const estimatedVolumeGallons = calculateSwaleCapacity({
+    lengthFeet: body.length_feet,
+    widthFeet: body.width_feet,
+    depthFeet: body.depth_feet
   });
-
-  if (zone.rows.length === 0) {
-    return NextResponse.json({ error: 'Zone not found' }, { status: 404 });
-  }
-
-  const geometry = JSON.parse(zone.rows[0].geometry as string);
-
-  // Convert polygon to linestring (use boundary)
-  // For MVP, assume it's already a line or use first ring
-  const lineGeometry = geometry.type === 'LineString'
-    ? geometry
-    : { type: 'LineString', coordinates: geometry.coordinates[0] };
-
-  const result = calculateSwaleVolume(
-    lineGeometry,
-    body.cross_section_width_feet,
-    body.cross_section_depth_feet
-  );
 
   // Update zone with swale properties
   await db.execute({
@@ -49,15 +31,20 @@ export async function POST(
     args: [
       JSON.stringify({
         is_swale: true,
-        length_feet: result.lengthFeet,
-        cross_section_width_feet: body.cross_section_width_feet,
-        cross_section_depth_feet: body.cross_section_depth_feet,
-        estimated_volume_gallons: result.volumeGallons,
+        length_feet: body.length_feet,
+        cross_section_width_feet: body.width_feet,
+        cross_section_depth_feet: body.depth_feet,
+        estimated_volume_gallons: estimatedVolumeGallons,
         overflow_destination_id: body.overflow_destination_id || null
       }),
       body.zone_id
     ]
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json({
+    lengthFeet: body.length_feet,
+    widthFeet: body.width_feet,
+    depthFeet: body.depth_feet,
+    estimatedVolumeGallons
+  });
 }
