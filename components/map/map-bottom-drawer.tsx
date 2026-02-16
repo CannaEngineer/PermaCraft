@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
 import { FeatureListPanel } from "./feature-list-panel";
+import { RedesignedTimeMachine } from "@/components/time-machine/redesigned-time-machine";
 
 type MapLayer = "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
 type GridDensity = "auto" | "sparse" | "normal" | "dense" | "off";
@@ -304,7 +305,7 @@ export function MapBottomDrawer({
 
       {/* Content Area - Tab Content */}
       {!effectiveCollapsed && (
-        <div className="overflow-y-auto max-h-[60vh]">
+        <div className="overflow-y-auto max-h-[60vh] overscroll-contain">
           {activeTab === 'vitals' && (
             <div className="p-4">
               <FarmVitals
@@ -563,70 +564,14 @@ export function MapBottomDrawer({
           )}
 
           {activeTab === 'timemachine' && currentYear !== undefined && onYearChange && (
-            <div className="px-4 py-3">
-              <div className="space-y-4">
-                {/* Year Slider */}
-                <div>
-                  <div className="text-sm font-medium mb-2">Projection Year: {currentYear}</div>
-                  <input
-                    type="range"
-                    min={minYear}
-                    max={maxYear}
-                    value={currentYear}
-                    onChange={(e) => onYearChange(Number(e.target.value))}
-                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{minYear}</span>
-                    <span>{maxYear}</span>
-                  </div>
-                </div>
-
-                {/* Playback Controls */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={isPlaying ? "default" : "outline"}
-                    onClick={() => setIsPlaying(!isPlaying)}
-                  >
-                    {isPlaying ? (
-                      <>
-                        <Pause className="h-3 w-3 mr-1" />
-                        Pause
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-3 w-3 mr-1" />
-                        Play
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onYearChange(minYear)}
-                  >
-                    <RotateCcw className="h-3 w-3 mr-1" />
-                    Reset
-                  </Button>
-                  {onCloseTimeMachine && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={onCloseTimeMachine}
-                      className="ml-auto"
-                    >
-                      Close
-                    </Button>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                  <p>Watch your farm grow over time! Use the slider or playback controls to see how plants mature based on their growth rates.</p>
-                </div>
-              </div>
-            </div>
+            <RedesignedTimeMachine
+              plantings={plantings}
+              currentYear={currentYear}
+              onYearChange={onYearChange}
+              minYear={minYear}
+              maxYear={maxYear}
+              onClose={onCloseTimeMachine}
+            />
           )}
 
           {activeTab === 'legend' && (
