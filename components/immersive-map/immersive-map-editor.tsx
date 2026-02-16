@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ImmersiveMapUIProvider, useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
+import { LayerProvider } from "@/contexts/layer-context";
 import { CollapsibleHeader } from "./collapsible-header";
 import { DrawingToolbar } from "./drawing-toolbar";
 import { BottomDrawer } from "./bottom-drawer";
@@ -853,7 +854,9 @@ function ImmersiveMapEditorContent({
 export function ImmersiveMapEditor(props: ImmersiveMapEditorProps) {
   return (
     <ImmersiveMapUIProvider>
-      <ImmersiveMapEditorContent {...props} />
+      <LayerProvider farmId={props.farm.id}>
+        <ImmersiveMapEditorContent {...props} />
+      </LayerProvider>
     </ImmersiveMapUIProvider>
   );
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
 import { FeatureListPanel } from "./feature-list-panel";
 import { RedesignedTimeMachine } from "@/components/time-machine/redesigned-time-machine";
+import { LayerManager } from "@/components/layers/layer-manager";
 
 type MapLayer = "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
 type GridDensity = "auto" | "sparse" | "normal" | "dense" | "off";
@@ -539,6 +540,12 @@ export function MapBottomDrawer({
                     </div>
                   </div>
                 )}
+
+                {/* Layer Manager */}
+                <div>
+                  <div className="text-sm font-medium mb-2">Layer Management</div>
+                  <LayerManager />
+                </div>
               </div>
             </div>
           )}
