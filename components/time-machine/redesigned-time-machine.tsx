@@ -126,21 +126,23 @@ export function RedesignedTimeMachine({
       </div>
 
       {/* Timeline */}
-      <div className="p-6 border-b border-border">
+      <div className="p-4 md:p-6 border-b border-border">
         <TimelineViz
           minYear={minYear}
           maxYear={maxYear}
           currentYear={currentYear}
           milestones={allMilestones}
           onYearChange={onYearChange}
+          className="touch-none"
         />
 
         {/* Playback controls */}
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onYearChange(minYear)}
+            className="min-w-[80px]"
           >
             <RotateCcw className="h-4 w-4 mr-1" />
             Reset
@@ -150,6 +152,7 @@ export function RedesignedTimeMachine({
             variant={isPlaying ? "default" : "outline"}
             size="sm"
             onClick={() => setIsPlaying(!isPlaying)}
+            className="min-w-[80px]"
           >
             {isPlaying ? (
               <>
@@ -172,7 +175,7 @@ export function RedesignedTimeMachine({
                 variant={playbackSpeed === speed ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setPlaybackSpeed(speed)}
-                className="w-10"
+                className="w-10 touch-manipulation"
               >
                 {speed}x
               </Button>
@@ -183,7 +186,7 @@ export function RedesignedTimeMachine({
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="grid grid-cols-1 gap-4 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
           {/* Seasonal context */}
           <motion.div
             className="bg-card border border-border rounded-lg p-4"
