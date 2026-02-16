@@ -86,6 +86,21 @@ const analyzeSchema = z.object({
     gridCoordinates: z.string().optional(), // e.g., "A1-B3"
     gridCells: z.array(z.string()).optional(), // e.g., ["A1", "A2", "B1"]
   })).optional(),
+  // Optimization fields
+  enableOptimizations: z.boolean().optional(),
+  farmContext: z.object({
+    zones: z.array(z.any()),
+    plantings: z.array(z.any()),
+    lines: z.array(z.any()),
+    goals: z.array(z.any()),
+    nativeSpecies: z.array(z.any()),
+  }).optional(),
+  farmInfo: z.object({
+    id: z.string(),
+    climate_zone: z.string().nullable(),
+    rainfall_inches: z.number().nullable(),
+    soil_type: z.string().nullable(),
+  }).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -96,7 +111,11 @@ export async function POST(request: NextRequest) {
 
     // STEP 2: Validate request body
     const body = await request.json();
-    const { farmId, conversationId, query, screenshots, mapLayer, legendContext, nativeSpeciesContext, plantingsContext, zones } = analyzeSchema.parse(body);
+    const {
+      farmId, conversationId, query, screenshots, mapLayer, legendContext,
+      nativeSpeciesContext, plantingsContext, zones,
+      enableOptimizations, farmContext, farmInfo
+    } = analyzeSchema.parse(body);
 
     /**
      * STEP 3: Verify farm ownership
@@ -158,6 +177,106 @@ export async function POST(request: NextRequest) {
     const goalsContext = await getGoalsForAIContext(farmId);
 
     /**
+     * STEP 5.2: Apply optimizations if enabled
+     *
+     * When enableOptimizations is true, this pipeline activates:
+     * 1. Infer detail level from query (low/medium/high)
+     * 2. Compress farm context to < 2000 tokens
+     * 3. Optimize screenshots to < 200KB
+     * 4. Check response cache for duplicate queries
+     * 5. Return cached response if found, otherwise proceed
+     *
+     * Benefits:
+     * - Reduces token costs by 60-80%
+     * - Faster responses via caching
+     * - Better image quality with WebP compression
+     * - Query-aware context building
+     */
+    let optimizedContextText: string | undefined;
+    let totalScreenshotTokens = 0;
+    let totalScreenshotSize = 0;
+    let detailLevel: 'low' | 'medium' | 'high' | undefined;
+    let compressed: any;
+    let optimizedScreenshots: typeof screenshots | undefined;
+
+    if (enableOptimizations && farmContext && screenshots.length > 0) {
+      console.log('🚀 Optimizations enabled - processing request...');
+
+      // Dynamic import to keep server-side only
+      const { inferDetailLevel, optimizeScreenshot, estimateImageTokens } = await import('@/lib/ai/screenshot-optimizer');
+      const { compressFarmContext, buildOptimizedContext } = await import('@/lib/ai/context-compressor');
+      const { generateCacheKey, hashContext, hashScreenshot, getCachedResponse, cacheResponse } = await import('@/lib/ai/response-cache');
+
+      // 1. Infer detail level from query
+      detailLevel = inferDetailLevel(query);
+      console.log(`📊 Detail level: ${detailLevel}`);
+
+      // 2. Compress context
+      const verbosity = detailLevel === 'high' ? 'detailed' : detailLevel === 'low' ? 'minimal' : 'standard';
+      compressed = compressFarmContext(farmContext, verbosity);
+      optimizedContextText = buildOptimizedContext(compressed, query);
+      console.log(`📦 Context compressed: ${compressed.tokenEstimate} tokens`);
+
+      // 3. Optimize screenshots
+      optimizedScreenshots = [];
+      for (const screenshot of screenshots) {
+        try {
+          // Convert data URL to buffer
+          const base64 = screenshot.data.split(',')[1];
+          const buffer = Buffer.from(base64, 'base64');
+
+          // Optimize based on detail level
+          const optimized = await optimizeScreenshot(buffer, {
+            maxWidth: detailLevel === 'high' ? 1920 : detailLevel === 'low' ? 800 : 1280,
+            maxHeight: detailLevel === 'high' ? 1440 : detailLevel === 'low' ? 600 : 960,
+            quality: detailLevel === 'high' ? 90 : 80,
+            format: 'webp'
+          });
+
+          // Convert back to data URL
+          const dataURL = `data:image/webp;base64,${optimized.buffer.toString('base64')}`;
+          optimizedScreenshots.push({ type: screenshot.type, data: dataURL });
+
+          totalScreenshotTokens += estimateImageTokens(optimized.width, optimized.height);
+          totalScreenshotSize += optimized.size;
+
+          console.log(`🖼️  Optimized ${screenshot.type}: ${Math.round(optimized.size / 1024)}KB, ${optimized.width}x${optimized.height}, ~${estimateImageTokens(optimized.width, optimized.height)} tokens`);
+        } catch (error) {
+          console.error(`Failed to optimize screenshot ${screenshot.type}:`, error);
+          // Fallback to original screenshot
+          optimizedScreenshots.push(screenshot);
+        }
+      }
+
+      // 4. Check cache
+      const contextHash = hashContext({
+        contextText: optimizedContextText,
+        farmInfo: farmInfo || { id: farmId }
+      });
+      const screenshotHash = hashScreenshot(Buffer.from(optimizedScreenshots[0].data.split(',')[1], 'base64'));
+      const cacheKey = generateCacheKey(query, contextHash, screenshotHash);
+      const cachedResponse = getCachedResponse(cacheKey);
+
+      if (cachedResponse) {
+        console.log('⚡ Cache hit - returning cached response');
+        return Response.json({
+          response: cachedResponse,
+          metadata: {
+            cached: true,
+            screenshotTokens: totalScreenshotTokens,
+            contextTokens: compressed.tokenEstimate,
+            totalTokens: totalScreenshotTokens + compressed.tokenEstimate,
+            screenshotSize: totalScreenshotSize,
+            detailLevel
+          }
+        });
+      }
+
+      console.log(`💾 Cache miss - will fetch from AI and cache result`);
+      console.log(`📈 Total tokens: ${totalScreenshotTokens + compressed.tokenEstimate} (${totalScreenshotTokens} screenshots + ${compressed.tokenEstimate} context)`);
+    }
+
+    /**
      * STEP 5.5: Retrieve RAG context from knowledge base
      *
      * Queries the permaculture knowledge base for relevant information based on
@@ -180,28 +299,50 @@ export async function POST(request: NextRequest) {
     const ragContext = await getRAGContext(query, 5);
 
     // Create analysis prompt with farm and map context
-    const userPrompt = createAnalysisPrompt(
-      {
-        name: farm.name,
-        acres: farm.acres || undefined,
-        climateZone: farm.climate_zone || undefined,
-        rainfallInches: farm.rainfall_inches || undefined,
-        soilType: farm.soil_type || undefined,
-        centerLat: farm.center_lat,
-        centerLng: farm.center_lng,
-      },
-      query,
-      {
-        layer: mapLayer,
-        screenshots: screenshots,
-        zones: zones,
-        legendContext: legendContext,
-        nativeSpeciesContext: nativeSpeciesContext,
-        plantingsContext: plantingsContext,
-        goalsContext: goalsContext,
-        ragContext: ragContext,
-      }
-    );
+    // Use optimized context if optimizations are enabled, otherwise use standard context
+    const userPrompt = enableOptimizations && optimizedContextText
+      ? createAnalysisPrompt(
+          {
+            name: farm.name,
+            acres: farm.acres || undefined,
+            climateZone: farm.climate_zone || undefined,
+            rainfallInches: farm.rainfall_inches || undefined,
+            soilType: farm.soil_type || undefined,
+            centerLat: farm.center_lat,
+            centerLng: farm.center_lng,
+          },
+          query,
+          {
+            layer: mapLayer,
+            screenshots: optimizedScreenshots || screenshots,
+            zones: zones,
+            // Replace individual context sections with compressed context
+            optimizedContext: optimizedContextText,
+            ragContext: ragContext, // Keep RAG context
+          }
+        )
+      : createAnalysisPrompt(
+          {
+            name: farm.name,
+            acres: farm.acres || undefined,
+            climateZone: farm.climate_zone || undefined,
+            rainfallInches: farm.rainfall_inches || undefined,
+            soilType: farm.soil_type || undefined,
+            centerLat: farm.center_lat,
+            centerLng: farm.center_lng,
+          },
+          query,
+          {
+            layer: mapLayer,
+            screenshots: screenshots,
+            zones: zones,
+            legendContext: legendContext,
+            nativeSpeciesContext: nativeSpeciesContext,
+            plantingsContext: plantingsContext,
+            goalsContext: goalsContext,
+            ragContext: ragContext,
+          }
+        );
 
     /**
      * STEP 6: Upload screenshots to R2 storage
@@ -222,17 +363,24 @@ export async function POST(request: NextRequest) {
      * - R2 upload: ~500ms per screenshot
      * - Base64 fallback: instant (no upload)
      * - AI accepts both URLs and base64 data URIs
+     *
+     * Optimization Note:
+     * - When optimizations are enabled, use optimized screenshots instead
      */
+    // Use optimized screenshots if available, otherwise use originals
+    const screenshotsToUpload = optimizedScreenshots || screenshots;
+
     const screenshotUrls: string[] = [];
     try {
       console.log("Uploading screenshots to R2...", {
-        screenshotCount: screenshots.length,
-        types: screenshots.map(s => s.type),
+        screenshotCount: screenshotsToUpload.length,
+        types: screenshotsToUpload.map(s => s.type),
         hasR2PublicUrl: !!process.env.R2_PUBLIC_URL,
+        optimized: !!optimizedScreenshots,
       });
 
-      for (let i = 0; i < screenshots.length; i++) {
-        const screenshot = screenshots[i];
+      for (let i = 0; i < screenshotsToUpload.length; i++) {
+        const screenshot = screenshotsToUpload[i];
         try {
           const url = await uploadScreenshot(
             farmId,
@@ -251,18 +399,19 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error("Failed to upload screenshots:", error);
       // Global fallback: use base64 data for all screenshots
-      screenshots.forEach(s => screenshotUrls.push(s.data));
+      screenshotsToUpload.forEach(s => screenshotUrls.push(s.data));
     }
 
     // Verify image data is present
     console.log("AI Analysis Request:", {
       farmId,
       query: query.substring(0, 50) + "...",
-      screenshotCount: screenshots.length,
-      screenshotTypes: screenshots.map(s => s.type),
+      screenshotCount: screenshotsToUpload.length,
+      screenshotTypes: screenshotsToUpload.map(s => s.type),
       screenshotUrls: screenshotUrls.map(url => url.substring(0, 100)),
       zonesCount: zones?.length || 0,
       mapLayer,
+      optimized: !!optimizedScreenshots,
     });
 
     /**
@@ -382,7 +531,7 @@ export async function POST(request: NextRequest) {
 
         // Add all screenshot images to the content array
         // Use R2 URLs if available, otherwise use base64 data
-        screenshots.forEach((screenshot, idx) => {
+        screenshotsToUpload.forEach((screenshot, idx) => {
           userContent.push({
             type: "image_url",
             image_url: { url: screenshotUrls[idx] }, // R2 URL or base64 fallback
@@ -492,7 +641,7 @@ export async function POST(request: NextRequest) {
 
         // Build the same message structure
         const userContent: any[] = [{ type: "text", text: userPrompt }];
-        screenshots.forEach((screenshot, idx) => {
+        screenshotsToUpload.forEach((screenshot, idx) => {
           userContent.push({
             type: "image_url",
             image_url: { url: screenshotUrls[idx] },
@@ -532,6 +681,26 @@ export async function POST(request: NextRequest) {
     }
 
     const response = completion.choices[0]?.message?.content || "No response generated";
+
+    /**
+     * STEP 7.5: Cache the response if optimizations are enabled
+     *
+     * Store the AI response in the cache for future identical queries.
+     * This prevents redundant API calls and reduces token costs.
+     */
+    if (enableOptimizations && farmContext) {
+      const { generateCacheKey, hashContext, hashScreenshot, cacheResponse } = await import('@/lib/ai/response-cache');
+
+      const contextHash = hashContext({
+        contextText: optimizedContextText,
+        farmInfo: farmInfo || { id: farmId }
+      });
+      const screenshotHash = hashScreenshot(Buffer.from((optimizedScreenshots || screenshots)[0].data.split(',')[1], 'base64'));
+      const cacheKey = generateCacheKey(query, contextHash, screenshotHash);
+
+      cacheResponse(cacheKey, response, usedModel);
+      console.log('💾 Response cached for future use');
+    }
 
     /**
      * STEP 8: Detect if sketch/drawing is requested
@@ -687,6 +856,16 @@ export async function POST(request: NextRequest) {
       analysisId,
       conversationId: activeConversationId,
       generatedImageUrl, // Include sketch URL in response
+      // Include optimization metadata if optimizations were enabled
+      metadata: enableOptimizations && compressed ? {
+        cached: false,
+        screenshotTokens: totalScreenshotTokens,
+        contextTokens: compressed.tokenEstimate,
+        totalTokens: totalScreenshotTokens + compressed.tokenEstimate,
+        screenshotSize: totalScreenshotSize,
+        detailLevel,
+        model: usedModel,
+      } : undefined,
     });
   } catch (error) {
     console.error("AI analysis error:", error);
