@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { searchFeatures } from '@/lib/map/feature-search';
 import { groupByType, groupByLayer, groupByPhase } from '@/lib/map/feature-grouping';
 import { center } from '@turf/center';
+import { getZoneTypeConfig } from '@/lib/map/zone-types';
 
 interface FeatureListPanelProps {
   zones: any[];
@@ -296,7 +297,31 @@ export function FeatureListPanel({
                           aria-label={`${feature.name || feature.common_name || feature.label || 'Unnamed'} feature`}
                         >
                           <div className="text-sm truncate">
-                            {feature.name || feature.common_name || feature.label || 'Unnamed'}
+                            {(() => {
+                              // For zones, try to get zone type label from properties
+                              if (feature.zone_type !== undefined) {
+                                if (feature.name) return feature.name;
+
+                                // Parse properties to get user_zone_type
+                                try {
+                                  const properties = typeof feature.properties === 'string'
+                                    ? JSON.parse(feature.properties)
+                                    : feature.properties;
+
+                                  if (properties?.user_zone_type) {
+                                    const zoneConfig = getZoneTypeConfig(properties.user_zone_type);
+                                    return zoneConfig.label;
+                                  }
+                                } catch (e) {
+                                  // Fallback if parsing fails
+                                }
+
+                                return 'Unnamed Zone';
+                              }
+
+                              // For other features
+                              return feature.name || feature.common_name || feature.label || 'Unnamed';
+                            })()}
                           </div>
                           {feature.scientific_name && (
                             <div className="text-xs text-muted-foreground truncate">

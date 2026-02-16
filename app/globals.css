@@ -436,6 +436,19 @@
   cursor: pointer !important;
 }
 
+/* Ensure planting markers are always clickable */
+.planting-marker {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 100 !important;
+}
+
+/* Ensure maplibre markers (plantings) are clickable */
+.maplibregl-marker {
+  pointer-events: auto !important;
+  z-index: 10 !important;
+}
+
 /* ===================================
    MICROINTERACTIONS & VISUAL FEEDBACK
    =================================== */

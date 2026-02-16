@@ -59,38 +59,3 @@ CREATE TABLE IF NOT EXISTS plant_varieties (
 CREATE INDEX IF NOT EXISTS idx_varieties_species ON plant_varieties(species_id);
 CREATE INDEX IF NOT EXISTS idx_varieties_type ON plant_varieties(variety_type);
 CREATE INDEX IF NOT EXISTS idx_varieties_rating ON plant_varieties(expert_rating DESC);
-
--- Sample data: Apple varieties
-INSERT INTO plant_varieties (
-  id,
-  species_id,
-  variety_name,
-  variety_type,
-  breeding_program,
-  elite_characteristics,
-  awards,
-  description,
-  flavor_notes,
-  hardiness_zone_min,
-  hardiness_zone_max,
-  chill_hours_required,
-  sourcing_notes,
-  availability,
-  expert_rating
-) VALUES (
-  'var-apple-honeycrisp',
-  (SELECT id FROM species WHERE common_name = 'Apple' LIMIT 1),
-  'Honeycrisp',
-  'cultivar',
-  'University of Minnesota',
-  '{"disease_resistance": ["scab_moderate"], "storage_life": "excellent", "texture": "exceptionally_crisp", "cold_hardy": true}',
-  '[{"name": "Best Apple Variety", "year": 2004, "organization": "American Pomological Society"}]',
-  'Explosively crisp texture with balanced sweet-tart flavor. Excellent storage life and cold hardiness.',
-  'Sweet-tart, honey notes, exceptionally juicy',
-  '3',
-  '8',
-  800,
-  'Widely available at nurseries. Try Stark Bros, Raintree Nursery, local garden centers.',
-  'common',
-  9
-);
