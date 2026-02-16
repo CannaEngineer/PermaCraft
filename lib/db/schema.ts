@@ -583,3 +583,63 @@ export interface SpacingRules {
   understory_radius_feet?: number;
   shrub_radius_feet?: number;
 }
+
+// Plant Varieties Types
+
+export interface PlantVariety {
+  id: string;
+  species_id: string;
+
+  // Identity
+  variety_name: string;
+  common_aliases: string | null; // JSON array
+  patent_number: string | null;
+  introduction_year: number | null;
+
+  // Classification
+  variety_type: 'cultivar' | 'hybrid' | 'heirloom' | 'wild_selection';
+  breeding_program: string | null;
+
+  // Elite characteristics
+  elite_characteristics: string | null; // JSON object
+  awards: string | null; // JSON array
+
+  // Performance
+  hardiness_zone_min: string | null;
+  hardiness_zone_max: string | null;
+  chill_hours_required: number | null;
+  days_to_maturity: number | null;
+  yield_rating: 'low' | 'medium' | 'high' | 'exceptional' | null;
+
+  // Descriptive
+  description: string | null;
+  flavor_notes: string | null;
+  color_description: string | null;
+  size_description: string | null;
+
+  // Sourcing
+  sourcing_notes: string | null;
+  average_price_usd: number | null;
+  availability: 'common' | 'specialty' | 'rare' | null;
+
+  // Photos
+  image_url: string | null;
+  gallery_urls: string | null; // JSON array
+
+  // Ratings
+  user_rating_avg: number | null;
+  expert_rating: number | null;
+  popularity_score: number;
+
+  // Meta
+  created_at: number;
+  updated_at: number;
+  created_by: string | null;
+}
+
+// Expanded interface with species info joined
+export interface PlantVarietyWithSpecies extends PlantVariety {
+  species_common_name: string;
+  species_scientific_name: string;
+  species_layer: string;
+}
