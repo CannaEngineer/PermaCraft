@@ -250,6 +250,9 @@ function ImmersiveMapEditorContent({
   // Species selected from the picker, passed to FarmMap to enter planting mode
   const [pendingPlantSpecies, setPendingPlantSpecies] = useState<{ species: Species; seq: number } | null>(null);
 
+  // Triggers FarmMap's internal species picker (same flow as map submenu "Add Plant")
+  const [triggerSpeciesPicker, setTriggerSpeciesPicker] = useState(false);
+
   // Load goals, species, plantings on mount
   useEffect(() => {
     if (farm?.id) {
@@ -613,7 +616,7 @@ function ImmersiveMapEditorContent({
   };
 
   const handleAddPlant = () => {
-    openDrawer('species-picker', 'medium');
+    setTriggerSpeciesPicker(true);
   };
 
   const handleSelectSpecies = (species: Species) => {
@@ -694,6 +697,8 @@ function ImmersiveMapEditorContent({
           externalDrawingMode={drawingMode}
           externalDrawTool={activeDrawTool}
           externalSelectedSpecies={pendingPlantSpecies}
+          externalShowSpeciesPicker={triggerSpeciesPicker}
+          onSpeciesPickerOpened={() => setTriggerSpeciesPicker(false)}
         />
       </div>
 

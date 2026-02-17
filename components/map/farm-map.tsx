@@ -116,6 +116,10 @@ interface FarmMapProps {
   externalDrawingMode?: boolean;
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
   externalSelectedSpecies?: { species: Species; seq: number } | null;
+  /** When set to true, opens the internal species picker (same as map submenu Add Plant). Reset to false after acknowledging. */
+  externalShowSpeciesPicker?: boolean;
+  /** Called by FarmMap after it has acknowledged an externalShowSpeciesPicker=true trigger, so the parent can reset the flag. */
+  onSpeciesPickerOpened?: () => void;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -164,6 +168,8 @@ export function FarmMap({
   externalDrawingMode,
   externalDrawTool,
   externalSelectedSpecies,
+  externalShowSpeciesPicker,
+  onSpeciesPickerOpened,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -223,6 +229,15 @@ export function FarmMap({
       setShowSpeciesPicker(false);
     }
   }, [externalSelectedSpecies]);
+
+  // React to external trigger to open the species picker (same flow as map submenu "Add Plant")
+  useEffect(() => {
+    if (externalShowSpeciesPicker) {
+      setPlantingMode(true);
+      setShowSpeciesPicker(true);
+      onSpeciesPickerOpened?.();
+    }
+  }, [externalShowSpeciesPicker, onSpeciesPickerOpened]);
 
   // Zone quick label form state
   const [showQuickLabelForm, setShowQuickLabelForm] = useState(false);
