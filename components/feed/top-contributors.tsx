@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, TrendingUp } from 'lucide-react';
+import { UserHoverCard } from '@/components/profile/user-hover-card';
 
 interface TopContributor {
   id: string;
@@ -69,12 +70,14 @@ export async function TopContributors() {
             <div className="w-6 text-center text-sm font-bold">
               {getRankIcon(index)}
             </div>
-            <Link href={`/profile/${contributor.id}`}>
-              <Avatar className="w-9 h-9">
-                <AvatarImage src={contributor.image || undefined} />
-                <AvatarFallback>{contributor.name[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-            </Link>
+            <UserHoverCard userId={contributor.id}>
+              <Link href={`/profile/${contributor.id}`}>
+                <Avatar className="w-9 h-9">
+                  <AvatarImage src={contributor.image || undefined} />
+                  <AvatarFallback>{contributor.name[0]?.toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </Link>
+            </UserHoverCard>
             <div className="flex-1 min-w-0">
               <Link
                 href={`/profile/${contributor.id}`}

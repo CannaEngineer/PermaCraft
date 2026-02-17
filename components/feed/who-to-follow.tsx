@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserPlus } from 'lucide-react';
 import { FollowUserButton } from '@/components/profile/follow-user-button';
+import { UserHoverCard } from '@/components/profile/user-hover-card';
 
 interface SuggestedUser {
   id: string;
@@ -66,12 +67,14 @@ export async function WhoToFollow({ currentUserId }: { currentUserId: string }) 
       <CardContent className="space-y-3">
         {users.map((user) => (
           <div key={user.id} className="flex items-start gap-3">
-            <Link href={`/profile/${user.id}`}>
-              <Avatar className="w-10 h-10">
-                <AvatarImage src={user.image || undefined} />
-                <AvatarFallback>{user.name[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-            </Link>
+            <UserHoverCard userId={user.id}>
+              <Link href={`/profile/${user.id}`}>
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={user.image || undefined} />
+                  <AvatarFallback>{user.name[0]?.toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </Link>
+            </UserHoverCard>
             <div className="flex-1 min-w-0">
               <Link
                 href={`/profile/${user.id}`}

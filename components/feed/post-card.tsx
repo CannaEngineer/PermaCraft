@@ -12,6 +12,7 @@ import { PostActions } from './post-actions';
 import { CommentSection } from './comment-section';
 import { ExpandableText } from '@/components/shared/expandable-text';
 import { FollowFarmButton } from '@/components/community/follow-farm-button';
+import { UserHoverCard } from '@/components/profile/user-hover-card';
 
 interface Author {
   id: string;
@@ -98,17 +99,19 @@ export function PostCard({ post, currentUserId, onUpdate, onDelete }: PostCardPr
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       {/* Header */}
       <CardHeader className="flex-row items-center gap-3 pb-3">
-        <button
-          onClick={() => router.push(`/profile/${post.author.id}`)}
-          className="hover:opacity-80 transition-opacity"
-        >
-          <Avatar className="w-10 h-10 ring-2 ring-background">
-            <AvatarImage src={post.author.image || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {post.author.name[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </button>
+        <UserHoverCard userId={post.author.id}>
+          <button
+            onClick={() => router.push(`/profile/${post.author.id}`)}
+            className="hover:opacity-80 transition-opacity"
+          >
+            <Avatar className="w-10 h-10 ring-2 ring-background">
+              <AvatarImage src={post.author.image || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                {post.author.name[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </button>
+        </UserHoverCard>
         <div className="flex-1 min-w-0">
           <button
             onClick={() => router.push(`/profile/${post.author.id}`)}
