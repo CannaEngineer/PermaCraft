@@ -16,29 +16,17 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
 
   if (!drawerContent) return null;
 
+  // heightMap controls the drawer's visible height (CSS height, not y-transform)
   const heightMap = isMobile
     ? {
-        peek: 'calc(100% - 120px)',
+        peek: '120px',
         medium: '45vh',
-        max: '10vh',
+        max: '90vh',
       }
     : {
-        peek: 'calc(100% - 100px)',
+        peek: '100px',
         medium: '55vh',
-        max: '15vh',
-      };
-
-  // Calculate max content height based on drawer position
-  const contentMaxHeight = isMobile
-    ? {
-        peek: 'calc(100vh - 120px - 120px)', // viewport - top position - extra space
-        medium: 'calc(55vh - 120px)',
-        max: 'calc(90vh - 120px)', // 90vh content area - handles/padding
-      }
-    : {
-        peek: 'calc(100vh - 100px - 120px)',
-        medium: 'calc(45vh - 100px)',
-        max: 'calc(85vh - 100px)', // 85vh content area - handles/padding
+        max: '85vh',
       };
 
   const handleDragEnd = (_event: any, info: PanInfo) => {
@@ -79,9 +67,9 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
       {/* Drawer */}
       <motion.div
         ref={dragConstraintsRef}
-        initial={{ y: '100%' }}
-        animate={{ y: heightMap[drawerHeight] }}
-        exit={{ y: '100%' }}
+        initial={{ height: 0 }}
+        animate={{ height: heightMap[drawerHeight] }}
+        exit={{ height: 0 }}
         transition={{
           type: 'spring',
           stiffness: 300,
@@ -92,8 +80,8 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl pb-16 md:pb-0 flex flex-col"
-        style={{ willChange: 'transform' }}
+        className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl pb-16 md:pb-0 flex flex-col overflow-hidden"
+        style={{ willChange: 'height' }}
       >
         {/* Grab Tab - hangs above drawer */}
         <div className="absolute left-1/2 -translate-x-1/2 -top-6 cursor-grab active:cursor-grabbing">
@@ -103,15 +91,12 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         </div>
 
         {/* Drag Handle - bigger now */}
-        <div className="flex justify-center pt-4 pb-3 cursor-grab active:cursor-grabbing">
+        <div className="flex justify-center pt-4 pb-3 flex-shrink-0 cursor-grab active:cursor-grabbing">
           <div className="w-16 h-1.5 bg-muted-foreground/40 rounded-full" />
         </div>
 
         {/* Content */}
-        <div
-          className="px-4 pb-4 overflow-y-auto flex-1"
-          style={{ maxHeight: contentMaxHeight[drawerHeight] }}
-        >
+        <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
       </motion.div>
