@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useToast } from '@/hooks/use-toast';
 
 interface AIInsightTabProps {
   farmId: string;
@@ -32,6 +33,7 @@ interface AIMessage {
 }
 
 export function AIInsightTab({ farmId, onPostCreated, allFarms = false }: AIInsightTabProps) {
+  const { toast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string>('');
   const [selectedFarmId, setSelectedFarmId] = useState<string>(farmId);
@@ -119,16 +121,46 @@ export function AIInsightTab({ farmId, onPostCreated, allFarms = false }: AIInsi
         }),
       });
 
-      if (!postRes.ok) throw new Error('Failed to create post');
+      if (!postRes.ok) {
+        const errData = await postRes.json().catch(() => ({}));
+        throw new Error((errData as any).error || 'Failed to create post');
+      }
+
+      const data = await postRes.json();
 
       setCommentary('');
       setSelectedConversationId('');
       setSelectedMessageId('');
       setAiMessages([]);
+
+      // Confirm to the user that the post was created successfully.
+      // If the farm is private, the post exists but won't appear in the
+      // community feed until the farm is made public.
+      if (data.farm_is_public === false) {
+        toast({
+          title: 'AI Insight shared to your farm',
+          description:
+            'Your post was saved, but your farm is currently private. ' +
+            'Make your farm public in Farm Settings for it to appear in the community feed.',
+        });
+      } else {
+        toast({
+          title: 'AI Insight published!',
+          description: 'Your insight is now live in the community feed.',
+        });
+      }
+
       onPostCreated();
     } catch (error) {
       console.error('Failed to create AI insight post:', error);
-      alert('Failed to create AI insight post');
+      toast({
+        title: 'Failed to share AI insight',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setSubmitting(false);
     }

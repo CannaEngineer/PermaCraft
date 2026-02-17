@@ -142,6 +142,7 @@ export async function POST(
     });
 
     const post = createdPost.rows[0] as any;
+    const farm = farmResult.rows[0] as any;
 
     // Format response
     const formattedPost = {
@@ -170,6 +171,10 @@ export async function POST(
     return Response.json({
       post: formattedPost,
       success: true,
+      // Let the client know whether this farm is visible in community feeds.
+      // Posts from private farms won't appear in /gallery or the community feed
+      // until the farm is made public (is_public = 1).
+      farm_is_public: farm.is_public === 1,
     });
   } catch (error) {
     console.error("Create post error:", error);
