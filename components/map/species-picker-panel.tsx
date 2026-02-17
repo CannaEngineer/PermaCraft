@@ -129,7 +129,7 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
     : null;
 
   return (
-    <div className="absolute top-4 right-4 z-20 w-96 max-h-[80vh] bg-card rounded-lg shadow-xl border border-border overflow-hidden flex flex-col">
+    <div className="fixed top-4 right-4 z-[999] w-96 max-h-[80vh] bg-card rounded-lg shadow-xl border border-border overflow-hidden flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between bg-muted/50">
         <div className="flex-1 min-w-0">
