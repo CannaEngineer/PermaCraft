@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { calculateCatchmentCapture, calculateSwaleCapacity, calculateAreaFromGeometry, calculateLengthFromGeometry } from "@/lib/water/calculations";
 
 const saveZonesSchema = z.object({
   zones: z.array(z.object({
@@ -64,10 +65,47 @@ export async function POST(
           isFarmBoundary
         });
 
+        // Compute water properties from embedded zone props
+        const props = zone.properties || {};
+        const waterZoneTypes = ['pond', 'swale', 'water_body', 'water_flow'];
+        let catchmentPropertiesJson: string | null = null;
+        let swalePropertiesJson: string | null = null;
+
+        if (waterZoneTypes.includes(zoneType) && props.water_rainfall_inches) {
+          let areaSqFt = 0;
+          try {
+            areaSqFt = calculateAreaFromGeometry(zone.geometry);
+          } catch { /* ignore */ }
+          const capture = areaSqFt > 0
+            ? calculateCatchmentCapture({ catchmentAreaSqFt: areaSqFt, annualRainfallInches: props.water_rainfall_inches })
+            : 0;
+          catchmentPropertiesJson = JSON.stringify({
+            is_catchment: true,
+            rainfall_inches_per_year: props.water_rainfall_inches,
+            estimated_capture_gallons: capture,
+          });
+        }
+
+        if (zoneType === 'swale' && props.water_swale_depth_feet) {
+          let lengthFt = 0;
+          try {
+            lengthFt = calculateLengthFromGeometry(zone.geometry);
+          } catch { /* ignore */ }
+          const capacity = lengthFt > 0
+            ? calculateSwaleCapacity({ lengthFeet: lengthFt, widthFeet: 3, depthFeet: props.water_swale_depth_feet })
+            : 0;
+          swalePropertiesJson = JSON.stringify({
+            is_swale: true,
+            length_feet: lengthFt,
+            cross_section_depth_feet: props.water_swale_depth_feet,
+            estimated_volume_gallons: capacity,
+          });
+        }
+
         return {
-          sql: `INSERT INTO zones (id, farm_id, zone_type, geometry, properties)
-                VALUES (?, ?, ?, ?, ?)`,
-          args: [zoneId, farmId, zoneType, geometry, properties],
+          sql: `INSERT INTO zones (id, farm_id, zone_type, geometry, properties, catchment_properties, swale_properties)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          args: [zoneId, farmId, zoneType, geometry, properties, catchmentPropertiesJson, swalePropertiesJson],
         };
       });
 

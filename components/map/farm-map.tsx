@@ -35,8 +35,7 @@ import { ZONE_TYPES, USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from "@/lib
 import { animateFlowArrows } from "@/lib/map/water-flow-animation";
 import type { FeatureCollection, LineString, Point } from "geojson";
 import "../../app/mapbox-draw-override.css";
-import { WaterPropertiesForm } from "./water-properties-form";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { calculateAreaFromGeometry } from "@/lib/water/calculations";
 
 /**
  * MapLibre Style Expression Generators
@@ -188,7 +187,9 @@ export function FarmMap({
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [zoneLabel, setZoneLabel] = useState("");
   const [zoneType, setZoneType] = useState<string>("other");
-  const [showWaterProperties, setShowWaterProperties] = useState(false);
+  const [zoneRainfall, setZoneRainfall] = useState<string>("");
+  const [zoneSwaleDepth, setZoneSwaleDepth] = useState<string>("");
+  const [selectedZoneAreaSqFt, setSelectedZoneAreaSqFt] = useState<number>(0);
   const [showHelp, setShowHelp] = useState(false);
   const [bearing, setBearing] = useState(0);
   const [pitch, setPitch] = useState(0);
@@ -2835,13 +2836,24 @@ export function FarmMap({
     if (feature) {
       console.log("Before update:", feature.properties);
 
+      // Build water properties to embed in zone properties
+      const waterExtras: any = {};
+      const isWaterZoneType = ['pond', 'swale', 'water_body', 'water_flow'].includes(zoneType);
+      if (isWaterZoneType && zoneRainfall) {
+        waterExtras.water_rainfall_inches = parseFloat(zoneRainfall);
+      }
+      if (zoneType === 'swale' && zoneSwaleDepth) {
+        waterExtras.water_swale_depth_feet = parseFloat(zoneSwaleDepth);
+      }
+
       // Update the feature properties
       const updatedFeature = {
         ...feature,
         properties: {
           ...feature.properties,
           name: zoneLabel,
-          user_zone_type: zoneType
+          user_zone_type: zoneType,
+          ...waterExtras,
         }
       };
 
@@ -2874,6 +2886,9 @@ export function FarmMap({
       // Reset form
       setZoneLabel("");
       setZoneType("other");
+      setZoneRainfall("");
+      setZoneSwaleDepth("");
+      setSelectedZoneAreaSqFt(0);
       setSelectedZone(null);
     }
   };
@@ -3146,6 +3161,22 @@ export function FarmMap({
       }
     }
   }, [externalDrawingMode, externalDrawTool, drawMode]);
+
+  // Auto-calculate zone area when selection changes (for water property estimates)
+  useEffect(() => {
+    if (!selectedZone || !draw.current) {
+      setSelectedZoneAreaSqFt(0);
+      return;
+    }
+    const feature = draw.current.get(selectedZone);
+    if (feature?.geometry) {
+      try {
+        setSelectedZoneAreaSqFt(calculateAreaFromGeometry(feature.geometry));
+      } catch {
+        setSelectedZoneAreaSqFt(0);
+      }
+    }
+  }, [selectedZone]);
 
   return (
     <div className="relative h-full w-full">
@@ -3586,16 +3617,56 @@ export function FarmMap({
               Save Zone
             </Button>
 
-            {/* Water Properties Button - Show for water-related zones */}
+            {/* Inline Water Properties - Show for water-related zones */}
             {(zoneType === 'pond' || zoneType === 'swale' || zoneType === 'water_body' || zoneType === 'water_flow') && (
-              <Button
-                onClick={() => setShowWaterProperties(true)}
-                variant="outline"
-                size="sm"
-                className="w-full mt-2"
-              >
-                💧 Configure Water Properties
-              </Button>
+              <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
+                <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                  💧 Water Properties
+                </p>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">
+                    Annual Rainfall (inches/year)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={zoneRainfall}
+                    onChange={(e) => setZoneRainfall(e.target.value)}
+                    placeholder="e.g. 40"
+                    className="w-full text-xs border rounded px-2 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                  {zoneRainfall && selectedZoneAreaSqFt > 0 && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      ≈ {Math.round(selectedZoneAreaSqFt * parseFloat(zoneRainfall) * 0.6233).toLocaleString()} gal/year capture
+                    </p>
+                  )}
+                </div>
+                {zoneType === 'swale' && (
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      Swale Depth (feet)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={zoneSwaleDepth}
+                      onChange={(e) => setZoneSwaleDepth(e.target.value)}
+                      placeholder="e.g. 1.5"
+                      className="w-full text-xs border rounded px-2 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
+                    {zoneSwaleDepth && selectedZoneAreaSqFt > 0 && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        ≈ {Math.round(selectedZoneAreaSqFt * parseFloat(zoneSwaleDepth) * 7.48052).toLocaleString()} gal capacity
+                      </p>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Saved with zone — counts toward water goals
+                </p>
+              </div>
             )}
           </div>
 
@@ -3880,34 +3951,6 @@ export function FarmMap({
         hasPlantings={plantings.length > 0}
       />
 
-      {/* Water Properties Dialog */}
-      {selectedZone && showWaterProperties && (
-        <Dialog open={showWaterProperties} onOpenChange={setShowWaterProperties}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <WaterPropertiesForm
-              feature={zones.find(z => z.id === selectedZone)!}
-              featureType="zone"
-              onSave={async (properties) => {
-                try {
-                  const response = await fetch(`/api/farms/${farm.id}/zones/${selectedZone}/water-properties`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(properties)
-                  });
-
-                  if (!response.ok) throw new Error('Failed to save water properties');
-
-                  // Refresh zones
-                  window.location.reload(); // Simple refresh for now
-                } catch (error) {
-                  throw error;
-                }
-              }}
-              onClose={() => setShowWaterProperties(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
