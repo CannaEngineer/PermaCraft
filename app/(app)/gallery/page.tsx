@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
-import { Bookmark, TrendingUp, Users, Sprout, Heart, MessageCircle, Eye, Flame } from 'lucide-react';
+import { Bookmark, TrendingUp, Users, Sprout, Heart, MessageCircle, Eye, Flame, UserCheck } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -365,6 +365,14 @@ export default async function CommunityPage({ searchParams }: PageProps) {
                     <span className="hidden sm:inline">Saved</span>
                   </Button>
                 </Link>
+                {session && (
+                  <Link href="/gallery/following">
+                    <Button variant="outline" size="default" className="gap-2 rounded-xl">
+                      <UserCheck className="w-4 h-4 text-blue-500" />
+                      <span className="hidden sm:inline">Following</span>
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/gallery/trending">
                   <Button variant="outline" size="default" className="gap-2 rounded-xl">
                     <Flame className="w-4 h-4 text-orange-500" />

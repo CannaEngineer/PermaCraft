@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { MessageSquareIcon, ShareIcon, BookmarkIcon, Trash2Icon, Copy, Check } from 'lucide-react';
 import { ReactionButton } from './reaction-button';
+import { AddToCollectionDialog } from '@/components/collections/add-to-collection-dialog';
 import { useState } from 'react';
 import {
   AlertDialog,
@@ -228,6 +229,8 @@ export function PostActions({
         />
         <span>{currentBookmark ? 'Saved' : 'Save'}</span>
       </Button>
+
+      <AddToCollectionDialog postId={postId} />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

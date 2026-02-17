@@ -35,6 +35,7 @@ interface BottomNavBarProps {
   userName: string | null;
   isAuthenticated: boolean;
   isAdmin?: boolean;
+  userId?: string;
   onMusicOpen?: () => void;
 }
 
@@ -50,7 +51,7 @@ interface BottomNavBarProps {
  * - Touch-optimized with 48px minimum targets
  * - Progressive disclosure of features
  */
-export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBarProps) {
+export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: BottomNavBarProps) {
   const pathname = usePathname();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isMusicSheetOpen, setIsMusicSheetOpen] = useState(false);
@@ -216,6 +217,23 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin }: BottomNavBa
                       <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                         Quick Access
                       </p>
+
+                      {userId && (
+                        <Link
+                          href={`/profile/${userId}`}
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                            <User className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">View Profile</p>
+                            <p className="text-xs text-muted-foreground">Your public profile</p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        </Link>
+                      )}
 
                       <Link
                         href="/plants"

@@ -719,3 +719,24 @@ export interface PostShare {
   platform: 'twitter' | 'facebook' | 'pinterest' | 'reddit' | 'copy_link';
   created_at: number;
 }
+
+// User Profile & Following Types
+
+export interface UserProfile extends User {
+  bio: string | null;
+  location: string | null;
+  website: string | null;
+  cover_image_url: string | null;
+  social_links: string | null;
+  interests: string | null;
+  experience_level: 'beginner' | 'intermediate' | 'advanced' | 'expert' | null;
+  climate_zone: string | null;
+  profile_visibility: 'public' | 'registered' | 'private';
+}
+
+export interface UserFollow {
+  id: string;
+  follower_id: string;
+  followed_id: string;
+  created_at: number;
+}

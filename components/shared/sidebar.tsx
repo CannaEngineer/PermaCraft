@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, Users, Leaf, GraduationCap, LogOut, Shield, BookOpen } from "lucide-react";
+import { MapIcon, LayoutDashboard, Users, Leaf, GraduationCap, LogOut, Shield, BookOpen, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -23,10 +23,12 @@ export function Sidebar({
   userName,
   isAuthenticated,
   isAdmin,
+  userId,
 }: {
   userName: string | null;
   isAuthenticated: boolean;
   isAdmin?: boolean;
+  userId?: string;
 }) {
   const pathname = usePathname();
   const [isMusicSheetOpen, setIsMusicSheetOpen] = React.useState(false);
@@ -112,6 +114,20 @@ export function Sidebar({
                 {userName}
               </span>
             </div>
+            {userId && (
+              <Link
+                href={`/profile/${userId}`}
+                className={cn(
+                  "xp-menu-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors mb-2",
+                  pathname.startsWith('/profile')
+                    ? "active bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <UserCircle className="h-4 w-4 flex-shrink-0" />
+                <span>My Profile</span>
+              </Link>
+            )}
             <Button
               variant="outline"
               className="w-full justify-start"

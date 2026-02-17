@@ -14,11 +14,13 @@ export default function AppLayoutClient({
   userName,
   isAuthenticated,
   isAdmin,
+  userId,
 }: {
   children: React.ReactNode;
   userName: string | null;
   isAuthenticated: boolean;
   isAdmin?: boolean;
+  userId?: string;
 }) {
   const [isMusicPlayerOpen, setIsMusicPlayerOpen] = useState(false);
 
@@ -30,7 +32,7 @@ export default function AppLayoutClient({
 
         {/* Desktop Sidebar - hidden on mobile, now includes audio player */}
         <aside className="hidden md:block md:w-64 flex-shrink-0 bg-card border-r border-border">
-          <Sidebar userName={userName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
+          <Sidebar userName={userName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} userId={userId} />
         </aside>
 
         {/* Main content area - no bottom padding on desktop now */}
@@ -43,6 +45,7 @@ export default function AppLayoutClient({
           userName={userName}
           isAuthenticated={isAuthenticated}
           isAdmin={isAdmin}
+          userId={userId}
           onMusicOpen={() => setIsMusicPlayerOpen(true)}
         />
 

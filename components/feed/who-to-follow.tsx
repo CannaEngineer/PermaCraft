@@ -1,10 +1,10 @@
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserPlus } from 'lucide-react';
+import { FollowUserButton } from '@/components/profile/follow-user-button';
 
 interface SuggestedUser {
   id: string;
@@ -17,7 +17,7 @@ interface SuggestedUser {
 
 async function fetchSuggestedUsers(currentUserId: string): Promise<SuggestedUser[]> {
   try {
-    // Get users with public farms, excluding current user
+    // Get users with public farms, excluding current user and already-followed users
     const result = await db.execute({
       sql: `
         SELECT
@@ -32,12 +32,13 @@ async function fetchSuggestedUsers(currentUserId: string): Promise<SuggestedUser
         LEFT JOIN farm_posts p ON p.farm_id = f.id AND p.is_published = 1
         WHERE f.is_public = 1
           AND u.id != ?
+          AND u.id NOT IN (SELECT followed_id FROM user_follows WHERE follower_id = ?)
         GROUP BY u.id, u.name, u.image, f.climate_zone
         HAVING post_count > 0
         ORDER BY post_count DESC, farm_count DESC
         LIMIT 5
       `,
-      args: [currentUserId],
+      args: [currentUserId, currentUserId],
     });
 
     return result.rows as unknown as SuggestedUser[];
@@ -89,6 +90,11 @@ export async function WhoToFollow({ currentUserId }: { currentUserId: string }) 
                 {user.farm_count} farm{user.farm_count !== 1 ? 's' : ''} · {user.post_count} posts
               </p>
             </div>
+            <FollowUserButton
+              userId={user.id}
+              initialFollowing={false}
+              size="sm"
+            />
           </div>
         ))}
       </CardContent>

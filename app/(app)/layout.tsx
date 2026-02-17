@@ -15,6 +15,7 @@ export default async function AppLayout({
       userName={session?.user.name || session?.user.email || null}
       isAuthenticated={!!session}
       isAdmin={adminStatus}
+      userId={session?.user.id}
     >
       {children}
     </AppLayoutClient>
