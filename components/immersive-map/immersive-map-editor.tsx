@@ -247,6 +247,9 @@ function ImmersiveMapEditorContent({
     farmContext: { climate_zone: string; soil_type?: string; rainfall_inches?: number };
   } | null>(null);
 
+  // Species selected from the picker, passed to FarmMap to enter planting mode
+  const [pendingPlantSpecies, setPendingPlantSpecies] = useState<any | null>(null);
+
   // Load goals, species, plantings on mount
   useEffect(() => {
     if (farm?.id) {
@@ -617,13 +620,8 @@ function ImmersiveMapEditorContent({
     // Close the drawer
     closeDrawer();
 
-    // For now, just show a toast that the species was selected
-    // In the future, this should trigger planting mode on the map
-    console.log('Species selected:', species);
-
-    // TODO: Trigger planting mode on FarmMap component
-    // This would require passing the selected species to FarmMap
-    // and having FarmMap enter planting mode
+    // Store the selected species so FarmMap can enter planting mode
+    setPendingPlantSpecies(species);
   };
 
   const handleOpenWaterSystem = useCallback(() => {
@@ -694,6 +692,7 @@ function ImmersiveMapEditorContent({
           onFeatureSelect={handleFeatureSelect}
           externalDrawingMode={drawingMode}
           externalDrawTool={activeDrawTool}
+          externalSelectedSpecies={pendingPlantSpecies}
         />
       </div>
 

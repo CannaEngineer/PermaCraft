@@ -115,6 +115,7 @@ interface FarmMapProps {
   onFeatureSelect?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase', featureData?: any) => void;
   externalDrawingMode?: boolean;
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
+  externalSelectedSpecies?: Species | null;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -162,6 +163,7 @@ export function FarmMap({
   onFeatureSelect,
   externalDrawingMode,
   externalDrawTool,
+  externalSelectedSpecies,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -212,6 +214,15 @@ export function FarmMap({
 
   // Guild companion filter state
   const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
+
+  // React to externally-selected species (from immersive editor's SpeciesPickerPanel)
+  useEffect(() => {
+    if (externalSelectedSpecies) {
+      setSelectedSpecies(externalSelectedSpecies);
+      setPlantingMode(true);
+      setShowSpeciesPicker(false);
+    }
+  }, [externalSelectedSpecies]);
 
   // Zone quick label form state
   const [showQuickLabelForm, setShowQuickLabelForm] = useState(false);
