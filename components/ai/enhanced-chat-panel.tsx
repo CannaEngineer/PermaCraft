@@ -169,6 +169,8 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
     if (forceNewConversation) {
       setCurrentConversationId(null);
       setMessages([]);
+      // Reset auto-send guard so a new initialMessage (e.g. vital prompt) will fire
+      hasAutoSentRef.current = false;
     } else if (initialConversationId) {
       setCurrentConversationId(initialConversationId);
     }

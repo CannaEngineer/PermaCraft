@@ -218,6 +218,48 @@ function ImmersiveMapEditorContent({
   const [vitalPrompt, setVitalPrompt] = useState<string | undefined>(undefined);
   const [startNewChat, setStartNewChat] = useState(false);
 
+  /**
+   * Handle AI recommendations for specific vital categories.
+   * Builds a contextual prompt and opens the chat overlay with it.
+   */
+  const handleVitalRecommendations = useCallback(
+    (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => {
+      let prompt = `I'd like recommendations for ${vitalLabel} on my farm.\n\n`;
+
+      if (currentCount === 0) {
+        prompt += `I currently have NO ${vitalLabel} planted. Please recommend:\n`;
+        prompt += `1. Why ${vitalLabel} are important for my specific farm\n`;
+        prompt += `2. How many ${vitalLabel} I should aim to have based on my farm size\n`;
+        prompt += `3. Specific native species that would work well as ${vitalLabel}\n`;
+        prompt += `4. WHERE on my farm I should plant them (based on the map you can see)\n`;
+        prompt += `5. When to plant them and any guild companions\n`;
+      } else {
+        prompt += `I currently have ${currentCount} ${vitalLabel}:\n`;
+        plantList.forEach((plant: any) => {
+          prompt += `- ${plant.common_name} (${plant.scientific_name || 'unknown species'})\n`;
+        });
+        prompt += `\nPlease recommend:\n`;
+        prompt += `1. How many MORE ${vitalLabel} I should add for optimal farm function\n`;
+        prompt += `2. Specific additional native species to diversify this function\n`;
+        prompt += `3. WHERE on my farm to plant them (considering what I already have)\n`;
+        prompt += `4. How to create guilds or polycultures with my existing ${vitalLabel}\n`;
+        prompt += `5. Any gaps in coverage I should address\n`;
+      }
+
+      prompt += `\nPlease be specific about quantities, locations on the map, and spacing. Focus on native species suitable for my climate zone.`;
+
+      setVitalPrompt(prompt);
+      setStartNewChat(true);
+      setChatOpen(true);
+
+      setTimeout(() => {
+        setVitalPrompt(undefined);
+        setStartNewChat(false);
+      }, 1000);
+    },
+    [setChatOpen]
+  );
+
   // Map refs
   const mapRef = useRef<maplibregl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -696,7 +738,7 @@ function ImmersiveMapEditorContent({
             mapRef.current = map;
           }}
           onMapLayerChange={setCurrentMapLayer}
-          onGetRecommendations={() => {}}
+          onGetRecommendations={handleVitalRecommendations}
           onFeatureSelect={handleFeatureSelect}
           externalDrawingMode={drawingMode}
           externalDrawTool={activeDrawTool}
