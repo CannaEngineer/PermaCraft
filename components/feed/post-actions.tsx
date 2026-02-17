@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { MessageSquareIcon, ShareIcon, BookmarkIcon, Trash2Icon } from 'lucide-react';
+import { MessageSquareIcon, ShareIcon, BookmarkIcon, Trash2Icon, Copy, Check } from 'lucide-react';
 import { ReactionButton } from './reaction-button';
 import { useState } from 'react';
 import {
@@ -14,6 +14,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface PostActionsProps {
   postId: string;
@@ -119,15 +126,46 @@ export function PostActions({
     }
   };
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}/farm/${farmId}#post-${postId}`;
+  const [copied, setCopied] = useState(false);
+
+  const trackShare = async (platform: string) => {
     try {
-      await navigator.clipboard.writeText(url);
-      // TODO: Show toast notification
-      console.log('Link copied!');
-    } catch (error) {
-      console.error('Failed to copy link:', error);
+      await fetch(`/api/posts/${postId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform }),
+      });
+    } catch {
+      // Fire-and-forget: ignore errors
     }
+  };
+
+  const getShareUrl = () =>
+    `${typeof window !== 'undefined' ? window.location.origin : ''}/farm/${farmId}#post-${postId}`;
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareUrl());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+    await trackShare('copy_link');
+  };
+
+  const handleSocialShare = async (platform: string) => {
+    const url = encodeURIComponent(getShareUrl());
+    const shareLinks: Record<string, string> = {
+      twitter: `https://twitter.com/intent/tweet?url=${url}&text=Check+out+this+farm+design!`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      pinterest: `https://pinterest.com/pin/create/button/?url=${url}`,
+      reddit: `https://reddit.com/submit?url=${url}&title=Check+out+this+permaculture+design`,
+    };
+    if (shareLinks[platform]) {
+      window.open(shareLinks[platform], '_blank', 'noopener,noreferrer,width=600,height=400');
+    }
+    await trackShare(platform);
   };
 
   const handleDelete = async () => {
@@ -191,15 +229,36 @@ export function PostActions({
         <span>{currentBookmark ? 'Saved' : 'Save'}</span>
       </Button>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleShare}
-        className="gap-2"
-      >
-        <ShareIcon className="w-4 h-4" />
-        <span>Share</span>
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2">
+            <ShareIcon className="w-4 h-4" />
+            <span>Share</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => handleSocialShare('twitter')}>
+            𝕏 Twitter / X
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleSocialShare('facebook')}>
+            Facebook
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleSocialShare('pinterest')}>
+            Pinterest
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleSocialShare('reddit')}>
+            Reddit
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleCopyLink} className="gap-2">
+            {copied ? (
+              <><Check className="w-3.5 h-3.5 text-green-500" /> Copied!</>
+            ) : (
+              <><Copy className="w-3.5 h-3.5" /> Copy link</>
+            )}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {isAuthor && (
         <Button

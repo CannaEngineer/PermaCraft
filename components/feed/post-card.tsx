@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import { PostActions } from './post-actions';
 import { CommentSection } from './comment-section';
 import { ExpandableText } from '@/components/shared/expandable-text';
+import { FollowFarmButton } from '@/components/community/follow-farm-button';
 
 interface Author {
   id: string;
@@ -53,6 +54,16 @@ export function PostCard({ post, currentUserId, onUpdate, onDelete }: PostCardPr
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [isBookmarked, setIsBookmarked] = useState(post.is_bookmarked || false);
   const isAuthor = currentUserId === post.author.id;
+
+  // Fire view tracking once when post becomes visible
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/posts/${post.id}/view`, {
+      method: 'POST',
+      signal: controller.signal,
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [post.id]);
 
   const formatRelativeTime = (timestamp: number) => {
     const seconds = Math.floor(Date.now() / 1000 - timestamp);
@@ -157,18 +168,23 @@ export function PostCard({ post, currentUserId, onUpdate, onDelete }: PostCardPr
 
       {/* Content */}
       <CardContent className="pt-4 space-y-3">
-        {/* Farm Context Badge */}
-        <button
-          onClick={() => router.push(`/farm/${post.farm_id}`)}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors text-sm group"
-        >
-          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span className="font-medium text-primary group-hover:underline">
-            {post.farm_name || 'View Farm'}
-          </span>
-        </button>
+        {/* Farm Context Badge + Follow */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => router.push(`/farm/${post.farm_id}`)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors text-sm group"
+          >
+            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="font-medium text-primary group-hover:underline">
+              {post.farm_name || 'View Farm'}
+            </span>
+          </button>
+          {!isAuthor && (
+            <FollowFarmButton farmId={post.farm_id} size="sm" />
+          )}
+        </div>
 
         {post.content && (
           <ExpandableText

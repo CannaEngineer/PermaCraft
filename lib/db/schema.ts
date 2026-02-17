@@ -653,18 +653,19 @@ export interface PostComment {
   id: string;
   post_id: string;
   author_id: string;
-  parent_comment_id?: string;
+  parent_comment_id: string | null;
   content: string;
   created_at: number;
   updated_at: number;
-  is_deleted: 0 | 1;
+  is_deleted: number;
 }
 
 export interface PostReaction {
   id: string;
-  post_id: string;
+  post_id: string | null;
+  comment_id: string | null;
   user_id: string;
-  reaction_type: 'like' | 'love' | 'insightful' | 'inspiring';
+  reaction_type: 'heart' | 'seedling' | 'bulb' | 'fire';
   created_at: number;
 }
 

@@ -11,6 +11,7 @@ import { FeaturedFarms } from '@/components/feed/featured-farms';
 import { WhoToFollow } from '@/components/feed/who-to-follow';
 import { TopContributors } from '@/components/feed/top-contributors';
 import { RecentActivity } from '@/components/feed/recent-activity';
+import { CommunityFeedClient } from '@/components/community/community-feed-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -54,6 +55,10 @@ interface PageProps {
     climate_zones?: string | string[];
     farm_size?: string;
     soil_types?: string | string[];
+    // Enhanced community filter params
+    search?: string;
+    sort?: string;
+    zone_type?: string;
   }>;
 }
 
@@ -429,41 +434,24 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
           {/* Center Feed */}
           <main className="lg:col-span-6 space-y-6 order-1 lg:order-2">
-            {/* Search - Clean, No Card Wrapper */}
+            {/* Featured Farms */}
             <div className="animate-in fade-in duration-500">
-              <UniversalSearch
-                context="community"
-                placeholder="Search posts, farms, and people..."
-                className="w-full"
-              />
-            </div>
-
-            {/* Featured Farms - Moved Here */}
-            <div className="animate-in fade-in duration-500" style={{ animationDelay: '100ms' }}>
               <FeaturedFarms />
             </div>
 
             <Separator className="my-6" />
 
-            {/* Post Type Tabs */}
-            <div className="animate-in fade-in duration-500" style={{ animationDelay: '200ms' }}>
+            {/* Post Type Tabs (existing filter preserved) */}
+            <div className="animate-in fade-in duration-500" style={{ animationDelay: '100ms' }}>
               <PostTypeTabs />
             </div>
 
-            {/* Active Filters */}
+            {/* Active Filters (existing filter chips preserved) */}
             <ActiveFilters />
 
-            {/* Feed */}
-            <div className="animate-in fade-in duration-500" style={{ animationDelay: '300ms' }}>
-              <GalleryLayoutWrapper
-                initialData={initialData}
-                filterType={type}
-                filterHashtag={hashtag}
-                filterClimateZones={climateZones}
-                filterFarmSize={farmSize}
-                filterSoilTypes={soilTypes}
-                currentUserId={session?.user.id}
-              />
+            {/* Enhanced community feed with search, sort, and zone filters */}
+            <div className="animate-in fade-in duration-500" style={{ animationDelay: '200ms' }}>
+              <CommunityFeedClient currentUserId={session?.user.id} />
             </div>
           </main>
 
