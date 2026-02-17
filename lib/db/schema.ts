@@ -646,3 +646,75 @@ export interface PlantVarietyWithSpecies extends PlantVariety {
   species_scientific_name: string;
   species_layer: string;
 }
+
+// Community Engagement Types
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  parent_comment_id?: string;
+  content: string;
+  created_at: number;
+  updated_at: number;
+  is_deleted: 0 | 1;
+}
+
+export interface PostReaction {
+  id: string;
+  post_id: string;
+  user_id: string;
+  reaction_type: 'like' | 'love' | 'insightful' | 'inspiring';
+  created_at: number;
+}
+
+export interface FarmFollow {
+  id: string;
+  follower_user_id: string;
+  followed_farm_id: string;
+  created_at: number;
+}
+
+export interface Collection {
+  id: string;
+  title: string;
+  description?: string;
+  curator_id?: string;
+  is_featured: 0 | 1;
+  is_public: 0 | 1;
+  cover_image_url?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CollectionItem {
+  id: string;
+  collection_id: string;
+  farm_id: string;
+  display_order: number;
+  curator_note?: string;
+  added_at: number;
+}
+
+export interface PostSave {
+  id: string;
+  user_id: string;
+  post_id: string;
+  created_at: number;
+}
+
+export interface PostView {
+  id: string;
+  post_id: string;
+  viewer_user_id?: string;
+  viewer_ip?: string;
+  created_at: number;
+}
+
+export interface PostShare {
+  id: string;
+  post_id: string;
+  user_id?: string;
+  platform: 'twitter' | 'facebook' | 'pinterest' | 'reddit' | 'copy_link';
+  created_at: number;
+}
