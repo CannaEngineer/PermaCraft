@@ -22,7 +22,7 @@ import { PhaseManager } from "@/components/phasing/phase-manager";
 import { ExportPanel } from "@/components/export/export-panel";
 import { SpeciesPickerPanel } from "@/components/map/species-picker-panel";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
+import type { Farm, Zone, FarmerGoal, Species } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
 import { analyzeWithOptimization } from "@/lib/ai/optimized-analyze";
@@ -248,7 +248,7 @@ function ImmersiveMapEditorContent({
   } | null>(null);
 
   // Species selected from the picker, passed to FarmMap to enter planting mode
-  const [pendingPlantSpecies, setPendingPlantSpecies] = useState<any | null>(null);
+  const [pendingPlantSpecies, setPendingPlantSpecies] = useState<{ species: Species; seq: number } | null>(null);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -616,12 +616,13 @@ function ImmersiveMapEditorContent({
     openDrawer('species-picker', 'medium');
   };
 
-  const handleSelectSpecies = (species: any) => {
+  const handleSelectSpecies = (species: Species) => {
     // Close the drawer
     closeDrawer();
 
-    // Store the selected species so FarmMap can enter planting mode
-    setPendingPlantSpecies(species);
+    // Store the selected species so FarmMap can enter planting mode.
+    // Increment seq so re-selecting the same species still triggers the useEffect.
+    setPendingPlantSpecies(prev => ({ species, seq: (prev?.seq ?? 0) + 1 }));
   };
 
   const handleOpenWaterSystem = useCallback(() => {

@@ -115,7 +115,7 @@ interface FarmMapProps {
   onFeatureSelect?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase', featureData?: any) => void;
   externalDrawingMode?: boolean;
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
-  externalSelectedSpecies?: Species | null;
+  externalSelectedSpecies?: { species: Species; seq: number } | null;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -218,7 +218,7 @@ export function FarmMap({
   // React to externally-selected species (from immersive editor's SpeciesPickerPanel)
   useEffect(() => {
     if (externalSelectedSpecies) {
-      setSelectedSpecies(externalSelectedSpecies);
+      setSelectedSpecies(externalSelectedSpecies.species);
       setPlantingMode(true);
       setShowSpeciesPicker(false);
     }
