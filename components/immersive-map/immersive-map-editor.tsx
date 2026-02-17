@@ -619,6 +619,10 @@ function ImmersiveMapEditorContent({
     setTriggerSpeciesPicker(true);
   };
 
+  const handleSpeciesPickerOpened = useCallback(() => {
+    setTriggerSpeciesPicker(false);
+  }, []); // empty deps — only calls a state setter
+
   const handleSelectSpecies = (species: Species) => {
     // Close the drawer
     closeDrawer();
@@ -698,7 +702,7 @@ function ImmersiveMapEditorContent({
           externalDrawTool={activeDrawTool}
           externalSelectedSpecies={pendingPlantSpecies}
           externalShowSpeciesPicker={triggerSpeciesPicker}
-          onSpeciesPickerOpened={() => setTriggerSpeciesPicker(false)}
+          onSpeciesPickerOpened={handleSpeciesPickerOpened}
         />
       </div>
 
