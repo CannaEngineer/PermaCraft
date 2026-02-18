@@ -3424,7 +3424,7 @@ export function FarmMap({
         </Button>
 
         {showHelp && (
-          <div className="absolute bottom-full mb-2 right-0 bg-card rounded shadow-lg p-4 w-80 z-50">
+          <div className="absolute bottom-full mb-2 right-0 bg-card rounded shadow-lg p-4 w-80 max-w-[calc(100vw-2rem)] z-50">
             <h3 className="font-semibold mb-3">
               Drawing Tools (Top-Right Corner)
             </h3>
@@ -3517,7 +3517,7 @@ export function FarmMap({
 
       {/* Zone Labeling Panel */}
       {selectedZone && (
-        <div className="absolute bottom-4 left-4 bg-card rounded shadow-lg p-4 z-10 w-96 max-h-[80vh] overflow-y-auto">
+        <div className="absolute bottom-4 left-4 bg-card rounded shadow-lg p-4 z-10 w-96 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto">
           <div className="flex items-center gap-2 mb-3">
             <Tag className="h-4 w-4" />
             <h3 className="font-medium">Label Zone</h3>

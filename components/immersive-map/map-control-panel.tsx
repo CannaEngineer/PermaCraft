@@ -63,7 +63,7 @@ export function MapControlPanel({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="fixed top-20 right-4 z-30 glass-panel rounded-xl p-3 w-64"
+      className="fixed top-20 right-4 z-30 glass-panel rounded-xl p-3 w-64 max-w-[calc(100vw-2rem)]"
     >
       {/* Panel Header */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">

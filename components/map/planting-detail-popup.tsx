@@ -36,7 +36,7 @@ export function PlantingDetailPopup({ planting, onClose, onDelete, onShowCompani
   const maturityProgress = Math.min((plantAge / yearsToMaturity) * 100, 100);
 
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1001]">
+    <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/20 z-[1000]"
@@ -44,7 +44,7 @@ export function PlantingDetailPopup({ planting, onClose, onDelete, onShowCompani
       />
 
       {/* Popup */}
-      <div className="relative z-[1001] bg-card rounded-lg shadow-2xl border border-border w-96 overflow-hidden">
+      <div className="relative z-[1001] bg-card rounded-lg shadow-2xl border border-border w-96 max-w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-4 bg-muted/50 border-b border-border">
           <div className="flex items-start justify-between gap-2">
