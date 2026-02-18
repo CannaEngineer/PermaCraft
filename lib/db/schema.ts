@@ -740,3 +740,130 @@ export interface UserFollow {
   followed_id: string;
   created_at: number;
 }
+
+// ─── Shop & Marketplace ───────────────────────────────────────────────────────
+
+export interface ShopProduct {
+  id: string;
+  farm_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: 'nursery_stock' | 'seeds' | 'vegetable_box' | 'cut_flowers' |
+            'teas_herbs' | 'value_added' | 'tour' | 'event' | 'digital' | 'other';
+  price_cents: number;
+  compare_at_price_cents: number | null;
+  currency: string;
+  track_inventory: number;
+  quantity_in_stock: number;
+  allow_backorder: number;
+  species_id: string | null;
+  variety_id: string | null;
+  image_url: string | null;
+  gallery_urls: string | null;
+  weight_oz: number | null;
+  ships_to: string;
+  shipping_note: string | null;
+  event_date: number | null;
+  event_end_date: number | null;
+  event_location: string | null;
+  event_capacity: number | null;
+  event_registered: number;
+  digital_file_url: string | null;
+  tags: string | null;
+  is_featured: number;
+  is_published: number;
+  sort_order: number;
+  view_count: number;
+  rating_avg: number;
+  rating_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ProductVariant {
+  id: string;
+  product_id: string;
+  name: string;
+  price_cents: number;
+  quantity_in_stock: number;
+  sku: string | null;
+  sort_order: number;
+  created_at: number;
+}
+
+export interface CartItem {
+  id: string;
+  user_id: string;
+  product_id: string;
+  variant_id: string | null;
+  quantity: number;
+  added_at: number;
+}
+
+export interface ShopOrder {
+  id: string;
+  order_number: string;
+  farm_id: string;
+  buyer_id: string;
+  status: 'pending' | 'paid' | 'confirmed' | 'preparing' | 'shipped' |
+          'out_for_delivery' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
+  subtotal_cents: number;
+  shipping_cents: number;
+  tax_cents: number;
+  total_cents: number;
+  fulfillment_type: 'shipping' | 'pickup' | 'delivery' | 'digital' | 'event' | null;
+  shipping_address: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  pickup_date: number | null;
+  stripe_payment_intent_id: string | null;
+  stripe_checkout_session_id: string | null;
+  buyer_name: string | null;
+  buyer_email: string | null;
+  buyer_phone: string | null;
+  order_notes: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  variant_id: string | null;
+  product_name: string;
+  variant_name: string | null;
+  quantity: number;
+  unit_price_cents: number;
+  total_cents: number;
+  created_at: number;
+}
+
+export interface ProductReview {
+  id: string;
+  product_id: string;
+  reviewer_id: string;
+  order_id: string | null;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  image_urls: string | null;
+  helpful_count: number;
+  is_verified_purchase: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ShopNotification {
+  id: string;
+  user_id: string;
+  notification_type: string;
+  order_id: string | null;
+  product_id: string | null;
+  farm_id: string | null;
+  triggered_by_user_id: string | null;
+  content_preview: string | null;
+  is_read: number;
+  created_at: number;
+}
