@@ -88,12 +88,12 @@ export function Sidebar({
             </Link>
           );
         })}
-      </nav>
 
-      {/* Compact Music Controller */}
-      <div className="border-t border-border">
-        <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
-      </div>
+        {/* Music Player - integrated into nav */}
+        <div className="pt-2">
+          <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
+        </div>
+      </nav>
 
       {/* Music Player Sheet (drawer) */}
       <MusicPlayerSheet

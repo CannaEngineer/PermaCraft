@@ -1,6 +1,7 @@
 // app/(app)/shops/[farmId]/product/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { db } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PriceDisplay } from '@/components/shop/price-display';
@@ -14,14 +15,19 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 async function getProductBySlug(farmId: string, slug: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/shops/${farmId}`, {
-    cache: 'no-store',
+  const farmResult = await db.execute({
+    sql: `SELECT id, name FROM farms WHERE id = ? AND is_shop_enabled = 1 AND is_public = 1`,
+    args: [farmId],
   });
-  if (!res.ok) return null;
-  const data = await res.json();
-  const product = data.products.find((p: ShopProduct) => p.slug === slug);
-  if (!product) return null;
-  return { product, farmName: data.shop.name as string };
+  if (!farmResult.rows[0]) return null;
+
+  const productResult = await db.execute({
+    sql: `SELECT * FROM shop_products WHERE farm_id = ? AND slug = ? AND is_published = 1`,
+    args: [farmId, slug],
+  });
+  if (!productResult.rows[0]) return null;
+
+  return { product: productResult.rows[0] as unknown as ShopProduct, farmName: farmResult.rows[0].name as string };
 }
 
 export default async function ProductDetailPage({
