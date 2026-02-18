@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, Users, Leaf, GraduationCap, LogOut, Shield, BookOpen, UserCircle } from "lucide-react";
+import { MapIcon, LayoutDashboard, Users, Leaf, GraduationCap, LogOut, Shield, BookOpen, UserCircle, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -14,6 +14,7 @@ import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
   { name: "Community", href: "/gallery", icon: Users, requiresAuth: false },
+  { name: "Shop", href: "/shops", icon: Store, requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, requiresAuth: false },
   { name: "Blog", href: "/learn/blog", icon: BookOpen, requiresAuth: false },
   { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
