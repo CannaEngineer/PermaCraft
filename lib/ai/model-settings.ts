@@ -49,7 +49,7 @@ const DEFAULT_SETTINGS: ModelSettings = {
   ai_tutor_model: 'x-ai/grok-4.1-fast',
   map_analysis_vision_model: 'meta-llama/llama-3.2-90b-vision-instruct:free',
   map_analysis_fallback_model: 'google/gemini-2.5-flash-lite',
-  sketch_instruction_model: 'google/gemini-flash-1.5',
+  sketch_instruction_model: 'google/gemini-2.5-flash-lite',
   sketch_image_model: 'google/gemini-2.5-flash-image',
   practice_feedback_model: 'x-ai/grok-4.1-fast',
   lesson_personalization_model: 'x-ai/grok-4.1-fast',

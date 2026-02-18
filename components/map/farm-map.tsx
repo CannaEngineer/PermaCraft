@@ -2011,7 +2011,6 @@ export function FarmMap({
       if (!circleMode && !externalDrawingMode && onFeatureSelect && map.current) {
         const features = map.current.queryRenderedFeatures(e.point, {
           layers: [
-            'plantings-layer',
             'colored-zones-fill',
             'colored-lines',
             'colored-points',
@@ -2025,27 +2024,6 @@ export function FarmMap({
 
         if (features.length > 0) {
           const feature = features[0];
-
-          // Handle planting selection
-          if (feature.layer.id === 'plantings-layer' && feature.properties) {
-            const plantingData = {
-              id: feature.properties.id,
-              species_id: feature.properties.species_id,
-              common_name: feature.properties.common_name,
-              scientific_name: feature.properties.scientific_name,
-              layer: feature.properties.layer,
-              planted_year: feature.properties.planted_year,
-              lat: feature.properties.lat,
-              lng: feature.properties.lng,
-            };
-            onFeatureSelect(feature.properties.id, 'planting', plantingData);
-
-            // Deselect all in MapboxDraw to prevent selection UI
-            if (draw.current) {
-              draw.current.changeMode('simple_select', { featureIds: [] });
-            }
-            return;
-          }
 
           // Handle zone selection (from colored layer)
           if (feature.layer.id === 'colored-zones-fill' && feature.properties) {
@@ -3733,19 +3711,6 @@ export function FarmMap({
           currentYear={projectionYear}
           onClick={(p) => {
             setSelectedPlanting(p);
-            // Trigger feature selection when not in drawing mode
-            if (!externalDrawingMode && onFeatureSelect) {
-              onFeatureSelect(p.id, 'planting', {
-                id: p.id,
-                species_id: p.species_id,
-                common_name: p.common_name,
-                scientific_name: p.scientific_name,
-                layer: p.layer,
-                planted_year: p.planted_year,
-                lat: p.lat,
-                lng: p.lng,
-              });
-            }
           }}
         />
       ))}

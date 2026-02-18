@@ -16,13 +16,11 @@ export const openrouter = new OpenAI({
 // Free models on OpenRouter (in priority order)
 // Note: Some models may not support vision - fallback will skip them automatically
 export const FREE_VISION_MODELS = [
-  "openai/gpt-oss-120b",                            // GPT OSS 120B - general purpose, reliable
-  "amazon/nova-2-lite-v1:free",                     // Amazon Nova 2 Lite - vision, fast
-  "nvidia/nemotron-nano-12b-v2-vl:free",            // Nemotron Nano VL - vision-language model
+  "nvidia/nemotron-nano-12b-v2-vl:free",            // Nemotron Nano VL - confirmed working vision model
   "google/gemini-flash-1.5:free",                   // Gemini Flash 1.5 - vision
-  "x-ai/grok-4.1-fast:free",                        // Grok 4.1 Fast (may be unavailable)
   "google/gemma-3-27b-it:free",                     // Gemma 3 27B
-  "openrouter/bert-nebulon-alpha",                  // Bert Nebulon Alpha
+  "meta-llama/llama-3.2-11b-vision-instruct:free",  // Llama 3.2 11B Vision
+  "qwen/qwen2.5-vl-7b-instruct:free",               // Qwen2.5 VL 7B
 ];
 
 // Default to first model
