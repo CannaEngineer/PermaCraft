@@ -1,7 +1,6 @@
 // app/api/shops/[farmId]/settings/route.ts
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
 import { z } from 'zod';
 
 const SettingsSchema = z.object({
@@ -27,7 +26,7 @@ export async function GET(
   _req: Request,
   { params }: { params: { farmId: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
   const owned = await verifyOwnership(params.farmId, session.user.id);
@@ -49,7 +48,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: { farmId: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
   const owned = await verifyOwnership(params.farmId, session.user.id);

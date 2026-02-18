@@ -1,8 +1,7 @@
 // app/(app)/farm/[id]/shop/products/[productId]/edit/page.tsx
-import { auth } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/shop/seller/product-form';
 import type { ShopProduct } from '@/lib/db/schema';
 
@@ -11,8 +10,7 @@ export default async function EditProductPage({
 }: {
   params: { id: string; productId: string };
 }) {
-  const session = await auth.api.getSession({ headers: headers() });
-  if (!session) redirect('/login');
+  const session = await requireAuth();
 
   const farmResult = await db.execute({
     sql: 'SELECT id FROM farms WHERE id = ? AND user_id = ?',

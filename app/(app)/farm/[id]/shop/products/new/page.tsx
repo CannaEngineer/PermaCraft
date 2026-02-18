@@ -1,13 +1,11 @@
 // app/(app)/farm/[id]/shop/products/new/page.tsx
-import { auth } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/shop/seller/product-form';
 
 export default async function NewProductPage({ params }: { params: { id: string } }) {
-  const session = await auth.api.getSession({ headers: headers() });
-  if (!session) redirect('/login');
+  const session = await requireAuth();
 
   const result = await db.execute({
     sql: 'SELECT id FROM farms WHERE id = ? AND user_id = ?',

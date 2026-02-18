@@ -1,8 +1,7 @@
 // app/(app)/farm/[id]/shop/page.tsx
-import { auth } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ShopSettingsForm } from '@/components/shop/seller/shop-settings-form';
@@ -11,8 +10,7 @@ import { Plus, ExternalLink } from 'lucide-react';
 import type { ShopProduct } from '@/lib/db/schema';
 
 export default async function ShopDashboardPage({ params }: { params: { id: string } }) {
-  const session = await auth.api.getSession({ headers: headers() });
-  if (!session) redirect('/login');
+  const session = await requireAuth();
 
   const farmResult = await db.execute({
     sql: `SELECT id, name, is_shop_enabled, shop_headline, shop_banner_url, shop_policy,

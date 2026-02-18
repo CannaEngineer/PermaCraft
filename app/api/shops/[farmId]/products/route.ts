@@ -1,7 +1,6 @@
 // app/api/shops/[farmId]/products/route.ts
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
 import { z } from 'zod';
 
 const CATEGORIES = ['nursery_stock','seeds','vegetable_box','cut_flowers',
@@ -35,7 +34,7 @@ export async function GET(
   _req: Request,
   { params }: { params: { farmId: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
   const owned = await verifyOwnership(params.farmId, session.user.id);
@@ -52,7 +51,7 @@ export async function POST(
   req: Request,
   { params }: { params: { farmId: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
   const owned = await verifyOwnership(params.farmId, session.user.id);

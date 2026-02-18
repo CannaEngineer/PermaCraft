@@ -1,7 +1,6 @@
 // app/api/shops/[farmId]/products/upload/route.ts
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 let r2: S3Client | null = null;
@@ -32,7 +31,7 @@ export async function POST(
   req: Request,
   { params }: { params: { farmId: string } }
 ) {
-  const session = await auth.api.getSession({ headers: headers() });
+  const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
   const owned = await verifyOwnership(params.farmId, session.user.id);

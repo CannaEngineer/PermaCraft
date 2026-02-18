@@ -129,7 +129,7 @@ export function ProductForm({ farmId, product }: ProductFormProps) {
 
         <div className="space-y-2">
           <Label>Category *</Label>
-          <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+          <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v as typeof CATEGORIES[number]['value'] }))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((c) => (
