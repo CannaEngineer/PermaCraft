@@ -1,19 +1,51 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { ChevronDown, ChevronUp, Filter, Map, Activity, Settings, Clock, Leaf, Play, Pause, RotateCcw, List } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { ChevronDown, ChevronUp, Filter, Activity, Leaf, List, ChevronRight, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
 import { FeatureListPanel } from "./feature-list-panel";
 import { RedesignedTimeMachine } from "@/components/time-machine/redesigned-time-machine";
-import { LayerManager } from "@/components/layers/layer-manager";
+import { CompactFilterPills } from "./info-cards/compact-filter-pills";
+import { MAP_INFO_TOKENS as tokens } from "@/lib/design/map-info-tokens";
+import { cn } from "@/lib/utils";
 
 type MapLayer = "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
 type GridDensity = "auto" | "sparse" | "normal" | "dense" | "off";
 
+const LAYER_FILTERS = [
+  { id: 'canopy', label: 'Canopy', color: '#166534' },
+  { id: 'understory', label: 'Understory', color: '#16a34a' },
+  { id: 'shrub', label: 'Shrub', color: '#22c55e' },
+  { id: 'herbaceous', label: 'Herbaceous', color: '#84cc16' },
+  { id: 'groundcover', label: 'Groundcover', color: '#a3e635' },
+  { id: 'vine', label: 'Vine', color: '#a855f7' },
+  { id: 'root', label: 'Root', color: '#78350f' },
+  { id: 'aquatic', label: 'Aquatic', color: '#0284c7' },
+];
+
+const FUNCTION_FILTERS = [
+  { id: 'nitrogen_fixer', label: 'N-Fixers' },
+  { id: 'pollinator_support', label: 'Pollinators' },
+  { id: 'dynamic_accumulator', label: 'Accumulators' },
+  { id: 'wildlife_habitat', label: 'Wildlife' },
+  { id: 'edible_fruit', label: 'Edible' },
+  { id: 'medicinal', label: 'Medicinal' },
+  { id: 'erosion_control', label: 'Erosion Control' },
+];
+
+const MAP_LAYERS: { value: MapLayer; label: string }[] = [
+  { value: 'satellite', label: 'Satellite (ESRI)' },
+  { value: 'mapbox-satellite', label: 'Mapbox Satellite' },
+  { value: 'terrain-3d', label: '3D Terrain' },
+  { value: 'terrain', label: 'Terrain Map' },
+  { value: 'topo', label: 'OpenTopoMap' },
+  { value: 'usgs', label: 'USGS Topo' },
+  { value: 'street', label: 'Street Map' },
+];
+
 interface MapBottomDrawerProps {
-  // Legend props
   mapLayer: MapLayer;
   gridUnit: "imperial" | "metric";
   gridDensity: GridDensity;
@@ -22,11 +54,9 @@ interface MapBottomDrawerProps {
   lines?: any[];
   guilds?: any[];
   phases?: any[];
+  farmId?: string;
 
   // Time Machine props
-  isTimeMachineOpen?: boolean;
-  onOpenTimeMachine?: () => void;
-  onCloseTimeMachine?: () => void;
   currentYear?: number;
   onYearChange?: (year: number) => void;
   minYear?: number;
@@ -37,10 +67,6 @@ interface MapBottomDrawerProps {
   onTogglePlantingFilter: (layer: string) => void;
   vitalFilters: string[];
   onToggleVitalFilter: (vital: string) => void;
-  phaseFilters?: string[];
-  onTogglePhaseFilter?: (phaseId: string) => void;
-  waterFilters?: string[];
-  onToggleWaterFilter?: (type: string) => void;
 
   // Vitals props
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
@@ -52,13 +78,14 @@ interface MapBottomDrawerProps {
 
   // Actions
   onAddPlant?: () => void;
+  onDataRefresh?: () => void;
 
   // Feature List props
   onFeatureSelectFromList?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase') => void;
   mapRef?: React.RefObject<any>;
 }
 
-type Tab = 'legend' | 'filters' | 'vitals' | 'settings' | 'timemachine' | 'features';
+type Tab = 'features' | 'filters' | 'vitals';
 
 export function MapBottomDrawer({
   mapLayer,
@@ -69,9 +96,7 @@ export function MapBottomDrawer({
   lines = [],
   guilds = [],
   phases = [],
-  isTimeMachineOpen = false,
-  onOpenTimeMachine,
-  onCloseTimeMachine,
+  farmId,
   currentYear,
   onYearChange,
   minYear = new Date().getFullYear(),
@@ -80,34 +105,25 @@ export function MapBottomDrawer({
   onTogglePlantingFilter,
   vitalFilters,
   onToggleVitalFilter,
-  phaseFilters = [],
-  onTogglePhaseFilter,
-  waterFilters = [],
-  onToggleWaterFilter,
   onGetRecommendations,
   onChangeLayer,
   onToggleGridUnit,
   onChangeGridDensity,
   onAddPlant,
+  onDataRefresh,
   onFeatureSelectFromList,
   mapRef,
 }: MapBottomDrawerProps) {
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('filters');
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('features');
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
 
-  // Use isCollapsed directly - remove forced expand
-  const effectiveCollapsed = isCollapsed;
-
-  // Calculate badge counts for peek bar
   const activeFilterCount = useMemo(() => {
-    return plantingFilters.length + vitalFilters.length + phaseFilters.length + waterFilters.length;
-  }, [plantingFilters.length, vitalFilters.length, phaseFilters.length, waterFilters.length]);
+    return plantingFilters.length + vitalFilters.length;
+  }, [plantingFilters.length, vitalFilters.length]);
 
-  // Calculate low vitals (high importance functions with 0 count)
   const lowVitalCount = useMemo(() => {
     if (plantings.length === 0) return 0;
-
     const functionCounts: Record<string, number> = {};
     plantings.forEach((planting: any) => {
       if (!planting.permaculture_functions) return;
@@ -116,79 +132,97 @@ export function MapBottomDrawer({
         functions.forEach((fn) => {
           functionCounts[fn] = (functionCounts[fn] || 0) + 1;
         });
-      } catch (error) {
+      } catch {
         // Ignore parse errors
       }
     });
-
-    // High importance functions to check
     const highImportanceFunctions = [
       'nitrogen_fixer', 'nitrogen_fixing',
       'pollinator_support', 'pollinator', 'pollinator_attractor',
       'edible_fruit', 'edible_nuts', 'edible'
     ];
-
     return highImportanceFunctions.filter(fn => !functionCounts[fn]).length > 0 ? 1 : 0;
   }, [plantings]);
 
-  // Helper to open drawer to specific tab
+  const nonBoundaryZoneCount = useMemo(() => {
+    return zones.filter((z: any) => z.zone_type !== 'farm_boundary').length;
+  }, [zones]);
+
+  // Build filter pill data with counts
+  const layerPillFilters = useMemo(() => {
+    return LAYER_FILTERS.map(layer => ({
+      ...layer,
+      count: plantings.filter((p: any) => p.layer === layer.id).length,
+    }));
+  }, [plantings]);
+
+  const functionPillFilters = useMemo(() => {
+    return FUNCTION_FILTERS.map(fn => {
+      const count = plantings.filter((p: any) => {
+        if (!p.permaculture_functions) return false;
+        try {
+          const functions = typeof p.permaculture_functions === 'string'
+            ? JSON.parse(p.permaculture_functions)
+            : p.permaculture_functions;
+          return functions.includes(fn.id);
+        } catch {
+          return false;
+        }
+      }).length;
+      return { ...fn, count };
+    });
+  }, [plantings]);
+
+  const handleClearLayerFilters = useCallback(() => {
+    plantingFilters.forEach(id => onTogglePlantingFilter(id));
+  }, [plantingFilters, onTogglePlantingFilter]);
+
+  const handleClearVitalFilters = useCallback(() => {
+    vitalFilters.forEach(id => onToggleVitalFilter(id));
+  }, [vitalFilters, onToggleVitalFilter]);
+
   const openTab = (tab: Tab) => {
     setActiveTab(tab);
     setIsCollapsed(false);
   };
 
-  // Time machine playback effect
-  useEffect(() => {
-    if (!isPlaying || !onYearChange || currentYear === undefined) return;
-
-    const interval = setInterval(() => {
-      if (currentYear >= maxYear) {
-        setIsPlaying(false);
-        return;
-      }
-      onYearChange(currentYear + 1);
-    }, 1000); // Advance one year per second
-
-    return () => clearInterval(interval);
-  }, [isPlaying, currentYear, maxYear, onYearChange]);
-
   return (
     <div
-      className={`absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20 transition-all duration-300 ${
-        effectiveCollapsed ? 'translate-y-full' : 'translate-y-0'
-      }`}
+      className={cn(
+        "absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20",
+        tokens.animation.slide,
+        isCollapsed ? 'translate-y-full' : 'translate-y-0'
+      )}
       data-bottom-drawer
-      data-collapsed={effectiveCollapsed}
+      data-collapsed={isCollapsed}
     >
-      {/* Peek Tab - Always Visible When Collapsed */}
-      {effectiveCollapsed && (
+      {/* Peek Bar - Always Visible When Collapsed */}
+      {isCollapsed && (
         <div className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border">
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center justify-between px-3 py-2 min-h-[44px]">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <button
                 onClick={() => setIsCollapsed(false)}
-                className="text-sm font-semibold hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-sm hover:text-primary transition-colors shrink-0"
+                aria-label="Expand map info drawer"
               >
-                <Map className="inline h-4 w-4 mr-1" />
-                Map Info ▲
+                <span className="text-muted-foreground">
+                  <Leaf className="inline h-3.5 w-3.5 mr-1" />
+                  {plantings.length} {plantings.length === 1 ? 'planting' : 'plantings'}
+                </span>
+                <span className="text-muted-foreground/60">|</span>
+                <span className="text-muted-foreground">
+                  {nonBoundaryZoneCount} {nonBoundaryZoneCount === 1 ? 'zone' : 'zones'}
+                </span>
               </button>
-
-              {plantings.length > 0 && (
-                <Badge
-                  onClick={(e) => { e.stopPropagation(); openTab('filters'); }}
-                  className="cursor-pointer hover:bg-primary/90 bg-primary text-primary-foreground"
-                >
-                  🌱 {plantings.length} {plantings.length === 1 ? 'planting' : 'plantings'}
-                </Badge>
-              )}
 
               {lowVitalCount > 0 && plantings.length > 0 && (
                 <Badge
                   onClick={(e) => { e.stopPropagation(); openTab('vitals'); }}
                   variant="destructive"
-                  className="cursor-pointer hover:bg-destructive/90"
+                  className="cursor-pointer hover:bg-destructive/90 text-[10px] shrink-0"
                 >
-                  ⚠️ Missing key functions
+                  Missing functions
                 </Badge>
               )}
 
@@ -196,96 +230,103 @@ export function MapBottomDrawer({
                 <Badge
                   onClick={(e) => { e.stopPropagation(); openTab('filters'); }}
                   variant="secondary"
-                  className="cursor-pointer hover:bg-secondary/90"
+                  className="cursor-pointer hover:bg-secondary/90 text-[10px] shrink-0"
                 >
-                  🔍 {activeFilterCount} {activeFilterCount === 1 ? 'filter' : 'filters'} active
+                  {activeFilterCount}
                 </Badge>
               )}
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+              {onAddPlant && (
+                <Button
+                  size="sm"
+                  onClick={onAddPlant}
+                  className="h-8 text-xs px-3"
+                >
+                  <Leaf className="h-3 w-3 mr-1" />
+                  Add Plant
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setIsCollapsed(false)}
+                aria-label="Expand"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tab Bar - Always Visible When Expanded */}
-      {!effectiveCollapsed && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/95">
-          <div className="flex gap-1 flex-wrap">
+      {/* Tab Bar - Visible When Expanded */}
+      {!isCollapsed && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/95">
+          <div className="flex gap-1" role="tablist" aria-label="Map info tabs">
             <button
-              onClick={() => setActiveTab('vitals')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'vitals'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              }`}
-            >
-              <Activity className="inline h-3 w-3 mr-1" />
-              Vitals
-            </button>
-            <button
-              onClick={() => setActiveTab('filters')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'filters'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              }`}
-            >
-              <Filter className="inline h-3 w-3 mr-1" />
-              Filters
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'settings'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              }`}
-            >
-              <Settings className="inline h-3 w-3 mr-1" />
-              Settings
-            </button>
-            <button
+              role="tab"
+              aria-selected={activeTab === 'features'}
+              aria-controls="tabpanel-features"
+              id="tab-features"
               onClick={() => setActiveTab('features')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px]",
                 activeTab === 'features'
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-muted'
-              }`}
+              )}
             >
               <List className="inline h-3 w-3 mr-1" />
               Features
             </button>
             <button
-              onClick={() => {
-                setActiveTab('timemachine');
-                if (onOpenTimeMachine) onOpenTimeMachine();
-              }}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'timemachine'
+              role="tab"
+              aria-selected={activeTab === 'filters'}
+              aria-controls="tabpanel-filters"
+              id="tab-filters"
+              onClick={() => setActiveTab('filters')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px]",
+                activeTab === 'filters'
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-muted'
-              }`}
+              )}
             >
-              <Clock className="inline h-3 w-3 mr-1" />
-              Time Machine
+              <Filter className="inline h-3 w-3 mr-1" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-1.5 h-4 min-w-[16px] px-1 text-[10px]">
+                  {activeFilterCount}
+                </Badge>
+              )}
             </button>
             <button
-              onClick={() => setActiveTab('legend')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'legend'
+              role="tab"
+              aria-selected={activeTab === 'vitals'}
+              aria-controls="tabpanel-vitals"
+              id="tab-vitals"
+              onClick={() => setActiveTab('vitals')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px]",
+                activeTab === 'vitals'
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-muted'
-              }`}
+              )}
             >
-              <Map className="inline h-3 w-3 mr-1" />
-              Info
+              <Activity className="inline h-3 w-3 mr-1" />
+              Vitals & Time
             </button>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
             {onAddPlant && (
               <Button
                 size="sm"
                 onClick={onAddPlant}
-                className="h-7 text-xs"
+                className="h-8 text-xs px-3"
               >
                 <Leaf className="h-3 w-3 mr-1" />
                 Add Plant
@@ -294,9 +335,9 @@ export function MapBottomDrawer({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className="h-8 w-8 p-0"
               onClick={() => setIsCollapsed(true)}
-              title="Minimize"
+              aria-label="Collapse"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
@@ -304,254 +345,16 @@ export function MapBottomDrawer({
         </div>
       )}
 
-      {/* Content Area - Tab Content */}
-      {!effectiveCollapsed && (
+      {/* Tab Panels */}
+      {!isCollapsed && (
         <div className="overflow-y-auto max-h-[60vh] overscroll-contain">
-          {activeTab === 'vitals' && (
-            <div className="p-4">
-              <FarmVitals
-                plantings={plantings}
-                onGetRecommendations={onGetRecommendations}
-              />
-            </div>
-          )}
-
-          {activeTab === 'filters' && (
-            <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Layer Filters */}
-                <div>
-                  <div className="text-muted-foreground font-medium mb-3 text-xs">
-                    Filter by Layer
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: 'canopy', label: 'Canopy', color: 'bg-green-900' },
-                      { value: 'understory', label: 'Understory', color: 'bg-green-700' },
-                      { value: 'shrub', label: 'Shrub', color: 'bg-green-500' },
-                      { value: 'herbaceous', label: 'Herbaceous', color: 'bg-lime-500' },
-                      { value: 'groundcover', label: 'Groundcover', color: 'bg-lime-300' },
-                      { value: 'vine', label: 'Vine', color: 'bg-purple-500' },
-                      { value: 'root', label: 'Root', color: 'bg-amber-900' },
-                      { value: 'aquatic', label: 'Aquatic', color: 'bg-blue-500' },
-                    ].map((layer) => {
-                      const isActive = plantingFilters.length === 0 || plantingFilters.includes(layer.value);
-                      return (
-                        <button
-                          key={layer.value}
-                          onClick={() => onTogglePlantingFilter(layer.value)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
-                            isActive
-                              ? 'bg-muted/50 border border-primary/20'
-                              : 'bg-muted/20 opacity-50 border border-transparent'
-                          }`}
-                        >
-                          <div className={`w-3 h-3 rounded ${layer.color}`} />
-                          <span className={isActive ? 'font-medium' : ''}>{layer.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Vital Type Filters */}
-                <div>
-                  <div className="text-muted-foreground font-medium mb-3 text-xs">
-                    Filter by Function
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: 'nitrogen_fixer', label: 'Nitrogen Fixers', emoji: '🌿' },
-                      { value: 'pollinator_support', label: 'Pollinator Plants', emoji: '🐝' },
-                      { value: 'dynamic_accumulator', label: 'Dynamic Accumulators', emoji: '⚡' },
-                      { value: 'wildlife_habitat', label: 'Wildlife Habitat', emoji: '🦋' },
-                      { value: 'edible_fruit', label: 'Edible Plants', emoji: '🍎' },
-                      { value: 'medicinal', label: 'Medicinal', emoji: '💊' },
-                      { value: 'erosion_control', label: 'Erosion Control', emoji: '🌊' },
-                    ].map((vital) => {
-                      const isActive = vitalFilters.length === 0 || vitalFilters.includes(vital.value);
-                      return (
-                        <button
-                          key={vital.value}
-                          onClick={() => onToggleVitalFilter(vital.value)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
-                            isActive
-                              ? 'bg-muted/50 border border-primary/20'
-                              : 'bg-muted/20 opacity-50 border border-transparent'
-                          }`}
-                        >
-                          <span className="text-sm">{vital.emoji}</span>
-                          <span className={isActive ? 'font-medium' : ''}>{vital.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Implementation Phase Filters */}
-                {onTogglePhaseFilter && (
-                  <div>
-                    <div className="text-muted-foreground font-medium mb-3 text-xs">
-                      Filter by Phase
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {zones
-                        .filter((z: any) => z.phase_id)
-                        .reduce((acc: any[], zone: any) => {
-                          if (!acc.find((p: any) => p.id === zone.phase_id)) {
-                            acc.push({
-                              id: zone.phase_id,
-                              name: zone.phase_name || `Phase ${zone.phase_id}`,
-                              color: zone.phase_color || '#6366f1'
-                            });
-                          }
-                          return acc;
-                        }, [])
-                        .map((phase: any) => {
-                          const isActive = phaseFilters.length === 0 || phaseFilters.includes(phase.id);
-                          return (
-                            <button
-                              key={phase.id}
-                              onClick={() => onTogglePhaseFilter(phase.id)}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
-                                isActive
-                                  ? 'bg-muted/50 border border-primary/20'
-                                  : 'bg-muted/20 opacity-50 border border-transparent'
-                              }`}
-                            >
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: phase.color }}
-                              />
-                              <span className={isActive ? 'font-medium' : ''}>{phase.name}</span>
-                            </button>
-                          );
-                        })}
-                      {zones.filter((z: any) => z.phase_id).length === 0 && (
-                        <div className="text-xs text-muted-foreground italic py-2">
-                          No phases assigned yet
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Water Feature Filters */}
-                {onToggleWaterFilter && (
-                  <div>
-                    <div className="text-muted-foreground font-medium mb-3 text-xs">
-                      Filter by Water
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {[
-                        { value: 'catchment', label: 'Catchments', emoji: '☔' },
-                        { value: 'swale', label: 'Swales', emoji: '〰️' },
-                        { value: 'pond', label: 'Ponds', emoji: '🌊' },
-                        { value: 'water_flow', label: 'Water Flows', emoji: '💧' },
-                      ].map((water) => {
-                        const isActive = waterFilters.length === 0 || waterFilters.includes(water.value);
-                        return (
-                          <button
-                            key={water.value}
-                            onClick={() => onToggleWaterFilter(water.value)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
-                              isActive
-                                ? 'bg-muted/50 border border-primary/20'
-                                : 'bg-muted/20 opacity-50 border border-transparent'
-                            }`}
-                          >
-                            <span className="text-sm">{water.emoji}</span>
-                            <span className={isActive ? 'font-medium' : ''}>{water.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'settings' && onChangeLayer && (
-            <div className="px-4 py-3">
-              <div className="space-y-4">
-                {/* Map Layer Selection */}
-                <div>
-                  <div className="text-sm font-medium mb-2">Map Layer</div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {[
-                      { value: 'satellite' as MapLayer, label: 'Satellite (ESRI)' },
-                      { value: 'mapbox-satellite' as MapLayer, label: 'Mapbox Satellite' },
-                      { value: 'terrain-3d' as MapLayer, label: '3D Terrain' },
-                      { value: 'terrain' as MapLayer, label: 'Terrain Map' },
-                      { value: 'topo' as MapLayer, label: 'OpenTopoMap' },
-                      { value: 'usgs' as MapLayer, label: 'USGS Topo' },
-                      { value: 'street' as MapLayer, label: 'Street Map' },
-                    ].map((layer) => (
-                      <button
-                        key={layer.value}
-                        onClick={() => onChangeLayer(layer.value)}
-                        className={`px-3 py-2 rounded-lg text-xs transition-colors ${
-                          mapLayer === layer.value
-                            ? 'bg-primary text-primary-foreground font-medium'
-                            : 'bg-muted/50 hover:bg-muted'
-                        }`}
-                      >
-                        {layer.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Grid Settings */}
-                {onToggleGridUnit && (
-                  <div>
-                    <div className="text-sm font-medium mb-2">Grid Settings</div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={onToggleGridUnit}
-                        className="w-full px-3 py-2 rounded-lg text-xs bg-muted/50 hover:bg-muted transition-colors text-left"
-                      >
-                        <div className="font-medium">Units: {gridUnit === 'imperial' ? 'Imperial (ft)' : 'Metric (m)'}</div>
-                        <div className="text-xs text-muted-foreground mt-1">Tap to toggle</div>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Grid Density */}
-                {onChangeGridDensity && (
-                  <div>
-                    <div className="text-sm font-medium mb-2">Grid Density</div>
-                    <div className="grid grid-cols-5 gap-2">
-                      {(['auto', 'sparse', 'normal', 'dense', 'off'] as GridDensity[]).map((density) => (
-                        <button
-                          key={density}
-                          onClick={() => onChangeGridDensity(density)}
-                          className={`px-3 py-2 rounded-lg text-xs transition-colors capitalize ${
-                            gridDensity === density
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted/50 hover:bg-muted'
-                          }`}
-                        >
-                          {density}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Layer Manager */}
-                <div>
-                  <div className="text-sm font-medium mb-2">Layer Management</div>
-                  <LayerManager />
-                </div>
-              </div>
-            </div>
-          )}
-
+          {/* Features Tab */}
           {activeTab === 'features' && (
-            <div>
+            <div
+              role="tabpanel"
+              id="tabpanel-features"
+              aria-labelledby="tab-features"
+            >
               {onFeatureSelectFromList && mapRef ? (
                 <FeatureListPanel
                   zones={zones}
@@ -559,8 +362,10 @@ export function MapBottomDrawer({
                   lines={lines}
                   guilds={guilds}
                   phases={phases}
+                  farmId={farmId}
                   onFeatureSelect={onFeatureSelectFromList}
                   mapRef={mapRef}
+                  onDataRefresh={onDataRefresh}
                 />
               ) : (
                 <div className="p-4 text-sm text-muted-foreground">
@@ -570,62 +375,145 @@ export function MapBottomDrawer({
             </div>
           )}
 
-          {activeTab === 'timemachine' && currentYear !== undefined && onYearChange && (
-            <RedesignedTimeMachine
-              plantings={plantings}
-              currentYear={currentYear}
-              onYearChange={onYearChange}
-              minYear={minYear}
-              maxYear={maxYear}
-              onClose={onCloseTimeMachine}
-            />
+          {/* Filters Tab */}
+          {activeTab === 'filters' && (
+            <div
+              role="tabpanel"
+              id="tabpanel-filters"
+              aria-labelledby="tab-filters"
+              className="p-4 space-y-4"
+            >
+              <CompactFilterPills
+                title="Layer Filters"
+                filters={layerPillFilters}
+                activeFilters={plantingFilters}
+                onToggle={onTogglePlantingFilter}
+                onClearAll={plantingFilters.length > 0 ? handleClearLayerFilters : undefined}
+              />
+
+              <CompactFilterPills
+                title="Function Filters"
+                filters={functionPillFilters}
+                activeFilters={vitalFilters}
+                onToggle={onToggleVitalFilter}
+                onClearAll={vitalFilters.length > 0 ? handleClearVitalFilters : undefined}
+              />
+
+              {/* Collapsible Map Settings */}
+              {onChangeLayer && (
+                <div className={cn(
+                  tokens.colors.card.background,
+                  tokens.colors.card.border,
+                  'rounded-lg',
+                  tokens.spacing.card.padding
+                )}>
+                  <button
+                    onClick={() => setSettingsExpanded(!settingsExpanded)}
+                    className="flex items-center justify-between w-full text-left"
+                    aria-expanded={settingsExpanded}
+                  >
+                    <h3 className={tokens.typography.title}>
+                      <Map className="inline h-3.5 w-3.5 mr-1.5" />
+                      Map Settings
+                    </h3>
+                    <ChevronRight className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform",
+                      settingsExpanded && "rotate-90"
+                    )} />
+                  </button>
+
+                  {settingsExpanded && (
+                    <div className="mt-3 space-y-4">
+                      {/* Map Layer Selection */}
+                      <div>
+                        <div className="text-xs font-medium mb-2 text-muted-foreground">Map Layer</div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+                          {MAP_LAYERS.map((layer) => (
+                            <button
+                              key={layer.value}
+                              onClick={() => onChangeLayer(layer.value)}
+                              className={cn(
+                                "px-3 py-2 rounded-lg text-xs transition-colors",
+                                mapLayer === layer.value
+                                  ? 'bg-primary text-primary-foreground font-medium'
+                                  : 'bg-muted/50 hover:bg-muted'
+                              )}
+                            >
+                              {layer.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Grid Unit Toggle */}
+                      {onToggleGridUnit && (
+                        <div>
+                          <div className="text-xs font-medium mb-2 text-muted-foreground">Grid Units</div>
+                          <button
+                            onClick={onToggleGridUnit}
+                            className="w-full px-3 py-2 rounded-lg text-xs bg-muted/50 hover:bg-muted transition-colors text-left"
+                          >
+                            <span className="font-medium">{gridUnit === 'imperial' ? 'Imperial (ft)' : 'Metric (m)'}</span>
+                            <span className="text-muted-foreground ml-2">Tap to toggle</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Grid Density */}
+                      {onChangeGridDensity && (
+                        <div>
+                          <div className="text-xs font-medium mb-2 text-muted-foreground">Grid Density</div>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {(['auto', 'sparse', 'normal', 'dense', 'off'] as GridDensity[]).map((density) => (
+                              <button
+                                key={density}
+                                onClick={() => onChangeGridDensity(density)}
+                                className={cn(
+                                  "px-2 py-2 rounded-lg text-xs transition-colors capitalize",
+                                  gridDensity === density
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted/50 hover:bg-muted'
+                                )}
+                              >
+                                {density}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
-          {activeTab === 'legend' && (
-            <div className="px-4 py-3">
-
-              {/* Map Info */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Farm Boundary */}
-                <div>
-                  <div className="text-muted-foreground font-medium mb-2 text-xs">
-                    Farm Boundary
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-0.5 bg-background border-2 border-purple-600 rounded"></div>
-                    <span className="text-[10px] text-muted-foreground">Purple</span>
-                  </div>
-                </div>
-
-                {/* Map Layer Info */}
-                <div>
-                  <div className="text-muted-foreground font-medium mb-2 text-xs">
-                    Map Layer
-                  </div>
-                  <div className="text-xs">
-                    {mapLayer === 'satellite' && 'Satellite (ESRI)'}
-                    {mapLayer === 'mapbox-satellite' && 'Mapbox Satellite'}
-                    {mapLayer === 'terrain-3d' && '3D Terrain'}
-                    {mapLayer === 'terrain' && 'Terrain Map'}
-                    {mapLayer === 'topo' && 'OpenTopoMap'}
-                    {mapLayer === 'usgs' && 'USGS Topo'}
-                    {mapLayer === 'street' && 'Street Map'}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-1">
-                    Grid: {gridUnit === 'imperial' ? '50 ft' : '25 m'}
-                  </div>
-                </div>
-
-                {/* Planting Stats */}
-                <div>
-                  <div className="text-muted-foreground font-medium mb-2 text-xs">
-                    Plantings
-                  </div>
-                  <div className="text-xs">
-                    Total: {plantings.length}
-                  </div>
-                </div>
+          {/* Vitals & Time Tab */}
+          {activeTab === 'vitals' && (
+            <div
+              role="tabpanel"
+              id="tabpanel-vitals"
+              aria-labelledby="tab-vitals"
+            >
+              <div className="p-4">
+                <FarmVitals
+                  plantings={plantings}
+                  onGetRecommendations={onGetRecommendations}
+                />
               </div>
+
+              {currentYear !== undefined && onYearChange && (
+                <>
+                  <div className="border-t border-border mx-4" />
+                  <RedesignedTimeMachine
+                    plantings={plantings}
+                    currentYear={currentYear}
+                    onYearChange={onYearChange}
+                    minYear={minYear}
+                    maxYear={maxYear}
+                  />
+                </>
+              )}
             </div>
           )}
         </div>
