@@ -37,7 +37,7 @@ export default async function ShopStorefrontPage({ params }: { params: Promise<{
   const data = await getShop(farmId);
   if (!data) notFound();
 
-  const { shop, products } = data as { shop: any; products: ShopProduct[] };
+  const { shop, products } = data as unknown as { shop: any; products: ShopProduct[] };
   const categories = [...new Set(products.map((p) => p.category))];
   const fulfillmentMethods = [
     shop.accepts_shipping && 'Ships nationwide',

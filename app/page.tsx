@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { getSession } from "@/lib/auth/session";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getSession();
+  const isSignedIn = !!session;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
@@ -14,23 +18,38 @@ export default function LandingPage() {
             Permaculture.Studio
           </Link>
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline"
-              style={{ color: "hsl(var(--foreground))" }}
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-md px-4 py-2 text-sm font-medium no-underline"
-              style={{
-                backgroundColor: "hsl(var(--primary))",
-                color: "hsl(var(--primary-foreground))",
-              }}
-            >
-              Get Started
-            </Link>
+            {isSignedIn ? (
+              <Link
+                href="/dashboard"
+                className="rounded-md px-4 py-2 text-sm font-medium no-underline"
+                style={{
+                  backgroundColor: "hsl(var(--primary))",
+                  color: "hsl(var(--primary-foreground))",
+                }}
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-md px-4 py-2 text-sm font-medium no-underline"
+                  style={{
+                    backgroundColor: "hsl(var(--primary))",
+                    color: "hsl(var(--primary-foreground))",
+                  }}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -69,14 +88,14 @@ export default function LandingPage() {
           style={{ animationDelay: "0.6s" }}
         >
           <Link
-            href="/register"
+            href={isSignedIn ? "/dashboard" : "/register"}
             className="landing-glow-hover inline-flex items-center rounded-lg px-8 py-4 text-lg font-semibold no-underline transition-colors"
             style={{
               backgroundColor: "hsl(var(--primary))",
               color: "hsl(var(--primary-foreground))",
             }}
           >
-            Start Designing
+            {isSignedIn ? "Go to Dashboard" : "Start Designing"}
           </Link>
           <Link
             href="/gallery"
@@ -352,14 +371,14 @@ export default function LandingPage() {
             style={{ animationDelay: "0.3s" }}
           >
             <Link
-              href="/register"
+              href={isSignedIn ? "/dashboard" : "/register"}
               className="landing-glow-hover inline-flex items-center rounded-lg px-10 py-5 text-xl font-bold no-underline transition-colors"
               style={{
                 backgroundColor: "hsl(var(--primary))",
                 color: "hsl(var(--primary-foreground))",
               }}
             >
-              Get Started Free
+              {isSignedIn ? "Go to Dashboard" : "Get Started Free"}
             </Link>
           </div>
         </div>
@@ -375,9 +394,15 @@ export default function LandingPage() {
             <Link href="/gallery" className="no-underline hover:underline" style={{ color: "hsl(var(--muted-foreground))" }}>
               Gallery
             </Link>
-            <Link href="/register" className="no-underline hover:underline" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Sign Up
-            </Link>
+            {isSignedIn ? (
+              <Link href="/dashboard" className="no-underline hover:underline" style={{ color: "hsl(var(--muted-foreground))" }}>
+                Dashboard
+              </Link>
+            ) : (
+              <Link href="/register" className="no-underline hover:underline" style={{ color: "hsl(var(--muted-foreground))" }}>
+                Sign Up
+              </Link>
+            )}
           </div>
           <p className="text-sm text-muted-foreground" style={{ marginBottom: 0 }}>
             Built for regenerative farmers
