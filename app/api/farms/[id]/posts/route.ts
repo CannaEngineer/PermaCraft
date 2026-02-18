@@ -106,15 +106,15 @@ export async function POST(
       }
     }
 
-    // Create post
+    // Create post — is_published=1 so it appears immediately in the community feed
     const postId = crypto.randomUUID();
     await db.execute({
       sql: `INSERT INTO farm_posts (
               id, farm_id, author_id, post_type,
               content, media_urls, ai_conversation_id, ai_analysis_id, ai_response_excerpt,
-              tagged_zones, hashtags, created_at, updated_at
+              tagged_zones, hashtags, is_published, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, unixepoch(), unixepoch())`,
       args: [
         postId,
         farmId,
