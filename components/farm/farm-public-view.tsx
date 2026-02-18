@@ -1,9 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { FarmMapReadonly } from '@/components/map/farm-map-readonly';
 import { FarmFeedClient } from '@/components/feed/farm-feed-client';
 import type { Farm } from '@/lib/db/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { ShoppingBag } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -40,6 +43,7 @@ interface FarmPublicViewProps {
     has_more: boolean;
   };
   currentUserId?: string;
+  isShopEnabled?: number;
 }
 
 export function FarmPublicView({
@@ -48,6 +52,7 @@ export function FarmPublicView({
   latestScreenshot,
   initialFeedData,
   currentUserId,
+  isShopEnabled,
 }: FarmPublicViewProps) {
   return (
     <div className="min-h-screen bg-background">
@@ -85,6 +90,16 @@ export function FarmPublicView({
                 <p className="mt-2 text-sm">{farm.description}</p>
               )}
             </div>
+
+            {/* Shop button */}
+            {isShopEnabled === 1 && (
+              <Link href={`/shops/${farm.id}`}>
+                <Button variant="outline" size="sm">
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  Visit Shop
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

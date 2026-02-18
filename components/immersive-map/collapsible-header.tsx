@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
@@ -13,6 +14,7 @@ interface CollapsibleHeaderProps {
   saving: boolean;
   goalsCount: number;
   isPublic: boolean;
+  isShopEnabled?: number;
   onSave: () => void;
   onOpenChat: () => void;
   onOpenGoals: () => void;
@@ -26,6 +28,7 @@ export function CollapsibleHeader({
   saving,
   goalsCount,
   isPublic,
+  isShopEnabled,
   onSave,
   onOpenChat,
   onOpenGoals,
@@ -150,6 +153,13 @@ export function CollapsibleHeader({
                     </span>
                   )}
                 </Button>
+
+                <Link href={`/farm/${farm.id}/shop`}>
+                  <Button variant="ghost" size="sm">
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    {isShopEnabled ? 'Manage Shop' : 'Open a Shop'}
+                  </Button>
+                </Link>
               </motion.div>
             )}
           </AnimatePresence>

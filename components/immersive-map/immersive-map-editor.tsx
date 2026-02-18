@@ -169,6 +169,7 @@ interface ImmersiveMapEditorProps {
   initialZones: Zone[];
   isOwner: boolean;
   initialIsPublic: boolean;
+  isShopEnabled?: number;
 }
 
 function ImmersiveMapEditorContent({
@@ -176,6 +177,7 @@ function ImmersiveMapEditorContent({
   initialZones,
   isOwner,
   initialIsPublic,
+  isShopEnabled,
 }: ImmersiveMapEditorProps) {
   const router = useRouter();
 
@@ -755,6 +757,7 @@ function ImmersiveMapEditorContent({
         saving={saving}
         goalsCount={goals.length}
         isPublic={initialIsPublic}
+        isShopEnabled={isShopEnabled}
         onSave={() => handleSave(true)}
         onOpenChat={() => setChatOpen(true)}
         onOpenGoals={() => setShowGoalsWizard(true)}

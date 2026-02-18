@@ -161,6 +161,8 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     }
   }
 
+  const isShopEnabled = farmRow.is_shop_enabled as number | null;
+
   // If visitor (not owner), show public view
   if (!isOwner) {
     return (
@@ -170,6 +172,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
         latestScreenshot={latestScreenshot}
         initialFeedData={initialFeedData}
         currentUserId={session.user.id}
+        isShopEnabled={isShopEnabled ?? 0}
       />
     );
   }
@@ -181,6 +184,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
       initialZones={zones}
       isOwner={isOwner}
       initialIsPublic={!!farm.is_public}
+      isShopEnabled={isShopEnabled ?? 0}
     />
   );
 }
