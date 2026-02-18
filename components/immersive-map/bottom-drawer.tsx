@@ -95,8 +95,12 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
           <div className="w-16 h-1.5 bg-muted-foreground/40 rounded-full" />
         </div>
 
-        {/* Content */}
-        <div className="px-4 pb-4 overflow-y-auto flex-1 min-h-0">
+        {/* Content — stop pointer events from bubbling to the drag handler so native scroll works */}
+        <div
+          className="px-4 pb-4 overflow-y-auto flex-1 min-h-0"
+          style={{ touchAction: 'pan-y' }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           {children}
         </div>
       </motion.div>
