@@ -33,6 +33,9 @@ export interface ModelSettings {
 
   // Lesson Personalization
   lesson_personalization_model: string;
+
+  // Species Content Generation
+  species_content_model: string;
 }
 
 /**
@@ -50,6 +53,7 @@ const DEFAULT_SETTINGS: ModelSettings = {
   sketch_image_model: 'google/gemini-2.5-flash-image',
   practice_feedback_model: 'x-ai/grok-4.1-fast',
   lesson_personalization_model: 'x-ai/grok-4.1-fast',
+  species_content_model: 'x-ai/grok-4.1-fast',
 };
 
 /**
@@ -150,6 +154,11 @@ export async function getPracticeFeedbackModel(): Promise<string> {
 export async function getLessonPersonalizationModel(): Promise<string> {
   const settings = await getModelSettings();
   return settings.lesson_personalization_model;
+}
+
+export async function getSpeciesContentModel(): Promise<string> {
+  const settings = await getModelSettings();
+  return settings.species_content_model;
 }
 
 /**

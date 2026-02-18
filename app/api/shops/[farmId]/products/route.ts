@@ -16,6 +16,8 @@ const ProductSchema = z.object({
   image_url: z.string().url().optional().nullable(),
   tags: z.string().optional().nullable(),
   is_published: z.number().int().min(0).max(1).default(1),
+  species_id: z.string().optional().nullable(),
+  variety_id: z.string().optional().nullable(),
 });
 
 async function verifyOwnership(farmId: string, userId: string) {
@@ -64,7 +66,7 @@ export async function POST(
   if (!parsed.success) return Response.json(parsed.error, { status: 400 });
 
   const { name, description, category, price_cents, compare_at_price_cents,
-          quantity_in_stock, image_url, tags, is_published } = parsed.data;
+          quantity_in_stock, image_url, tags, is_published, species_id, variety_id } = parsed.data;
 
   const id = crypto.randomUUID();
   let slug = generateSlug(name);
@@ -79,11 +81,12 @@ export async function POST(
   await db.execute({
     sql: `INSERT INTO shop_products
             (id, farm_id, name, slug, description, category, price_cents,
-             compare_at_price_cents, quantity_in_stock, image_url, tags, is_published)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             compare_at_price_cents, quantity_in_stock, image_url, tags, is_published,
+             species_id, variety_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [id, farmId, name, slug, description ?? null, category, price_cents,
            compare_at_price_cents ?? null, quantity_in_stock, image_url ?? null,
-           tags ?? null, is_published],
+           tags ?? null, is_published, species_id ?? null, variety_id ?? null],
   });
 
   const product = await db.execute({

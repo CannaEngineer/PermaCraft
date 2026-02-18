@@ -1,8 +1,9 @@
 "use client";
 
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Trash2, Calendar, MapPin, Users } from 'lucide-react';
+import { X, Trash2, Calendar, MapPin, Users, BookOpen } from 'lucide-react';
 
 interface PlantingDetailPopupProps {
   planting: {
@@ -28,6 +29,7 @@ interface PlantingDetailPopupProps {
 }
 
 export function PlantingDetailPopup({ planting, onClose, onDelete, onShowCompanions }: PlantingDetailPopupProps) {
+  const router = useRouter();
   const currentYear = new Date().getFullYear();
   const plantAge = currentYear - planting.planted_year;
   const yearsToMaturity = planting.years_to_maturity || 10;
@@ -143,6 +145,20 @@ export function PlantingDetailPopup({ planting, onClose, onDelete, onShowCompani
 
         {/* Actions */}
         <div className="p-3 bg-muted/30 border-t border-border space-y-2">
+          {/* Learn More Button */}
+          <Button
+            onClick={() => {
+              router.push(`/plants/${planting.species_id}`);
+              onClose();
+            }}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Learn more about {planting.common_name}
+          </Button>
+
           {/* Guild Companions Button */}
           {onShowCompanions && (
             <Button

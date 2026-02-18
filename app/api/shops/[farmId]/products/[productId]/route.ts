@@ -18,6 +18,8 @@ const UpdateSchema = z.object({
   is_published: z.number().int().min(0).max(1).optional(),
   is_featured: z.number().int().min(0).max(1).optional(),
   sort_order: z.number().int().optional(),
+  species_id: z.string().optional().nullable(),
+  variety_id: z.string().optional().nullable(),
 });
 
 async function verifyOwnership(farmId: string, userId: string) {

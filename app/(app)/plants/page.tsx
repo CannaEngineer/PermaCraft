@@ -1,18 +1,19 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SpeciesCard } from '@/components/species/species-card';
 import { SpeciesFilterSidebar } from '@/components/species/species-filter-sidebar';
-import { SpeciesDetailModal } from '@/components/species/species-detail-modal';
 import type { Species } from '@/lib/db/schema';
 import { Search, SlidersHorizontal, X, Leaf, Sparkles } from 'lucide-react';
 import { Drawer } from 'vaul';
 
 export default function PlantsPage() {
+  const router = useRouter();
   const [species, setSpecies] = useState<Species[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,7 +21,6 @@ export default function PlantsPage() {
   const [nativeFilter, setNativeFilter] = useState<'all' | 'native' | 'naturalized'>('all');
   const [layerFilter, setLayerFilter] = useState<string[]>([]);
   const [functionFilter, setFunctionFilter] = useState<string[]>([]);
-  const [selectedSpeciesId, setSelectedSpeciesId] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -266,7 +266,7 @@ export default function PlantsPage() {
                 >
                   <SpeciesCard
                     species={s}
-                    onClick={() => setSelectedSpeciesId(s.id)}
+                    onClick={() => router.push(`/plants/${s.id}`)}
                   />
                 </div>
               ))}
@@ -333,11 +333,6 @@ export default function PlantsPage() {
         </Drawer.Portal>
       </Drawer.Root>
 
-      {/* Species Detail Modal */}
-      <SpeciesDetailModal
-        speciesId={selectedSpeciesId}
-        onClose={() => setSelectedSpeciesId(null)}
-      />
     </div>
   );
 }

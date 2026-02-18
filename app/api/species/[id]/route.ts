@@ -1,5 +1,7 @@
 import { getSpeciesById, getSpeciesByIds } from '@/lib/species/species-queries';
-import type { Species } from '@/lib/db/schema';
+import { getSpeciesContent } from '@/lib/species/species-content-queries';
+import { db } from '@/lib/db';
+import type { Species, ShopProduct } from '@/lib/db/schema';
 
 export async function GET(
   request: Request,
@@ -28,9 +30,36 @@ export async function GET(
       }
     }
 
+    // Fetch species content (AI-generated narratives)
+    let content = null;
+    try {
+      content = await getSpeciesContent(params.id);
+    } catch (e) {
+      // Table may not exist yet
+    }
+
+    // Fetch shop products linked to this species
+    let products: ShopProduct[] = [];
+    try {
+      const productResult = await db.execute({
+        sql: `SELECT p.*, f.name as farm_name
+              FROM shop_products p
+              JOIN farms f ON f.id = p.farm_id
+              WHERE p.species_id = ? AND p.is_published = 1
+              ORDER BY p.is_featured DESC, p.rating_avg DESC
+              LIMIT 10`,
+        args: [params.id],
+      });
+      products = productResult.rows as unknown as ShopProduct[];
+    } catch (e) {
+      // Products query may fail if columns don't exist
+    }
+
     return Response.json({
       species,
-      companions
+      companions,
+      content,
+      products,
     });
   } catch (error) {
     console.error('Species detail API error:', error);

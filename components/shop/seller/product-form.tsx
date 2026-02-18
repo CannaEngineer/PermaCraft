@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import type { ShopProduct } from '@/lib/db/schema';
+import type { ShopProduct, Species } from '@/lib/db/schema';
+import { Leaf, X } from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'nursery_stock', label: 'Nursery Stock' },
@@ -34,6 +35,10 @@ export function ProductForm({ farmId, product }: ProductFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [speciesSearch, setSpeciesSearch] = useState('');
+  const [speciesResults, setSpeciesResults] = useState<Species[]>([]);
+  const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
+  const [showSpeciesDropdown, setShowSpeciesDropdown] = useState(false);
   const [form, setForm] = useState({
     name: product?.name ?? '',
     description: product?.description ?? '',
@@ -46,7 +51,27 @@ export function ProductForm({ farmId, product }: ProductFormProps) {
     image_url: product?.image_url ?? '',
     tags: product?.tags ?? '',
     is_published: product ? product.is_published === 1 : true,
+    species_id: product?.species_id ?? null,
+    variety_id: product?.variety_id ?? null,
   });
+
+  useEffect(() => {
+    if (!speciesSearch.trim() || speciesSearch.length < 2) {
+      setSpeciesResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/species?search=${encodeURIComponent(speciesSearch)}&limit=5`);
+        if (res.ok) {
+          const data = await res.json();
+          setSpeciesResults(data.species || []);
+          setShowSpeciesDropdown(true);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [speciesSearch]);
 
   const uploadImage = async (file: File) => {
     setUploading(true);
@@ -88,6 +113,8 @@ export function ProductForm({ farmId, product }: ProductFormProps) {
       image_url: form.image_url || null,
       tags: form.tags.trim() || null,
       is_published: form.is_published ? 1 : 0,
+      species_id: form.species_id || null,
+      variety_id: form.variety_id || null,
     };
 
     setSaving(true);
@@ -179,6 +206,65 @@ export function ProductForm({ farmId, product }: ProductFormProps) {
           <Label>Tags (comma-separated)</Label>
           <Input placeholder="heirloom, organic, native" value={form.tags}
             onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} />
+        </div>
+
+        {/* Species Link */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            <Leaf className="w-4 h-4 text-green-600" />
+            Link to Species
+          </Label>
+          {selectedSpecies || form.species_id ? (
+            <div className="flex items-center gap-2 p-2 rounded-lg border bg-green-50 dark:bg-green-950/20">
+              <span className="text-sm flex-1">
+                {selectedSpecies ? `${selectedSpecies.common_name} (${selectedSpecies.scientific_name})` : `Species ID: ${form.species_id}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSpecies(null);
+                  setForm((f) => ({ ...f, species_id: null }));
+                  setSpeciesSearch('');
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Input
+                placeholder="Search for a plant species..."
+                value={speciesSearch}
+                onChange={(e) => setSpeciesSearch(e.target.value)}
+                onFocus={() => speciesResults.length > 0 && setShowSpeciesDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSpeciesDropdown(false), 200)}
+              />
+              {showSpeciesDropdown && speciesResults.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full bg-card border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {speciesResults.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
+                      onMouseDown={() => {
+                        setSelectedSpecies(s);
+                        setForm((f) => ({ ...f, species_id: s.id }));
+                        setSpeciesSearch('');
+                        setShowSpeciesDropdown(false);
+                      }}
+                    >
+                      <span className="font-medium">{s.common_name}</span>
+                      <span className="text-muted-foreground ml-1 italic">({s.scientific_name})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Link this product to a species so it appears on the plant story page
+          </p>
         </div>
 
         <div className="flex items-center justify-between">

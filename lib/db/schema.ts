@@ -741,6 +741,96 @@ export interface UserFollow {
   created_at: number;
 }
 
+// ─── Species Content (AI-generated narratives & guides) ──────────────────────
+
+export interface SpeciesContent {
+  id: string;
+  species_id: string;
+  narrative_summary: string | null;
+  narrative_full: string | null;
+  growing_guide: string | null;
+  growing_guide_summary: string | null;
+  ai_model_used: string | null;
+  generated_at: number | null;
+  last_edited_at: number | null;
+  edit_count: number;
+  quality_score: number;
+  created_at: number;
+  updated_at: number;
+}
+
+// ─── Species Videos ──────────────────────────────────────────────────────────
+
+export interface SpeciesVideo {
+  id: string;
+  species_id: string;
+  youtube_video_id: string;
+  title: string;
+  channel_name: string | null;
+  thumbnail_url: string | null;
+  duration_seconds: number | null;
+  is_featured: number;
+  relevance_score: number;
+  added_by: string | null;
+  approved: number;
+  created_at: number;
+}
+
+// ─── Species Affiliate Links ─────────────────────────────────────────────────
+
+export interface SpeciesAffiliateLink {
+  id: string;
+  species_id: string;
+  vendor_name: string;
+  vendor_url: string;
+  vendor_logo_url: string | null;
+  product_name: string | null;
+  price_range: string | null;
+  link_type: string;
+  affiliate_network: string | null;
+  is_active: number;
+  display_order: number;
+  click_count: number;
+  added_by: string | null;
+  created_at: number;
+}
+
+// ─── Species Community (Tips & Edits) ────────────────────────────────────────
+
+export interface SpeciesTip {
+  id: string;
+  species_id: string;
+  user_id: string;
+  content: string;
+  upvote_count: number;
+  report_count: number;
+  is_approved: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface SpeciesTipVote {
+  id: string;
+  tip_id: string;
+  user_id: string;
+  vote_type: 'upvote' | 'report';
+  created_at: number;
+}
+
+export interface SpeciesContentEdit {
+  id: string;
+  species_id: string;
+  user_id: string;
+  field_name: string;
+  original_value: string | null;
+  proposed_value: string;
+  reason: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by: string | null;
+  reviewed_at: number | null;
+  created_at: number;
+}
+
 // ─── Shop & Marketplace ───────────────────────────────────────────────────────
 
 export interface ShopProduct {
