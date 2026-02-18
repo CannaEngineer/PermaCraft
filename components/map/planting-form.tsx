@@ -44,10 +44,10 @@ export function PlantingForm({ species, position, zones, onSubmit, onCancel }: P
       />
 
       {/* Form - Side-anchored panel (left on desktop, bottom on mobile) */}
-      <div className="fixed inset-y-0 left-0 z-[1000] w-[380px] max-w-[90vw] max-md:inset-x-0 max-md:inset-y-auto max-md:bottom-0 max-md:w-full max-md:h-[70vh] animate-in slide-in-from-left duration-200 max-md:slide-in-from-bottom">
+      <div className="fixed inset-y-0 left-0 z-[1000] w-[380px] max-w-[90vw] max-md:inset-x-0 max-md:inset-y-auto max-md:bottom-0 max-md:w-full max-md:max-h-[80dvh] animate-in slide-in-from-left duration-200 max-md:slide-in-from-bottom max-md:pb-[env(safe-area-inset-bottom)]">
         <form
           onSubmit={handleSubmit}
-          className="bg-card rounded-lg shadow-2xl border border-border h-full overflow-hidden flex flex-col max-md:rounded-t-lg max-md:rounded-b-none"
+          className="bg-card rounded-lg shadow-2xl border border-border h-full overflow-hidden flex flex-col max-md:rounded-t-2xl max-md:rounded-b-none"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -134,21 +134,21 @@ export function PlantingForm({ species, position, zones, onSubmit, onCancel }: P
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="p-3 bg-muted/30 border-t border-border flex gap-2">
+          {/* Actions - sticky at bottom, safe area padding on mobile */}
+          <div className="p-3 pb-4 max-md:pb-6 bg-muted/30 border-t border-border flex gap-2 flex-shrink-0">
             <Button
               type="button"
               onClick={onCancel}
               variant="outline"
-              size="sm"
-              className="flex-1"
+              size="default"
+              className="flex-1 h-11"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              size="default"
+              className="flex-1 h-11 bg-green-600 hover:bg-green-700"
             >
               Plant Here
             </Button>

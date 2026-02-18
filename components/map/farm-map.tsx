@@ -3377,10 +3377,20 @@ export function FarmMap({
 
       {/* Selected Species Indicator - Shown when planting mode active */}
       {plantingMode && selectedSpecies && !showSpeciesPicker && (
-        <div className="absolute top-36 left-4 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="absolute top-36 left-4 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg max-w-[240px]">
           <div className="text-xs font-medium">Planting:</div>
-          <div className="font-semibold">{selectedSpecies.common_name}</div>
-          <div className="text-xs opacity-90 italic">{selectedSpecies.scientific_name}</div>
+          <div className="font-semibold truncate">{selectedSpecies.common_name}</div>
+          <div className="text-xs opacity-90 italic truncate">{selectedSpecies.scientific_name}</div>
+          <button
+            onClick={() => {
+              setPlantingMode(false);
+              setSelectedSpecies(null);
+            }}
+            className="mt-2 w-full bg-white/20 hover:bg-white/30 text-white text-xs font-medium py-1.5 px-3 rounded-md transition-colors flex items-center justify-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h7v7H3z"/><path d="M21 3h-7v7h7z" opacity="0.3"/><path d="M3 21h7v-7H3z" opacity="0.3"/><path d="M21 21h-7v-7h7z" opacity="0.3"/></svg>
+            Done Planting
+          </button>
         </div>
       )}
 

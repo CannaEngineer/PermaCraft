@@ -87,10 +87,6 @@ export function LayerPanel({ farmId, onLayerVisibilityChange }: LayerPanelProps)
   }
 
   async function deleteLayer(layerId: string) {
-    if (!confirm('Delete this layer? Features will not be deleted, just unassigned.')) {
-      return;
-    }
-
     await fetch(`/api/farms/${farmId}/layers/${layerId}`, {
       method: 'DELETE'
     });

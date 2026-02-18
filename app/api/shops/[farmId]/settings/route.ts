@@ -24,12 +24,13 @@ async function verifyOwnership(farmId: string, userId: string) {
 
 export async function GET(
   _req: Request,
-  { params }: { params: { farmId: string } }
+  context: { params: Promise<{ farmId: string }> }
 ) {
+  const { farmId } = await context.params;
   const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const owned = await verifyOwnership(params.farmId, session.user.id);
+  const owned = await verifyOwnership(farmId, session.user.id);
   if (!owned) return new Response('Forbidden', { status: 403 });
 
   const result = await db.execute({
@@ -37,7 +38,7 @@ export async function GET(
                  shop_policy, accepts_pickup, accepts_shipping, accepts_delivery,
                  delivery_radius_miles
           FROM farms WHERE id = ?`,
-    args: [params.farmId],
+    args: [farmId],
   });
 
   if (!result.rows[0]) return new Response('Not found', { status: 404 });
@@ -46,12 +47,13 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { farmId: string } }
+  context: { params: Promise<{ farmId: string }> }
 ) {
+  const { farmId } = await context.params;
   const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const owned = await verifyOwnership(params.farmId, session.user.id);
+  const owned = await verifyOwnership(farmId, session.user.id);
   if (!owned) return new Response('Forbidden', { status: 403 });
 
   const body = await req.json();
@@ -69,7 +71,7 @@ export async function PATCH(
 
   await db.execute({
     sql: `UPDATE farms SET ${setClauses}, updated_at = unixepoch() WHERE id = ?`,
-    args: [...values, params.farmId],
+    args: [...values, farmId],
   });
 
   return Response.json({ ok: true });

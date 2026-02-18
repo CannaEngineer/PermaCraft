@@ -27,17 +27,18 @@ async function getProductBySlug(farmId: string, slug: string) {
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { farmId: string; slug: string };
+  params: Promise<{ farmId: string; slug: string }>;
 }) {
-  const result = await getProductBySlug(params.farmId, params.slug);
+  const { farmId, slug } = await params;
+  const result = await getProductBySlug(farmId, slug);
   if (!result) notFound();
 
   const { product, farmName } = result;
   const inStock = product.quantity_in_stock > 0 || product.allow_backorder === 1;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <Link href={`/shops/${params.farmId}`}
+    <div className="max-w-4xl mx-auto px-4 py-4 sm:p-6 pb-20 md:pb-6">
+      <Link href={`/shops/${farmId}`}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="w-4 h-4" />Back to {farmName}
       </Link>

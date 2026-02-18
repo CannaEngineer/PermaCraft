@@ -29,12 +29,13 @@ async function verifyOwnership(farmId: string, userId: string) {
 
 export async function POST(
   req: Request,
-  { params }: { params: { farmId: string } }
+  context: { params: Promise<{ farmId: string }> }
 ) {
+  const { farmId } = await context.params;
   const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const owned = await verifyOwnership(params.farmId, session.user.id);
+  const owned = await verifyOwnership(farmId, session.user.id);
   if (!owned) return new Response('Forbidden', { status: 403 });
 
   const formData = await req.formData();
@@ -44,7 +45,7 @@ export async function POST(
   if (file.size > 5 * 1024 * 1024) return Response.json({ error: 'File too large (max 5MB)' }, { status: 400 });
 
   const ext = file.type.split('/')[1] || 'jpg';
-  const key = `shops/${params.farmId}/products/${crypto.randomUUID()}.${ext}`;
+  const key = `shops/${farmId}/products/${crypto.randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   await getR2Client().send(new PutObjectCommand({
@@ -57,7 +58,7 @@ export async function POST(
 
   const url = process.env.R2_PUBLIC_URL
     ? `${process.env.R2_PUBLIC_URL}/${key}`
-    : `/api/shops/${params.farmId}/products/upload`;
+    : `/api/shops/${farmId}/products/upload`;
 
   return Response.json({ url });
 }

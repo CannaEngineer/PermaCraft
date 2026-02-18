@@ -32,29 +32,31 @@ function generateSlug(name: string): string {
 
 export async function GET(
   _req: Request,
-  { params }: { params: { farmId: string } }
+  context: { params: Promise<{ farmId: string }> }
 ) {
+  const { farmId } = await context.params;
   const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const owned = await verifyOwnership(params.farmId, session.user.id);
+  const owned = await verifyOwnership(farmId, session.user.id);
   if (!owned) return new Response('Forbidden', { status: 403 });
 
   const result = await db.execute({
     sql: 'SELECT * FROM shop_products WHERE farm_id = ? ORDER BY sort_order ASC, created_at DESC',
-    args: [params.farmId],
+    args: [farmId],
   });
   return Response.json(result.rows);
 }
 
 export async function POST(
   req: Request,
-  { params }: { params: { farmId: string } }
+  context: { params: Promise<{ farmId: string }> }
 ) {
+  const { farmId } = await context.params;
   const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const owned = await verifyOwnership(params.farmId, session.user.id);
+  const owned = await verifyOwnership(farmId, session.user.id);
   if (!owned) return new Response('Forbidden', { status: 403 });
 
   const body = await req.json();
@@ -70,7 +72,7 @@ export async function POST(
   // Ensure slug uniqueness within farm
   const existing = await db.execute({
     sql: 'SELECT slug FROM shop_products WHERE farm_id = ? AND slug LIKE ?',
-    args: [params.farmId, `${slug}%`],
+    args: [farmId, `${slug}%`],
   });
   if (existing.rows.length > 0) slug = `${slug}-${Date.now()}`;
 
@@ -79,7 +81,7 @@ export async function POST(
             (id, farm_id, name, slug, description, category, price_cents,
              compare_at_price_cents, quantity_in_stock, image_url, tags, is_published)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [id, params.farmId, name, slug, description ?? null, category, price_cents,
+    args: [id, farmId, name, slug, description ?? null, category, price_cents,
            compare_at_price_cents ?? null, quantity_in_stock, image_url ?? null,
            tags ?? null, is_published],
   });

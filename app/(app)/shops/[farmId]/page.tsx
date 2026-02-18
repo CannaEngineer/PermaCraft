@@ -19,8 +19,9 @@ async function getShop(farmId: string) {
   return res.json();
 }
 
-export default async function ShopStorefrontPage({ params }: { params: { farmId: string } }) {
-  const data = await getShop(params.farmId);
+export default async function ShopStorefrontPage({ params }: { params: Promise<{ farmId: string }> }) {
+  const { farmId } = await params;
+  const data = await getShop(farmId);
   if (!data) notFound();
 
   const { shop, products } = data as { shop: any; products: ShopProduct[] };
@@ -32,23 +33,23 @@ export default async function ShopStorefrontPage({ params }: { params: { farmId:
   ].filter(Boolean) as string[];
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="relative h-48 bg-gradient-to-br from-green-200 to-emerald-100 overflow-hidden">
+    <div className="max-w-6xl mx-auto pb-20 md:pb-6">
+      <div className="relative h-36 sm:h-48 bg-gradient-to-br from-green-200 to-emerald-100 overflow-hidden">
         {shop.shop_banner_url && (
           <img src={shop.shop_banner_url} alt={shop.name} className="w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute bottom-4 left-6">
-          <h1 className="text-3xl font-bold text-white drop-shadow">{shop.name}</h1>
-          {shop.shop_headline && <p className="text-white/90 mt-1 drop-shadow">{shop.shop_headline}</p>}
+        <div className="absolute bottom-3 left-4 sm:bottom-4 sm:left-6 right-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow truncate">{shop.name}</h1>
+          {shop.shop_headline && <p className="text-sm sm:text-base text-white/90 mt-1 drop-shadow line-clamp-2">{shop.shop_headline}</p>}
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="px-4 py-4 sm:p-6 space-y-4 sm:space-y-6">
         {fulfillmentMethods.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap">
             {fulfillmentMethods.map((m) => (
-              <Badge key={m} variant="secondary" className="gap-1">
+              <Badge key={m} variant="secondary" className="gap-1 text-xs sm:text-sm">
                 <Truck className="w-3 h-3" />{m}
               </Badge>
             ))}
@@ -56,9 +57,9 @@ export default async function ShopStorefrontPage({ params }: { params: { farmId:
         )}
 
         {categories.length > 1 && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap">
             {categories.map((cat) => (
-              <Badge key={cat} variant="outline">{CATEGORY_LABELS[cat] || cat}</Badge>
+              <Badge key={cat} variant="outline" className="text-xs sm:text-sm">{CATEGORY_LABELS[cat] || cat}</Badge>
             ))}
           </div>
         )}
@@ -69,17 +70,17 @@ export default async function ShopStorefrontPage({ params }: { params: { farmId:
             <p className="text-muted-foreground">No products listed yet</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} farmId={params.farmId} />
+              <ProductCard key={product.id} product={product} farmId={farmId} />
             ))}
           </div>
         )}
 
         {shop.shop_policy && (
-          <div className="border rounded-lg p-4 mt-4">
-            <h3 className="font-semibold mb-2">Shop Policy</h3>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{shop.shop_policy}</p>
+          <div className="border rounded-lg p-3 sm:p-4 mt-4">
+            <h3 className="font-semibold mb-2 text-sm sm:text-base">Shop Policy</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">{shop.shop_policy}</p>
           </div>
         )}
       </div>

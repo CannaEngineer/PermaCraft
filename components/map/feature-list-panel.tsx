@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { Search, X, ChevronDown, ChevronRight, Square, Sprout, Minus, Sparkles, Calendar } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Search, X, ChevronDown, ChevronRight, Square, Sprout, Minus, Sparkles, Calendar, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { searchFeatures } from '@/lib/map/feature-search';
 import { groupByType, groupByLayer, groupByPhase } from '@/lib/map/feature-grouping';
 import { center } from '@turf/center';
 import { getZoneTypeConfig } from '@/lib/map/zone-types';
+import { PhaseAssignmentModal } from '@/components/phasing/phase-assignment-modal';
+import { ArrowUpDown } from 'lucide-react';
 
 interface FeatureListPanelProps {
   zones: any[];
@@ -15,11 +17,30 @@ interface FeatureListPanelProps {
   lines: any[];
   guilds: any[];
   phases: any[];
+  farmId?: string;
   onFeatureSelect: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase') => void;
   mapRef: React.RefObject<any>;
+  /** Callback when layer filters change (by layer value e.g. 'canopy', 'understory') */
+  onLayerFilterChange?: (activeLayers: string[]) => void;
+  /** Callback when vital function filters change */
+  onVitalFilterChange?: (activeVitals: string[]) => void;
+  /** Callback to refresh data after phase changes */
+  onDataRefresh?: () => void;
 }
 
 type ViewMode = 'type' | 'layer' | 'phase';
+
+/** Planting layer definitions for filter toggles */
+const PLANTING_LAYERS = [
+  { value: 'canopy', label: 'Canopy', color: 'bg-green-900' },
+  { value: 'understory', label: 'Understory', color: 'bg-green-700' },
+  { value: 'shrub', label: 'Shrub', color: 'bg-green-500' },
+  { value: 'herbaceous', label: 'Herbaceous', color: 'bg-lime-500' },
+  { value: 'groundcover', label: 'Groundcover', color: 'bg-lime-300' },
+  { value: 'vine', label: 'Vine', color: 'bg-purple-500' },
+  { value: 'root', label: 'Root', color: 'bg-amber-900' },
+  { value: 'aquatic', label: 'Aquatic', color: 'bg-blue-500' },
+];
 
 // Icon mapping
 const getGroupIcon = (groupName: string) => {
@@ -75,13 +96,21 @@ export function FeatureListPanel({
   lines,
   guilds,
   phases,
+  farmId,
   onFeatureSelect,
-  mapRef
+  mapRef,
+  onLayerFilterChange,
+  onVitalFilterChange,
+  onDataRefresh,
 }: FeatureListPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeView, setActiveView] = useState<ViewMode>('type');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // Hidden groups act as visibility filter (eye icon off = hidden on map)
+  const [hiddenGroups, setHiddenGroups] = useState<Set<string>>(new Set());
+  // Phase assignment modal
+  const [phaseModalOpen, setPhaseModalOpen] = useState(false);
 
   // Debounce search query (300ms)
   useEffect(() => {
@@ -151,6 +180,33 @@ export function FeatureListPanel({
       setExpandedGroups(new Set(groupsWithFeatures));
     }
   }, [debouncedQuery, groupedFeatures]);
+
+  // When in layer view, propagate visibility changes as filter changes
+  const toggleGroupVisibility = useCallback((groupName: string) => {
+    setHiddenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupName)) {
+        next.delete(groupName);
+      } else {
+        next.add(groupName);
+      }
+
+      // When in "By Layer" view, map group names to layer values for filtering
+      if (activeView === 'layer' && onLayerFilterChange) {
+        const allLayerNames = PLANTING_LAYERS.map(l => l.label.charAt(0).toUpperCase() + l.label.slice(1));
+        const activeLayers = PLANTING_LAYERS
+          .filter(l => {
+            const groupLabel = l.label.charAt(0).toUpperCase() + l.label.slice(1);
+            return !next.has(groupLabel);
+          })
+          .map(l => l.value);
+        // Only send filter if some are hidden, otherwise send empty (show all)
+        onLayerFilterChange(next.size > 0 ? activeLayers : []);
+      }
+
+      return next;
+    });
+  }, [activeView, onLayerFilterChange]);
 
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -247,6 +303,19 @@ export function FeatureListPanel({
           </Button>
         </div>
 
+        {/* Phase management button - shown in phase view */}
+        {activeView === 'phase' && farmId && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPhaseModalOpen(true)}
+            className="w-full"
+          >
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Rearrange Between Phases
+          </Button>
+        )}
+
         {/* Feature List */}
         <ul role="list" className="space-y-2 overflow-y-auto max-h-[400px]">
           {Object.entries(groupedFeatures).map(([groupName, features]) => {
@@ -254,24 +323,40 @@ export function FeatureListPanel({
             const Icon = getGroupIcon(groupName);
 
             return (
-              <li key={groupName} className="border rounded-md">
+              <li key={groupName} className={`border rounded-md ${hiddenGroups.has(groupName) ? 'opacity-50' : ''}`}>
                 {/* Group Header */}
-                <button
-                  onClick={() => toggleGroup(groupName)}
-                  className="w-full flex items-center gap-2 p-2 hover:bg-accent rounded-md transition-colors"
-                  aria-expanded={isExpanded}
-                  aria-label={`${groupName} group, ${features.length} features`}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
+                <div className="flex items-center">
+                  <button
+                    onClick={() => toggleGroup(groupName)}
+                    className="flex-1 flex items-center gap-2 p-2 hover:bg-accent rounded-l-md transition-colors"
+                    aria-expanded={isExpanded}
+                    aria-label={`${groupName} group, ${features.length} features`}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">
+                      {groupName} ({features.length})
+                    </span>
+                  </button>
+                  {/* Visibility toggle for this group */}
+                  {activeView === 'layer' && groupName !== 'Other Features' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleGroupVisibility(groupName); }}
+                      className="p-2 hover:bg-accent rounded-r-md transition-colors flex-shrink-0"
+                      title={hiddenGroups.has(groupName) ? `Show ${groupName} on map` : `Hide ${groupName} on map`}
+                    >
+                      {hiddenGroups.has(groupName) ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   )}
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">
-                    {groupName} ({features.length})
-                  </span>
-                </button>
+                </div>
 
                 {/* Group Items */}
                 {isExpanded && (
@@ -354,6 +439,22 @@ export function FeatureListPanel({
           </div>
         )}
       </div>
+
+      {/* Phase Assignment Modal */}
+      {farmId && (
+        <PhaseAssignmentModal
+          open={phaseModalOpen}
+          onOpenChange={setPhaseModalOpen}
+          farmId={farmId}
+          phases={phases}
+          plantings={plantings}
+          zones={zones}
+          onUpdated={() => {
+            setPhaseModalOpen(false);
+            onDataRefresh?.();
+          }}
+        />
+      )}
     </div>
   );
 }

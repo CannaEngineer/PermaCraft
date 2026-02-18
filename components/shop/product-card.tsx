@@ -19,8 +19,21 @@ export function ProductCard({ product, farmId }: { product: ShopProduct; farmId:
       <Link href={`/shops/${farmId}/product/${product.slug}`} className="flex-1">
         <div className="aspect-square bg-muted relative overflow-hidden">
           {product.image_url ? (
-            <img src={product.image_url} alt={product.name}
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+                const parent = (e.target as HTMLImageElement).parentElement;
+                if (parent) {
+                  const fallback = document.createElement('div');
+                  fallback.className = 'w-full h-full flex items-center justify-center text-4xl';
+                  fallback.textContent = '🌱';
+                  parent.appendChild(fallback);
+                }
+              }}
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-4xl">🌱</div>
           )}

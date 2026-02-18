@@ -30,34 +30,37 @@ async function verifyOwnership(farmId: string, userId: string) {
 
 export async function GET(
   _req: Request,
-  { params }: { params: { farmId: string; productId: string } }
+  context: { params: Promise<{ farmId: string; productId: string }> }
 ) {
+  const { farmId, productId } = await context.params;
+
   // Public endpoint — no auth required
   const result = await db.execute({
     sql: `SELECT p.*, f.name as farm_name, f.is_shop_enabled
           FROM shop_products p
           JOIN farms f ON f.id = p.farm_id
           WHERE p.id = ? AND p.farm_id = ? AND p.is_published = 1 AND f.is_shop_enabled = 1`,
-    args: [params.productId, params.farmId],
+    args: [productId, farmId],
   });
   if (!result.rows[0]) return new Response('Not found', { status: 404 });
 
   // Increment view count
   await db.execute({
     sql: 'UPDATE shop_products SET view_count = view_count + 1 WHERE id = ?',
-    args: [params.productId],
+    args: [productId],
   });
   return Response.json(result.rows[0]);
 }
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { farmId: string; productId: string } }
+  context: { params: Promise<{ farmId: string; productId: string }> }
 ) {
+  const { farmId, productId } = await context.params;
   const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const owned = await verifyOwnership(params.farmId, session.user.id);
+  const owned = await verifyOwnership(farmId, session.user.id);
   if (!owned) return new Response('Forbidden', { status: 403 });
 
   const body = await req.json();
@@ -76,29 +79,30 @@ export async function PATCH(
   await db.execute({
     sql: `UPDATE shop_products SET ${setClauses}, updated_at = unixepoch()
           WHERE id = ? AND farm_id = ?`,
-    args: [...values, params.productId, params.farmId],
+    args: [...values, productId, farmId],
   });
 
   const updated = await db.execute({
     sql: 'SELECT * FROM shop_products WHERE id = ?',
-    args: [params.productId],
+    args: [productId],
   });
   return Response.json(updated.rows[0]);
 }
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { farmId: string; productId: string } }
+  context: { params: Promise<{ farmId: string; productId: string }> }
 ) {
+  const { farmId, productId } = await context.params;
   const session = await getSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const owned = await verifyOwnership(params.farmId, session.user.id);
+  const owned = await verifyOwnership(farmId, session.user.id);
   if (!owned) return new Response('Forbidden', { status: 403 });
 
   await db.execute({
     sql: 'DELETE FROM shop_products WHERE id = ? AND farm_id = ?',
-    args: [params.productId, params.farmId],
+    args: [productId, farmId],
   });
   return new Response(null, { status: 204 });
 }

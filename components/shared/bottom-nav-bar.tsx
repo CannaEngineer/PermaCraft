@@ -15,6 +15,7 @@ import {
   Settings,
   ChevronRight,
   Sparkles,
+  ShoppingBag,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,10 +26,10 @@ import { CompactMusicController } from "@/components/audio/CompactMusicControlle
 import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
 
 const primaryNavItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", requiresAuth: true },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Home", requiresAuth: true },
   { name: "Community", href: "/gallery", icon: Users, label: "Community", requiresAuth: false },
+  { name: "Shop", href: "/shops", icon: ShoppingBag, label: "Shop", requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, label: "Learn", requiresAuth: false },
-  { name: "Blog", href: "/learn/blog", icon: BookOpen, label: "Blog", requiresAuth: false },
 ];
 
 interface BottomNavBarProps {

@@ -22,6 +22,7 @@ import { PhaseManager } from "@/components/phasing/phase-manager";
 import { ExportPanel } from "@/components/export/export-panel";
 import { SpeciesPickerPanel } from "@/components/map/species-picker-panel";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sparkles, Leaf } from "lucide-react";
 import type { Farm, Zone, FarmerGoal, Species } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
@@ -801,13 +802,50 @@ function ImmersiveMapEditorContent({
               farmContext={guildContext.farmContext}
             />
           ) : (
-            <div className="p-8 text-center space-y-4">
-              <div className="text-muted-foreground">
-                <p className="font-semibold">Select a focal species first</p>
-                <p className="text-sm mt-2">
-                  A guild is designed around a central "focal" plant. Please select a species from the map or species list to build a guild around it.
+            <div className="p-6 space-y-4">
+              <div className="text-center">
+                <Sparkles className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                <p className="font-semibold">Choose a focal plant for your guild</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  A guild is designed around a central plant. Select one from your farm below, or tap a plant on the map first.
                 </p>
               </div>
+              {plantings.length > 0 ? (
+                <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                  {/* De-duplicate by species to avoid showing the same plant multiple times */}
+                  {Array.from(new Map(plantings.map(p => [p.species_id || p.common_name, p])).values()).map((p: any) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setGuildContext({
+                          focalSpecies: {
+                            id: p.species_id,
+                            common_name: p.common_name,
+                            scientific_name: p.scientific_name,
+                            layer: p.layer,
+                            native_region: p.native_region,
+                          },
+                          farmContext: farmContext,
+                        });
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+                        <Leaf className="h-4 w-4 text-green-700 dark:text-green-300" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{p.common_name}</p>
+                        <p className="text-xs text-muted-foreground italic truncate">{p.scientific_name}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground capitalize flex-shrink-0">{p.layer}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No plants on this farm yet. Add plants first, then build guilds around them.
+                </p>
+              )}
             </div>
           )
         ) : drawerContent === 'phase-manager' ? (

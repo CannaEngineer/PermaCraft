@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag, Menu, User, LayoutDashboard, ArrowLeft, X } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
@@ -36,8 +37,67 @@ export function CollapsibleHeader({
   onExport,
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
+    <>
+    {/* Mobile navigation menu */}
+    <AnimatePresence>
+      {mobileMenuOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-y-0 left-0 w-72 bg-background/95 backdrop-blur-xl border-r border-border shadow-2xl z-[70] md:hidden"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="font-semibold text-sm">Farm Menu</h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMobileMenuOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-3 space-y-1">
+              <Link href="/dashboard" className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Dashboard</span>
+              </Link>
+              <Link href={`/profile/${farm.user_id}`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <User className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">My Profile</span>
+              </Link>
+              <button onClick={() => { onOpenGoals(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <Target className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Farm Goals</span>
+                {goalsCount > 0 && (
+                  <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{goalsCount}</span>
+                )}
+              </button>
+              <Link href={`/farm/${farm.id}/shop`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">{isShopEnabled ? 'Manage Shop' : 'Open a Shop'}</span>
+              </Link>
+              <button onClick={() => { onExport(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <Download className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Export</span>
+              </button>
+              <button onClick={() => { onSave(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <SaveIcon className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">{saving ? 'Saving...' : hasUnsavedChanges ? 'Save Now' : 'Saved'}</span>
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
     <motion.header
       initial={false}
       animate={{
@@ -49,10 +109,19 @@ export function CollapsibleHeader({
       className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
       style={{ willChange: 'height' }}
     >
-      <div className="px-4 sm:px-6 h-full flex items-center justify-between gap-4">
+      <div className="px-3 sm:px-6 h-full flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Farm Identity */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex-shrink-0 h-8 w-8 md:hidden"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
             <motion.h1
               animate={{
                 fontSize: headerCollapsed ? '1.125rem' : '1.875rem',
@@ -194,5 +263,6 @@ export function CollapsibleHeader({
         </div>
       </div>
     </motion.header>
+    </>
   );
 }

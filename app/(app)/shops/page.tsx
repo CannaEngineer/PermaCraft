@@ -47,12 +47,12 @@ export default function ShopsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 py-4 sm:p-6 space-y-4 sm:space-y-6 pb-20 md:pb-6">
       <div className="flex items-center gap-3">
-        <Store className="w-8 h-8 text-primary" />
+        <Store className="w-7 h-7 sm:w-8 sm:h-8 text-primary flex-shrink-0" />
         <div>
-          <h1 className="text-2xl font-bold">Farm Shops</h1>
-          <p className="text-muted-foreground">Buy directly from local permaculture farms</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Farm Shops</h1>
+          <p className="text-sm text-muted-foreground">Buy directly from local permaculture farms</p>
         </div>
       </div>
 
@@ -60,23 +60,24 @@ export default function ShopsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search farms..." value={search}
-            onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            onChange={(e) => setSearch(e.target.value)} className="pl-9 h-11" />
         </div>
-        <Button type="submit">Search</Button>
+        <Button type="submit" className="h-11">Search</Button>
       </form>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-1.5 sm:gap-2 flex-wrap -mx-1 px-1 overflow-x-auto scrollbar-none">
         {CATEGORY_FILTERS.map((f) => (
           <Button key={f.value} size="sm"
             variant={category === f.value ? 'default' : 'outline'}
-            onClick={() => handleCategoryChange(f.value)}>
+            onClick={() => handleCategoryChange(f.value)}
+            className="text-xs sm:text-sm flex-shrink-0 h-8 sm:h-9">
             {f.label}
           </Button>
         ))}
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {[...Array(8)].map((_, i) => <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />)}
         </div>
       ) : shops.length === 0 ? (
@@ -85,7 +86,7 @@ export default function ShopsPage() {
           <p className="text-muted-foreground">No shops found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {shops.map((shop) => <ShopCard key={shop.id} shop={shop} />)}
         </div>
       )}
