@@ -30,7 +30,8 @@ Important guidelines:
 - If the plant is native, emphasize the value of native species
 - If non-native, acknowledge this honestly and discuss appropriate use
 - Use markdown formatting in narrative_full (headers, bold, bullet points)
-- Return ONLY valid JSON, no other text`;
+- Return ONLY valid JSON, no other text
+- Do not offer, suggest, or ask if the user wants any visual representation, diagram, or graphical output`;
 }
 
 export function buildGrowingGuidePrompt(species: Species): string {
@@ -58,5 +59,6 @@ Important guidelines:
 - Focus on organic, permaculture-aligned practices (no synthetic chemicals)
 - Mention mulching, composting, and guild planting where relevant
 - Include seasonal timing cues
-- Return ONLY valid JSON, no other text`;
+- Return ONLY valid JSON, no other text
+- Do not offer, suggest, or ask if the user wants any visual representation, diagram, or graphical output`;
 }
