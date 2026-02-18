@@ -75,13 +75,18 @@ async function callAIAPI(params: {
   screenshot?: string;
   farmInfo: any;
 }): Promise<AnalyzeResponse> {
+  // API expects screenshots as an array of {type, data} objects
+  const screenshots = params.screenshot
+    ? [{ type: 'screenshot', data: params.screenshot }]
+    : [];
+
   const response = await fetch('/api/ai/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query: params.query,
       farmId: params.farmInfo.id,
-      screenshot: params.screenshot,
+      screenshots,
       farmContext: params.context,
       farmInfo: params.farmInfo,
       // Enable server-side optimizations
