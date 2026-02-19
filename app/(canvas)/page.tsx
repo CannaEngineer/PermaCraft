@@ -1,45 +1,26 @@
-'use client';
+import { requireAuth } from '@/lib/auth/session';
+import { db } from '@/lib/db';
+import { CanvasClient } from './canvas-client';
 
-import { useEffect, useState } from 'react';
-import { UnifiedCanvas } from '@/components/canvas/unified-canvas';
-import { UnifiedCanvasProvider } from '@/contexts/unified-canvas-context';
-import type { Farm } from '@/lib/db/schema';
+export default async function CanvasPage() {
+  const session = await requireAuth();
 
-interface CanvasData {
-  farms: Farm[];
-  userId: string;
-  userName: string | null;
-}
+  const result = await db.execute({
+    sql: `SELECT id, user_id, name, description, acres, climate_zone, rainfall_inches,
+                 soil_type, center_lat, center_lng, zoom_level, is_public, created_at, updated_at
+          FROM farms
+          WHERE user_id = ?
+          ORDER BY updated_at DESC`,
+    args: [session.user.id],
+  });
 
-export default function CanvasPage() {
-  const [data, setData] = useState<CanvasData | null>(null);
-
-  useEffect(() => {
-    const el = document.getElementById('canvas-data');
-    if (el) {
-      try {
-        const parsed = JSON.parse(el.textContent || '{}');
-        setData(parsed);
-      } catch (e) {
-        console.error('Failed to parse canvas data:', e);
-      }
-    }
-  }, []);
-
-  if (!data) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading canvas...</p>
-        </div>
-      </div>
-    );
-  }
+  const farms = result.rows as any[];
 
   return (
-    <UnifiedCanvasProvider initialFarms={data.farms}>
-      <UnifiedCanvas userId={data.userId} userName={data.userName} />
-    </UnifiedCanvasProvider>
+    <CanvasClient
+      farms={farms}
+      userId={session.user.id}
+      userName={session.user.name}
+    />
   );
 }
