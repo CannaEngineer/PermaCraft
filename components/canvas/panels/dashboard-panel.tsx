@@ -5,7 +5,7 @@ import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
 import {
   MapPin, Sprout, TrendingUp, MessageSquare, Plus, ArrowRight,
-  BookOpen, GraduationCap, Users, Zap, Trophy, Star
+  BookOpen, GraduationCap, Users, Zap, Trophy, Star, Sparkles
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -57,17 +57,17 @@ export function DashboardPanel() {
           <div className="rounded-xl bg-accent/50 p-3 text-center">
             <MapPin className="h-4 w-4 text-primary mx-auto mb-1" />
             <p className="text-xl font-bold">{stats?.farmCount ?? farms.length}</p>
-            <p className="text-[10px] text-muted-foreground">Farms</p>
+            <p className="text-xs text-muted-foreground">Farms</p>
           </div>
           <div className="rounded-xl bg-accent/50 p-3 text-center">
             <Sprout className="h-4 w-4 text-green-500 mx-auto mb-1" />
             <p className="text-xl font-bold">{stats?.plantingCount ?? '--'}</p>
-            <p className="text-[10px] text-muted-foreground">Plantings</p>
+            <p className="text-xs text-muted-foreground">Plantings</p>
           </div>
           <div className="rounded-xl bg-accent/50 p-3 text-center">
             <MessageSquare className="h-4 w-4 text-blue-500 mx-auto mb-1" />
             <p className="text-xl font-bold">{stats?.analysisCount ?? '--'}</p>
-            <p className="text-[10px] text-muted-foreground">AI Chats</p>
+            <p className="text-xs text-muted-foreground">AI Chats</p>
           </div>
         </div>
 
@@ -81,14 +81,14 @@ export function DashboardPanel() {
               <div className="flex-1">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-lg font-bold">{progress.total_xp}</span>
-                  <span className="text-[10px] font-medium text-primary">XP</span>
+                  <span className="text-xs font-medium text-primary">XP</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                  <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                     <Star className="h-2.5 w-2.5" />
                     Level {progress.current_level}
                   </span>
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                  <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                     <Zap className="h-2.5 w-2.5" />
                     {progress.completed_lessons} lessons
                   </span>
@@ -96,7 +96,7 @@ export function DashboardPanel() {
               </div>
               <button
                 onClick={() => setActiveSection('learn')}
-                className="text-[10px] text-primary font-medium hover:underline"
+                className="text-xs text-primary font-medium hover:underline"
               >
                 Learn more
               </button>
@@ -118,15 +118,31 @@ export function DashboardPanel() {
           </div>
           <div className="space-y-1">
             {farms.length === 0 ? (
-              <div className="text-center py-6">
-                <MapPin className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No farms yet</p>
-                <button
-                  onClick={() => router.push('/farm/new')}
-                  className="mt-2 text-sm text-primary hover:underline"
-                >
-                  Create your first farm
-                </button>
+              <div className="text-center py-8 space-y-3">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Start your permaculture journey</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Create your first farm to begin designing with AI-powered tools.
+                  </p>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={() => router.push('/farm/new')}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create Farm
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('explore')}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Explore the community
+                  </button>
+                </div>
               </div>
             ) : (
               farms.map((farm) => (
@@ -174,9 +190,9 @@ export function DashboardPanel() {
                     {latestBlog.title}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-muted-foreground">{latestBlog.read_time_minutes} min read</span>
+                    <span className="text-xs text-muted-foreground">{latestBlog.read_time_minutes} min read</span>
                     {latestBlog.xp_reward > 0 && (
-                      <span className="text-[10px] text-primary font-medium flex items-center gap-0.5">
+                      <span className="text-xs text-primary font-medium flex items-center gap-0.5">
                         <Zap className="h-2.5 w-2.5" />
                         +{latestBlog.xp_reward} XP
                       </span>

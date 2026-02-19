@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
-import { Globe, MapPin, Heart, MessageCircle, Eye, Loader2, Image, Sparkles, PenLine, ArrowRight } from 'lucide-react';
+import { Globe, MapPin, Heart, MessageCircle, Eye, Loader2, Image, Sparkles, PenLine, ArrowRight, AlertCircle } from 'lucide-react';
 
 interface PostAuthor {
   id: string;
@@ -56,6 +56,7 @@ export function ExplorePanel() {
   const { mapRef } = useUnifiedCanvas();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -63,15 +64,16 @@ export function ExplorePanel() {
   const fetchPosts = (pageNum: number, append = false) => {
     const loader = append ? setLoadingMore : setLoading;
     loader(true);
+    if (!append) setError(false);
     fetch(`/api/community/feed?limit=15&page=${pageNum}`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error('Failed to fetch'); return r.json(); })
       .then(data => {
         const newPosts = data.posts || [];
         setPosts(prev => append ? [...prev, ...newPosts] : newPosts);
         setHasMore(data.hasMore ?? false);
         setPage(pageNum);
       })
-      .catch(console.error)
+      .catch(() => { if (!append) setError(true); })
       .finally(() => loader(false));
   };
 
@@ -101,15 +103,33 @@ export function ExplorePanel() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+            <AlertCircle className="h-10 w-10 text-destructive/40 mb-3" />
+            <p className="text-sm font-medium mb-1">Failed to load posts</p>
+            <button
+              onClick={() => fetchPosts(1)}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              Try again
+            </button>
+          </div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center px-6">
             <div className="w-16 h-16 rounded-2xl bg-accent/50 flex items-center justify-center mb-4">
               <Globe className="h-8 w-8 text-muted-foreground/40" />
             </div>
             <p className="text-sm font-medium mb-1">No community posts yet</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mb-3">
               Be the first to share your farm design!
             </p>
+            <a
+              href="/farm/new"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              Create a Post
+            </a>
           </div>
         ) : (
           <div className="divide-y divide-border/30">
@@ -129,7 +149,7 @@ export function ExplorePanel() {
                       {post.author?.image ? (
                         <img src={post.author.image} alt="" className="w-6 h-6 rounded-full object-cover" />
                       ) : (
-                        <span className="text-[10px] font-bold text-primary">
+                        <span className="text-xs font-bold text-primary">
                           {(post.author?.name || 'A')[0].toUpperCase()}
                         </span>
                       )}
@@ -137,7 +157,7 @@ export function ExplorePanel() {
                     <span className="text-xs font-medium truncate">
                       {post.author?.name || 'Anonymous'}
                     </span>
-                    <span className="text-[10px] text-muted-foreground ml-auto flex-shrink-0">
+                    <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
                       {timeAgo(post.created_at)}
                     </span>
                   </div>
@@ -146,7 +166,7 @@ export function ExplorePanel() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                     <p className="text-sm font-medium truncate">{post.farm_name || 'Farm'}</p>
-                    <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${typeConf.bg} ${typeConf.color} flex-shrink-0`}>
+                    <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${typeConf.bg} ${typeConf.color} flex-shrink-0`}>
                       <TypeIcon className="h-2.5 w-2.5" />
                       {typeConf.label}
                     </span>
@@ -154,7 +174,7 @@ export function ExplorePanel() {
 
                   {/* Content preview */}
                   {post.content && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2 pl-5.5">
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2 pl-6">
                       {post.content}
                     </p>
                   )}
@@ -182,22 +202,22 @@ export function ExplorePanel() {
                   {post.hashtags && post.hashtags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
                       {post.hashtags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="text-[10px] text-primary/70">#{tag}</span>
+                        <span key={tag} className="text-xs text-primary/70">#{tag}</span>
                       ))}
                     </div>
                   )}
 
                   {/* Engagement row */}
                   <div className="flex items-center gap-4 pt-1">
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Heart className={`h-3 w-3 ${post.user_reaction ? 'fill-red-500 text-red-500' : ''}`} />
                       {post.reaction_count || 0}
                     </span>
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MessageCircle className="h-3 w-3" />
                       {post.comment_count || 0}
                     </span>
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Eye className="h-3 w-3" />
                       {post.view_count || 0}
                     </span>

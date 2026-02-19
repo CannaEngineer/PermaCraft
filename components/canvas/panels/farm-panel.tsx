@@ -2,7 +2,7 @@
 
 import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
-import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight } from 'lucide-react';
+import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight, MapPin, Plus } from 'lucide-react';
 
 interface FarmPanelProps {
   onOpenDrawer?: (content: string) => void;
@@ -16,9 +16,24 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
       <div className="flex flex-col h-full">
         <PanelHeader title="Farm" />
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-sm text-muted-foreground text-center">
-            No farm selected. Choose a farm from the switcher above.
-          </p>
+          <div className="text-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <MapPin className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium">No farm selected</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Select a farm from the switcher above or create a new one.
+              </p>
+            </div>
+            <a
+              href="/farm/new"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create Farm
+            </a>
+          </div>
         </div>
       </div>
     );

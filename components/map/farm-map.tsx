@@ -141,7 +141,7 @@ export function FarmMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
-  const navigationControl = useRef<maplibregl.NavigationControl | null>(null);
+  // navigationControl removed — custom DrawingToolbar/MapFAB replaces built-in controls
   const [mapLayer, setMapLayer] = useState<MapLayer>("satellite");
   const [gridUnit, setGridUnit] = useState<"imperial" | "metric">("imperial");
   const [gridDensity, setGridDensity] = useState<GridDensity>("auto");
@@ -1417,56 +1417,8 @@ export function FarmMap({
         ],
       });
 
-      map.current.addControl(draw.current as any, "top-right");
-
-      // Add navigation control
-      navigationControl.current = new maplibregl.NavigationControl();
-      map.current.addControl(navigationControl.current, "top-right");
-
-      // Add custom circle button to the draw control panel
-      setTimeout(() => {
-        // Check if button already exists
-        if (document.getElementById('draw-circle-btn')) return;
-
-        const drawControlGroup = document.querySelector('.mapbox-gl-draw_ctrl-draw-btn');
-        if (drawControlGroup?.parentElement) {
-          const circleButton = document.createElement('button');
-          circleButton.className = 'mapbox-gl-draw_ctrl-draw-btn mapbox-gl-draw_circle';
-          circleButton.id = 'draw-circle-btn';
-          circleButton.setAttribute('title', 'Circle tool (c)');
-          // Match MapboxDraw's background-image pattern with inline SVG for consistency
-          const circleSvg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="6" fill="none" stroke="white" stroke-width="2"/></svg>');
-          circleButton.style.backgroundImage = `url('data:image/svg+xml;utf8,${circleSvg}')`;
-          circleButton.style.backgroundRepeat = 'no-repeat';
-          circleButton.style.backgroundPosition = 'center';
-
-          // Insert after polygon button (3rd button)
-          const polygonBtn = drawControlGroup.parentElement.children[2];
-          if (polygonBtn) {
-            polygonBtn.after(circleButton);
-          }
-
-          circleButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setCircleMode(prev => !prev);
-            setCircleCenter(null);
-
-            // Switch draw to simple_select to deactivate other tools
-            if (draw.current) {
-              draw.current.changeMode('simple_select');
-            }
-
-            // Deactivate other draw tools
-            document.querySelectorAll('.mapbox-gl-draw_ctrl-draw-btn').forEach(btn => {
-              btn.classList.remove('active');
-            });
-
-            // Activate circle button
-            circleButton.classList.add('active');
-          });
-        }
-      }, 100);
+      // Draw control kept for programmatic use but NOT added to map UI
+      // Custom DrawingToolbar/MapFAB provides all drawing controls
 
       // Add custom layers for colored zones after draw is initialized
       const addColoredZoneLayers = () => {
@@ -2587,71 +2539,7 @@ export function FarmMap({
           ],
         });
 
-        // Remove old draw control before adding new one
-        if (draw.current) {
-          try {
-            map.current.removeControl(draw.current as any);
-          } catch (e) {
-            // Control may not exist, ignore error
-          }
-        }
-        map.current.addControl(draw.current as any, "top-right");
-
-        // Remove old navigation control before re-adding (setStyle does NOT remove controls)
-        if (navigationControl.current) {
-          try {
-            map.current.removeControl(navigationControl.current);
-          } catch (e) {
-            // Control may not exist, ignore error
-          }
-        }
-        navigationControl.current = new maplibregl.NavigationControl();
-        map.current.addControl(navigationControl.current, "top-right");
-
-        // Re-add custom circle button to the draw control panel
-        setTimeout(() => {
-          // Check if button already exists
-          if (document.getElementById('draw-circle-btn')) return;
-
-          const drawControlGroup = document.querySelector('.mapbox-gl-draw_ctrl-draw-btn');
-          if (drawControlGroup?.parentElement) {
-            const circleButton = document.createElement('button');
-            circleButton.className = 'mapbox-gl-draw_ctrl-draw-btn mapbox-gl-draw_circle';
-            circleButton.id = 'draw-circle-btn';
-            circleButton.setAttribute('title', 'Circle tool (c)');
-            // Match MapboxDraw's background-image pattern with inline SVG for consistency
-            const circleSvg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="6" fill="none" stroke="white" stroke-width="2"/></svg>');
-            circleButton.style.backgroundImage = `url('data:image/svg+xml;utf8,${circleSvg}')`;
-            circleButton.style.backgroundRepeat = 'no-repeat';
-            circleButton.style.backgroundPosition = 'center';
-
-            // Insert after polygon button (3rd button)
-            const polygonBtn = drawControlGroup.parentElement.children[2];
-            if (polygonBtn) {
-              polygonBtn.after(circleButton);
-            }
-
-            circleButton.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setCircleMode(prev => !prev);
-              setCircleCenter(null);
-
-              // Switch draw to simple_select to deactivate other tools
-              if (draw.current) {
-                draw.current.changeMode('simple_select');
-              }
-
-              // Deactivate other draw tools
-              document.querySelectorAll('.mapbox-gl-draw_ctrl-draw-btn').forEach(btn => {
-                btn.classList.remove('active');
-              });
-
-              // Activate circle button
-              circleButton.classList.add('active');
-            });
-          }
-        }, 100);
+        // Draw control is used programmatically only — no UI controls re-added after style change
 
         // Re-add grid layers after style change
         console.log("Re-adding grid layers after style change...");

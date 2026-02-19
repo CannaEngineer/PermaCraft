@@ -26,7 +26,8 @@ import { CreatePostDialog } from '@/components/farm/create-post-dialog';
 import { PhotoUploadDialog } from '@/components/immersive-map/photo-upload-dialog';
 import { DeleteFarmDialog } from '@/components/shared/delete-farm-dialog';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Sparkles, Leaf } from 'lucide-react';
+import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap } from 'lucide-react';
+import { WelcomeWalkthrough } from './welcome-walkthrough';
 import { toPng } from 'html-to-image';
 import { analyzeWithOptimization } from '@/lib/ai/optimized-analyze';
 import type { Farm, Zone, FarmerGoal, Species } from '@/lib/db/schema';
@@ -73,30 +74,69 @@ export function UnifiedCanvas({ userId, userName }: UnifiedCanvasProps) {
 }
 
 function UnifiedCanvasEmpty({ userId, userName }: { userId: string; userName: string | null }) {
-  const { activeSection, setActiveSection } = useUnifiedCanvas();
+  const { setActiveSection } = useUnifiedCanvas();
+  const [showWalkthrough, setShowWalkthrough] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem('onboarding-complete') !== 'true'; } catch { return false; }
+  });
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background">
       <CommandBar userId={userId} userName={userName} />
       <div className="flex flex-1 overflow-hidden">
         <NavRail />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-              <Leaf className="h-8 w-8 text-primary" />
+
+        {showWalkthrough ? (
+          <WelcomeWalkthrough
+            userName={userName}
+            onComplete={() => setShowWalkthrough(false)}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="w-full max-w-sm text-center space-y-6">
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Start your permaculture journey</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Create a farm to begin designing, or explore what the community has built.
+                </p>
+              </div>
+              <a
+                href="/farm/new"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                <MapPin className="h-4 w-4" />
+                Create Your First Farm
+              </a>
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                <button
+                  onClick={() => setActiveSection('explore')}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
+                >
+                  <Globe className="h-5 w-5 text-blue-500" />
+                  <span className="text-xs font-medium">Explore</span>
+                </button>
+                <button
+                  onClick={() => setActiveSection('plants')}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
+                >
+                  <Sprout className="h-5 w-5 text-emerald-500" />
+                  <span className="text-xs font-medium">Plants</span>
+                </button>
+                <button
+                  onClick={() => setActiveSection('learn')}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
+                >
+                  <GraduationCap className="h-5 w-5 text-purple-500" />
+                  <span className="text-xs font-medium">Learn</span>
+                </button>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold">Welcome to Permaculture.Studio</h2>
-              <p className="text-sm text-muted-foreground mt-1">Create your first farm to get started.</p>
-            </div>
-            <a
-              href="/farm/new"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              Create Farm
-            </a>
           </div>
-        </div>
+        )}
+
       </div>
       <CanvasMobileNav />
     </div>
@@ -125,6 +165,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   // Save state
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveToast, setSaveToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Dialog state
@@ -199,9 +240,14 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       autoSaveTimer.current = setTimeout(() => handleSave(false), 2000);
     }
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [zones, hasUnsavedChanges]);
+  }, [zones, hasUnsavedChanges, handleSave]);
 
-  const handleSave = async (showAlert = true) => {
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    setSaveToast({ message, type });
+    setTimeout(() => setSaveToast(null), 3000);
+  }, []);
+
+  const handleSave = useCallback(async (showFeedback = true) => {
     setSaving(true);
     try {
       const res = await fetch(`/api/farms/${farm.id}/zones`, {
@@ -211,14 +257,14 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       });
       if (!res.ok) throw new Error('Failed to save zones');
       setHasUnsavedChanges(false);
-      if (showAlert) alert('Zones saved successfully!');
+      if (showFeedback) showToast('Zones saved', 'success');
     } catch (error) {
-      if (showAlert) alert('Failed to save zones');
+      if (showFeedback) showToast('Failed to save zones', 'error');
       console.error(error);
     } finally {
       setSaving(false);
     }
-  };
+  }, [farm.id, zones, showToast]);
 
   const handleZonesChange = (newZones: Zone[]) => {
     setZones(newZones);
@@ -305,20 +351,22 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       (mapCanvas as HTMLElement).style.opacity = '0';
     }
 
-    const screenshotData = await toPng(mapContainerRef.current, {
-      quality: 0.9, pixelRatio: 1, cacheBust: false, skipFonts: true,
-      filter: (node) => {
-        if (node.classList?.contains('temp-screenshot-canvas')) return true;
-        if (node.classList?.contains('maplibregl-ctrl')) return false;
-        if (node.classList?.contains('mapboxgl-ctrl')) return false;
-        if ((node as HTMLElement).hasAttribute?.('data-bottom-drawer')) return false;
-        return true;
-      },
-    });
-
-    tempImg.remove();
-    if (mapCanvas) (mapCanvas as HTMLElement).style.opacity = '1';
-    return screenshotData;
+    try {
+      const screenshotData = await toPng(mapContainerRef.current, {
+        quality: 0.9, pixelRatio: 1, cacheBust: false, skipFonts: true,
+        filter: (node) => {
+          if (node.classList?.contains('temp-screenshot-canvas')) return true;
+          if (node.classList?.contains('maplibregl-ctrl')) return false;
+          if (node.classList?.contains('mapboxgl-ctrl')) return false;
+          if ((node as HTMLElement).hasAttribute?.('data-bottom-drawer')) return false;
+          return true;
+        },
+      });
+      return screenshotData;
+    } finally {
+      tempImg.remove();
+      if (mapCanvas) (mapCanvas as HTMLElement).style.opacity = '1';
+    }
   }, [mapRef]);
 
   // AI analyze handler
@@ -371,8 +419,11 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const filteredZones = useMemo(() => {
     if (visibleLayerIds.length === 0) return zones;
     return zones.filter(zone => {
-      const layerIds = zone.layer_ids ? JSON.parse(zone.layer_ids as any) : [];
-      if (layerIds.length === 0) return true;
+      let layerIds: string[] = [];
+      if (zone.layer_ids) {
+        try { layerIds = JSON.parse(zone.layer_ids as any); } catch { /* malformed data */ }
+      }
+      if (!Array.isArray(layerIds) || layerIds.length === 0) return true;
       return layerIds.some((id: string) => visibleLayerIds.includes(id));
     });
   }, [zones, visibleLayerIds]);
@@ -394,12 +445,12 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       }
 
       if (e.key === '6' || e.key === 'c') {
-        setChatOpen(!chatOpen);
+        setChatOpen((prev: boolean) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveSection, chatOpen, setChatOpen]);
+  }, [setActiveSection, setChatOpen]);
 
   // Render the active panel content
   const renderPanelContent = () => {
@@ -427,7 +478,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         userName={userName}
         saving={saving}
         hasUnsavedChanges={hasUnsavedChanges}
-        onSave={() => handleSave(true)}
+        onSave={handleSave}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -602,6 +653,17 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         farmId={farm.id}
         onPhotoUploaded={() => setUploadDialogOpen(false)}
       />
+
+      {/* Save toast notification */}
+      {saveToast && (
+        <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg backdrop-blur-sm transition-all ${
+          saveToast.type === 'success'
+            ? 'bg-green-600/90 text-white'
+            : 'bg-destructive/90 text-destructive-foreground'
+        }`}>
+          {saveToast.message}
+        </div>
+      )}
 
       {/* Mobile bottom nav */}
       <CanvasMobileNav />
