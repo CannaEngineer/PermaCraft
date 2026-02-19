@@ -445,12 +445,12 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       }
 
       if (e.key === '6' || e.key === 'c') {
-        setChatOpen((prev: boolean) => !prev);
+        setChatOpen(!chatOpen);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveSection, setChatOpen]);
+  }, [setActiveSection, setChatOpen, chatOpen]);
 
   // Render the active panel content (non-farm sections only — farm uses ContextPanel directly)
   const renderPanelContent = () => {
