@@ -1417,8 +1417,9 @@ export function FarmMap({
         ],
       });
 
-      // Draw control kept for programmatic use but NOT added to map UI
-      // Custom DrawingToolbar/MapFAB provides all drawing controls
+      // Add draw control to initialize its internal store (required for getAll/set to work).
+      // displayControlsDefault: false keeps the UI hidden; only the store is needed.
+      map.current.addControl(draw.current as any);
 
       // Add custom layers for colored zones after draw is initialized
       const addColoredZoneLayers = () => {
@@ -2539,7 +2540,8 @@ export function FarmMap({
           ],
         });
 
-        // Draw control is used programmatically only — no UI controls re-added after style change
+        // Re-add draw control to re-initialize its internal store after style change
+        map.current.addControl(draw.current as any);
 
         // Re-add grid layers after style change
         console.log("Re-adding grid layers after style change...");
