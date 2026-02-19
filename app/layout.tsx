@@ -25,8 +25,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${lora.variable}`}>
-      <body>
+    <html lang="en" className={`${inter.variable} ${lora.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('app-mode');if(m==='dark')document.documentElement.classList.add('dark');var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}})()`,
+          }}
+        />
         <ThemeProvider>
           <XPWrapper>
             <AudioProvider>
