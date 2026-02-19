@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode, type RefObject } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode, type MutableRefObject } from 'react';
 import type { Farm } from '@/lib/db/schema';
 import type maplibregl from 'maplibre-gl';
 
@@ -34,7 +34,7 @@ interface UnifiedCanvasState {
   clearPanelStack: () => void;
 
   // Map ref for flyTo
-  mapRef: RefObject<maplibregl.Map | null>;
+  mapRef: MutableRefObject<maplibregl.Map | null>;
 }
 
 const UnifiedCanvasContext = createContext<UnifiedCanvasState | undefined>(undefined);
