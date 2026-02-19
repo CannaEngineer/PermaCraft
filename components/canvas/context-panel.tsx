@@ -54,6 +54,8 @@ export function ContextPanel({ children }: ContextPanelProps) {
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
             className="hidden md:flex fixed top-12 right-0 bottom-0 w-[380px] z-[35] flex-col glass-panel-strong border-l border-border/40 overflow-hidden"
+            role="region"
+            aria-label="Content panel"
           >
             {children}
           </motion.aside>
@@ -69,6 +71,8 @@ export function ContextPanel({ children }: ContextPanelProps) {
             dragElastic={0.2}
             onDragEnd={handleDragEnd}
             className="md:hidden fixed inset-x-0 bottom-14 top-[35%] z-[35] flex flex-col glass-panel-strong rounded-t-2xl border-t border-border/40 overflow-hidden"
+            role="region"
+            aria-label="Content panel"
           >
             {/* Drag handle */}
             <div className="flex justify-center py-2.5 cursor-grab active:cursor-grabbing touch-none">

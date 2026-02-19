@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode, type MutableRefObject } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode, type MutableRefObject } from 'react';
 import type { Farm } from '@/lib/db/schema';
 import type maplibregl from 'maplibre-gl';
 
@@ -44,26 +44,29 @@ interface UnifiedCanvasProviderProps {
   initialFarms: Farm[];
 }
 
-function getInitialState(initialFarms: Farm[]) {
-  if (typeof window === 'undefined') return { section: 'home' as CanvasSection, farmId: initialFarms[0]?.id ?? null };
-  const params = new URLSearchParams(window.location.search);
-  const section = params.get('section') as CanvasSection | null;
-  const farmId = params.get('farm');
-  const validSections: CanvasSection[] = ['home', 'farm', 'explore', 'plants', 'learn', 'ai'];
-  return {
-    section: section && validSections.includes(section) ? section : 'home' as CanvasSection,
-    farmId: farmId && initialFarms.some(f => f.id === farmId) ? farmId : (initialFarms[0]?.id ?? null),
-  };
-}
+const validSections: CanvasSection[] = ['home', 'farm', 'explore', 'plants', 'learn', 'ai'];
 
 export function UnifiedCanvasProvider({ children, initialFarms }: UnifiedCanvasProviderProps) {
-  const initial = getInitialState(initialFarms);
-  const [activeSection, setActiveSectionRaw] = useState<CanvasSection>(initial.section);
+  const [activeSection, setActiveSectionRaw] = useState<CanvasSection>('home');
   const [farms] = useState<Farm[]>(initialFarms);
-  const [activeFarmId, setActiveFarmIdRaw] = useState<string | null>(initial.farmId);
+  const [activeFarmId, setActiveFarmIdRaw] = useState<string | null>(initialFarms[0]?.id ?? null);
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   const [panelStack, setPanelStack] = useState<PanelStackEntry[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);
+
+  // Restore URL state after mount (avoids hydration mismatch)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const section = params.get('section') as CanvasSection | null;
+    const farmId = params.get('farm');
+    if (section && validSections.includes(section)) {
+      setActiveSectionRaw(section);
+      if (section === 'ai') setContextPanelOpen(false);
+    }
+    if (farmId && initialFarms.some(f => f.id === farmId)) {
+      setActiveFarmIdRaw(farmId);
+    }
+  }, [initialFarms]);
 
   const activeFarm = farms.find(f => f.id === activeFarmId) ?? null;
 

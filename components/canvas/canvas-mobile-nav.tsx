@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Map, Globe, Leaf, GraduationCap, MessageSquare } from 'lucide-react';
+import { Home, Map, Globe, GraduationCap, MessageSquare } from 'lucide-react';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +16,10 @@ export function CanvasMobileNav() {
   const { activeSection, setActiveSection } = useUnifiedCanvas();
 
   return (
-    <nav className="md:hidden fixed inset-x-0 bottom-0 h-14 z-40 glass-panel-strong border-t border-border/40 flex items-center justify-around px-1 safe-area-bottom">
+    <nav
+      className="md:hidden fixed inset-x-0 bottom-0 h-14 z-40 glass-panel-strong border-t border-border/40 flex items-center justify-around px-1 pb-[env(safe-area-inset-bottom)]"
+      aria-label="Mobile navigation"
+    >
       {mobileNavItems.map((item) => {
         const Icon = item.icon;
         const isActive = activeSection === item.id;
@@ -27,16 +30,18 @@ export function CanvasMobileNav() {
             onClick={() => setActiveSection(item.id)}
             className={cn(
               'flex flex-col items-center justify-center gap-0.5 min-w-[48px] h-11 rounded-xl transition-all touch-manipulation active:scale-95',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
               isActive
                 ? 'text-primary'
                 : 'text-muted-foreground'
             )}
             aria-label={item.label}
+            aria-current={isActive ? 'page' : undefined}
           >
             <div className={cn('relative transition-transform', isActive && 'scale-110')}>
               <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
               {isActive && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" aria-hidden="true" />
               )}
             </div>
             <span className={cn(

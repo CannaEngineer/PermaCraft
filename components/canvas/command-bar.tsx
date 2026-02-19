@@ -32,8 +32,8 @@ export function CommandBar({ userId, userName, saving, hasUnsavedChanges, onSave
     window.location.href = '/login';
   };
 
-  const userInitials = userName
-    ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const userInitials = userName?.trim()
+    ? userName.trim().split(/\s+/).map(n => n[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || 'U'
     : 'U';
 
   return (
@@ -65,7 +65,7 @@ export function CommandBar({ userId, userName, saving, hasUnsavedChanges, onSave
             onClick={onSave}
             disabled={saving || !hasUnsavedChanges}
             className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[36px]',
               hasUnsavedChanges
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'text-muted-foreground'
@@ -84,7 +84,7 @@ export function CommandBar({ userId, userName, saving, hasUnsavedChanges, onSave
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex items-center gap-1.5 h-8 pl-1.5 pr-2 rounded-full bg-accent hover:bg-accent/80 transition-colors"
+              className="flex items-center gap-1.5 h-9 pl-1.5 pr-2 rounded-full bg-accent hover:bg-accent/80 transition-colors"
               aria-label="User menu"
             >
               <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center">
