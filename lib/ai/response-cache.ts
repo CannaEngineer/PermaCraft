@@ -32,14 +32,14 @@ export function generateCacheKey(
  */
 export function hashContext(context: object): string {
   const serialized = JSON.stringify(context);
-  return crypto.createHash('md5').update(serialized).digest('hex');
+  return crypto.createHash('sha256').update(serialized).digest('hex');
 }
 
 /**
  * Hash screenshot buffer
  */
 export function hashScreenshot(buffer: Buffer): string {
-  return crypto.createHash('md5').update(buffer).digest('hex');
+  return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
 /**
@@ -48,7 +48,7 @@ export function hashScreenshot(buffer: Buffer): string {
 export function getCachedResponse(cacheKey: string): string | null {
   const cached = responseCache.get(cacheKey);
   if (cached) {
-    console.log('✓ Cache hit for query:', cacheKey.slice(0, 8));
+    // tracked via interceptor below
     return cached.response;
   }
   return null;
@@ -67,7 +67,7 @@ export function cacheResponse(
     timestamp: Date.now(),
     model
   });
-  console.log('✓ Cached response:', cacheKey.slice(0, 8));
+  // stored
 }
 
 /**
@@ -77,7 +77,7 @@ export function clearCache(): void {
   responseCache.clear();
   cacheHits = 0;
   cacheMisses = 0;
-  console.log('✓ Response cache cleared');
+  // cleared
 }
 
 /**

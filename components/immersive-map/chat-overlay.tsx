@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EnhancedChatPanel } from "@/components/ai/enhanced-chat-panel";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface ChatOverlayProps {
   farmId: string;
@@ -36,6 +36,18 @@ export function ChatOverlay({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [chatOpen, setChatOpen]);
 
+  // Focus the chat panel when it opens
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (chatOpen && panelRef.current) {
+      // Focus the first focusable element inside the panel
+      const firstFocusable = panelRef.current.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+    }
+  }, [chatOpen]);
+
   return (
     <AnimatePresence>
       {chatOpen && (
@@ -52,6 +64,10 @@ export function ChatOverlay({
 
           {/* Chat Panel */}
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="AI Assistant"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -65,6 +81,7 @@ export function ChatOverlay({
                 variant="ghost"
                 size="icon"
                 onClick={() => setChatOpen(false)}
+                aria-label="Close AI Assistant"
               >
                 <X className="h-5 w-5" />
               </Button>

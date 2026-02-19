@@ -41,6 +41,8 @@ import { uploadScreenshot } from "@/lib/storage/r2";
 import { getGoalsForAIContext } from "@/lib/ai/goals-context";
 import { getRAGContext } from "@/lib/ai/rag-context";
 import { generateSketch } from "@/lib/ai/sketch-generator";
+import { safeJsonParse } from "@/lib/ai/json-utils";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/ai/rate-limit";
 import {
   getMapAnalysisVisionModel,
   getMapAnalysisFallbackModel,
@@ -49,6 +51,8 @@ import {
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
+
+const DEBUG = process.env.NODE_ENV !== "production";
 
 /**
  * Request Validation Schema
@@ -68,35 +72,34 @@ import type { Farm } from "@/lib/db/schema";
  * - Future: Could support time-series comparisons
  */
 const analyzeSchema = z.object({
-  farmId: z.string(),
-  conversationId: z.string().optional(), // Optional - will create new if not provided
-  query: z.string().min(1),
+  farmId: z.string().max(100),
+  conversationId: z.string().max(100).optional(),
+  query: z.string().min(1).max(5000),
   screenshots: z.array(z.object({
-    type: z.string(), // 'satellite', 'usgs', 'topo', etc.
+    type: z.string().max(50),
     data: z.string(), // Base64 data URI
-  })),
-  mapLayer: z.string().optional(),
-  legendContext: z.string().optional(),
-  nativeSpeciesContext: z.string().optional(),
-  plantingsContext: z.string().optional(),
+  })).min(1).max(5),
+  mapLayer: z.string().max(50).optional(),
+  legendContext: z.string().max(10000).optional(),
+  nativeSpeciesContext: z.string().max(10000).optional(),
+  plantingsContext: z.string().max(10000).optional(),
   zones: z.array(z.object({
-    type: z.string(),
-    name: z.string(),
-    geometryType: z.string().optional(),
-    gridCoordinates: z.string().optional(), // e.g., "A1-B3"
-    gridCells: z.array(z.string()).optional(), // e.g., ["A1", "A2", "B1"]
-  })).optional(),
-  // Optimization fields
+    type: z.string().max(100),
+    name: z.string().max(200),
+    geometryType: z.string().max(50).optional(),
+    gridCoordinates: z.string().max(50).optional(),
+    gridCells: z.array(z.string().max(10)).max(500).optional(),
+  })).max(100).optional(),
   enableOptimizations: z.boolean().optional(),
   farmContext: z.object({
-    zones: z.array(z.any()),
-    plantings: z.array(z.any()),
-    lines: z.array(z.any()),
-    goals: z.array(z.any()),
-    nativeSpecies: z.array(z.any()),
+    zones: z.array(z.record(z.unknown())).max(100),
+    plantings: z.array(z.record(z.unknown())).max(500),
+    lines: z.array(z.record(z.unknown())).max(200),
+    goals: z.array(z.record(z.unknown())).max(50),
+    nativeSpecies: z.array(z.record(z.unknown())).max(500),
   }).optional(),
   farmInfo: z.object({
-    id: z.string(),
+    id: z.string().max(100),
     climate_zone: z.string().nullable(),
     rainfall_inches: z.number().nullable(),
     soil_type: z.string().nullable(),
@@ -106,8 +109,16 @@ const analyzeSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // STEP 1: Authenticate user
-    // Throws 401 if not authenticated
     const session = await requireAuth();
+
+    // STEP 1.5: Rate limit (20 requests/hour per user)
+    const rateLimit = checkRateLimit(session.user.id, 'ai-analyze');
+    if (!rateLimit.allowed) {
+      return Response.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        { status: 429, headers: rateLimitHeaders(rateLimit) }
+      );
+    }
 
     // STEP 2: Validate request body
     const body = await request.json();
@@ -200,7 +211,7 @@ export async function POST(request: NextRequest) {
     let optimizedScreenshots: typeof screenshots | undefined;
 
     if (enableOptimizations && farmContext && screenshots.length > 0) {
-      console.log('🚀 Optimizations enabled - processing request...');
+      if (DEBUG) console.log('Optimizations enabled');
 
       // Dynamic import to keep server-side only
       const { inferDetailLevel, optimizeScreenshot, estimateImageTokens } = await import('@/lib/ai/screenshot-optimizer');
@@ -209,13 +220,13 @@ export async function POST(request: NextRequest) {
 
       // 1. Infer detail level from query
       detailLevel = inferDetailLevel(query);
-      console.log(`📊 Detail level: ${detailLevel}`);
+      if (DEBUG) console.log(`Detail level: ${detailLevel}`);
 
       // 2. Compress context
       const verbosity = detailLevel === 'high' ? 'detailed' : detailLevel === 'low' ? 'minimal' : 'standard';
       compressed = compressFarmContext(farmContext, verbosity);
       optimizedContextText = buildOptimizedContext(compressed, query);
-      console.log(`📦 Context compressed: ${compressed.tokenEstimate} tokens`);
+      if (DEBUG) console.log(`Context compressed: ${compressed.tokenEstimate} tokens`);
 
       // 3. Optimize screenshots
       optimizedScreenshots = [];
@@ -240,7 +251,7 @@ export async function POST(request: NextRequest) {
           totalScreenshotTokens += estimateImageTokens(optimized.width, optimized.height);
           totalScreenshotSize += optimized.size;
 
-          console.log(`🖼️  Optimized ${screenshot.type}: ${Math.round(optimized.size / 1024)}KB, ${optimized.width}x${optimized.height}, ~${estimateImageTokens(optimized.width, optimized.height)} tokens`);
+          if (DEBUG) console.log(`Optimized ${screenshot.type}: ${Math.round(optimized.size / 1024)}KB`);
         } catch (error) {
           console.error(`Failed to optimize screenshot ${screenshot.type}:`, error);
           // Fallback to original screenshot
@@ -258,7 +269,7 @@ export async function POST(request: NextRequest) {
       const cachedResponse = getCachedResponse(cacheKey);
 
       if (cachedResponse) {
-        console.log('⚡ Cache hit - returning cached response');
+        if (DEBUG) console.log('Cache hit');
         return Response.json({
           response: cachedResponse,
           metadata: {
@@ -272,8 +283,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log(`💾 Cache miss - will fetch from AI and cache result`);
-      console.log(`📈 Total tokens: ${totalScreenshotTokens + compressed.tokenEstimate} (${totalScreenshotTokens} screenshots + ${compressed.tokenEstimate} context)`);
+      if (DEBUG) console.log(`Cache miss. Estimated tokens: ${totalScreenshotTokens + compressed.tokenEstimate}`);
     }
 
     /**
@@ -372,12 +382,7 @@ export async function POST(request: NextRequest) {
 
     const screenshotUrls: string[] = [];
     try {
-      console.log("Uploading screenshots to R2...", {
-        screenshotCount: screenshotsToUpload.length,
-        types: screenshotsToUpload.map(s => s.type),
-        hasR2PublicUrl: !!process.env.R2_PUBLIC_URL,
-        optimized: !!optimizedScreenshots,
-      });
+      if (DEBUG) console.log(`Uploading ${screenshotsToUpload.length} screenshots`);
 
       for (let i = 0; i < screenshotsToUpload.length; i++) {
         const screenshot = screenshotsToUpload[i];
@@ -388,12 +393,12 @@ export async function POST(request: NextRequest) {
             `${screenshot.type}-${i}` // Suffix for uniqueness
           );
           screenshotUrls.push(url);
-          console.log(`Screenshot ${i + 1} (${screenshot.type}) uploaded:`, url.substring(0, 100));
+          if (DEBUG) console.log(`Screenshot ${i + 1} uploaded`);
         } catch (error) {
           console.error(`Failed to upload screenshot ${i + 1} to R2:`, error);
           // Per-screenshot fallback: use base64 data if R2 upload fails
           screenshotUrls.push(screenshot.data);
-          console.log(`Using base64 fallback for screenshot ${i + 1}`);
+          if (DEBUG) console.log(`Using base64 fallback for screenshot ${i + 1}`);
         }
       }
     } catch (error) {
@@ -402,17 +407,7 @@ export async function POST(request: NextRequest) {
       screenshotsToUpload.forEach(s => screenshotUrls.push(s.data));
     }
 
-    // Verify image data is present
-    console.log("AI Analysis Request:", {
-      farmId,
-      query: query.substring(0, 50) + "...",
-      screenshotCount: screenshotsToUpload.length,
-      screenshotTypes: screenshotsToUpload.map(s => s.type),
-      screenshotUrls: screenshotUrls.map(url => url.substring(0, 100)),
-      zonesCount: zones?.length || 0,
-      mapLayer,
-      optimized: !!optimizedScreenshots,
-    });
+    if (DEBUG) console.log(`AI request: ${screenshotsToUpload.length} screenshots, ${zones?.length || 0} zones`);
 
     /**
      * STEP 6.5: Fetch conversation history
@@ -434,13 +429,17 @@ export async function POST(request: NextRequest) {
     let conversationHistory: Array<{ role: "user" | "assistant"; content: string }> = [];
 
     if (activeConversationId) {
+      // Load the most recent 50 messages max — older ones get compressed anyway
       const historyResult = await db.execute({
         sql: `SELECT user_query, ai_response, created_at
               FROM ai_analyses
               WHERE conversation_id = ?
-              ORDER BY created_at ASC`,
+              ORDER BY created_at DESC
+              LIMIT 50`,
         args: [activeConversationId]
       });
+      // Reverse to chronological order
+      historyResult.rows.reverse();
 
       // Build message history (alternating user/assistant)
       for (const row of historyResult.rows) {
@@ -454,19 +453,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log(`Loaded ${conversationHistory.length} messages from conversation history`);
-
       // Manage context size - compress if too large
       const { managedHistory, wasCompressed, stats } = manageConversationContext(conversationHistory);
       conversationHistory = managedHistory;
 
-      if (wasCompressed) {
-        console.log(`🗜️ Compressed conversation history:`, stats);
-        console.log(`  - Original: ${stats.originalMessages} messages, ~${stats.originalTokens} tokens`);
-        console.log(`  - Compressed: ${stats.finalMessages} messages, ~${stats.finalTokens} tokens`);
-        console.log(`  - Savings: ${Math.round((1 - stats.finalTokens / stats.originalTokens) * 100)}%`);
-      } else {
-        console.log(`✓ Conversation history fits within token budget (${stats.finalTokens} tokens)`);
+      if (DEBUG && wasCompressed) {
+        console.log(`Compressed: ${stats.originalMessages} -> ${stats.finalMessages} msgs`);
       }
     }
 
@@ -515,7 +507,7 @@ export async function POST(request: NextRequest) {
 
     for (const model of visionModels) {
       try {
-        console.log(`Attempting AI analysis with model: ${model}`);
+        if (DEBUG) console.log(`Trying model: ${model}`);
 
         /**
          * Build Multi-Part User Content
@@ -553,7 +545,7 @@ export async function POST(request: NextRequest) {
           },
         ];
 
-        console.log(`Sending ${messages.length} messages to AI (including ${conversationHistory.length} history messages)`);
+        if (DEBUG) console.log(`Sending ${messages.length} messages`);
 
         // Call OpenRouter API
         completion = await openrouter.chat.completions.create({
@@ -570,11 +562,8 @@ export async function POST(request: NextRequest) {
         }
 
         usedModel = model;
-        console.log(`AI Response received from ${model}:`, {
-          hasResponse: !!completion.choices[0]?.message?.content,
-          responseLength: completion.choices[0]?.message?.content?.length || 0,
-        });
-        break; // Success! Exit loop
+        if (DEBUG) console.log(`Response from ${model}: ${completion.choices[0]?.message?.content?.length || 0} chars`);
+        break;
 
       } catch (error: any) {
         lastError = error;
@@ -613,16 +602,16 @@ export async function POST(request: NextRequest) {
                              error?.error?.message?.includes('vision');
 
         if (isRateLimited) {
-          console.log(`Rate limited on ${model}, trying next model...`);
+          if (DEBUG) console.log(`Rate limited on ${model}`);
           continue; // Try next model
         } else if (isPayloadTooLarge) {
-          console.log(`Payload too large for ${model}, trying next model...`);
+          if (DEBUG) console.log(`Payload too large for ${model}`);
           continue; // Try next model
         } else if (isNotFound) {
-          console.log(`Model ${model} not found or unavailable, trying next model...`);
+          if (DEBUG) console.log(`Model ${model} not found`);
           continue; // Try next model
         } else if (isUnsupported) {
-          console.log(`Model ${model} doesn't support vision, trying next model...`);
+          if (DEBUG) console.log(`Model ${model} doesn't support vision`);
           continue; // Try next model
         } else {
           // For other errors (bad request, server error), throw immediately
@@ -633,11 +622,11 @@ export async function POST(request: NextRequest) {
 
     // If we exhausted all free models, try paid fallback
     if (!completion) {
-      console.log("All free models failed, trying paid fallback model...");
+      console.warn("All free models failed — using paid fallback");
 
       try {
         const fallbackModel = await getMapAnalysisFallbackModel();
-        console.log(`Attempting AI analysis with fallback model: ${fallbackModel}`);
+        if (DEBUG) console.log(`Fallback model: ${fallbackModel}`);
 
         // Build the same message structure
         const userContent: any[] = [{ type: "text", text: userPrompt }];
@@ -666,7 +655,7 @@ export async function POST(request: NextRequest) {
         }
 
         usedModel = fallbackModel;
-        console.log(`✓ Success with paid fallback model: ${fallbackModel}`);
+        if (DEBUG) console.log(`Fallback succeeded: ${fallbackModel}`);
 
       } catch (fallbackError: any) {
         console.error("Paid fallback model also failed:", fallbackError);
@@ -699,7 +688,7 @@ export async function POST(request: NextRequest) {
       const cacheKey = generateCacheKey(query, contextHash, screenshotHash);
 
       cacheResponse(cacheKey, response, usedModel);
-      console.log('💾 Response cached for future use');
+      if (DEBUG) console.log('Response cached');
     }
 
     /**
@@ -734,7 +723,7 @@ export async function POST(request: NextRequest) {
 
     if (requestsSketch && screenshots.length > 0) {
       try {
-        console.log('🎨 Sketch requested - generating visual...');
+        if (DEBUG) console.log('Generating sketch');
 
         /**
          * Stage 1: Generate drawing instructions using text AI
@@ -759,7 +748,7 @@ export async function POST(request: NextRequest) {
           }
         );
 
-        console.log('📝 Stage 1: Generating drawing instructions...');
+        if (DEBUG) console.log('Stage 1: drawing instructions');
         const sketchInstructionModel = await getSketchInstructionModel();
         const instructionsResponse = await openrouter.chat.completions.create({
           model: sketchInstructionModel,
@@ -771,21 +760,16 @@ export async function POST(request: NextRequest) {
 
         const instructionsText = instructionsResponse.choices[0]?.message?.content || '';
 
-        // Parse JSON from response (handle markdown code blocks)
-        let drawingInstructions;
-        try {
-          const jsonMatch = instructionsText.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            drawingInstructions = JSON.parse(jsonMatch[0]);
-          } else {
-            throw new Error('No JSON found in instructions response');
-          }
-        } catch (parseError) {
-          console.error('Failed to parse drawing instructions:', parseError);
-          throw new Error('Could not parse drawing instructions from AI');
+        // Parse JSON from response (handles code fences, preamble text, etc.)
+        const drawingInstructions = safeJsonParse<{ drawingPrompt?: string; explanation?: string; style?: string }>(
+          instructionsText,
+          null as any
+        );
+        if (!drawingInstructions?.drawingPrompt) {
+          throw new Error('Could not parse drawing instructions from AI')
         }
 
-        console.log('✓ Drawing instructions generated:', drawingInstructions.drawingPrompt.substring(0, 100));
+        if (DEBUG) console.log('Drawing instructions ready');
 
         /**
          * Stage 2: Generate sketch image using Gemini 2.5 Flash Image
@@ -793,7 +777,7 @@ export async function POST(request: NextRequest) {
          * Pass the base screenshot + detailed drawing instructions to the
          * image generation model. It will create an annotated overlay.
          */
-        console.log('🖼️  Stage 2: Generating sketch image...');
+        if (DEBUG) console.log('Stage 2: generating image');
         const baseScreenshotUrl = screenshotUrls[0]; // Use primary screenshot as base
 
         const sketchDataUrl = await generateSketch({
@@ -801,7 +785,7 @@ export async function POST(request: NextRequest) {
           drawingPrompt: drawingInstructions.drawingPrompt,
         });
 
-        console.log('✓ Sketch generated, length:', sketchDataUrl.length);
+        if (DEBUG) console.log('Sketch generated');
 
         /**
          * Upload generated sketch to R2 storage
@@ -810,14 +794,14 @@ export async function POST(request: NextRequest) {
          * Unlike screenshots which are temporary, sketches are valuable
          * design artifacts that should be archived.
          */
-        console.log('☁️  Uploading sketch to R2...');
+        if (DEBUG) console.log('Uploading sketch');
         generatedImageUrl = await uploadScreenshot(
           farmId,
           sketchDataUrl,
           'ai-sketch'
         );
 
-        console.log('✓ Sketch uploaded:', generatedImageUrl.substring(0, 100));
+        if (DEBUG) console.log('Sketch uploaded');
 
       } catch (sketchError) {
         console.error('Sketch generation failed:', sketchError);

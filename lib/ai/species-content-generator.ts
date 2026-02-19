@@ -1,40 +1,9 @@
-import OpenAI from 'openai';
 import { getSpeciesById } from '@/lib/species/species-queries';
 import { upsertSpeciesContent, getSpeciesWithoutContent } from '@/lib/species/species-content-queries';
 import { buildNarrativePrompt, buildGrowingGuidePrompt } from './species-content-prompter';
 import { getSpeciesContentModel } from './model-settings';
-
-const openrouter = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY!,
-  defaultHeaders: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://permaculture.studio',
-    'X-Title': 'Permaculture.Studio',
-  },
-});
-
-function safeJsonParse<T>(jsonString: string, fallback: T): T {
-  try {
-    return JSON.parse(jsonString);
-  } catch {
-    try {
-      const start = jsonString.indexOf('{');
-      const end = jsonString.lastIndexOf('}') + 1;
-      if (start >= 0 && end > start) {
-        const extracted = jsonString.substring(start, end);
-        const minimal = extracted
-          .replace(/\r?\n/g, ' ')
-          .replace(/\t/g, ' ')
-          .replace(/\s+/g, ' ');
-        return JSON.parse(minimal);
-      }
-    } catch {
-      // Give up
-    }
-    console.error('JSON parsing failed for species content:', jsonString.substring(0, 200));
-    return fallback;
-  }
-}
+import { openrouter } from './openrouter';
+import { safeJsonParse } from './json-utils';
 
 /**
  * Generate AI content for a single species

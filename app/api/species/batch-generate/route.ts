@@ -1,11 +1,11 @@
 import { batchGenerateSpeciesContent } from '@/lib/ai/species-content-generator';
 
 export async function POST(request: Request) {
-  // Auth via cron secret or session
+  // Auth via cron secret
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response('Unauthorized', { status: 401 });
   }
 

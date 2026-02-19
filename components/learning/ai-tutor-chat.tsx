@@ -25,12 +25,17 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,9 +56,13 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
         content: msg.content,
       }));
 
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
+
       const response = await fetch('/api/learning/ai-tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortRef.current.signal,
         body: JSON.stringify({
           lesson_id: lessonId,
           message: userMessage,
@@ -131,6 +140,8 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
         <Button
           onClick={() => setIsExpanded(true)}
           size="lg"
+          aria-expanded={false}
+          aria-label="Open AI Tutor"
           className="rounded-full shadow-2xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 animate-pulse-subtle md:w-auto w-[calc(100vw-2rem)] md:rounded-full"
         >
           <Sparkles className="h-5 w-5 mr-2 flex-shrink-0" />
@@ -141,7 +152,7 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
   }
 
   return (
-    <Card className="fixed right-4 bottom-20 md:bottom-4 z-[70] w-[calc(100vw-2rem)] md:w-96 shadow-2xl">
+    <Card aria-label="AI Tutor Chat" className="fixed right-4 bottom-20 md:bottom-4 z-[70] w-[calc(100vw-2rem)] md:w-96 shadow-2xl">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -151,6 +162,7 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
           <Button
             variant="ghost"
             size="sm"
+            aria-label="Minimize AI Tutor"
             onClick={() => setIsExpanded(false)}
           >
             <ChevronDown className="h-4 w-4" />
@@ -162,7 +174,7 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-96 px-4" ref={scrollRef}>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4" aria-live="polite">
             {messages.length === 0 && (
               <div className="text-center text-sm text-muted-foreground py-8">
                 <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -199,13 +211,14 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
               </div>
             ))}
             {isLoading && (
-              <div className="flex gap-2 justify-start">
+              <div className="flex gap-2 justify-start" role="status">
                 <div className="rounded-lg px-3 py-2 bg-muted text-sm">
-                  <div className="flex gap-1">
+                  <div className="flex gap-1" aria-hidden="true">
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
+                  <span className="sr-only">AI is thinking...</span>
                 </div>
               </div>
             )}
@@ -218,9 +231,10 @@ export function AITutorChat({ lessonId, lessonTitle }: AITutorChatProps) {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a question..."
               disabled={isLoading}
+              aria-label="Ask a question about this lesson"
               className="flex-1"
             />
-            <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+            <Button type="submit" size="icon" aria-label="Send message" disabled={isLoading || !input.trim()}>
               <Send className="h-4 w-4" />
             </Button>
           </div>

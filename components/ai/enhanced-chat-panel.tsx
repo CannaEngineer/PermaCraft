@@ -351,74 +351,9 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
     e.preventDefault();
     e.stopPropagation();
     if (!input.trim() || loading) return;
-
     const userMessage = input.trim();
     setInput("");
-
-    console.log("[Chat] handleSubmit called with:", userMessage);
-
-    // Set flag to prevent useEffect from loading messages from DB
-    isSubmittingRef.current = true;
-
-    // Optimistically add user message
-    setMessages((prev) => {
-      console.log("[Chat] Adding user message, current count:", prev.length);
-      return [...prev, { role: "user", content: userMessage }];
-    });
-    setLoading(true);
-
-    try {
-      console.log("[Chat] Calling onAnalyze...");
-      const result = await onAnalyze(
-        userMessage,
-        currentConversationId || undefined
-      );
-
-      console.log("[Chat] onAnalyze returned:", {
-        hasResponse: !!result.response,
-        responseLength: result.response.length,
-        conversationId: result.conversationId,
-      });
-
-      // Update current conversation ID if it was created
-      if (!currentConversationId && result.conversationId) {
-        console.log("[Chat] New conversation created, setting ID:", result.conversationId);
-        setCurrentConversationId(result.conversationId);
-        // Reload conversations list (but don't trigger loadMessages, we already have the messages)
-        // We reload in the background without waiting to update the conversations sidebar
-        loadConversations().catch(err => console.error("Failed to reload conversations:", err));
-      }
-
-      // Add AI response with screenshot and optional generated sketch (convert single screenshot to array for consistency)
-      setMessages((prev) => {
-        console.log("[Chat] Adding AI response, current count:", prev.length);
-        return [
-          ...prev,
-          {
-            role: "assistant",
-            content: result.response,
-            screenshots: result.screenshot ? [result.screenshot] : null,
-            generatedImageUrl: result.generatedImageUrl || null,
-          },
-        ];
-      });
-    } catch (error) {
-      console.error("[Chat] Error in handleSubmit:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, analysis failed. Please try again.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-      // Clear the flag after a brief delay to allow state updates to settle
-      setTimeout(() => {
-        isSubmittingRef.current = false;
-        console.log("[Chat] Submit complete, re-enabling loadMessages");
-      }, 100);
-    }
+    submitMessage(userMessage);
   };
 
   const selectConversation = (conversationId: string) => {
@@ -452,7 +387,6 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
       }
     } catch (error) {
       console.error("Failed to delete conversation:", error);
-      alert("Failed to delete conversation");
     }
   };
 
@@ -474,6 +408,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
               variant="outline"
               size="sm"
               className="text-xs"
+              aria-label="View conversations"
             >
               <MessageSquareIcon className="h-3 w-3 mr-1" />
               {conversations.length}
@@ -483,6 +418,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
               variant="outline"
               size="sm"
               className="text-xs"
+              aria-label="New conversation"
             >
               <PlusIcon className="h-3 w-3 mr-1" />
               New
@@ -490,6 +426,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Close chat"
               onClick={() => {
                 if (onClose) {
                   onClose();
@@ -507,6 +444,8 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
 
       {/* Conversations Sidebar */}
       <div
+        role="navigation"
+        aria-label="Conversation history"
         className={`absolute top-0 left-0 h-full w-full bg-card z-50 transform transition-transform duration-300 ease-in-out ${
           showConversations ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -548,6 +487,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
                 onClick={(e) => handleDeleteConversation(conv.id, e)}
+                aria-label="Delete conversation"
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
@@ -557,7 +497,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
       </div>
 
       <CardContent className="flex-1 flex flex-col min-h-0 p-4">
-        <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+        <div className="flex-1 overflow-y-auto mb-4 space-y-4" aria-live="polite">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <SparklesIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -628,7 +568,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
             ))
           )}
           {loading && (
-            <div className="bg-muted p-4 rounded-lg mr-8 border border-border">
+            <div className="bg-muted p-4 rounded-lg mr-8 border border-border" role="status" aria-live="polite">
               <div className="flex items-center gap-2">
                 <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
                 <p className="text-sm text-muted-foreground">
@@ -641,15 +581,16 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
           <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 flex-shrink-0">
+        <form onSubmit={handleSubmit} className="flex gap-2 flex-shrink-0" aria-label="Chat message">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your design..."
             disabled={loading}
             className="flex-1"
+            aria-label="Ask about your design"
           />
-          <Button type="submit" size="icon" disabled={loading || !input.trim()}>
+          <Button type="submit" size="icon" disabled={loading || !input.trim()} aria-label="Send message">
             <SendIcon className="h-4 w-4" />
           </Button>
         </form>
@@ -658,28 +599,28 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
       {/* Screenshot Modal */}
       {selectedScreenshot && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Screenshot preview"
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedScreenshot(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSelectedScreenshot(null); }}
         >
-          <div className="max-w-4xl max-h-[90vh] overflow-auto bg-card rounded-lg p-4">
+          <div className="max-w-4xl max-h-[90vh] overflow-auto bg-card rounded-lg p-4 relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setSelectedScreenshot(null)}
+              className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70"
+              aria-label="Close preview"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <img
               src={selectedScreenshot}
               alt="Map Screenshot"
               className="w-full h-auto rounded-lg"
-              onError={(e) => {
-                // If R2 URL fails to load, show helpful message
-                const target = e.target as HTMLImageElement;
-                if (!selectedScreenshot.startsWith('data:')) {
-                  console.error("Failed to load screenshot from R2:", selectedScreenshot);
-                  target.style.display = 'none';
-                  const errorDiv = document.createElement('div');
-                  errorDiv.className = 'text-center p-8 text-muted-foreground';
-                  errorDiv.innerHTML = `
-                    <p class="text-lg font-semibold mb-2">Screenshot not available</p>
-                    <p class="text-sm">R2 storage is not configured for public access.</p>
-                    <p class="text-xs mt-2">See scripts/setup-r2-cors.md for setup instructions.</p>
-                  `;
-                  target.parentElement?.appendChild(errorDiv);
+              onError={() => {
+                if (!selectedScreenshot?.startsWith('data:')) {
+                  setSelectedScreenshot(null);
                 }
               }}
             />
