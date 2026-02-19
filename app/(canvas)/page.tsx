@@ -2,6 +2,8 @@ import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { CanvasClient } from './canvas-client';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CanvasPage() {
   const session = await requireAuth();
 
