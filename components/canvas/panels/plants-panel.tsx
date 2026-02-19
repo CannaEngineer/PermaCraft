@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PanelHeader } from './panel-header';
-import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
-import { Search, Leaf, Loader2, X } from 'lucide-react';
+import { Search, Leaf, Loader2, X, ArrowRight } from 'lucide-react';
 import type { Species } from '@/lib/db/schema';
 
 const LAYERS = ['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'] as const;
@@ -20,7 +19,6 @@ const layerColors: Record<string, string> = {
 };
 
 export function PlantsPanel() {
-  const { activeFarmId } = useUnifiedCanvas();
   const [species, setSpecies] = useState<Species[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -128,7 +126,7 @@ export function PlantsPanel() {
           ) : (
             <div className="divide-y divide-border/30">
               {species.slice(0, 50).map((sp) => (
-                <SpeciesRow key={sp.id} species={sp} farmId={activeFarmId} />
+                <SpeciesRow key={sp.id} species={sp} />
               ))}
               {species.length > 50 && (
                 <p className="text-xs text-muted-foreground text-center py-3">
@@ -137,13 +135,24 @@ export function PlantsPanel() {
               )}
             </div>
           )}
+
+          {/* Browse full catalog link */}
+          <div className="p-4 border-t border-border/30">
+            <a
+              href="/plants"
+              className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors text-xs font-medium text-primary"
+            >
+              Browse Full Plant Catalog
+              <ArrowRight className="h-3 w-3" />
+            </a>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function SpeciesRow({ species, farmId }: { species: Species; farmId: string | null }) {
+function SpeciesRow({ species }: { species: Species }) {
   const functions = species.permaculture_functions
     ? JSON.parse(species.permaculture_functions).slice(0, 2)
     : [];

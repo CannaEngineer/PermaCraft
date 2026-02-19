@@ -77,7 +77,7 @@ function UnifiedCanvasEmpty({ userId, userName }: { userId: string; userName: st
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background">
-      <CommandBar userName={userName} />
+      <CommandBar userId={userId} userName={userName} />
       <div className="flex flex-1 overflow-hidden">
         <NavRail />
         <div className="flex-1 flex items-center justify-center">
@@ -423,6 +423,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     <div className="fixed inset-0 flex flex-col bg-background">
       {/* Command Bar */}
       <CommandBar
+        userId={userId}
         userName={userName}
         saving={saving}
         hasUnsavedChanges={hasUnsavedChanges}

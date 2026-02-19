@@ -2,14 +2,14 @@
 
 import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
-import { Droplets, Leaf, Layers, Timer, Download, ListTree } from 'lucide-react';
+import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight } from 'lucide-react';
 
 interface FarmPanelProps {
   onOpenDrawer?: (content: string) => void;
 }
 
 export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
-  const { activeFarm } = useUnifiedCanvas();
+  const { activeFarm, setActiveSection } = useUnifiedCanvas();
 
   if (!activeFarm) {
     return (
@@ -46,7 +46,7 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
           <p>{activeFarm.description || 'No description set.'}</p>
         </div>
 
-        {/* Tools grid */}
+        {/* Design tools grid */}
         <div>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Design Tools
@@ -65,7 +65,7 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
           </div>
         </div>
 
-        {/* Feature list placeholder */}
+        {/* Feature manager */}
         <div>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Features
@@ -77,6 +77,39 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
             <ListTree className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm">Feature Manager</span>
           </button>
+        </div>
+
+        {/* Cross-links to other sections */}
+        <div>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Quick Access
+          </h3>
+          <div className="space-y-1">
+            <button
+              onClick={() => setActiveSection('ai')}
+              className="w-full flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left group"
+            >
+              <MessageSquare className="h-4 w-4 text-blue-500" />
+              <span className="text-sm flex-1">AI Design Assistant</span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+            <button
+              onClick={() => setActiveSection('plants')}
+              className="w-full flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left group"
+            >
+              <Leaf className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm flex-1">Browse Species</span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+            <button
+              onClick={() => setActiveSection('explore')}
+              className="w-full flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left group"
+            >
+              <Globe className="h-4 w-4 text-blue-500" />
+              <span className="text-sm flex-1">Community</span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
