@@ -75,10 +75,16 @@ export function UnifiedCanvas({ userId, userName }: UnifiedCanvasProps) {
 
 function UnifiedCanvasEmpty({ userId, userName }: { userId: string; userName: string | null }) {
   const { setActiveSection } = useUnifiedCanvas();
-  const [showWalkthrough, setShowWalkthrough] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try { return localStorage.getItem('onboarding-complete') !== 'true'; } catch { return false; }
-  });
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+
+  // Defer localStorage read to avoid hydration mismatch
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('onboarding-complete') !== 'true') {
+        setShowWalkthrough(true);
+      }
+    } catch { /* localStorage unavailable */ }
+  }, []);
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background">
