@@ -12,7 +12,7 @@ import { CompactMusicController } from "@/components/audio/CompactMusicControlle
 import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, requiresAuth: true },
+  { name: "Canvas", href: "/canvas", icon: LayoutDashboard, requiresAuth: true },
   { name: "Community", href: "/gallery", icon: Users, requiresAuth: false },
   { name: "Shop", href: "/shops", icon: Store, requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, requiresAuth: false },

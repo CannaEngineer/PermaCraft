@@ -30,7 +30,7 @@ export default function RegisterPage() {
 
     try {
       await authClient.register({ name, email, password });
-      router.push("/dashboard");
+      router.push("/canvas");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account");

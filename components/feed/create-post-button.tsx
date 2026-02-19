@@ -37,7 +37,7 @@ export function CreatePostButton() {
   const handleCreatePost = (type: 'text' | 'photo' | 'ai_insight') => {
     setSelectDialogOpen(false);
     // Navigate to dashboard with post type - user will select farm there
-    router.push(`/dashboard?createPost=${type}`);
+    router.push(`/canvas?createPost=${type}`);
   };
 
   return (

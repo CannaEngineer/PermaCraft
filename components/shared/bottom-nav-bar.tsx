@@ -26,7 +26,7 @@ import { CompactMusicController } from "@/components/audio/CompactMusicControlle
 import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
 
 const primaryNavItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Home", requiresAuth: true },
+  { name: "Canvas", href: "/canvas", icon: LayoutDashboard, label: "Home", requiresAuth: true },
   { name: "Community", href: "/gallery", icon: Users, label: "Community", requiresAuth: false },
   { name: "Shop", href: "/shops", icon: ShoppingBag, label: "Shop", requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, label: "Learn", requiresAuth: false },
