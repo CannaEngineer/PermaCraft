@@ -233,15 +233,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     loadAll();
   }, [farm?.id]);
 
-  // Auto-save zones
-  useEffect(() => {
-    if (hasUnsavedChanges) {
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-      autoSaveTimer.current = setTimeout(() => handleSave(false), 2000);
-    }
-    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [zones, hasUnsavedChanges, handleSave]);
-
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setSaveToast({ message, type });
     setTimeout(() => setSaveToast(null), 3000);
@@ -265,6 +256,15 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       setSaving(false);
     }
   }, [farm.id, zones, showToast]);
+
+  // Auto-save zones
+  useEffect(() => {
+    if (hasUnsavedChanges) {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => handleSave(false), 2000);
+    }
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, [zones, hasUnsavedChanges, handleSave]);
 
   const handleZonesChange = (newZones: Zone[]) => {
     setZones(newZones);
