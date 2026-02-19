@@ -4,6 +4,41 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { calculateCatchmentCapture, calculateSwaleCapacity, calculateAreaFromGeometry, calculateLengthFromGeometry } from "@/lib/water/calculations";
 
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireAuth();
+    const { id: farmId } = await context.params;
+
+    // Verify farm ownership or public access
+    const farmResult = await db.execute({
+      sql: "SELECT id, user_id, is_public FROM farms WHERE id = ?",
+      args: [farmId],
+    });
+
+    if (farmResult.rows.length === 0) {
+      return Response.json({ error: "Farm not found" }, { status: 404 });
+    }
+
+    const farm = farmResult.rows[0] as any;
+    if (farm.user_id !== session.user.id && !farm.is_public) {
+      return Response.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const zonesResult = await db.execute({
+      sql: "SELECT * FROM zones WHERE farm_id = ? ORDER BY created_at ASC",
+      args: [farmId],
+    });
+
+    return Response.json({ zones: zonesResult.rows });
+  } catch (error) {
+    console.error("Get zones error:", error);
+    return Response.json({ error: "Failed to get zones" }, { status: 500 });
+  }
+}
+
 const saveZonesSchema = z.object({
   zones: z.array(z.object({
     id: z.string().optional(),
