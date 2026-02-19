@@ -648,18 +648,6 @@ function ImmersiveMapEditorContent({
   }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed]);
 
   // MapFAB action handlers
-  const handleCreatePost = () => {
-    setPostDialogOpen(true);
-  };
-
-  const handleUploadPhoto = () => {
-    setUploadDialogOpen(true);
-  };
-
-  const handleDropPin = () => {
-    openDrawer('species-picker', 'medium');
-  };
-
   const handleAddPlant = () => {
     setTriggerSpeciesPicker(true);
   };
@@ -909,9 +897,6 @@ function ImmersiveMapEditorContent({
 
       {/* Map FAB */}
       <MapFAB
-        onCreatePost={handleCreatePost}
-        onUploadPhoto={handleUploadPhoto}
-        onDropPin={handleDropPin}
         onAddPlant={handleAddPlant}
         onWaterSystem={handleOpenWaterSystem}
         onBuildGuild={handleOpenGuildDesigner}

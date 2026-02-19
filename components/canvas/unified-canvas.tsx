@@ -452,13 +452,11 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setActiveSection, setChatOpen]);
 
-  // Render the active panel content
+  // Render the active panel content (non-farm sections only — farm uses ContextPanel directly)
   const renderPanelContent = () => {
     switch (activeSection) {
       case 'home':
         return <DashboardPanel />;
-      case 'farm':
-        return <FarmPanel onOpenDrawer={handleOpenDrawer} />;
       case 'explore':
         return <ExplorePanel />;
       case 'plants':
@@ -485,7 +483,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         {/* Nav Rail (desktop) */}
         <NavRail />
 
-        {/* Map Canvas (always visible) */}
+        {/* Map Canvas (always rendered underneath) */}
         <div className="flex-1 relative">
           <div ref={mapContainerRef} className="absolute inset-0">
             <FarmMap
@@ -504,35 +502,43 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             />
           </div>
 
-          {/* Drawing Toolbar (farm mode only) */}
+          {/* Farm mode overlays */}
           {activeSection === 'farm' && (
-            <DrawingToolbar
-              onToolSelect={(tool) => console.log('Tool:', tool)}
-              onZoneTypeClick={() => console.log('Zone type')}
-              currentZoneType={currentZoneType}
-            />
+            <>
+              <DrawingToolbar
+                onToolSelect={(tool) => console.log('Tool:', tool)}
+                onZoneTypeClick={() => console.log('Zone type')}
+                currentZoneType={currentZoneType}
+              />
+              <MapFAB
+                onAddPlant={handleAddPlant}
+                onWaterSystem={handleOpenWaterSystem}
+                onBuildGuild={handleOpenGuildDesigner}
+                onTimeline={handleOpenPhaseManager}
+              />
+            </>
           )}
 
-          {/* Map FAB (farm mode only) */}
-          {activeSection === 'farm' && (
-            <MapFAB
-              onCreatePost={() => setPostDialogOpen(true)}
-              onUploadPhoto={() => setUploadDialogOpen(true)}
-              onDropPin={() => openDrawer('species-picker', 'medium')}
-              onAddPlant={handleAddPlant}
-              onWaterSystem={handleOpenWaterSystem}
-              onBuildGuild={handleOpenGuildDesigner}
-              onTimeline={handleOpenPhaseManager}
-            />
+          {/* Non-farm/non-AI: full-width panel covering map */}
+          {activeSection !== 'farm' && activeSection !== 'ai' && (
+            <div className="absolute inset-0 z-10 bg-background flex justify-center overflow-y-auto">
+              <div className="w-full max-w-2xl h-full">
+                <Suspense fallback={<PanelLoadingFallback />}>
+                  {renderPanelContent()}
+                </Suspense>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Context Panel */}
-        <ContextPanel>
-          <Suspense fallback={<PanelLoadingFallback />}>
-            {renderPanelContent()}
-          </Suspense>
-        </ContextPanel>
+        {/* Context Panel — farm section only */}
+        {activeSection === 'farm' && (
+          <ContextPanel>
+            <Suspense fallback={<PanelLoadingFallback />}>
+              <FarmPanel onOpenDrawer={handleOpenDrawer} />
+            </Suspense>
+          </ContextPanel>
+        )}
       </div>
 
       {/* Bottom Drawer (for farm tools) */}
