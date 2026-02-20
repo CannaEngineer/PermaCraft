@@ -14,22 +14,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const session = await requireAuth();
     const { id: conversationId } = await params;
 
-    // Get conversation and verify access
+    // Get conversation and verify access via user_id column
     const conversationResult = await db.execute({
-      sql: `SELECT ac.*, f.user_id
-            FROM ai_conversations ac
-            JOIN farms f ON ac.farm_id = f.id
-            WHERE ac.id = ?`,
-      args: [conversationId],
+      sql: `SELECT * FROM ai_conversations WHERE id = ? AND user_id = ?`,
+      args: [conversationId, session.user.id],
     });
 
     if (conversationResult.rows.length === 0) {
       return Response.json({ error: "Conversation not found" }, { status: 404 });
-    }
-
-    const conversation = conversationResult.rows[0] as any;
-    if (conversation.user_id !== session.user.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     // Delete all analyses in this conversation (cascade)

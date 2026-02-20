@@ -1,50 +1,3 @@
-/**
- * Enhanced Chat Panel - AI Analysis Interface
- *
- * This component provides the chat interface for AI-powered permaculture analysis.
- * It manages conversation history, message display, and integrates with the dual
- * screenshot capture system.
- *
- * Architecture:
- *
- * 1. Conversation Management
- *    - Lists all conversations for this farm (sidebar)
- *    - Loads messages when conversation selected
- *    - Creates new conversations on first message
- *
- * 2. Message Flow
- *    - User types query → onAnalyze() → API call with screenshots
- *    - Optimistic update (show message immediately)
- *    - Database reload after response (ensures consistency)
- *
- * 3. Screenshot Integration
- *    - Assistant messages include screenshot array
- *    - Displays screenshot buttons for each view
- *    - Modal viewer for full-size screenshots
- *
- * 4. State Management
- *    - conversations: List of all conversations for this farm
- *    - currentConversationId: Active conversation (null = new conversation)
- *    - messages: Chat history for current conversation
- *    - isSubmittingRef: Prevents duplicate loads during submit
- *
- * Data Flow:
- * ```
- * User submits query
- *   → Optimistic update (add user message)
- *   → onAnalyze() captures screenshots
- *   → API call with dual screenshots
- *   → Optimistic update (add assistant response)
- *   → Reload messages from database
- *   → Update conversation list
- * ```
- *
- * Why Optimistic Updates + Reload?
- * - Optimistic: Instant feedback (no waiting for API)
- * - Reload: Ensures UI matches database (prevents drift)
- * - isSubmittingRef: Prevents reload mid-submit (would cause duplicates)
- */
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -62,290 +15,47 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { AIConversation, AIAnalysis } from "@/lib/db/schema";
+import { useAIChat, type AnalyzeResult } from "@/hooks/use-ai-chat";
 
-/**
- * Message Interface
- *
- * Represents a single chat message (user or assistant).
- *
- * - role: "user" for user queries, "assistant" for AI responses
- * - content: The actual message text (markdown for assistant)
- * - screenshots: Array of screenshot URLs (only on assistant messages)
- *                Can be R2 URLs or base64 data URIs
- * - generatedImageUrl: AI-generated sketch/diagram URL (R2 URL)
- *                      Only on assistant messages when sketch was requested
- *
- * Why optional screenshots and generatedImageUrl?
- * - User messages don't have screenshots or sketches
- * - Some analyses might not store screenshots (legacy or failed uploads)
- * - Sketches are only generated when user requests visual diagrams
- */
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  screenshots?: string[] | null;
-  generatedImageUrl?: string | null;
-}
-
-/**
- * Chat Panel Props
- *
- * - farmId: Current farm being analyzed
- * - onAnalyze: Callback to parent (FarmEditorClient) that:
- *   1. Captures dual screenshots (satellite + topo)
- *   2. Calls /api/ai/analyze
- *   3. Returns AI response with metadata
- *   4. May include generated sketch if user requested visual
- */
 interface ChatPanelProps {
   farmId: string;
-  initialConversationId?: string; // Optional: Load specific conversation on mount (from URL)
-  initialMessage?: string; // Optional: Auto-send this message on mount
-  forceNewConversation?: boolean; // Optional: Force new conversation instead of continuing
-  onClose?: () => void; // Optional: Callback when user closes chat panel
+  initialConversationId?: string;
+  initialMessage?: string;
+  forceNewConversation?: boolean;
+  onClose?: () => void;
   onAnalyze: (
     query: string,
     conversationId?: string
-  ) => Promise<{
-    response: string;
-    conversationId: string;
-    analysisId: string;
-    screenshot: string; // Primary screenshot for display
-    generatedImageUrl?: string | null; // AI-generated sketch if requested
-  }>;
+  ) => Promise<AnalyzeResult>;
 }
 
 export function EnhancedChatPanel({ farmId, initialConversationId, initialMessage, forceNewConversation, onClose, onAnalyze }: ChatPanelProps) {
-  /**
-   * State Management
-   *
-   * conversations: All conversations for this farm (for sidebar list)
-   * currentConversationId: Active conversation (null = new conversation)
-   * messages: Chat history for current conversation
-   * input: Current user input in text field
-   * loading: True during AI analysis (shows spinner)
-   * showConversations: Toggle sidebar visibility
-   * selectedScreenshot: Screenshot URL for modal viewer
-   * isSubmittingRef: Prevents message reload during submit
-   *
-   * Why ref for isSubmitting?
-   * - Doesn't trigger re-renders (useState would)
-   * - Accessed in useEffect dependency-free
-   * - Prevents race conditions between submit and reload
-   */
-  const [conversations, setConversations] = useState<AIConversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<
-    string | null
-  >(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const {
+    conversations,
+    messages,
+    loading,
+    currentConversationId,
+    submitMessage,
+    startNewConversation: hookStartNew,
+    selectConversation: hookSelect,
+    deleteConversation: hookDelete,
+  } = useAIChat({
+    farmId,
+    initialConversationId,
+    initialMessage,
+    forceNewConversation,
+    onAnalyze,
+  });
+
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const [showConversations, setShowConversations] = useState(false);
-  const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(
-    null
-  );
-  const isSubmittingRef = useRef(false);
+  const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const hasAutoSentRef = useRef(false);
 
   // Auto-scroll to newest message
-  const scrollToBottom = useCallback(() => {
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
-
-  // Load conversations on mount
-  useEffect(() => {
-    loadConversations();
-  }, [farmId]);
-
-  // Set initial conversation from URL (from search results) or start new if requested
-  useEffect(() => {
-    if (forceNewConversation) {
-      setCurrentConversationId(null);
-      setMessages([]);
-      // Reset auto-send guard so a new initialMessage (e.g. vital prompt) will fire
-      hasAutoSentRef.current = false;
-    } else if (initialConversationId) {
-      setCurrentConversationId(initialConversationId);
-    }
-  }, [initialConversationId, forceNewConversation]);
-
-  // Load messages when conversation changes
-  useEffect(() => {
-    // Don't reload messages if we're in the middle of submitting a message
-    // (to prevent duplicates from optimistic updates + database reload)
-    if (isSubmittingRef.current) {
-      console.log("[Chat] Skipping loadMessages - currently submitting");
-      return;
-    }
-
-    if (currentConversationId) {
-      loadMessages(currentConversationId);
-    } else {
-      setMessages([]);
-    }
-  }, [currentConversationId]);
-
-  const loadConversations = async () => {
-    try {
-      const res = await fetch(`/api/farms/${farmId}/conversations`);
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data.conversations || []);
-
-        // Auto-select most recent conversation if exists
-        if (
-          data.conversations &&
-          data.conversations.length > 0 &&
-          !currentConversationId
-        ) {
-          setCurrentConversationId(data.conversations[0].id);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load conversations:", error);
-    }
-  };
-
-  const loadMessages = async (conversationId: string) => {
-    try {
-      console.log("[Chat] loadMessages called for:", conversationId);
-      const res = await fetch(`/api/conversations/${conversationId}/messages`);
-      if (res.ok) {
-        const data = await res.json();
-        const analyses: AIAnalysis[] = data.messages || [];
-
-        console.log("[Chat] Loaded analyses count:", analyses.length);
-
-        // Convert analyses to message format
-        const msgs: Message[] = [];
-        analyses.forEach((analysis) => {
-          msgs.push({
-            role: "user",
-            content: analysis.user_query,
-          });
-
-          // Parse screenshot_data - it could be a single URL or JSON array
-          let screenshots: string[] | null = null;
-          if (analysis.screenshot_data) {
-            try {
-              // Try to parse as JSON array
-              const parsed = JSON.parse(analysis.screenshot_data);
-              screenshots = Array.isArray(parsed) ? parsed : [parsed];
-            } catch {
-              // If parsing fails, it's a single URL string
-              screenshots = [analysis.screenshot_data];
-            }
-          }
-
-          msgs.push({
-            role: "assistant",
-            content: analysis.ai_response,
-            screenshots: screenshots,
-            generatedImageUrl: analysis.generated_image_url,
-          });
-        });
-
-        console.log("[Chat] Setting messages, total count:", msgs.length);
-        setMessages(msgs);
-      }
-    } catch (error) {
-      console.error("Failed to load messages:", error);
-    }
-  };
-
-  const startNewConversation = () => {
-    setCurrentConversationId(null);
-    setMessages([]);
-    setShowConversations(false);
-  };
-
-  // Programmatically submit a message (for auto-send)
-  const submitMessage = useCallback(async (message: string) => {
-    if (!message.trim() || loading) return;
-
-    const userMessage = message.trim();
-
-    console.log("[Chat] submitMessage called with:", userMessage);
-
-    // Set flag to prevent useEffect from loading messages from DB
-    isSubmittingRef.current = true;
-
-    // Optimistically add user message
-    setMessages((prev) => {
-      console.log("[Chat] Adding user message, current count:", prev.length);
-      return [...prev, { role: "user", content: userMessage }];
-    });
-    setLoading(true);
-
-    try {
-      console.log("[Chat] Calling onAnalyze...");
-      const result = await onAnalyze(
-        userMessage,
-        currentConversationId || undefined
-      );
-
-      console.log("[Chat] onAnalyze returned:", {
-        hasResponse: !!result.response,
-        responseLength: result.response.length,
-        conversationId: result.conversationId,
-      });
-
-      // Update current conversation ID if it was created
-      if (!currentConversationId && result.conversationId) {
-        console.log("[Chat] New conversation created, setting ID:", result.conversationId);
-        setCurrentConversationId(result.conversationId);
-        // Reload conversations list (but don't trigger loadMessages, we already have the messages)
-        loadConversations().catch(err => console.error("Failed to reload conversations:", err));
-      }
-
-      // Add AI response with screenshot and optional generated sketch
-      setMessages((prev) => {
-        console.log("[Chat] Adding AI response, current count:", prev.length);
-        return [
-          ...prev,
-          {
-            role: "assistant",
-            content: result.response,
-            screenshots: result.screenshot ? [result.screenshot] : null,
-            generatedImageUrl: result.generatedImageUrl || null,
-          },
-        ];
-      });
-    } catch (error) {
-      console.error("[Chat] Error in submitMessage:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, analysis failed. Please try again.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-      // Clear the flag after a short delay to allow the optimistic updates to settle
-      setTimeout(() => {
-        isSubmittingRef.current = false;
-      }, 500);
-    }
-  }, [loading, currentConversationId, onAnalyze, loadConversations]);
-
-  // Auto-send initial message if provided
-  useEffect(() => {
-    if (initialMessage && !hasAutoSentRef.current && !loading) {
-      hasAutoSentRef.current = true;
-      // Small delay to ensure component is fully mounted
-      setTimeout(() => {
-        submitMessage(initialMessage);
-      }, 300);
-    }
-  }, [initialMessage, loading, submitMessage]);
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,41 +63,24 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
     if (!input.trim() || loading) return;
     const userMessage = input.trim();
     setInput("");
-    submitMessage(userMessage);
+    // Always use map analysis in the EnhancedChatPanel (legacy overlay behavior)
+    submitMessage(userMessage, true);
   };
 
-  const selectConversation = (conversationId: string) => {
-    setCurrentConversationId(conversationId);
+  const handleSelectConversation = (id: string) => {
+    hookSelect(id);
+    setShowConversations(false);
+  };
+
+  const handleStartNew = () => {
+    hookStartNew();
     setShowConversations(false);
   };
 
   const handleDeleteConversation = async (conversationId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent selecting the conversation
-
-    if (!confirm("Delete this conversation? This cannot be undone.")) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/conversations/${conversationId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete conversation");
-      }
-
-      // Remove from local state
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-
-      // If we deleted the current conversation, clear it
-      if (conversationId === currentConversationId) {
-        setCurrentConversationId(null);
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error("Failed to delete conversation:", error);
-    }
+    e.stopPropagation();
+    if (!confirm("Delete this conversation? This cannot be undone.")) return;
+    hookDelete(conversationId);
   };
 
   const currentConversation = conversations.find(
@@ -414,7 +107,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
               {conversations.length}
             </Button>
             <Button
-              onClick={startNewConversation}
+              onClick={handleStartNew}
               variant="outline"
               size="sm"
               className="text-xs"
@@ -472,7 +165,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
               }`}
             >
               <button
-                onClick={() => selectConversation(conv.id)}
+                onClick={() => handleSelectConversation(conv.id)}
                 className="flex-1 text-left"
               >
                 <div className="font-medium text-sm truncate">
@@ -503,7 +196,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
               <SparklesIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
               <p className="text-sm">Ask me about your farm design!</p>
               <p className="text-xs mt-2">
-                Try: "What native species would work well here?"
+                Try: &quot;What native species would work well here?&quot;
               </p>
             </div>
           ) : (
@@ -539,16 +232,15 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
-                            console.error("Failed to load generated sketch:", msg.generatedImageUrl);
                           }}
                         />
                       </div>
                     )}
                     {msg.screenshots && msg.screenshots.length > 0 && (
                       <div className="flex gap-2 mt-3 flex-wrap">
-                        {msg.screenshots.map((screenshot, idx) => (
+                        {msg.screenshots.map((screenshot, sIdx) => (
                           <Button
-                            key={idx}
+                            key={sIdx}
                             onClick={() => setSelectedScreenshot(screenshot)}
                             variant="outline"
                             size="sm"
@@ -556,7 +248,7 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
                           >
                             <ImageIcon className="h-4 w-4" />
                             {msg.screenshots!.length > 1
-                              ? `View ${idx === 0 ? 'Primary' : 'Topo'} Map`
+                              ? `View ${sIdx === 0 ? 'Primary' : 'Topo'} Map`
                               : 'View Map Screenshot'}
                           </Button>
                         ))}
@@ -577,7 +269,6 @@ export function EnhancedChatPanel({ farmId, initialConversationId, initialMessag
               </div>
             </div>
           )}
-          {/* Scroll anchor */}
           <div ref={messagesEndRef} />
         </div>
 

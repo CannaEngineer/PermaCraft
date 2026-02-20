@@ -169,9 +169,9 @@ export async function POST(request: NextRequest) {
         : query;
 
       await db.execute({
-        sql: `INSERT INTO ai_conversations (id, farm_id, title, created_at, updated_at)
-              VALUES (?, ?, ?, unixepoch(), unixepoch())`,
-        args: [newConversationId, farmId, conversationTitle],
+        sql: `INSERT INTO ai_conversations (id, farm_id, user_id, conversation_type, title, created_at, updated_at)
+              VALUES (?, ?, ?, 'farm', ?, unixepoch(), unixepoch())`,
+        args: [newConversationId, farmId, session.user.id, conversationTitle],
       });
 
       activeConversationId = newConversationId;

@@ -105,7 +105,9 @@ export interface MapSnapshot {
 
 export interface AIConversation {
   id: string;
-  farm_id: string;
+  farm_id: string | null;
+  user_id: string;
+  conversation_type: 'general' | 'farm';
   title: string | null;
   created_at: number;
   updated_at: number;
@@ -113,7 +115,7 @@ export interface AIConversation {
 
 export interface AIAnalysis {
   id: string;
-  farm_id: string;
+  farm_id: string | null;
   conversation_id: string | null;
   user_query: string;
   screenshot_data: string | null; // Base64 image data

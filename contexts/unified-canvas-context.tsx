@@ -35,6 +35,12 @@ interface UnifiedCanvasState {
 
   // Map ref for flyTo
   mapRef: MutableRefObject<maplibregl.Map | null>;
+
+  // AI assistant bridge
+  captureScreenshot: (() => Promise<string>) | null;
+  setCaptureScreenshot: (fn: (() => Promise<string>) | null) => void;
+  pendingAIMessage: string | null;
+  setPendingAIMessage: (msg: string | null) => void;
 }
 
 const UnifiedCanvasContext = createContext<UnifiedCanvasState | undefined>(undefined);
@@ -53,6 +59,13 @@ export function UnifiedCanvasProvider({ children, initialFarms }: UnifiedCanvasP
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   const [panelStack, setPanelStack] = useState<PanelStackEntry[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [captureScreenshot, setCaptureScreenshotRaw] = useState<(() => Promise<string>) | null>(null);
+  const [pendingAIMessage, setPendingAIMessage] = useState<string | null>(null);
+
+  // Wrap setter to handle function-as-value in useState
+  const setCaptureScreenshot = useCallback((fn: (() => Promise<string>) | null) => {
+    setCaptureScreenshotRaw(() => fn);
+  }, []);
 
   // Restore URL state after mount (avoids hydration mismatch)
   useEffect(() => {
@@ -132,6 +145,10 @@ export function UnifiedCanvasProvider({ children, initialFarms }: UnifiedCanvasP
     popPanel,
     clearPanelStack,
     mapRef,
+    captureScreenshot,
+    setCaptureScreenshot,
+    pendingAIMessage,
+    setPendingAIMessage,
   };
 
   return (

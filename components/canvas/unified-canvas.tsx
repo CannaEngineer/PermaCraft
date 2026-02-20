@@ -12,7 +12,6 @@ import { CanvasMobileNav } from './canvas-mobile-nav';
 import { FarmMap } from '@/components/map/farm-map';
 import { DrawingToolbar } from '@/components/immersive-map/drawing-toolbar';
 import { BottomDrawer } from '@/components/immersive-map/bottom-drawer';
-import { ChatOverlay } from '@/components/immersive-map/chat-overlay';
 import { MapFAB } from '@/components/immersive-map/map-fab';
 import { AnnotationPanel } from '@/components/annotations/annotation-panel';
 import { CommentThread } from '@/components/comments/comment-thread';
@@ -29,7 +28,6 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap } from 'lucide-react';
 import { WelcomeWalkthrough } from './welcome-walkthrough';
 import { toPng } from 'html-to-image';
-import { analyzeWithOptimization } from '@/lib/ai/optimized-analyze';
 import type { Farm, Zone, FarmerGoal, Species } from '@/lib/db/schema';
 import type maplibregl from 'maplibre-gl';
 
@@ -39,6 +37,7 @@ const FarmPanel = lazy(() => import('./panels/farm-panel').then(m => ({ default:
 const ExplorePanel = lazy(() => import('./panels/explore-panel').then(m => ({ default: m.ExplorePanel })));
 const PlantsPanel = lazy(() => import('./panels/plants-panel').then(m => ({ default: m.PlantsPanel })));
 const LearnPanel = lazy(() => import('./panels/learn-panel').then(m => ({ default: m.LearnPanel })));
+const AIPanel = lazy(() => import('./panels/ai-panel'));
 
 function PanelLoadingFallback() {
   return (
@@ -74,7 +73,7 @@ export function UnifiedCanvas({ userId, userName }: UnifiedCanvasProps) {
 }
 
 function UnifiedCanvasEmpty({ userId, userName }: { userId: string; userName: string | null }) {
-  const { setActiveSection } = useUnifiedCanvas();
+  const { activeSection, setActiveSection } = useUnifiedCanvas();
   const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   // Defer localStorage read to avoid hydration mismatch
@@ -86,63 +85,82 @@ function UnifiedCanvasEmpty({ userId, userName }: { userId: string; userName: st
     } catch { /* localStorage unavailable */ }
   }, []);
 
+  const renderContent = () => {
+    // AI panel works without a farm (general Q&A mode)
+    if (activeSection === 'ai') {
+      return (
+        <div className="flex-1 flex justify-center overflow-hidden">
+          <div className="w-full max-w-2xl h-full">
+            <Suspense fallback={<PanelLoadingFallback />}>
+              <AIPanel />
+            </Suspense>
+          </div>
+        </div>
+      );
+    }
+
+    if (showWalkthrough) {
+      return (
+        <WelcomeWalkthrough
+          userName={userName}
+          onComplete={() => setShowWalkthrough(false)}
+        />
+      );
+    }
+
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm text-center space-y-6">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+            <Sparkles className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Start your permaculture journey</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Create a farm to begin designing, or explore what the community has built.
+            </p>
+          </div>
+          <a
+            href="/farm/new"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <MapPin className="h-4 w-4" />
+            Create Your First Farm
+          </a>
+          <div className="grid grid-cols-3 gap-2 pt-2">
+            <button
+              onClick={() => setActiveSection('explore')}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
+            >
+              <Globe className="h-5 w-5 text-blue-500" />
+              <span className="text-xs font-medium">Explore</span>
+            </button>
+            <button
+              onClick={() => setActiveSection('plants')}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
+            >
+              <Sprout className="h-5 w-5 text-emerald-500" />
+              <span className="text-xs font-medium">Plants</span>
+            </button>
+            <button
+              onClick={() => setActiveSection('learn')}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
+            >
+              <GraduationCap className="h-5 w-5 text-purple-500" />
+              <span className="text-xs font-medium">Learn</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 flex flex-col bg-background">
       <CommandBar userId={userId} userName={userName} />
       <div className="flex flex-1 overflow-hidden">
         <NavRail />
-
-        {showWalkthrough ? (
-          <WelcomeWalkthrough
-            userName={userName}
-            onComplete={() => setShowWalkthrough(false)}
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="w-full max-w-sm text-center space-y-6">
-              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                <Sparkles className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">Start your permaculture journey</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Create a farm to begin designing, or explore what the community has built.
-                </p>
-              </div>
-              <a
-                href="/farm/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                <MapPin className="h-4 w-4" />
-                Create Your First Farm
-              </a>
-              <div className="grid grid-cols-3 gap-2 pt-2">
-                <button
-                  onClick={() => setActiveSection('explore')}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
-                >
-                  <Globe className="h-5 w-5 text-blue-500" />
-                  <span className="text-xs font-medium">Explore</span>
-                </button>
-                <button
-                  onClick={() => setActiveSection('plants')}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
-                >
-                  <Sprout className="h-5 w-5 text-emerald-500" />
-                  <span className="text-xs font-medium">Plants</span>
-                </button>
-                <button
-                  onClick={() => setActiveSection('learn')}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/40 hover:bg-accent/60 transition-colors"
-                >
-                  <GraduationCap className="h-5 w-5 text-purple-500" />
-                  <span className="text-xs font-medium">Learn</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {renderContent()}
       </div>
       <CanvasMobileNav />
     </div>
@@ -157,9 +175,8 @@ interface UnifiedCanvasContentProps {
 
 function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentProps) {
   const router = useRouter();
-  const { activeSection, setActiveSection, mapRef } = useUnifiedCanvas();
+  const { activeSection, setActiveSection, mapRef, setCaptureScreenshot, setPendingAIMessage } = useUnifiedCanvas();
   const {
-    chatOpen, setChatOpen,
     openDrawer, closeDrawer, drawerContent,
     drawingMode, activeDrawTool,
   } = useImmersiveMapUI();
@@ -203,11 +220,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   // Species picker bridge
   const [pendingPlantSpecies, setPendingPlantSpecies] = useState<{ species: Species; seq: number } | null>(null);
   const [triggerSpeciesPicker, setTriggerSpeciesPicker] = useState(false);
-
-  // Chat state
-  const [initialConversationId, setInitialConversationId] = useState<string | undefined>();
-  const [vitalPrompt, setVitalPrompt] = useState<string | undefined>();
-  const [startNewChat, setStartNewChat] = useState(false);
 
   // Refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -286,7 +298,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     openDrawer('details', 'medium');
   }, [openDrawer, farmContext]);
 
-  // Vital recommendations
+  // Vital recommendations — redirect to AI panel with pre-composed message
   const handleVitalRecommendations = useCallback(
     (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => {
       let prompt = `I'd like recommendations for ${vitalLabel} on my farm.\n\n`;
@@ -297,12 +309,10 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         plantList.forEach((p: any) => { prompt += `- ${p.common_name} (${p.scientific_name || 'unknown'})\n`; });
         prompt += `\nPlease recommend additional species and locations to improve this function.`;
       }
-      setVitalPrompt(prompt);
-      setStartNewChat(true);
-      setChatOpen(true);
-      setTimeout(() => { setVitalPrompt(undefined); setStartNewChat(false); }, 1000);
+      setPendingAIMessage(prompt);
+      setActiveSection('ai');
     },
-    [setChatOpen]
+    [setActiveSection, setPendingAIMessage]
   );
 
   // Screenshot capture
@@ -375,31 +385,11 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     }
   }, [mapRef]);
 
-  // AI analyze handler
-  const handleAnalyze = useCallback(
-    async (query: string, conversationId?: string) => {
-      const screenshot = await captureMapScreenshot();
-      const result = await analyzeWithOptimization({
-        userQuery: query,
-        screenshotDataURL: screenshot,
-        farmContext: { zones, plantings, lines, goals, nativeSpecies },
-        farmInfo: {
-          id: farm.id,
-          climate_zone: farm.climate_zone,
-          rainfall_inches: farm.rainfall_inches,
-          soil_type: farm.soil_type,
-        },
-      });
-      return {
-        response: result.response,
-        conversationId: conversationId || 'new',
-        analysisId: 'new',
-        screenshot,
-        generatedImageUrl: undefined,
-      };
-    },
-    [farm, zones, plantings, lines, goals, nativeSpecies, captureMapScreenshot]
-  );
+  // Register screenshot capture in context for AIPanel
+  useEffect(() => {
+    setCaptureScreenshot(captureMapScreenshot);
+    return () => setCaptureScreenshot(null);
+  }, [captureMapScreenshot, setCaptureScreenshot]);
 
   // MapFAB handlers
   const handleAddPlant = () => setTriggerSpeciesPicker(true);
@@ -451,12 +441,13 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       }
 
       if (e.key === '6' || e.key === 'c') {
-        setChatOpen(!chatOpen);
+        e.preventDefault();
+        setActiveSection(activeSection === 'ai' ? 'farm' : 'ai');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveSection, setChatOpen, chatOpen]);
+  }, [setActiveSection, activeSection]);
 
   // Render the active panel content (non-farm sections only — farm uses ContextPanel directly)
   const renderPanelContent = () => {
@@ -469,6 +460,8 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         return <PlantsPanel />;
       case 'learn':
         return <LearnPanel />;
+      case 'ai':
+        return <AIPanel />;
       default:
         return null;
     }
@@ -525,8 +518,8 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             </>
           )}
 
-          {/* Non-farm/non-AI: full-width panel covering map */}
-          {activeSection !== 'farm' && activeSection !== 'ai' && (
+          {/* Non-farm sections: full-width panel covering map */}
+          {activeSection !== 'farm' && (
             <div className="absolute inset-0 z-10 bg-background flex justify-center overflow-y-auto">
               <div className="w-full max-w-2xl h-full">
                 <Suspense fallback={<PanelLoadingFallback />}>
@@ -618,15 +611,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           </div>
         )}
       </BottomDrawer>
-
-      {/* Chat Overlay */}
-      <ChatOverlay
-        farmId={farm.id}
-        onAnalyze={handleAnalyze}
-        initialConversationId={initialConversationId}
-        initialMessage={vitalPrompt}
-        forceNewConversation={startNewChat}
-      />
 
       {/* Dialogs */}
       <Dialog open={showGoalsWizard} onOpenChange={setShowGoalsWizard}>

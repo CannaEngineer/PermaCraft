@@ -12,12 +12,13 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireAuth();
 
-    // Get all conversations from user's farms, ordered by most recent
+    // Get all conversations for this user (including general ones without a farm)
     const result = await db.execute({
       sql: `
         SELECT
           c.id,
           c.farm_id,
+          c.conversation_type,
           c.created_at,
           f.name as farm_name,
           (
@@ -28,8 +29,8 @@ export async function GET(request: NextRequest) {
             LIMIT 1
           ) as first_query
         FROM ai_conversations c
-        JOIN farms f ON c.farm_id = f.id
-        WHERE f.user_id = ?
+        LEFT JOIN farms f ON c.farm_id = f.id
+        WHERE c.user_id = ?
         ORDER BY c.created_at DESC
       `,
       args: [session.user.id],
@@ -38,7 +39,8 @@ export async function GET(request: NextRequest) {
     const conversations = result.rows.map((row: any) => ({
       id: row.id,
       farm_id: row.farm_id,
-      farm_name: row.farm_name,
+      farm_name: row.farm_name || null,
+      conversation_type: row.conversation_type,
       created_at: row.created_at,
       preview: row.first_query || 'New conversation',
     }));
