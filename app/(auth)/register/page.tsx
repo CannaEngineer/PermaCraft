@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +17,26 @@ import {
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth/client";
 
-export default function RegisterPage() {
+function RegisterPageInner() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
+
+  const headline =
+    from === 'gallery'
+      ? 'Join to browse community farm designs'
+      : 'Create Account';
+
+  const subheadline =
+    from === 'gallery'
+      ? 'See what other permaculture designers are building.'
+      : 'Enter your details to get started';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -43,9 +57,9 @@ export default function RegisterPage() {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-3xl font-serif font-bold">
-          Create Account
+          {headline}
         </CardTitle>
-        <CardDescription>Enter your details to get started</CardDescription>
+        <CardDescription>{subheadline}</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -102,28 +116,6 @@ export default function RegisterPage() {
             {loading ? "Creating account..." : "Create Account"}
           </Button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or
-              </span>
-            </div>
-          </div>
-
-          <Link href="/gallery" className="w-full">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              Browse Gallery as Guest
-            </Button>
-          </Link>
-
           <p className="text-sm text-muted-foreground text-center">
             Already have an account?{" "}
             <Link
@@ -136,5 +128,13 @@ export default function RegisterPage() {
         </CardFooter>
       </form>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterPageInner />
+    </Suspense>
   );
 }
