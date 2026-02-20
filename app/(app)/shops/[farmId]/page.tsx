@@ -4,6 +4,8 @@ import { ProductCard } from '@/components/shop/product-card';
 import { Badge } from '@/components/ui/badge';
 import { Truck, Package } from 'lucide-react';
 import type { ShopProduct } from '@/lib/db/schema';
+import { getSession } from '@/lib/auth/session';
+import { RegisterCTA } from '@/components/shared/register-cta';
 
 const CATEGORY_LABELS: Record<string, string> = {
   nursery_stock: 'Nursery Stock', seeds: 'Seeds', vegetable_box: 'Veg Box',
@@ -24,6 +26,7 @@ export default async function ShopStorefrontPage({ params }: { params: Promise<{
   const data = await getShop(farmId);
   if (!data) notFound();
 
+  const session = await getSession();
   const { shop, products } = data as { shop: any; products: ShopProduct[] };
   const categories = [...new Set(products.map((p) => p.category))];
   const fulfillmentMethods = [
@@ -81,6 +84,12 @@ export default async function ShopStorefrontPage({ params }: { params: Promise<{
           <div className="border rounded-lg p-3 sm:p-4 mt-4">
             <h3 className="font-semibold mb-2 text-sm sm:text-base">Shop Policy</h3>
             <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">{shop.shop_policy}</p>
+          </div>
+        )}
+
+        {!session && (
+          <div className="mt-10">
+            <RegisterCTA variant="shops" />
           </div>
         )}
       </div>
