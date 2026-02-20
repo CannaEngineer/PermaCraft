@@ -2,6 +2,8 @@ import { getSpeciesById } from '@/lib/species/species-queries';
 import { PlantStoryClient } from '@/components/plants/story/plant-story-client';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { getSession } from '@/lib/auth/session';
+import { RegisterCTA } from '@/components/shared/register-cta';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -37,5 +39,16 @@ export default async function PlantStoryPage({ params }: Props) {
     notFound();
   }
 
-  return <PlantStoryClient speciesId={id} />;
+  const session = await getSession();
+
+  return (
+    <>
+      <PlantStoryClient speciesId={id} />
+      {!session && (
+        <div className="mt-10">
+          <RegisterCTA variant="plants" />
+        </div>
+      )}
+    </>
+  );
 }
