@@ -1,4 +1,6 @@
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/auth/session';
+import { RegisterCTA } from '@/components/shared/register-cta';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +14,9 @@ export const metadata = {
 };
 
 export default async function BlogPage() {
+  const session = await getSession();
+  const isAuthenticated = !!session;
+
   // Get published blog posts with tags
   const postsResult = await db.execute(`
     SELECT
@@ -131,6 +136,12 @@ export default async function BlogPage() {
                   {tag.name} ({tag.post_count})
                 </Badge>
               ))}
+            </div>
+          )}
+
+          {!isAuthenticated && (
+            <div className="mt-6">
+              <RegisterCTA variant="blog" />
             </div>
           )}
         </div>

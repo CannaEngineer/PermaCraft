@@ -17,6 +17,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { BlogReadTracker } from '@/components/blog/blog-read-tracker';
+import { RegisterCTA } from '@/components/shared/register-cta';
 import ReactMarkdown from 'react-markdown';
 
 interface PageProps {
@@ -284,6 +285,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           xpReward={post.xp_reward}
           readTimeMinutes={post.read_time_minutes}
         />
+      )}
+
+      {!userId && (
+        <div className="mt-10 max-w-2xl mx-auto">
+          <RegisterCTA variant="blog" />
+        </div>
       )}
     </div>
   );
