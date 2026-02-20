@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Globe, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ interface PageProps {
 export default async function CollectionDetailPage({ params }: PageProps) {
   const { id } = await params;
   const session = await getSession();
+  if (!session) redirect('/register?from=gallery');
 
   // Fetch collection with curator info
   const collectionResult = await db.execute({

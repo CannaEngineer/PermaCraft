@@ -1,4 +1,5 @@
-import { requireAuth } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
+import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { GalleryLayoutWrapper } from '@/components/feed/gallery-layout-wrapper';
 import { UniversalSearch } from '@/components/search/universal-search';
@@ -114,7 +115,8 @@ async function fetchSavedPosts(userId: string): Promise<FeedData> {
 }
 
 export default async function SavedPostsPage() {
-  const session = await requireAuth();
+  const session = await getSession();
+  if (!session) redirect('/register?from=gallery');
   const initialData = await fetchSavedPosts(session.user.id);
 
   return (

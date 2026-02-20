@@ -1,4 +1,5 @@
-import { requireAuth } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
+import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { CollectionCard } from '@/components/collections/collection-card';
 import { CreateCollectionDialog } from '@/components/collections/create-collection-dialog';
@@ -6,7 +7,8 @@ import Link from 'next/link';
 import { ChevronLeft, Layers } from 'lucide-react';
 
 export default async function CollectionsPage() {
-  const session = await requireAuth();
+  const session = await getSession();
+  if (!session) redirect('/register?from=gallery');
 
   const result = await db.execute({
     sql: `

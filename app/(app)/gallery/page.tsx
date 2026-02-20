@@ -1,4 +1,5 @@
 import { getSession } from '@/lib/auth/session';
+import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { GalleryLayoutWrapper } from '@/components/feed/gallery-layout-wrapper';
 import { UniversalSearch } from '@/components/search/universal-search';
@@ -303,6 +304,7 @@ async function fetchCommunityStats() {
 
 export default async function CommunityPage({ searchParams }: PageProps) {
   const session = await getSession();
+  if (!session) redirect('/register?from=gallery');
   const params = await searchParams;
 
   // Extract all filter parameters

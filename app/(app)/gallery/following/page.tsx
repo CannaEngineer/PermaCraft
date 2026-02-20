@@ -1,4 +1,5 @@
-import { requireAuth } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
+import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { GalleryLayoutWrapper } from '@/components/feed/gallery-layout-wrapper';
 import Link from 'next/link';
@@ -109,7 +110,8 @@ async function fetchFollowingFeed(userId: string): Promise<FeedData> {
 }
 
 export default async function FollowingFeedPage() {
-  const session = await requireAuth();
+  const session = await getSession();
+  if (!session) redirect('/register?from=gallery');
   const initialData = await fetchFollowingFeed(session.user.id);
 
   return (
