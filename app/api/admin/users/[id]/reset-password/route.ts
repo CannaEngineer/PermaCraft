@@ -28,7 +28,7 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const user = userResult.rows[0] as { id: string; email: string };
+    const user = userResult.rows[0] as unknown as { id: string; email: string };
 
     // Invalidate any existing unused tokens for this user
     await db.execute({
