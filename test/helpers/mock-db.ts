@@ -11,7 +11,7 @@ const defaultResult: MockExecuteResult = {
   rows: [],
   columns: [],
   rowsAffected: 0,
-  lastInsertRowid: 0n,
+  lastInsertRowid: BigInt(0),
 };
 
 /**
