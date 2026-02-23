@@ -1232,10 +1232,10 @@ export function FarmMap({
       draw.current = new MapboxDraw({
         displayControlsDefault: false, // Don't show default control panel (we customize it)
         controls: {
-          point: true,
-          line_string: true,
-          polygon: true,
-          trash: true,
+          point: false,
+          line_string: false,
+          polygon: false,
+          trash: false,
         },
         defaultMode: "simple_select", // Start in selection mode, not drawing mode
         styles: [

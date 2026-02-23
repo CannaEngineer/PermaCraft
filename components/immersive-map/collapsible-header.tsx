@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,16 @@ export function CollapsibleHeader({
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMenuHint, setShowMenuHint] = useState(false);
+
+  // Show a brief pulse on the menu button when the header first collapses
+  useEffect(() => {
+    if (headerCollapsed) {
+      setShowMenuHint(true);
+      const timer = setTimeout(() => setShowMenuHint(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [headerCollapsed]);
 
   return (
     <>
@@ -113,14 +123,15 @@ export function CollapsibleHeader({
         {/* Left: Farm Identity */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Mobile menu button */}
+            {/* Mobile menu button — always visible, pulses on first collapse */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setMobileMenuOpen(true)}
-              className="flex-shrink-0 h-8 w-8 md:hidden"
+              className={`flex-shrink-0 h-9 w-9 md:hidden ${showMenuHint ? 'animate-pulse ring-2 ring-primary/50 rounded-lg' : ''}`}
+              aria-label="Open farm menu"
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-5 w-5" />
             </Button>
             <motion.h1
               animate={{

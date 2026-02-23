@@ -32,6 +32,9 @@ export function GuildDesigner({ farmId, focalSpecies, farmContext }: GuildDesign
   async function handleGetSuggestions() {
     setSuggesting(true);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+
     try {
       const response = await fetch('/api/guilds/suggest', {
         method: 'POST',
@@ -49,11 +52,15 @@ export function GuildDesigner({ farmId, focalSpecies, farmContext }: GuildDesign
             edible_focus: edibleFocus,
             max_companions: 6
           }
-        })
+        }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeout);
+
       if (!response.ok) {
-        throw new Error('Failed to get suggestions');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to get suggestions');
       }
 
       const data = await response.json();
@@ -65,10 +72,15 @@ export function GuildDesigner({ farmId, focalSpecies, farmContext }: GuildDesign
         title: 'Guild suggested',
         description: `${data.suggestion.companions?.length || 0} companions recommended`
       });
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeout);
       console.error('Failed to get guild suggestions:', error);
+      const message = error?.name === 'AbortError'
+        ? 'AI suggestion timed out. Please try again.'
+        : error?.message || 'Suggestion failed';
       toast({
         title: 'Suggestion failed',
+        description: message,
         variant: 'destructive'
       });
     } finally {

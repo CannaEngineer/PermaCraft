@@ -73,6 +73,7 @@ async function fetchInitialFeed(
     soilTypes?: string[];
   }
 ): Promise<FeedData> {
+  try {
   const limit = 20;
   const args: any[] = userId ? [userId, userId] : [];
 
@@ -208,6 +209,10 @@ async function fetchInitialFeed(
     next_cursor: hasMore ? formattedPosts[formattedPosts.length - 1].id : null,
     has_more: hasMore,
   };
+  } catch (error) {
+    console.error('Failed to fetch initial feed:', error);
+    return { posts: [], next_cursor: null, has_more: false };
+  }
 }
 
 async function fetchFilterOptions() {
@@ -322,17 +327,25 @@ export default async function CommunityPage({ searchParams }: PageProps) {
       : [params.soil_types]
     : [];
 
-  const [initialData, filterOptions, communityStats] = await Promise.all([
-    fetchInitialFeed(session?.user.id || null, {
-      type,
-      hashtag,
-      climateZones,
-      farmSize,
-      soilTypes,
-    }),
-    fetchFilterOptions(),
-    fetchCommunityStats(),
-  ]);
+  let initialData: FeedData = { posts: [], next_cursor: null, has_more: false };
+  let filterOptions = { climateZones: [] as string[], soilTypes: [] as string[] };
+  let communityStats = { users: 0, farms: 0, posts: 0, reactions: 0, comments: 0 };
+
+  try {
+    [initialData, filterOptions, communityStats] = await Promise.all([
+      fetchInitialFeed(session?.user.id || null, {
+        type,
+        hashtag,
+        climateZones,
+        farmSize,
+        soilTypes,
+      }),
+      fetchFilterOptions(),
+      fetchCommunityStats(),
+    ]);
+  } catch (error) {
+    console.error('Failed to load community page data:', error);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">

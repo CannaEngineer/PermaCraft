@@ -60,10 +60,13 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
 
     try {
       // Capture map
-      const mapImageDataUrl = await captureMapSnapshot(mapInstance, {
+      const rawDataUrl = await captureMapSnapshot(mapInstance, {
         format: 'jpeg',
         quality: 0.9
       });
+
+      // Downscale image before sending to reduce payload size
+      const mapImageDataUrl = await downscaleImage(rawDataUrl, 1200, 800, 0.7);
 
       // Load data
       const [zonesData, plantingsData, phasesData] = await Promise.all([
@@ -72,7 +75,10 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
         includePhases ? fetch(`/api/farms/${farmId}/phases`).then(r => r.json()) : null
       ]);
 
-      // Call server-side PDF generation API
+      // Call server-side PDF generation API with 30s timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch(`/api/farms/${farmId}/export/pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,8 +90,11 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
           zones: zonesData?.zones || [],
           plantings: plantingsData?.plantings || [],
           phases: phasesData?.phases || []
-        })
+        }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error('Failed to generate PDF');
@@ -101,12 +110,43 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
       URL.revokeObjectURL(url);
 
       toast({ title: 'Farm plan exported as PDF' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to export PDF:', error);
-      toast({ title: 'Export failed', variant: 'destructive' });
+      const message = error?.name === 'AbortError'
+        ? 'PDF export timed out. Try with fewer sections.'
+        : 'Export failed';
+      toast({ title: message, variant: 'destructive' });
     } finally {
       setExporting(false);
     }
+  }
+
+  /** Downscale a data URL image to fit within maxWidth x maxHeight */
+  function downscaleImage(
+    dataUrl: string,
+    maxWidth: number,
+    maxHeight: number,
+    quality: number
+  ): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl); // fallback to original
+      img.src = dataUrl;
+    });
   }
 
   return (

@@ -72,6 +72,8 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
 
       if (!response.ok) throw new Error('Failed to save entry');
 
+      const data = await response.json();
+
       // Reset form
       setTitle('');
       setContent('');
@@ -83,7 +85,11 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
       onEntryCreated?.();
       onOpenChange(false);
 
-      toast.success('Journal entry saved');
+      if (shareToComm && data.shared === false) {
+        toast.success('Journal entry saved (sharing to community failed)');
+      } else {
+        toast.success('Journal entry saved');
+      }
     } catch (error) {
       toast.error('Failed to save journal entry');
     } finally {

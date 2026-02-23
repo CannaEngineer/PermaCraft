@@ -1,7 +1,7 @@
 'use client';
 
 import { FAB, FABAction } from '@/components/ui/fab';
-import { Square, MapPin, Waves, Sparkles, Calendar, Leaf } from 'lucide-react';
+import { Square, MapPin, Waves, Sparkles, Calendar, Leaf, BookOpen } from 'lucide-react';
 import { useImmersiveMapUI } from '@/contexts/immersive-map-ui-context';
 
 interface MapFABProps {
@@ -9,9 +9,10 @@ interface MapFABProps {
   onWaterSystem: () => void;
   onBuildGuild: () => void;
   onTimeline: () => void;
+  onJournalEntry?: () => void;
 }
 
-export function MapFAB({ onAddPlant, onWaterSystem, onBuildGuild, onTimeline }: MapFABProps) {
+export function MapFAB({ onAddPlant, onWaterSystem, onBuildGuild, onTimeline, onJournalEntry }: MapFABProps) {
   const { enterDrawingMode, setActiveDrawTool } = useImmersiveMapUI();
 
   const handleDrawZone = () => {
@@ -61,6 +62,12 @@ export function MapFAB({ onAddPlant, onWaterSystem, onBuildGuild, onTimeline }: 
       onClick: onTimeline,
       color: 'bg-purple-600 text-white'
     },
+    ...(onJournalEntry ? [{
+      icon: <BookOpen className="h-5 w-5" />,
+      label: 'Journal Entry',
+      onClick: onJournalEntry,
+      color: 'bg-amber-600 text-white'
+    }] : []),
   ];
 
   return (

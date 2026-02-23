@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import PDFDocument from 'pdfkit';
 
+export const maxDuration = 30;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -80,15 +82,20 @@ async function generateFarmPlanPDF(options: PDFExportOptions): Promise<Buffer> {
 
       // Map image
       if (options.mapImageDataUrl) {
-        const imageData = Buffer.from(
-          options.mapImageDataUrl.split(',')[1],
-          'base64'
-        );
+        try {
+          const imageData = Buffer.from(
+            options.mapImageDataUrl.split(',')[1],
+            'base64'
+          );
 
-        doc.image(imageData, {
-          fit: [500, 400],
-          align: 'center'
-        });
+          doc.image(imageData, {
+            fit: [500, 400],
+            align: 'center'
+          });
+        } catch (imgError) {
+          console.error('Failed to embed map image in PDF:', imgError);
+          doc.fontSize(10).text('[Map image could not be embedded]', { align: 'center' });
+        }
       }
 
       doc.addPage();

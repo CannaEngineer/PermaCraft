@@ -102,7 +102,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const relatedPosts = relatedResult.rows as any[];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background pb-20">
       {/* Cover Image */}
       {post.cover_image_url && (
         <div className="w-full h-[400px] overflow-hidden bg-muted border-b">

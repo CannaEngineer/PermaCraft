@@ -23,6 +23,7 @@ import { ExportPanel } from "@/components/export/export-panel";
 import { SpeciesPickerPanel } from "@/components/map/species-picker-panel";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, Leaf } from "lucide-react";
+import { JournalEntryForm } from "@/components/farm/journal-entry-form";
 import type { Farm, Zone, FarmerGoal, Species } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
@@ -212,6 +213,7 @@ function ImmersiveMapEditorContent({
   const [showGoalsWizard, setShowGoalsWizard] = useState(false);
   const [postDialogOpen, setPostDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [journalFormOpen, setJournalFormOpen] = useState(false);
 
   // Goals state
   const [goals, setGoals] = useState<FarmerGoal[]>([]);
@@ -689,6 +691,10 @@ function ImmersiveMapEditorContent({
     openDrawer('export', 'max');
   }, [openDrawer]);
 
+  const handleOpenJournalEntry = useCallback(() => {
+    setJournalFormOpen(true);
+  }, []);
+
   // Filter zones by visible layers
   const filteredZones = useMemo(() => {
     if (visibleLayerIds.length === 0) {
@@ -901,6 +907,7 @@ function ImmersiveMapEditorContent({
         onWaterSystem={handleOpenWaterSystem}
         onBuildGuild={handleOpenGuildDesigner}
         onTimeline={handleOpenPhaseManager}
+        onJournalEntry={handleOpenJournalEntry}
       />
 
       {/* Create Post Dialog */}
@@ -922,6 +929,16 @@ function ImmersiveMapEditorContent({
         onPhotoUploaded={() => {
           setUploadDialogOpen(false);
           // TODO: Refresh posts feed if needed
+        }}
+      />
+
+      {/* Journal Entry Form */}
+      <JournalEntryForm
+        open={journalFormOpen}
+        onOpenChange={setJournalFormOpen}
+        farmId={farm.id}
+        onEntryCreated={() => {
+          setJournalFormOpen(false);
         }}
       />
     </div>

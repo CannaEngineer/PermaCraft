@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Loader2, Plus, BookOpen, Cloud, Tag, ChevronDown } from 'lucide-react';
+import { Loader2, Plus, BookOpen, Cloud, Tag, ChevronDown, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { JournalEntryForm } from './journal-entry-form';
 import type { JournalEntry } from '@/lib/db/schema';
 
@@ -40,6 +42,7 @@ export function JournalListPanel({ farmId }: JournalListPanelProps) {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [detailEntry, setDetailEntry] = useState<JournalEntry | null>(null);
 
   const fetchEntries = useCallback(async (pageNum: number, append = false) => {
     try {
@@ -129,7 +132,11 @@ export function JournalListPanel({ farmId }: JournalListPanelProps) {
           </h3>
           <div className="space-y-2">
             {group.entries.map((entry) => (
-              <JournalEntryCard key={entry.id} entry={entry} />
+              <JournalEntryCard
+                key={entry.id}
+                entry={entry}
+                onClick={() => setDetailEntry(entry)}
+              />
             ))}
           </div>
         </div>
@@ -161,11 +168,17 @@ export function JournalListPanel({ farmId }: JournalListPanelProps) {
         farmId={farmId}
         onEntryCreated={handleEntryCreated}
       />
+
+      {/* Detail dialog */}
+      <JournalEntryDetail
+        entry={detailEntry}
+        onClose={() => setDetailEntry(null)}
+      />
     </div>
   );
 }
 
-function JournalEntryCard({ entry }: { entry: JournalEntry }) {
+function JournalEntryCard({ entry, onClick }: { entry: JournalEntry; onClick: () => void }) {
   const date = new Date(entry.entry_date * 1000);
   let tags: string[] = [];
   if (entry.tags) {
@@ -178,7 +191,11 @@ function JournalEntryCard({ entry }: { entry: JournalEntry }) {
     : entry.content;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3 space-y-2 hover:bg-accent/30 transition-colors">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-xl border border-border bg-card p-3 space-y-2 hover:bg-accent/30 transition-colors cursor-pointer"
+    >
       {/* Date and weather row */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
@@ -215,6 +232,71 @@ function JournalEntryCard({ entry }: { entry: JournalEntry }) {
           ))}
         </div>
       )}
-    </div>
+    </button>
+  );
+}
+
+function JournalEntryDetail({ entry, onClose }: { entry: JournalEntry | null; onClose: () => void }) {
+  if (!entry) return null;
+
+  const date = new Date(entry.entry_date * 1000);
+  let tags: string[] = [];
+  if (entry.tags) {
+    try { tags = JSON.parse(entry.tags); } catch { /* malformed */ }
+  }
+
+  return (
+    <Dialog open={!!entry} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{entry.title || format(date, 'MMMM d, yyyy')}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Metadata row */}
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <span>{format(date, 'EEEE, MMMM d, yyyy')}</span>
+            {entry.weather && (
+              <Badge variant="secondary" className="gap-1 font-normal">
+                <Cloud className="h-3 w-3" />
+                {entry.weather}
+              </Badge>
+            )}
+            {entry.is_shared_to_community === 1 && (
+              <Badge variant="outline" className="gap-1 font-normal">
+                <Share2 className="h-3 w-3" />
+                Shared
+              </Badge>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Full content */}
+          <div className="text-sm leading-relaxed whitespace-pre-wrap">
+            {entry.content}
+          </div>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <>
+              <Separator />
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="capitalize gap-1 font-normal"
+                  >
+                    <Tag className="h-3 w-3" />
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

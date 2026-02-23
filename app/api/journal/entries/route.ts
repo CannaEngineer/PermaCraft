@@ -122,28 +122,36 @@ export async function POST(request: NextRequest) {
       ]
     });
 
-    // If shared to community, create public post
+    // If shared to community, create public post (non-blocking)
+    let shared = false;
     if (is_shared_to_community === 1) {
-      await db.execute({
-        sql: `INSERT INTO farm_posts
-          (id, farm_id, author_id, post_type, content, media_urls, is_published, journal_entry_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          crypto.randomUUID(),
-          farm_id,
-          session.user.id,
-          'journal_entry',
-          content,
-          media_urls,
-          1,
-          entryId
-        ]
-      });
+      try {
+        await db.execute({
+          sql: `INSERT INTO farm_posts
+            (id, farm_id, author_id, post_type, content, media_urls, is_published, journal_entry_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            crypto.randomUUID(),
+            farm_id,
+            session.user.id,
+            'journal_entry',
+            content,
+            media_urls,
+            1,
+            entryId
+          ]
+        });
+        shared = true;
+      } catch (shareError) {
+        console.error('Failed to share journal entry to community:', shareError);
+        // Journal entry was still saved — sharing just failed
+      }
     }
 
     return NextResponse.json({
       success: true,
-      id: entryId
+      id: entryId,
+      shared,
     });
 
   } catch (error) {

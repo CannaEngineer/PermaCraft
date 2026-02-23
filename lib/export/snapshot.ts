@@ -9,39 +9,47 @@ export interface SnapshotOptions {
 }
 
 /**
- * Capture map snapshot as data URL
+ * Capture map snapshot as data URL.
+ * Triggers a repaint before capturing to avoid blank WebGL canvas issues.
  */
 export async function captureMapSnapshot(
   map: maplibregl.Map,
   options: SnapshotOptions = {}
 ): Promise<string> {
   const {
-    width = 1920,
-    height = 1080,
     format = 'png',
     quality = 0.95,
-    includeUI = false
   } = options;
 
-  // Wait for map to be idle
-  await new Promise(resolve => {
+  // Wait for map to be fully loaded
+  await new Promise<void>(resolve => {
     if (map.loaded()) {
-      resolve(null);
+      resolve();
     } else {
-      map.once('idle', () => resolve(null));
+      map.once('idle', () => resolve());
     }
   });
 
-  const canvas = map.getCanvas();
+  // Trigger a repaint and capture on the next render frame.
+  // This avoids the blank canvas issue with WebGL's preserveDrawingBuffer.
+  const dataUrl = await new Promise<string>((resolve) => {
+    map.once('render', () => {
+      requestAnimationFrame(() => {
+        const canvas = map.getCanvas();
+        const result = canvas.toDataURL(`image/${format}`, quality);
+        resolve(result);
+      });
+    });
+    map.triggerRepaint();
+  });
 
-  if (includeUI) {
-    // Capture entire map container with UI overlays
-    // (More complex - requires html2canvas or similar)
-    return canvas.toDataURL(`image/${format}`, quality);
-  } else {
-    // Capture just the map canvas
-    return canvas.toDataURL(`image/${format}`, quality);
+  // Validate the captured data URL isn't blank
+  // A blank PNG data URL is typically very short (< 1000 chars)
+  if (!dataUrl || dataUrl.length < 1000) {
+    throw new Error('Map snapshot captured a blank image. Please try again.');
   }
+
+  return dataUrl;
 }
 
 /**
