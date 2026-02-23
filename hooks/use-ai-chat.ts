@@ -40,6 +40,7 @@ export function useAIChat({
   const [loading, setLoading] = useState(false);
   const isSubmittingRef = useRef(false);
   const hasAutoSentRef = useRef(false);
+  const initialMessageRef = useRef(initialMessage);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -184,11 +185,17 @@ export function useAIChat({
     }
   }, [loading, currentConversationId, farmId, onAnalyze, loadConversations]);
 
+  // Keep ref in sync so the timeout always has the latest value
+  useEffect(() => {
+    if (initialMessage) initialMessageRef.current = initialMessage;
+  }, [initialMessage]);
+
   // Auto-send initial message
   useEffect(() => {
-    if (initialMessage && !hasAutoSentRef.current && !loading) {
+    const msg = initialMessageRef.current;
+    if (msg && !hasAutoSentRef.current && !loading) {
       hasAutoSentRef.current = true;
-      setTimeout(() => submitMessage(initialMessage), 300);
+      setTimeout(() => submitMessage(msg), 300);
     }
   }, [initialMessage, loading, submitMessage]);
 

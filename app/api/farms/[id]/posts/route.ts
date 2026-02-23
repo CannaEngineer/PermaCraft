@@ -64,11 +64,12 @@ export async function POST(
     const body = await request.json();
     const validatedData = createPostSchema.parse(body);
 
-    // Validate AI conversation if provided
+    // Validate AI conversation if provided — accept conversations that belong
+    // to this farm OR to the same user (covers general AI chat with farm_id NULL)
     if (validatedData.ai_conversation_id) {
       const conversationResult = await db.execute({
-        sql: "SELECT * FROM ai_conversations WHERE id = ? AND farm_id = ?",
-        args: [validatedData.ai_conversation_id, farmId],
+        sql: "SELECT * FROM ai_conversations WHERE id = ? AND (farm_id = ? OR user_id = ?)",
+        args: [validatedData.ai_conversation_id, farmId, session.user.id],
       });
 
       if (conversationResult.rows.length === 0) {

@@ -80,7 +80,7 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl pb-16 md:pb-0 flex flex-col overflow-hidden"
+        className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] glass-panel-strong rounded-t-3xl border-t border-border/40 shadow-2xl flex flex-col overflow-hidden"
         style={{ willChange: 'height' }}
       >
         {/* Grab Tab - hangs above drawer */}
@@ -97,7 +97,7 @@ export function BottomDrawer({ children }: BottomDrawerProps) {
 
         {/* Content — stop pointer events from bubbling to the drag handler so native scroll works */}
         <div
-          className="px-4 pb-4 overflow-y-auto flex-1 min-h-0"
+          className="px-4 pb-20 md:pb-4 overflow-y-auto flex-1 min-h-0"
           style={{ touchAction: 'pan-y' }}
           onPointerDown={(e) => e.stopPropagation()}
         >

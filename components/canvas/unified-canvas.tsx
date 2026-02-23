@@ -177,6 +177,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const router = useRouter();
   const { activeSection, setActiveSection, mapRef, setCaptureScreenshot, setPendingAIMessage } = useUnifiedCanvas();
   const {
+    chatOpen, setChatOpen,
     openDrawer, closeDrawer, drawerContent,
     drawingMode, activeDrawTool,
   } = useImmersiveMapUI();
@@ -205,6 +206,23 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const [guilds, setGuilds] = useState<any[]>([]);
   const [farmPhases, setFarmPhases] = useState<any[]>([]);
   const [currentZoneType, setCurrentZoneType] = useState<string>('other');
+  const [showZoneTypePicker, setShowZoneTypePicker] = useState(false);
+
+  const ZONE_TYPES = [
+    { value: 'zone_0', label: 'Zone 0 – House' },
+    { value: 'zone_1', label: 'Zone 1 – Kitchen Garden' },
+    { value: 'zone_2', label: 'Zone 2 – Orchard' },
+    { value: 'zone_3', label: 'Zone 3 – Pasture' },
+    { value: 'zone_4', label: 'Zone 4 – Managed Forest' },
+    { value: 'zone_5', label: 'Zone 5 – Wilderness' },
+    { value: 'annual_garden', label: 'Annual Garden' },
+    { value: 'food_forest', label: 'Food Forest' },
+    { value: 'water_body', label: 'Water Body' },
+    { value: 'swale', label: 'Swale' },
+    { value: 'structure', label: 'Structure' },
+    { value: 'path', label: 'Path' },
+    { value: 'other', label: 'Other' },
+  ];
 
   // Feature selection
   const [selectedFeature, setSelectedFeature] = useState<{
@@ -392,8 +410,13 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   }, [captureMapScreenshot, setCaptureScreenshot]);
 
   // MapFAB handlers
-  const handleAddPlant = () => setTriggerSpeciesPicker(true);
-  const handleSpeciesPickerOpened = useCallback(() => setTriggerSpeciesPicker(false), []);
+  const handleAddPlant = () => {
+    setTriggerSpeciesPicker(false);
+    requestAnimationFrame(() => setTriggerSpeciesPicker(true));
+  };
+  const handleSpeciesPickerOpened = useCallback(() => {
+    setTimeout(() => setTriggerSpeciesPicker(false), 100);
+  }, []);
   const handleSelectSpecies = (species: Species) => {
     closeDrawer();
     setPendingPlantSpecies(prev => ({ species, seq: (prev?.seq ?? 0) + 1 }));
@@ -424,6 +447,13 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     });
   }, [zones, visibleLayerIds]);
 
+  // Open chat when AI section is activated via nav
+  useEffect(() => {
+    if (activeSection === 'ai') {
+      setChatOpen(true);
+    }
+  }, [activeSection, setChatOpen]);
+
   // Keyboard shortcuts for section switching
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -433,6 +463,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
 
       const sectionMap: Record<string, CanvasSection> = {
         '1': 'home', '2': 'farm', '3': 'explore', '4': 'plants', '5': 'learn',
+        '6': 'ai',
       };
 
       if (sectionMap[e.key]) {
@@ -440,14 +471,15 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         setActiveSection(sectionMap[e.key]);
       }
 
-      if (e.key === '6' || e.key === 'c') {
+      // 'c' toggles chat independently of active section
+      if (e.key === 'c') {
         e.preventDefault();
-        setActiveSection(activeSection === 'ai' ? 'farm' : 'ai');
+        setChatOpen(!chatOpen);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveSection, activeSection]);
+  }, [setActiveSection, activeSection, setChatOpen, chatOpen]);
 
   // Render the active panel content (non-farm sections only — farm uses ContextPanel directly)
   const renderPanelContent = () => {
@@ -505,10 +537,41 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           {activeSection === 'farm' && (
             <>
               <DrawingToolbar
-                onToolSelect={(tool) => console.log('Tool:', tool)}
-                onZoneTypeClick={() => console.log('Zone type')}
+                onToolSelect={() => {}}
+                onZoneTypeClick={() => setShowZoneTypePicker(true)}
                 currentZoneType={currentZoneType}
               />
+              {showZoneTypePicker && (
+                <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
+                  <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setShowZoneTypePicker(false)}
+                  />
+                  <div className="relative z-10 bg-card border border-border rounded-t-3xl md:rounded-2xl shadow-2xl w-full md:w-72 max-h-[70vh] overflow-y-auto">
+                    <div className="p-4 border-b border-border">
+                      <h3 className="font-semibold text-sm">Select Zone Type</h3>
+                    </div>
+                    <div className="p-2">
+                      {ZONE_TYPES.map((zt) => (
+                        <button
+                          key={zt.value}
+                          onClick={() => {
+                            setCurrentZoneType(zt.value);
+                            setShowZoneTypePicker(false);
+                          }}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                            currentZoneType === zt.value
+                              ? 'bg-primary text-primary-foreground font-medium'
+                              : 'hover:bg-accent text-foreground'
+                          }`}
+                        >
+                          {zt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               <MapFAB
                 onAddPlant={handleAddPlant}
                 onWaterSystem={handleOpenWaterSystem}

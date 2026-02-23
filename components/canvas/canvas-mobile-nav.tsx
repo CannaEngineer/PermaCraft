@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Map, Globe, GraduationCap, MessageSquare } from 'lucide-react';
+import { Home, Map, Globe, Leaf, GraduationCap, MessageSquare } from 'lucide-react';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ const mobileNavItems: { id: CanvasSection; icon: typeof Home; label: string }[] 
   { id: 'home', icon: Home, label: 'Home' },
   { id: 'farm', icon: Map, label: 'Farm' },
   { id: 'explore', icon: Globe, label: 'Explore' },
+  { id: 'plants', icon: Leaf, label: 'Plants' },
   { id: 'learn', icon: GraduationCap, label: 'Learn' },
   { id: 'ai', icon: MessageSquare, label: 'AI' },
 ];
