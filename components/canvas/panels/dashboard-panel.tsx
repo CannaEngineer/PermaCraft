@@ -8,6 +8,7 @@ import {
   BookOpen, GraduationCap, Users, Zap, Trophy, Star, Sparkles
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { MyProfileCard } from './my-profile-card';
 
 interface UserStats {
   farmCount: number;
@@ -51,6 +52,9 @@ export function DashboardPanel() {
     <div className="flex flex-col h-full">
       <PanelHeader title="Home" subtitle="Your permaculture dashboard" />
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
+
+        {/* Current user profile card */}
+        <MyProfileCard />
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-2">

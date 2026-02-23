@@ -24,6 +24,7 @@ import { GoalCaptureWizard } from '@/components/farm/goal-capture-wizard';
 import { CreatePostDialog } from '@/components/farm/create-post-dialog';
 import { PhotoUploadDialog } from '@/components/immersive-map/photo-upload-dialog';
 import { DeleteFarmDialog } from '@/components/shared/delete-farm-dialog';
+import { JournalListPanel } from '@/components/farm/journal-list-panel';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap } from 'lucide-react';
 import { WelcomeWalkthrough } from './welcome-walkthrough';
@@ -38,6 +39,7 @@ const ExplorePanel = lazy(() => import('./panels/explore-panel').then(m => ({ de
 const PlantsPanel = lazy(() => import('./panels/plants-panel').then(m => ({ default: m.PlantsPanel })));
 const LearnPanel = lazy(() => import('./panels/learn-panel').then(m => ({ default: m.LearnPanel })));
 const AIPanel = lazy(() => import('./panels/ai-panel'));
+const ShopPanel = lazy(() => import('./panels/shop-panel').then(m => ({ default: m.ShopPanel })));
 
 function PanelLoadingFallback() {
   return (
@@ -463,7 +465,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
 
       const sectionMap: Record<string, CanvasSection> = {
         '1': 'home', '2': 'farm', '3': 'explore', '4': 'plants', '5': 'learn',
-        '6': 'ai',
+        '6': 'ai', '7': 'shop',
       };
 
       if (sectionMap[e.key]) {
@@ -494,6 +496,8 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         return <LearnPanel />;
       case 'ai':
         return <AIPanel />;
+      case 'shop':
+        return <ShopPanel />;
       default:
         return null;
     }
@@ -668,6 +672,8 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           <ExportPanel farmId={farm.id} farmName={farm.name} mapInstance={mapRef.current} />
         ) : drawerContent === 'species-picker' ? (
           <SpeciesPickerPanel farmId={farm.id} onSelectSpecies={handleSelectSpecies} onClose={closeDrawer} />
+        ) : drawerContent === 'journal' ? (
+          <JournalListPanel farmId={farm.id} />
         ) : (
           <div className="p-4 text-muted-foreground">
             {drawerContent ? 'Loading...' : 'Select a feature or use the action menu'}

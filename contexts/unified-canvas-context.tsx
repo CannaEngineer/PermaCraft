@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, ty
 import type { Farm } from '@/lib/db/schema';
 import type maplibregl from 'maplibre-gl';
 
-export type CanvasSection = 'home' | 'farm' | 'explore' | 'plants' | 'learn' | 'ai';
+export type CanvasSection = 'home' | 'farm' | 'explore' | 'plants' | 'learn' | 'ai' | 'shop';
 
 export interface PanelStackEntry {
   id: string;
@@ -50,7 +50,7 @@ interface UnifiedCanvasProviderProps {
   initialFarms: Farm[];
 }
 
-const validSections: CanvasSection[] = ['home', 'farm', 'explore', 'plants', 'learn', 'ai'];
+const validSections: CanvasSection[] = ['home', 'farm', 'explore', 'plants', 'learn', 'ai', 'shop'];
 
 export function UnifiedCanvasProvider({ children, initialFarms }: UnifiedCanvasProviderProps) {
   const [activeSection, setActiveSectionRaw] = useState<CanvasSection>('home');

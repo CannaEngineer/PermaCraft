@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
 import { Globe, MapPin, Heart, MessageCircle, Eye, Loader2, Image, Sparkles, PenLine, ArrowRight, AlertCircle } from 'lucide-react';
+import { ProfileSubPanel } from './profile-sub-panel';
 
 interface PostAuthor {
   id: string;
@@ -53,7 +54,7 @@ function timeAgo(timestamp: number): string {
 }
 
 export function ExplorePanel() {
-  const { mapRef } = useUnifiedCanvas();
+  const { mapRef, panelStack, pushPanel } = useUnifiedCanvas();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -93,6 +94,13 @@ export function ExplorePanel() {
       fetchPosts(page + 1, true);
     }
   };
+
+  // If the top of the panel stack is a profile, render the ProfileSubPanel
+  const topPanel = panelStack[panelStack.length - 1];
+  if (topPanel && topPanel.id.startsWith('profile-')) {
+    const profileUserId = topPanel.id.replace('profile-', '');
+    return <ProfileSubPanel userId={profileUserId} />;
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -145,18 +153,32 @@ export function ExplorePanel() {
                 >
                   {/* Author row */}
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      {post.author?.image ? (
-                        <img src={post.author.image} alt="" className="w-6 h-6 rounded-full object-cover" />
-                      ) : (
-                        <span className="text-xs font-bold text-primary">
-                          {(post.author?.name || 'A')[0].toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium truncate">
-                      {post.author?.name || 'Anonymous'}
-                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (post.author?.id) {
+                          pushPanel({
+                            id: `profile-${post.author.id}`,
+                            title: post.author.name || 'Profile',
+                            section: 'explore',
+                          });
+                        }
+                      }}
+                      className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {post.author?.image ? (
+                          <img src={post.author.image} alt="" className="w-6 h-6 rounded-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-bold text-primary">
+                            {(post.author?.name || 'A')[0].toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium truncate hover:underline">
+                        {post.author?.name || 'Anonymous'}
+                      </span>
+                    </button>
                     <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
                       {timeAgo(post.created_at)}
                     </span>

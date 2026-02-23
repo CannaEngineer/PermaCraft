@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Map, Globe, Leaf, GraduationCap, MessageSquare } from 'lucide-react';
+import { Home, Map, Globe, Leaf, GraduationCap, MessageSquare, ShoppingBag } from 'lucide-react';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +11,7 @@ const navItems: { id: CanvasSection; icon: typeof Home; label: string; shortcut:
   { id: 'plants', icon: Leaf, label: 'Plants', shortcut: '4' },
   { id: 'learn', icon: GraduationCap, label: 'Learn', shortcut: '5' },
   { id: 'ai', icon: MessageSquare, label: 'AI', shortcut: '6' },
+  { id: 'shop', icon: ShoppingBag, label: 'Shop', shortcut: '7' },
 ];
 
 export function NavRail() {

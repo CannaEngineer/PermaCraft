@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Save, Loader2, LogOut, UserCircle, Sun, Moon, ChevronDown } from 'lucide-react';
 import { UniversalSearch } from '@/components/search/universal-search';
 import { FarmSwitcher } from './farm-switcher';
+import { CartIconButton } from '@/components/shop/cart-icon-button';
+import { CartSheet } from '@/components/shop/cart-sheet';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { cn } from '@/lib/utils';
@@ -26,6 +29,7 @@ interface CommandBarProps {
 export function CommandBar({ userId, userName, saving, hasUnsavedChanges, onSave }: CommandBarProps) {
   const { activeSection } = useUnifiedCanvas();
   const { mode, toggleMode } = useTheme();
+  const [cartOpen, setCartOpen] = useState(false);
 
   const handleLogout = async () => {
     await fetch('/api/auth/sign-out', { method: 'POST' });
@@ -79,6 +83,10 @@ export function CommandBar({ userId, userName, saving, hasUnsavedChanges, onSave
             {saving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved'}
           </button>
         )}
+
+        {/* Cart */}
+        <CartIconButton onClick={() => setCartOpen(true)} />
+        <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
 
         {/* User menu dropdown */}
         <DropdownMenu>

@@ -959,3 +959,18 @@ export interface ShopNotification {
   is_read: number;
   created_at: number;
 }
+
+export interface JournalEntry {
+  id: string;
+  farm_id: string;
+  author_id: string;
+  entry_date: number;
+  title: string | null;
+  content: string;
+  media_urls: string | null;
+  weather: string | null;
+  tags: string | null; // JSON array as TEXT
+  is_shared_to_community: number;
+  created_at: number;
+  updated_at: number;
+}

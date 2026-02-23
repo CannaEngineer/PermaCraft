@@ -1,23 +1,22 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, Loader2 } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import imageCompression from 'browser-image-compression';
-import { useToast } from '@/hooks/use-toast';
 
 interface MediaUploadButtonProps {
   annotationId: string;
-  onUploadComplete: () => void;
+  onUploaded?: () => void;
 }
 
 export function MediaUploadButton({
   annotationId,
-  onUploadComplete
+  onUploaded,
 }: MediaUploadButtonProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -30,19 +29,11 @@ export function MediaUploadButton({
         await uploadFile(file);
       }
 
-      toast({
-        title: 'Upload complete',
-        description: `${files.length} file(s) uploaded successfully`
-      });
-
-      onUploadComplete();
+      toast.success('Photo uploaded');
+      onUploaded?.();
     } catch (error) {
       console.error('Upload failed:', error);
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive'
-      });
+      toast.error('Upload failed');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -54,23 +45,22 @@ export function MediaUploadButton({
   async function uploadFile(file: File) {
     let processedFile = file;
 
-    // Compress images
+    // Compress images before uploading
     if (file.type.startsWith('image/')) {
       processedFile = await imageCompression(file, {
         maxSizeMB: 2,
         maxWidthOrHeight: 3000,
-        useWebWorker: true
+        useWebWorker: true,
       });
     }
 
-    // Upload to API
     const formData = new FormData();
     formData.append('file', processedFile);
-    formData.append('display_order', '0'); // TODO: Calculate from existing media
+    formData.append('display_order', '0');
 
     const response = await fetch(`/api/annotations/${annotationId}/media`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     if (!response.ok) {
@@ -103,8 +93,8 @@ export function MediaUploadButton({
           </>
         ) : (
           <>
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Media
+            <Camera className="h-4 w-4 mr-2" />
+            Add Photo
           </>
         )}
       </Button>

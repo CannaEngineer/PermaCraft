@@ -2,7 +2,7 @@
 
 import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
-import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight, MapPin, Plus } from 'lucide-react';
+import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight, MapPin, Plus, BookOpen } from 'lucide-react';
 
 interface FarmPanelProps {
   onOpenDrawer?: (content: string) => void;
@@ -44,6 +44,7 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
     { id: 'guild-designer', label: 'Build Guild', icon: Leaf, color: 'text-green-500' },
     { id: 'phase-manager', label: 'Timeline', icon: Timer, color: 'text-orange-500' },
     { id: 'export', label: 'Export', icon: Download, color: 'text-purple-500' },
+    { id: 'journal', label: 'Journal', icon: BookOpen, color: 'text-amber-500' },
   ];
 
   return (

@@ -9,11 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface JournalEntryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   farmId?: string;
+  onEntryCreated?: () => void;
 }
 
 const AVAILABLE_TAGS = [
@@ -27,7 +29,7 @@ const AVAILABLE_TAGS = [
   'other'
 ];
 
-export function JournalEntryForm({ open, onOpenChange, farmId }: JournalEntryFormProps) {
+export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }: JournalEntryFormProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -78,13 +80,12 @@ export function JournalEntryForm({ open, onOpenChange, farmId }: JournalEntryFor
       setShareToComm(false);
       setDate(new Date());
 
+      onEntryCreated?.();
       onOpenChange(false);
 
-      // TODO: Show success toast
-      console.log('Journal entry saved');
+      toast.success('Journal entry saved');
     } catch (error) {
-      console.error('Failed to save journal entry:', error);
-      // TODO: Show error toast
+      toast.error('Failed to save journal entry');
     } finally {
       setSaving(false);
     }

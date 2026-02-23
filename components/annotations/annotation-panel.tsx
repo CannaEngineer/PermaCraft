@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Pencil } from 'lucide-react';
 import { DeleteFeatureDialog } from '@/components/shared/delete-feature-dialog';
+import { MediaGallery } from '@/components/annotations/media-gallery';
+import { MediaUploadButton } from '@/components/annotations/media-upload-button';
+import { AnnotationEditForm } from '@/components/annotations/annotation-edit-form';
 
 interface AnnotationPanelProps {
   farmId: string;
@@ -21,6 +24,7 @@ export function AnnotationPanel({
 }: AnnotationPanelProps) {
   const [annotation, setAnnotation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [featureName, setFeatureName] = useState<string>();
 
@@ -96,6 +100,16 @@ export function AnnotationPanel({
           {featureName || 'Feature Details'}
         </h3>
         <div className="flex items-center gap-2">
+          {annotation && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditing(!editing)}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              {editing ? 'Cancel' : 'Edit'}
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"
@@ -116,50 +130,77 @@ export function AnnotationPanel({
       </div>
 
       {annotation ? (
-        <div className="space-y-4">
-          {/* Design Rationale */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Why is this here?</h4>
-            <p className="text-sm text-muted-foreground">
-              {annotation.design_rationale}
-            </p>
+        editing ? (
+          <AnnotationEditForm
+            farmId={farmId}
+            featureId={featureId}
+            featureType={featureType}
+            existingAnnotation={annotation}
+            onSaved={(savedAnnotation) => {
+              setAnnotation(savedAnnotation);
+              setEditing(false);
+            }}
+          />
+        ) : (
+          <div className="space-y-4">
+            {/* Design Rationale */}
+            <div>
+              <h4 className="text-sm font-medium mb-2">Why is this here?</h4>
+              <p className="text-sm text-muted-foreground">
+                {annotation.design_rationale}
+              </p>
+            </div>
+
+            {/* Rich Notes */}
+            {annotation.rich_notes && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Notes</h4>
+                <div className="text-sm prose prose-sm max-w-none">
+                  {annotation.rich_notes}
+                </div>
+              </div>
+            )}
+
+            {/* Tags */}
+            {annotation.tags && annotation.tags.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Tags</h4>
+                <div className="flex flex-wrap gap-2">
+                  {annotation.tags.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 bg-primary/10 text-primary rounded text-xs"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Media Gallery */}
+            <MediaGallery annotationId={annotation.id} editable />
+
+            {/* Media Upload */}
+            <MediaUploadButton
+              annotationId={annotation.id}
+              onUploaded={loadAnnotation}
+            />
           </div>
-
-          {/* Rich Notes */}
-          {annotation.rich_notes && (
-            <div>
-              <h4 className="text-sm font-medium mb-2">Notes</h4>
-              <div className="text-sm prose prose-sm max-w-none">
-                {annotation.rich_notes}
-              </div>
-            </div>
-          )}
-
-          {/* Tags */}
-          {annotation.tags && annotation.tags.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium mb-2">Tags</h4>
-              <div className="flex flex-wrap gap-2">
-                {annotation.tags.map((tag: string) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-1 bg-primary/10 text-primary rounded text-xs"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TODO: Media gallery, external links, edit button */}
-        </div>
+        )
       ) : (
-        <div className="text-center p-8">
-          <p className="text-sm text-muted-foreground mb-4">
-            No details added yet
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-muted-foreground text-center mb-2">
+            No details added yet. Add annotation details below.
           </p>
-          {/* TODO: Create annotation form */}
+          <AnnotationEditForm
+            farmId={farmId}
+            featureId={featureId}
+            featureType={featureType}
+            onSaved={(savedAnnotation) => {
+              setAnnotation(savedAnnotation);
+            }}
+          />
         </div>
       )}
 

@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { PriceDisplay } from './price-display';
-import { ShoppingCart } from 'lucide-react';
+import { AddToCartButton } from './add-to-cart-button';
 import type { ShopProduct } from '@/lib/db/schema';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -55,9 +54,13 @@ export function ProductCard({ product, farmId }: { product: ShopProduct; farmId:
         </CardContent>
       </Link>
       <div className="px-3 pb-3">
-        <Button className="w-full" size="sm" disabled title="Payments coming soon" variant="outline">
-          <ShoppingCart className="w-4 h-4 mr-2" />Add to Cart
-        </Button>
+        <AddToCartButton
+          productId={product.id}
+          disabled={!inStock}
+          size="sm"
+          variant="outline"
+          className="w-full"
+        />
       </div>
     </Card>
   );

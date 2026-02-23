@@ -2,6 +2,59 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const farm_id = searchParams.get('farm_id');
+    if (!farm_id) {
+      return NextResponse.json(
+        { error: 'Missing required parameter: farm_id' },
+        { status: 400 }
+      );
+    }
+
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const offset = (page - 1) * limit;
+
+    // Verify farm ownership or public access
+    const farmResult = await db.execute({
+      sql: 'SELECT id, user_id, is_public FROM farms WHERE id = ?',
+      args: [farm_id]
+    });
+
+    if (farmResult.rows.length === 0) {
+      return NextResponse.json({ error: 'Farm not found' }, { status: 404 });
+    }
+
+    const farm = farmResult.rows[0];
+    if (farm.user_id !== session.user.id && farm.is_public !== 1) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const result = await db.execute({
+      sql: 'SELECT * FROM farm_journal_entries WHERE farm_id = ? ORDER BY entry_date DESC LIMIT ? OFFSET ?',
+      args: [farm_id, limit + 1, offset]
+    });
+
+    const hasMore = result.rows.length > limit;
+    const entries = hasMore ? result.rows.slice(0, limit) : result.rows;
+
+    return NextResponse.json({ entries, hasMore });
+  } catch (error) {
+    console.error('Failed to fetch journal entries:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch journal entries' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user

@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PriceDisplay } from '@/components/shop/price-display';
-import { ShoppingCart, ArrowLeft, Package } from 'lucide-react';
+import { AddToCartButton } from '@/components/shop/add-to-cart-button';
+import { ArrowLeft, Package } from 'lucide-react';
 import type { ShopProduct } from '@/lib/db/schema';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -70,11 +71,12 @@ export default async function ProductDetailPage({
               : <span className="text-sm text-destructive font-medium">Out of Stock</span>}
           </div>
 
-          <Button className="w-full" size="lg" disabled title="Payments coming soon — check back shortly!">
-            <ShoppingCart className="w-5 h-5 mr-2" />
-            Add to Cart
-            <span className="ml-2 text-xs opacity-70">(Coming Soon)</span>
-          </Button>
+          <AddToCartButton
+            productId={product.id}
+            disabled={!inStock}
+            size="lg"
+            className="w-full"
+          />
 
           {product.tags && (
             <div className="flex gap-2 flex-wrap">

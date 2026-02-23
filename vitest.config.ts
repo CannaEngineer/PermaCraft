@@ -5,6 +5,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    environmentMatchGlobs: [
+      ['__tests__/components/**', 'jsdom'],
+    ],
+    setupFiles: ['./test/setup.ts'],
+    include: ['__tests__/**/*.{test,spec}.{ts,tsx}'],
   },
   resolve: {
     alias: {
