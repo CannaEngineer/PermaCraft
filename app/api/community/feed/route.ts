@@ -128,8 +128,8 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Count query for pagination metadata
-    const countArgs = [...(userId ? [userId, userId] : []), ...filterArgs];
+    // Count query for pagination metadata (no user-specific columns)
+    const countArgs = [...filterArgs];
     const countSql = `
       SELECT COUNT(*) as total
       FROM farm_posts p

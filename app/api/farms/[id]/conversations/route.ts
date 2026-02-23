@@ -25,11 +25,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return Response.json({ error: "Farm not found" }, { status: 404 });
     }
 
-    // Get farm-specific conversations only (not general Q&A)
+    // Get farm-specific conversations (farm_id filter is sufficient)
     const conversationsResult = await db.execute({
       sql: `SELECT id, title, created_at, updated_at
             FROM ai_conversations
-            WHERE farm_id = ? AND conversation_type = 'farm'
+            WHERE farm_id = ?
             ORDER BY updated_at DESC
             LIMIT 50`,
       args: [farmId],
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create new conversation
     const conversationId = crypto.randomUUID();
     await db.execute({
-      sql: `INSERT INTO ai_conversations (id, farm_id, user_id, conversation_type, title, created_at, updated_at)
-            VALUES (?, ?, ?, 'farm', ?, unixepoch(), unixepoch())`,
-      args: [conversationId, farmId, session.user.id, title || "New Conversation"],
+      sql: `INSERT INTO ai_conversations (id, farm_id, title, created_at, updated_at)
+            VALUES (?, ?, ?, unixepoch(), unixepoch())`,
+      args: [conversationId, farmId, title || "New Conversation"],
     });
 
     // Fetch the created conversation
