@@ -42,9 +42,14 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
       downloadSnapshot(dataUrl, filename);
 
       toast({ title: 'Map exported as PNG' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to export PNG:', error);
-      toast({ title: 'Export failed', variant: 'destructive' });
+      const message = error?.message?.includes('timed out')
+        ? 'Map snapshot timed out. Try zooming in or waiting for tiles to load.'
+        : error?.message?.includes('blank')
+        ? 'Captured a blank image. Wait for the map to fully render and try again.'
+        : 'PNG export failed. Please try again.';
+      toast({ title: message, variant: 'destructive' });
     } finally {
       setExporting(false);
     }
@@ -113,8 +118,12 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
     } catch (error: any) {
       console.error('Failed to export PDF:', error);
       const message = error?.name === 'AbortError'
-        ? 'PDF export timed out. Try with fewer sections.'
-        : 'Export failed';
+        ? 'PDF export timed out. Try with fewer sections or a simpler map view.'
+        : error?.message?.includes('timed out')
+        ? 'Map snapshot timed out. Wait for tiles to load and try again.'
+        : error?.message?.includes('blank')
+        ? 'Captured a blank image. Wait for the map to fully render and try again.'
+        : 'PDF export failed. Please try again.';
       toast({ title: message, variant: 'destructive' });
     } finally {
       setExporting(false);

@@ -2,10 +2,7 @@ import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { ProfileHeader } from '@/components/profile/profile-header';
-import { ProfileTabs } from '@/components/profile/profile-tabs';
-import { ProfilePostsTab } from '@/components/profile/profile-posts-tab';
-import { ProfileFarmsTab } from '@/components/profile/profile-farms-tab';
-import { ProfileBadgesTab } from '@/components/profile/profile-badges-tab';
+import { ProfileContent } from '@/components/profile/profile-content';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -234,28 +231,14 @@ export default async function ProfilePage({ params }: PageProps) {
       <ProfileHeader profile={profile} />
 
       <div className="mt-8">
-        <ProfileTabs tabs={tabs}>
-          {(activeTab) => {
-            switch (activeTab) {
-              case 'posts':
-                return (
-                  <ProfilePostsTab
-                    userId={id}
-                    currentUserId={viewerId || undefined}
-                    initialPosts={postsData.posts}
-                    initialCursor={postsData.next_cursor}
-                    initialHasMore={postsData.has_more}
-                  />
-                );
-              case 'farms':
-                return <ProfileFarmsTab farms={farms} />;
-              case 'badges':
-                return <ProfileBadgesTab badges={profile.badges} />;
-              default:
-                return null;
-            }
-          }}
-        </ProfileTabs>
+        <ProfileContent
+          tabs={tabs}
+          profile={profile}
+          postsData={postsData}
+          farms={farms}
+          userId={id}
+          viewerId={viewerId}
+        />
       </div>
     </div>
   );

@@ -695,6 +695,10 @@ function ImmersiveMapEditorContent({
     setJournalFormOpen(true);
   }, []);
 
+  const handleOpenFarmInfo = useCallback(() => {
+    openDrawer('details', 'medium');
+  }, [openDrawer]);
+
   // Filter zones by visible layers
   const filteredZones = useMemo(() => {
     if (visibleLayerIds.length === 0) {
@@ -908,6 +912,7 @@ function ImmersiveMapEditorContent({
         onBuildGuild={handleOpenGuildDesigner}
         onTimeline={handleOpenPhaseManager}
         onJournalEntry={handleOpenJournalEntry}
+        onFarmInfo={handleOpenFarmInfo}
       />
 
       {/* Create Post Dialog */}

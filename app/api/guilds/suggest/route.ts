@@ -46,12 +46,21 @@ export async function POST(request: NextRequest) {
       // Model may have wrapped JSON in markdown code blocks
       const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
-        guildSuggestion = JSON.parse(jsonMatch[1].trim());
-      } else {
+        try {
+          guildSuggestion = JSON.parse(jsonMatch[1].trim());
+        } catch {
+          // Fall through to next strategy
+        }
+      }
+      if (!guildSuggestion) {
         // Try to find a JSON object in the response
         const objectMatch = responseText.match(/\{[\s\S]*\}/);
         if (objectMatch) {
-          guildSuggestion = JSON.parse(objectMatch[0]);
+          try {
+            guildSuggestion = JSON.parse(objectMatch[0]);
+          } catch {
+            throw new Error('Could not parse JSON from AI response');
+          }
         } else {
           throw new Error('Could not parse JSON from AI response');
         }

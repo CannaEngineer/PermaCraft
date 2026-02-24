@@ -17,7 +17,6 @@ interface CommunityPost {
   farm_id: string;
   farm_name: string;
   farm_description: string | null;
-  location_description: string | null;
   climate_zone: string | null;
   type: 'text' | 'photo' | 'ai_insight';
   content: string | null;

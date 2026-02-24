@@ -82,14 +82,14 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
       setShareToComm(false);
       setDate(new Date());
 
-      onEntryCreated?.();
-      onOpenChange(false);
-
       if (shareToComm && data.shared === false) {
         toast.success('Journal entry saved (sharing to community failed)');
       } else {
         toast.success('Journal entry saved');
       }
+
+      onEntryCreated?.();
+      onOpenChange(false);
     } catch (error) {
       toast.error('Failed to save journal entry');
     } finally {

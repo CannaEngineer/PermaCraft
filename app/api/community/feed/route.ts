@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
                u.image as author_image,
                f.name as farm_name,
                f.description as farm_description,
-               f.location_description,
                f.climate_zone as farm_climate_zone,
                ai.screenshot_data as ai_screenshot,
                (SELECT reaction_type FROM post_reactions
@@ -65,7 +64,6 @@ export async function GET(request: NextRequest) {
                u.image as author_image,
                f.name as farm_name,
                f.description as farm_description,
-               f.location_description,
                f.climate_zone as farm_climate_zone,
                ai.screenshot_data as ai_screenshot,
                NULL as user_reaction,
@@ -168,7 +166,6 @@ export async function GET(request: NextRequest) {
         farm_id: post.farm_id,
         farm_name: post.farm_name,
         farm_description: post.farm_description,
-        location_description: post.location_description,
         climate_zone: post.farm_climate_zone,
         type: post.post_type,
         content: post.content,

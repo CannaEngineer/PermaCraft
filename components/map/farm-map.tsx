@@ -2354,10 +2354,10 @@ export function FarmMap({
         draw.current = new MapboxDraw({
           displayControlsDefault: false,
           controls: {
-            point: true,
-            line_string: true,
-            polygon: true,
-            trash: true,
+            point: false,
+            line_string: false,
+            polygon: false,
+            trash: false,
           },
           defaultMode: "simple_select",
           styles: [

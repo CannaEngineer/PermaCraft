@@ -32,9 +32,14 @@ export async function captureMapSnapshot(
 
   // Trigger a repaint and capture on the next render frame.
   // This avoids the blank canvas issue with WebGL's preserveDrawingBuffer.
-  const dataUrl = await new Promise<string>((resolve) => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Map snapshot timed out. The map may not be fully rendered.'));
+    }, 10000);
+
     map.once('render', () => {
       requestAnimationFrame(() => {
+        clearTimeout(timeout);
         const canvas = map.getCanvas();
         const result = canvas.toDataURL(`image/${format}`, quality);
         resolve(result);
