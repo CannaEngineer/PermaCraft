@@ -8,6 +8,7 @@ import AudioPlayer from "@/components/audio/AudioPlayer";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { OfflineQueueIndicator } from "@/components/shared/offline-queue-indicator";
+import { PublicTopBar } from "@/components/shared/public-top-bar";
 
 export default function AppLayoutClient({
   children,
@@ -23,6 +24,20 @@ export default function AppLayoutClient({
   userId?: string;
 }) {
   const [isMusicPlayerOpen, setIsMusicPlayerOpen] = useState(false);
+
+  if (!isAuthenticated) {
+    return (
+      <ErrorBoundary>
+        <div className="min-h-screen bg-background">
+          <OfflineIndicator />
+          <PublicTopBar />
+          <main className="pt-14">{children}</main>
+          <Toaster />
+          <OfflineQueueIndicator />
+        </div>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary>

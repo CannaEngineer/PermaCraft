@@ -15,6 +15,13 @@ export default function LandingPage() {
           </Link>
           <div className="flex items-center gap-3">
             <Link
+              href="/learn/blog"
+              className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              Blog
+            </Link>
+            <Link
               href="/login"
               className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline"
               style={{ color: "hsl(var(--foreground))" }}
@@ -79,14 +86,14 @@ export default function LandingPage() {
             Start Designing
           </Link>
           <Link
-            href="/gallery"
+            href="/learn/blog"
             className="inline-flex items-center rounded-lg border-2 px-8 py-4 text-lg font-semibold no-underline transition-colors hover:bg-muted"
             style={{
               borderColor: "hsl(var(--border))",
               color: "hsl(var(--foreground))",
             }}
           >
-            Explore Farms
+            Read the Blog
           </Link>
         </div>
 
@@ -372,6 +379,9 @@ export default function LandingPage() {
             Permaculture.Studio
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link href="/learn/blog" className="no-underline hover:underline" style={{ color: "hsl(var(--muted-foreground))" }}>
+              Blog
+            </Link>
             <Link href="/gallery" className="no-underline hover:underline" style={{ color: "hsl(var(--muted-foreground))" }}>
               Gallery
             </Link>

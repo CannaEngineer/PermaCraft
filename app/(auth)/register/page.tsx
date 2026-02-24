@@ -30,7 +30,7 @@ function RegisterPageInner() {
   const headline =
     from === 'gallery'
       ? 'Join to browse community farm designs'
-      : 'Create Account';
+      : 'Get started free';
 
   const subheadline =
     from === 'gallery'
