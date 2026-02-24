@@ -44,11 +44,6 @@ export function Sidebar({
     (item) => !item.requiresAuth || isAuthenticated
   );
 
-  // Add admin link if user is admin
-  const adminNav = isAdmin
-    ? [{ name: "Admin", href: "/admin", icon: Shield, requiresAuth: true }]
-    : [];
-
   return (
     <div className="flex flex-col h-full bg-card xp-panel">
       {/* Logo/Brand */}
@@ -70,7 +65,7 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-        {[...visibleNav, ...adminNav].map((item) => {
+        {visibleNav.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -127,6 +122,20 @@ export function Sidebar({
               >
                 <UserCircle className="h-4 w-4 flex-shrink-0" />
                 <span>My Profile</span>
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors mb-2 border border-amber-500/20 hover:bg-amber-500/10",
+                  pathname.startsWith('/admin')
+                    ? "bg-amber-500/15 text-amber-900 dark:text-amber-100"
+                    : "text-amber-700 dark:text-amber-300"
+                )}
+              >
+                <Shield className="h-4 w-4 flex-shrink-0 text-amber-600" />
+                <span>Admin Dashboard</span>
               </Link>
             )}
             <Button

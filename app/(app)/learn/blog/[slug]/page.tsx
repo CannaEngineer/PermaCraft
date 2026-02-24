@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { BlogReadTracker } from '@/components/blog/blog-read-tracker';
 import { RegisterCTA } from '@/components/shared/register-cta';
-import ReactMarkdown from 'react-markdown';
+import { BlogMarkdown } from '@/components/blog/blog-markdown';
 
 interface PageProps {
   params: { slug: string };
@@ -205,7 +205,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             <Separator className="mb-8" />
 
             <div className="prose prose-slate dark:prose-invert max-w-none">
-              <ReactMarkdown>{post.content}</ReactMarkdown>
+              <BlogMarkdown content={post.content} />
             </div>
 
             <Separator className="my-8" />
