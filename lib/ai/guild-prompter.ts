@@ -63,5 +63,7 @@ Format your response as valid JSON matching this structure:
   "general_notes": "Overall guild strategy and care tips"
 }
 
-Focus on permaculture principles: stacking functions, beneficial relationships, native plants when possible, and ecological resilience.`;
+Focus on permaculture principles: stacking functions, beneficial relationships, native plants when possible, and ecological resilience.
+
+IMPORTANT: Do not offer, suggest, or ask if the user wants any visual representation, diagram, chart, or graphical output — you do not have this capability. Return only the JSON.`;
 }

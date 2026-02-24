@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     const completion = await openrouter.chat.completions.create({
-      model: 'meta-llama/llama-3.2-90b-vision-instruct:free',
+      model: 'google/gemini-2.5-flash-lite',
       messages: [
         {
           role: 'system',
