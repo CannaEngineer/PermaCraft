@@ -6,7 +6,7 @@ import {
   GraduationCap, BookOpen, Loader2, ChevronRight, Trophy,
   Zap, Clock, ArrowRight, Eye, Star, AlertCircle,
   Play, Check, Circle, Building2, Home, TreePine,
-  Tractor, Users, Sparkles, ArrowLeft,
+  Wheat, Users, Sparkles, ArrowLeft,
 } from 'lucide-react';
 import type { LearningPath } from '@/lib/db/schema';
 import type { ComponentType } from 'react';
@@ -85,7 +85,8 @@ const pathIcons: Record<string, ComponentType<{ className?: string }>> = {
   Building2,
   Home,
   TreePine,
-  Tractor,
+  Tractor: Wheat,
+  Wheat,
   Users,
   GraduationCap,
 };
