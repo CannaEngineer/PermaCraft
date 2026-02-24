@@ -24,7 +24,8 @@
   ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsx scripts/migrate.ts && next build",
+    "migrate": "tsx scripts/migrate.ts",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
@@ -114,6 +115,7 @@
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
     "happy-dom": "^18.0.1",
+    "tsx": "^4.19.0",
     "typescript": "^5",
     "vitest": "^4.0.15"
   }
