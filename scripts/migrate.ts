@@ -48,7 +48,9 @@ async function runAllMigrations() {
         const msg = error.message ?? '';
         if (
           msg.includes('already exists') ||
-          msg.includes('duplicate column')
+          msg.includes('duplicate column') ||
+          msg.includes('no column named') ||
+          msg.includes('no such column')
         ) {
           skipped++;
           continue;
