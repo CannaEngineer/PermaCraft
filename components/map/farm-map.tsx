@@ -118,6 +118,8 @@ interface FarmMapProps {
   externalShowSpeciesPicker?: boolean;
   /** Called by FarmMap after it has acknowledged an externalShowSpeciesPicker=true trigger, so the parent can reset the flag. */
   onSpeciesPickerOpened?: () => void;
+  /** Called after a draw.create event completes, so the parent can exit drawing mode. */
+  onDrawComplete?: () => void;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -136,6 +138,7 @@ export function FarmMap({
   externalSelectedSpecies,
   externalShowSpeciesPicker,
   onSpeciesPickerOpened,
+  onDrawComplete,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -1831,6 +1834,11 @@ export function FarmMap({
         }
 
         handleDrawChange(e);
+
+        // Auto-exit drawing mode after feature creation
+        if (onDrawComplete) {
+          onDrawComplete();
+        }
       };
 
       // Prevent farm boundary from being deleted
@@ -1964,7 +1972,6 @@ export function FarmMap({
       if (!circleMode && !externalDrawingMode && onFeatureSelect && map.current) {
         const features = map.current.queryRenderedFeatures(e.point, {
           layers: [
-            'plantings-layer',
             'colored-zones-fill',
             'colored-lines',
             'colored-points',
@@ -1978,27 +1985,6 @@ export function FarmMap({
 
         if (features.length > 0) {
           const feature = features[0];
-
-          // Handle planting selection
-          if (feature.layer.id === 'plantings-layer' && feature.properties) {
-            const plantingData = {
-              id: feature.properties.id,
-              species_id: feature.properties.species_id,
-              common_name: feature.properties.common_name,
-              scientific_name: feature.properties.scientific_name,
-              layer: feature.properties.layer,
-              planted_year: feature.properties.planted_year,
-              lat: feature.properties.lat,
-              lng: feature.properties.lng,
-            };
-            onFeatureSelect(feature.properties.id, 'planting', plantingData);
-
-            // Deselect all in MapboxDraw to prevent selection UI
-            if (draw.current) {
-              draw.current.changeMode('simple_select', { featureIds: [] });
-            }
-            return;
-          }
 
           // Handle zone selection (from colored layer)
           if (feature.layer.id === 'colored-zones-fill' && feature.properties) {

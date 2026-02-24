@@ -194,6 +194,7 @@ function ImmersiveMapEditorContent({
     setHeaderCollapsed,
     drawingMode,
     activeDrawTool,
+    exitDrawingMode,
   } = useImmersiveMapUI();
 
   // Map state
@@ -746,6 +747,7 @@ function ImmersiveMapEditorContent({
           externalSelectedSpecies={pendingPlantSpecies}
           externalShowSpeciesPicker={triggerSpeciesPicker}
           onSpeciesPickerOpened={handleSpeciesPickerOpened}
+          onDrawComplete={() => exitDrawingMode()}
         />
       </div>
 

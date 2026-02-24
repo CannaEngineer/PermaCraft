@@ -297,24 +297,12 @@ export function generateViewportLabels(
 
   // originLat and originLng already calculated above (based on COARSE grid)
 
-  // Determine label skip interval based on zoom level
-  // Much fewer labels when zoomed out for better readability and AI context
-  let skipInterval = 1;
-  if (zoom < 12) {
-    skipInterval = 20; // Extremely sparse - show every 20th label
-  } else if (zoom < 13) {
-    skipInterval = 12; // Very sparse - show every 12th label
-  } else if (zoom < 14) {
-    skipInterval = 8; // Sparse - show every 8th label
-  } else if (zoom < 15) {
-    skipInterval = 6; // Moderate - show every 6th label
-  } else if (zoom < 16) {
-    skipInterval = 4; // Show every 4th label
-  } else if (zoom < 17) {
-    skipInterval = 2; // Show every 2nd label
-  } else {
-    skipInterval = 1; // Show all labels when very zoomed in
-  }
+  // Calculate skip interval based on visible grid line count (not zoom breakpoints)
+  // Target: ~8 labels per axis maximum for readability
+  // This eliminates sudden label doubling/halving at zoom thresholds
+  const maxLabelsPerAxis = 8;
+  const latSkip = Math.max(1, Math.ceil(vpLatLines.length / maxLabelsPerAxis));
+  const lngSkip = Math.max(1, Math.ceil(vpLngLines.length / maxLabelsPerAxis));
 
   // Generate labels for visible grid intersections
   for (const lat of vpLatLines) {
@@ -322,8 +310,8 @@ export function generateViewportLabels(
       const rowIndex = Math.round((lat - originLat) / latStep);
       const colIndex = Math.round((lng - originLng) / lngStep);
 
-      // Skip labels based on zoom level for better readability
-      if (rowIndex % skipInterval !== 0 || colIndex % skipInterval !== 0) {
+      // Skip labels based on visible line count for smooth density transitions
+      if (rowIndex % latSkip !== 0 || colIndex % lngSkip !== 0) {
         continue;
       }
 

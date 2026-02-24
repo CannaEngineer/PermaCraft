@@ -25,6 +25,7 @@ import { CreatePostDialog } from '@/components/farm/create-post-dialog';
 import { PhotoUploadDialog } from '@/components/immersive-map/photo-upload-dialog';
 import { DeleteFarmDialog } from '@/components/shared/delete-farm-dialog';
 import { JournalListPanel } from '@/components/farm/journal-list-panel';
+import { JournalEntryForm } from '@/components/farm/journal-entry-form';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap } from 'lucide-react';
 import { WelcomeWalkthrough } from './welcome-walkthrough';
@@ -182,6 +183,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     chatOpen, setChatOpen,
     openDrawer, closeDrawer, drawerContent,
     drawingMode, activeDrawTool,
+    exitDrawingMode,
   } = useImmersiveMapUI();
 
   // Map state
@@ -199,6 +201,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const [showGoalsWizard, setShowGoalsWizard] = useState(false);
   const [postDialogOpen, setPostDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [journalFormOpen, setJournalFormOpen] = useState(false);
 
   // Farm data
   const [goals, setGoals] = useState<FarmerGoal[]>([]);
@@ -430,6 +433,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   }, [openDrawer, farmContext, guildContext]);
   const handleOpenPhaseManager = useCallback(() => openDrawer('phase-manager', 'max'), [openDrawer]);
   const handleOpenExport = useCallback(() => openDrawer('export', 'max'), [openDrawer]);
+  const handleOpenJournalEntry = useCallback(() => setJournalFormOpen(true), []);
 
   // Drawer opener for FarmPanel
   const handleOpenDrawer = useCallback((content: string) => {
@@ -534,6 +538,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
               externalSelectedSpecies={pendingPlantSpecies}
               externalShowSpeciesPicker={triggerSpeciesPicker}
               onSpeciesPickerOpened={handleSpeciesPickerOpened}
+              onDrawComplete={() => exitDrawingMode()}
             />
           </div>
 
@@ -581,6 +586,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
                 onWaterSystem={handleOpenWaterSystem}
                 onBuildGuild={handleOpenGuildDesigner}
                 onTimeline={handleOpenPhaseManager}
+                onJournalEntry={handleOpenJournalEntry}
               />
             </>
           )}
@@ -717,6 +723,13 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         onOpenChange={setUploadDialogOpen}
         farmId={farm.id}
         onPhotoUploaded={() => setUploadDialogOpen(false)}
+      />
+
+      <JournalEntryForm
+        open={journalFormOpen}
+        onOpenChange={setJournalFormOpen}
+        farmId={farm.id}
+        onEntryCreated={() => setJournalFormOpen(false)}
       />
 
       {/* Save toast notification */}
