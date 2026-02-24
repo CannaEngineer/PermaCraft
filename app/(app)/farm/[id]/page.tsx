@@ -1,9 +1,10 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
-import type { Farm, Zone } from "@/lib/db/schema";
+import type { Farm, Zone, FarmStorySection } from "@/lib/db/schema";
 import { FarmFeedClient } from "@/components/feed/farm-feed-client";
 import { FarmPublicView } from "@/components/farm/farm-public-view";
+import { FarmStoryPage } from "@/components/story/farm-story-page";
 import { ImmersiveMapEditor } from "@/components/immersive-map/immersive-map-editor";
 
 interface PageProps {
@@ -162,9 +163,62 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   }
 
   const isShopEnabled = farmRow.is_shop_enabled as number | null;
+  const storyPublished = farmRow.story_published as number | null;
+  const storyTheme = (farmRow.story_theme as string) || 'earth';
 
-  // If visitor (not owner), show public view
+  // If visitor (not owner), show story page (if published) or public view
   if (!isOwner) {
+    if (storyPublished === 1) {
+      // Fetch story sections
+      const storySectionsResult = await db.execute({
+        sql: 'SELECT * FROM farm_story_sections WHERE farm_id = ? AND is_visible = 1 ORDER BY display_order ASC',
+        args: [id],
+      });
+      const storySections = storySectionsResult.rows as unknown as FarmStorySection[];
+
+      if (storySections.length > 0) {
+        // Fetch species for "what we grow"
+        const speciesResult = await db.execute({
+          sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native, COUNT(*) as count
+                FROM plantings p JOIN species s ON p.species_id = s.id
+                WHERE p.farm_id = ? GROUP BY s.id ORDER BY s.layer, s.common_name`,
+          args: [id],
+        });
+
+        // Fetch featured products if shop enabled
+        let featuredProducts: any[] = [];
+        let fulfillment: any = {};
+        if (isShopEnabled === 1) {
+          const productsResult = await db.execute({
+            sql: `SELECT * FROM shop_products WHERE farm_id = ? AND is_published = 1 AND is_featured = 1 ORDER BY sort_order ASC LIMIT 6`,
+            args: [id],
+          });
+          featuredProducts = productsResult.rows as any[];
+          fulfillment = {
+            shipping: !!farmRow.accepts_shipping,
+            pickup: !!farmRow.accepts_pickup,
+            delivery: !!farmRow.accepts_delivery,
+          };
+        }
+
+        return (
+          <FarmStoryPage
+            farm={farm}
+            sections={storySections}
+            farmOwner={farmOwner}
+            latestScreenshot={latestScreenshot}
+            featuredProducts={featuredProducts}
+            isShopEnabled={isShopEnabled === 1}
+            initialFeedData={initialFeedData}
+            currentUserId={session.user.id}
+            storyTheme={storyTheme}
+            species={speciesResult.rows as any[]}
+            fulfillment={fulfillment}
+          />
+        );
+      }
+    }
+
     return (
       <FarmPublicView
         farm={farm}

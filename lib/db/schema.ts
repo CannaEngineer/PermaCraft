@@ -974,3 +974,24 @@ export interface JournalEntry {
   created_at: number;
   updated_at: number;
 }
+
+// ─── Farm Story ─────────────────────────────────────────────────────────────
+
+export type StorySectionType = 'hero' | 'origin' | 'values' | 'the_land' | 'what_we_grow' | 'seasons' | 'visit_us' | 'custom';
+
+export interface FarmStorySection {
+  id: string;
+  farm_id: string;
+  section_type: StorySectionType;
+  title: string;
+  content: string | null;
+  media_url: string | null;
+  media_urls: string | null;
+  ai_generated: number;
+  ai_model: string | null;
+  is_visible: number;
+  display_order: number;
+  metadata: string | null;
+  created_at: number;
+  updated_at: number;
+}

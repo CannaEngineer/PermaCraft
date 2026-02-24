@@ -478,6 +478,108 @@ OUTPUT:
  * @param mapContext - Map layer, zones, screenshots info
  * @returns Complete prompt for text AI to generate drawing instructions
  */
+/**
+ * Farm Story System Prompt
+ *
+ * Used by the AI story generation endpoint to create authentic,
+ * warm farm narratives from actual farm data (zones, plantings, species).
+ */
+export const FARM_STORY_SYSTEM_PROMPT = `You are a gifted storyteller who writes authentic, warm farm narratives. You help farmers tell their story in a way that connects visitors emotionally to the land, the people, and the food.
+
+WRITING STYLE:
+- Warm, authentic, and sensory — never corporate or generic
+- Use vivid language that connects readers to the land (smells, textures, seasons)
+- Write as if the farmer is telling their story over a cup of coffee
+- Reference ACTUAL species, zones, and farm data — NEVER invent plants or features that aren't in the data
+- Connect recommendations and descriptions to permaculture ethics (Earth Care, People Care, Fair Share)
+
+OUTPUT FORMAT:
+Return a JSON object with exactly these 7 sections:
+{
+  "hero": { "title": "Farm Name", "tagline": "Under 80 chars, punchy and memorable" },
+  "origin": { "title": "Our Story", "content": "100-300 words about how the farm began" },
+  "values": { "title": "What We Believe", "content": "100-300 words about farming philosophy and permaculture ethics" },
+  "the_land": { "title": "The Land", "content": "100-300 words describing the physical site, terrain, and ecology" },
+  "what_we_grow": { "title": "What We Grow", "content": "100-300 words about crops and food forest layers" },
+  "seasons": { "title": "Through the Seasons", "content": "100-300 words painting a picture of the farm across all four seasons" },
+  "visit_us": { "title": "Visit Us", "content": "100-300 words inviting visitors, describing the experience" }
+}
+
+RULES:
+- Hero tagline must be under 80 characters
+- Each section content should be 100-300 words
+- Only reference species and features that exist in the provided farm data
+- If farm data is sparse, focus on the vision and philosophy rather than specifics
+- Use scientific names in parentheses: Common Name (Genus species)
+- Mark native status where relevant: [NATIVE], [NON-NATIVE]
+- Return ONLY valid JSON, no markdown fences or extra text`;
+
+/**
+ * Build the user prompt for story generation with farm context
+ */
+export function createStoryGenerationPrompt(
+  farm: {
+    name: string;
+    description?: string | null;
+    acres?: number | null;
+    climate_zone?: string | null;
+    soil_type?: string | null;
+    rainfall_inches?: number | null;
+  },
+  zones: Array<{ name: string | null; zone_type: string }>,
+  plantings: Array<{
+    common_name: string;
+    scientific_name: string;
+    layer: string;
+    is_native: number;
+    permaculture_functions: string | null;
+  }>,
+  additionalContext?: string
+): string {
+  const parts: string[] = [];
+
+  parts.push(`FARM: ${farm.name}`);
+  if (farm.description) parts.push(`DESCRIPTION: ${farm.description}`);
+  if (farm.acres) parts.push(`SIZE: ${farm.acres} acres`);
+  if (farm.climate_zone) parts.push(`CLIMATE ZONE: ${farm.climate_zone}`);
+  if (farm.soil_type) parts.push(`SOIL: ${farm.soil_type}`);
+  if (farm.rainfall_inches) parts.push(`RAINFALL: ${farm.rainfall_inches} inches/year`);
+
+  if (zones.length > 0) {
+    parts.push('\nZONES ON THE FARM:');
+    zones.forEach(z => {
+      parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})`);
+    });
+  }
+
+  if (plantings.length > 0) {
+    parts.push('\nPLANTINGS & SPECIES:');
+    // Group by layer
+    const byLayer = new Map<string, typeof plantings>();
+    plantings.forEach(p => {
+      const list = byLayer.get(p.layer) || [];
+      list.push(p);
+      byLayer.set(p.layer, list);
+    });
+    for (const [layer, species] of byLayer) {
+      parts.push(`  ${layer.toUpperCase()} LAYER:`);
+      species.forEach(s => {
+        const native = s.is_native ? '[NATIVE]' : '[NON-NATIVE]';
+        const funcs = s.permaculture_functions ? ` — Functions: ${s.permaculture_functions}` : '';
+        parts.push(`    - ${s.common_name} (${s.scientific_name}) ${native}${funcs}`);
+      });
+    }
+  }
+
+  if (additionalContext) {
+    parts.push(`\nFARMER'S OWN WORDS:\n"${additionalContext}"`);
+  }
+
+  parts.push('\nGenerate the farm story JSON now, using ONLY the data provided above.');
+
+  return parts.join('\n');
+}
+
 export function createSketchInstructionPrompt(
   farmContext: any,
   userQuery: string,
