@@ -38,7 +38,7 @@ export default async function ShopStorefrontPage({ params }: { params: Promise<{
     plantingsSummary = [],
     farmOwner = { name: 'Farmer', image: null },
     latestScreenshot = null,
-  } = data as {
+  } = data as unknown as {
     shop: any;
     products: ShopProduct[];
     storySections: any[];
