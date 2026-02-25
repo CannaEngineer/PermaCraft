@@ -208,23 +208,21 @@ export function PlantStoryClient({ speciesId, isAuthenticated }: PlantStoryClien
         {cards}
       </StoryCardContainer>
 
-      {/* Sticky Add to Farm CTA */}
+      {/* Add to Farm — top-right pill, mirrors back button */}
       {isAuthenticated && (
-        <div className="fixed bottom-0 inset-x-0 z-50 p-4 bg-gradient-to-t from-background via-background to-transparent pt-8">
-          <Button
-            onClick={handleAddToFarm}
-            disabled={addingToFarm}
-            size="lg"
-            className="w-full max-w-md mx-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg rounded-xl h-12 text-base font-semibold"
-          >
-            {addingToFarm ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Sprout className="h-5 w-5" />
-            )}
-            {addingToFarm ? 'Adding...' : 'Add to My Farm'}
-          </Button>
-        </div>
+        <Button
+          onClick={handleAddToFarm}
+          disabled={addingToFarm}
+          size="sm"
+          className="fixed top-4 right-4 z-50 bg-green-600/90 hover:bg-green-700 text-white backdrop-blur-sm shadow-md rounded-full h-10 px-4 gap-2 text-sm font-semibold"
+        >
+          {addingToFarm ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sprout className="h-4 w-4" />
+          )}
+          {addingToFarm ? 'Adding...' : 'Add to Farm'}
+        </Button>
       )}
 
       <FarmSelectorDialog
