@@ -21,9 +21,9 @@ interface ImmersiveMapUIState {
   setActiveDrawTool: (tool: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null) => void;
 
   // Bottom Drawer
-  drawerContent: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal' | null;
+  drawerContent: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal' | 'feature-list' | null;
   drawerHeight: 'peek' | 'medium' | 'max';
-  openDrawer: (content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal', height?: 'peek' | 'medium' | 'max') => void;
+  openDrawer: (content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal' | 'feature-list', height?: 'peek' | 'medium' | 'max') => void;
   closeDrawer: () => void;
   setDrawerHeight: (height: 'peek' | 'medium' | 'max') => void;
 
@@ -44,7 +44,7 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | 'design' | null>('layers');
   const [drawingMode, setDrawingMode] = useState(false);
   const [activeDrawTool, setActiveDrawTool] = useState<'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null>(null);
-  const [drawerContent, setDrawerContent] = useState<'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal' | null>(null);
+  const [drawerContent, setDrawerContent] = useState<'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal' | 'feature-list' | null>(null);
   const [drawerHeight, setDrawerHeight] = useState<'peek' | 'medium' | 'max'>('medium');
   const [chatOpen, setChatOpen] = useState(false);
   const [mapInteracted, setMapInteracted] = useState(false);
@@ -64,7 +64,7 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   };
 
   const openDrawer = (
-    content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal',
+    content: 'zone' | 'planting' | 'species-picker' | 'zone-quick-label' | 'details' | 'comments' | 'water-system' | 'guild-designer' | 'phase-manager' | 'export' | 'journal' | 'feature-list',
     height: 'peek' | 'medium' | 'max' = 'medium'
   ) => {
     setDrawerContent(content);
