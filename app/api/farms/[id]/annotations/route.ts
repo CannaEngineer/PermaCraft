@@ -33,8 +33,15 @@ export async function POST(
   }
 
   if (farm.rows[0].user_id !== session.user.id) {
-    // TODO: Check collaboration permissions when Track 3 is implemented
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Check collaboration permissions - editors can create annotations
+    const collaborator = await db.execute({
+      sql: 'SELECT role FROM farm_collaborators WHERE farm_id = ? AND user_id = ?',
+      args: [farmId, session.user.id]
+    });
+
+    if (collaborator.rows.length === 0 || !['owner', 'editor'].includes(collaborator.rows[0].role as string)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   // Create annotation

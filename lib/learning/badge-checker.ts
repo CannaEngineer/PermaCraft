@@ -77,10 +77,26 @@ export async function checkAndAwardBadge(
     }
 
     case 'path_complete': {
-      // Get all lessons in path (when path_lessons table is populated)
-      // For now, this will always be false since we don't have path_lessons data yet
-      // TODO: Implement once path_lessons are seeded
-      meetsCriteria = false;
+      // Get all required lessons in this learning path
+      const pathLessonsResult = await db.execute({
+        sql: 'SELECT lesson_id FROM path_lessons WHERE learning_path_id = ? AND is_required = 1',
+        args: [criteria.path_id!],
+      });
+      const requiredLessonIds = pathLessonsResult.rows.map((row: any) => row.lesson_id);
+
+      if (requiredLessonIds.length === 0) {
+        break;
+      }
+
+      // Count how many required lessons the user has completed
+      const pathCompletedResult = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM lesson_completions
+              WHERE user_id = ? AND lesson_id IN (${requiredLessonIds.map(() => '?').join(',')})`,
+        args: [userId, ...requiredLessonIds],
+      });
+
+      const pathCompletedCount = (pathCompletedResult.rows[0] as any).count;
+      meetsCriteria = pathCompletedCount === requiredLessonIds.length;
       break;
     }
   }

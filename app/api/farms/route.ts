@@ -5,6 +5,22 @@ import { centroid } from '@turf/centroid';
 import { bbox } from '@turf/bbox';
 import type { Polygon } from 'geojson';
 
+export async function GET() {
+  try {
+    const session = await requireAuth();
+
+    const result = await db.execute({
+      sql: 'SELECT id, name, acres FROM farms WHERE user_id = ? ORDER BY updated_at DESC',
+      args: [session.user.id],
+    });
+
+    return Response.json({ farms: result.rows });
+  } catch (error) {
+    console.error("Failed to fetch farms:", error);
+    return Response.json({ error: "Failed to fetch farms" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();

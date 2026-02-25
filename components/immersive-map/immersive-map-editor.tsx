@@ -219,6 +219,15 @@ function ImmersiveMapEditorContent({
   // Goals state
   const [goals, setGoals] = useState<FarmerGoal[]>([]);
 
+  // Posts state
+  const [posts, setPosts] = useState<any[]>([]);
+  const fetchPosts = useCallback(() => {
+    fetch(`/api/farms/${farm.id}/posts`)
+      .then(r => r.json())
+      .then(d => setPosts(d.posts || []))
+      .catch(err => console.error('Failed to fetch posts:', err));
+  }, [farm.id]);
+
   // Chat state
   const [initialConversationId, setInitialConversationId] = useState<string | undefined>(undefined);
   const [vitalPrompt, setVitalPrompt] = useState<string | undefined>(undefined);
@@ -929,7 +938,7 @@ function ImmersiveMapEditorContent({
         farmId={farm.id}
         onPostCreated={() => {
           setPostDialogOpen(false);
-          // TODO: Refresh posts feed if needed
+          fetchPosts();
         }}
       />
 
@@ -940,7 +949,7 @@ function ImmersiveMapEditorContent({
         farmId={farm.id}
         onPhotoUploaded={() => {
           setUploadDialogOpen(false);
-          // TODO: Refresh posts feed if needed
+          fetchPosts();
         }}
       />
 
