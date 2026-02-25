@@ -800,6 +800,9 @@ function ImmersiveMapEditorContent({
               farmId={farm.id}
               focalSpecies={guildContext.focalSpecies}
               farmContext={guildContext.farmContext}
+              onSaved={() => {
+                fetch(`/api/farms/${farm.id}/guilds`).then(r => r.json()).then(d => setGuilds(d.guilds || []));
+              }}
             />
           ) : (
             <div className="p-6 space-y-4">
@@ -849,7 +852,9 @@ function ImmersiveMapEditorContent({
             </div>
           )
         ) : drawerContent === 'phase-manager' ? (
-          <PhaseManager farmId={farm.id} />
+          <PhaseManager farmId={farm.id} onSaved={() => {
+            fetch(`/api/farms/${farm.id}/phases`).then(r => r.json()).then(d => setFarmPhases(d.phases || []));
+          }} />
         ) : drawerContent === 'export' ? (
           <ExportPanel
             farmId={farm.id}

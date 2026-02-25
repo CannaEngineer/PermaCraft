@@ -132,12 +132,17 @@ export function CommunityFeedClient({ currentUserId }: CommunityFeedClientProps)
         const data: FeedResponse = await res.json();
 
         if (append) {
-          setPosts((prev) => [...prev, ...data.posts]);
+          // Deduplicate: filter out any posts already loaded
+          setPosts((prev) => {
+            const existingIds = new Set(prev.map((p) => p.id));
+            const newPosts = data.posts.filter((p) => !existingIds.has(p.id));
+            return [...prev, ...newPosts];
+          });
         } else {
           setPosts(data.posts);
         }
         setTotal(data.total);
-        setPage(data.page);
+        setPage(currentPage); // track the page we actually requested
         setHasMore(data.hasMore);
       } catch (err) {
         console.error('Community feed fetch error:', err);
@@ -189,8 +194,9 @@ export function CommunityFeedClient({ currentUserId }: CommunityFeedClientProps)
   );
 
   const handleLoadMore = useCallback(() => {
+    if (loadingMore) return; // guard against double-clicks
     fetchPosts(filters, page + 1, true);
-  }, [filters, page, fetchPosts]);
+  }, [filters, page, fetchPosts, loadingMore]);
 
   const handlePostUpdate = useCallback((updatedPost: Post) => {
     setPosts((prev) =>

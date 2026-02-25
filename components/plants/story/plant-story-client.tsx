@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Sprout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoryCardContainer } from './story-card-container';
@@ -23,7 +23,12 @@ interface PlantStoryData {
   products: ShopProduct[];
 }
 
-export function PlantStoryClient({ speciesId }: { speciesId: string }) {
+interface PlantStoryClientProps {
+  speciesId: string;
+  isAuthenticated?: boolean;
+}
+
+export function PlantStoryClient({ speciesId, isAuthenticated }: PlantStoryClientProps) {
   const router = useRouter();
   const [data, setData] = useState<PlantStoryData | null>(null);
   const [videos, setVideos] = useState<SpeciesVideo[]>([]);
@@ -111,6 +116,10 @@ export function PlantStoryClient({ speciesId }: { speciesId: string }) {
   cardLabels.push('Community');
   cards.push(<InTheCommunityCard key="community" species={species} />);
 
+  const handleAddToFarm = () => {
+    router.push(`/canvas?section=farm&addSpecies=${speciesId}`);
+  };
+
   return (
     <div className="relative">
       {/* Back Button */}
@@ -134,6 +143,20 @@ export function PlantStoryClient({ speciesId }: { speciesId: string }) {
       <StoryCardContainer onActiveCardChange={setActiveCard}>
         {cards}
       </StoryCardContainer>
+
+      {/* Sticky Add to Farm CTA */}
+      {isAuthenticated && (
+        <div className="fixed bottom-0 inset-x-0 z-50 p-4 bg-gradient-to-t from-background via-background to-transparent pt-8">
+          <Button
+            onClick={handleAddToFarm}
+            size="lg"
+            className="w-full max-w-md mx-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg rounded-xl h-12 text-base font-semibold"
+          >
+            <Sprout className="h-5 w-5" />
+            Add to My Farm
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

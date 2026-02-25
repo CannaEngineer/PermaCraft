@@ -1,10 +1,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { Species } from '@/lib/db/schema';
-import { Leaf, MapPin, Layers, Droplets, Sun } from 'lucide-react';
+import { Leaf, MapPin, Layers, Droplets, Sun, Check } from 'lucide-react';
 
 interface SpeciesCardProps {
   species: Species;
+  isPlanted?: boolean;
   onClick?: () => void;
 }
 
@@ -33,7 +34,7 @@ const getLayerColor = (layer: string) => {
   return colors[layer] || 'bg-gray-500/10 text-gray-600 border-gray-200';
 };
 
-export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
+export function SpeciesCard({ species, isPlanted, onClick }: SpeciesCardProps) {
   const regions = species.broad_regions
     ? JSON.parse(species.broad_regions).slice(0, 2)
     : [];
@@ -55,10 +56,16 @@ export function SpeciesCard({ species, onClick }: SpeciesCardProps) {
         {/* Remove gradient overlay */}
         {/* Remove large emoji icon */}
 
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex gap-1">
+          {isPlanted && (
+            <Badge className="bg-blue-600 hover:bg-blue-700 text-xs px-2 py-0.5 gap-1">
+              <Check className="w-3 h-3" />
+              In your farm
+            </Badge>
+          )}
           {species.is_native === 1 ? (
             <Badge className="bg-green-600 hover:bg-green-700 text-xs px-2 py-0.5">
-              Native  {/* NO EMOJI */}
+              Native
             </Badge>
           ) : (
             <Badge variant="secondary" className="text-xs px-2 py-0.5">

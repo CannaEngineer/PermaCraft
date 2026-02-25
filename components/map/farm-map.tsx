@@ -3219,10 +3219,19 @@ export function FarmMap({
 
       {/* Selected Species Indicator - Shown when planting mode active */}
       {plantingMode && selectedSpecies && !showSpeciesPicker && (
-        <div className="absolute top-36 left-4 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg max-w-[240px]">
-          <div className="text-xs font-medium">Planting:</div>
+        <div className="absolute top-36 left-4 z-10 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg max-w-[260px] animate-in slide-in-from-left-4 fade-in duration-300">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Planting Mode</span>
+          </div>
           <div className="font-semibold truncate">{selectedSpecies.common_name}</div>
           <div className="text-xs opacity-90 italic truncate">{selectedSpecies.scientific_name}</div>
+          <div className="mt-2 text-xs bg-white/15 rounded-md px-2.5 py-1.5 text-center font-medium">
+            Click the map to place this plant
+          </div>
           <button
             onClick={() => {
               setPlantingMode(false);

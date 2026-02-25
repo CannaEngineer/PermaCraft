@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Droplets, Waves, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Droplets, Waves, BarChart3, Plus, ChevronLeft } from "lucide-react";
+import { SwaleDesigner } from "./swale-designer";
+import { CatchmentCalculator } from "./catchment-calculator";
 
 interface WaterSystemPanelProps {
   farmId: string;
+}
+
+interface ZoneOption {
+  id: string;
+  name: string | null;
+  zone_type: string;
 }
 
 interface CatchmentZone {
@@ -31,9 +40,12 @@ interface WaterSystemStats {
   swaleCount: number;
 }
 
+type ConfigureMode = null | "pick-zone" | "catchment" | "swale";
+
 export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
   const [catchments, setCatchments] = useState<CatchmentZone[]>([]);
   const [swales, setSwales] = useState<SwaleZone[]>([]);
+  const [allZones, setAllZones] = useState<ZoneOption[]>([]);
   const [stats, setStats] = useState<WaterSystemStats>({
     totalCatchmentGallons: 0,
     totalSwaleCapacityGallons: 0,
@@ -42,14 +54,14 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadWaterFeatures();
-  }, [farmId]);
+  // Configure mode state
+  const [configureMode, setConfigureMode] = useState<ConfigureMode>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const [selectedZoneName, setSelectedZoneName] = useState<string>("");
 
-  const loadWaterFeatures = async () => {
+  const loadWaterFeatures = useCallback(async () => {
     try {
-      // Load zones - try both with and without GET endpoint
-      const zonesResponse = await fetch(`/api/farms/${farmId}/zones`).catch(() => ({ ok: false as false }));
+      const zonesResponse = await fetch(`/api/farms/${farmId}/zones`).catch(() => ({ ok: false as const }));
 
       if (!zonesResponse.ok || !('json' in zonesResponse)) {
         setLoading(false);
@@ -57,14 +69,16 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
       }
 
       const zonesData = await zonesResponse.json();
-      const zones = Array.isArray(zonesData) ? zonesData : [];
+      const zones = Array.isArray(zonesData) ? zonesData : (zonesData.zones || []);
+
+      // Store all zones for the zone picker
+      setAllZones(zones.map((z: any) => ({ id: z.id, name: z.name, zone_type: z.zone_type })));
 
       // Parse zones with water properties
       const catchmentZones: CatchmentZone[] = [];
       const swaleZones: SwaleZone[] = [];
 
       zones.forEach((zone: any) => {
-        // Parse catchment properties
         if (zone.catchment_properties) {
           try {
             const catchmentProps = typeof zone.catchment_properties === 'string'
@@ -84,7 +98,6 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
           }
         }
 
-        // Parse swale properties
         if (zone.swale_properties) {
           try {
             const swaleProps = typeof zone.swale_properties === 'string'
@@ -108,7 +121,6 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
       setCatchments(catchmentZones);
       setSwales(swaleZones);
 
-      // Calculate stats
       const totalCatchmentGallons = catchmentZones.reduce(
         (sum, c) => sum + (c.catchment_properties.estimated_capture_gallons || 0),
         0
@@ -130,20 +142,151 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [farmId]);
+
+  useEffect(() => {
+    loadWaterFeatures();
+  }, [loadWaterFeatures]);
 
   const formatNumber = (num: number) => Math.round(num).toLocaleString();
 
+  const handleCalculated = () => {
+    // Refresh data after a calculation saves to the DB
+    setConfigureMode(null);
+    setSelectedZoneId(null);
+    loadWaterFeatures();
+  };
+
+  const handlePickZone = (zoneId: string, zoneName: string, mode: "catchment" | "swale") => {
+    setSelectedZoneId(zoneId);
+    setSelectedZoneName(zoneName);
+    setConfigureMode(mode);
+  };
+
+  // Configure mode: show zone picker or calculator
+  if (configureMode === "pick-zone") {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setConfigureMode(null)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <CardTitle className="text-base">Select a Zone</CardTitle>
+              <CardDescription>Choose a zone to configure water properties</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {allZones.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No zones found. Draw a zone on the map first.
+            </p>
+          ) : (
+            allZones.map((zone) => {
+              const isCatchment = catchments.some(c => c.id === zone.id);
+              const isSwale = swales.some(s => s.id === zone.id);
+              const label = zone.name || zone.zone_type.replace(/_/g, " ");
+              return (
+                <div key={zone.id} className="rounded-lg border border-border p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-medium capitalize">{label}</p>
+                      {(isCatchment || isSwale) && (
+                        <div className="flex gap-1 mt-0.5">
+                          {isCatchment && <Badge variant="outline" className="text-xs">Catchment</Badge>}
+                          {isSwale && <Badge variant="outline" className="text-xs">Swale</Badge>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 text-xs"
+                      onClick={() => handlePickZone(zone.id, label, "catchment")}
+                    >
+                      <Droplets className="h-3 w-3 mr-1" />
+                      {isCatchment ? "Recalculate" : "Add"} Catchment
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 text-xs"
+                      onClick={() => handlePickZone(zone.id, label, "swale")}
+                    >
+                      <Waves className="h-3 w-3 mr-1" />
+                      {isSwale ? "Recalculate" : "Add"} Swale
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (configureMode === "catchment" && selectedZoneId) {
+    return (
+      <div className="space-y-3">
+        <Button variant="ghost" size="sm" className="gap-1" onClick={() => setConfigureMode("pick-zone")}>
+          <ChevronLeft className="h-4 w-4" />
+          Back to zones
+        </Button>
+        <CatchmentCalculator
+          farmId={farmId}
+          zoneId={selectedZoneId}
+          zoneName={selectedZoneName}
+          onCalculated={handleCalculated}
+        />
+      </div>
+    );
+  }
+
+  if (configureMode === "swale" && selectedZoneId) {
+    return (
+      <div className="space-y-3">
+        <Button variant="ghost" size="sm" className="gap-1" onClick={() => setConfigureMode("pick-zone")}>
+          <ChevronLeft className="h-4 w-4" />
+          Back to zones
+        </Button>
+        <SwaleDesigner
+          farmId={farmId}
+          zoneId={selectedZoneId}
+          zoneName={selectedZoneName}
+          onCalculated={handleCalculated}
+        />
+      </div>
+    );
+  }
+
+  // Default: overview with tabs
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Droplets className="h-5 w-5 text-blue-500" />
-          Water System Overview
-        </CardTitle>
-        <CardDescription>
-          Catchment areas, swales, and water storage capacity
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Droplets className="h-5 w-5 text-blue-500" />
+              Water System
+            </CardTitle>
+            <CardDescription>
+              Catchment areas, swales, and water storage capacity
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setConfigureMode("pick-zone")}
+            className="gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            Configure
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -192,79 +335,134 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
               </div>
 
               {stats.catchmentCount === 0 && stats.swaleCount === 0 && (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No water features configured yet. Use the catchment calculator or swale designer to get started.
+                <div className="text-center py-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    No water features configured yet.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfigureMode("pick-zone")}
+                    className="gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Water Feature
+                  </Button>
                 </div>
               )}
             </TabsContent>
 
             <TabsContent value="catchments" className="space-y-3">
               {catchments.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No catchment areas configured. Draw a zone and use the catchment calculator.
+                <div className="text-center py-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    No catchment areas configured.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfigureMode("pick-zone")}
+                    className="gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Catchment
+                  </Button>
                 </div>
               ) : (
-                catchments.map((catchment) => (
-                  <div key={catchment.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {catchment.name || "Unnamed catchment"}
-                      </span>
-                      <Badge variant="outline">
-                        {catchment.catchment_properties.rainfall_inches_per_year} in/year
-                      </Badge>
-                    </div>
-                    <div className="text-sm space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Annual capture:</span>
-                        <span className="font-medium text-blue-600">
-                          {formatNumber(catchment.catchment_properties.estimated_capture_gallons)} gal
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Daily average:</span>
+                <>
+                  {catchments.map((catchment) => (
+                    <div key={catchment.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                      <div className="flex items-center justify-between">
                         <span className="font-medium">
-                          {formatNumber(catchment.catchment_properties.estimated_capture_gallons / 365)} gal
+                          {catchment.name || "Unnamed catchment"}
                         </span>
+                        <Badge variant="outline">
+                          {catchment.catchment_properties.rainfall_inches_per_year} in/year
+                        </Badge>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Annual capture:</span>
+                          <span className="font-medium text-blue-600">
+                            {formatNumber(catchment.catchment_properties.estimated_capture_gallons)} gal
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Daily average:</span>
+                          <span className="font-medium">
+                            {formatNumber(catchment.catchment_properties.estimated_capture_gallons / 365)} gal
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfigureMode("pick-zone")}
+                    className="w-full gap-1 text-xs"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add another catchment
+                  </Button>
+                </>
               )}
             </TabsContent>
 
             <TabsContent value="swales" className="space-y-3">
               {swales.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No swales configured. Draw a line or zone and use the swale designer.
+                <div className="text-center py-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    No swales configured.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfigureMode("pick-zone")}
+                    className="gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Swale
+                  </Button>
                 </div>
               ) : (
-                swales.map((swale) => (
-                  <div key={swale.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {swale.name || "Unnamed swale"}
-                      </span>
-                      <Badge variant="outline">
-                        {swale.swale_properties.length_feet} ft
-                      </Badge>
-                    </div>
-                    <div className="text-sm space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Dimensions:</span>
+                <>
+                  {swales.map((swale) => (
+                    <div key={swale.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                      <div className="flex items-center justify-between">
                         <span className="font-medium">
-                          {swale.swale_properties.cross_section_width_feet}ft × {swale.swale_properties.cross_section_depth_feet}ft
+                          {swale.name || "Unnamed swale"}
                         </span>
+                        <Badge variant="outline">
+                          {swale.swale_properties.length_feet} ft
+                        </Badge>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Capacity:</span>
-                        <span className="font-medium text-blue-600">
-                          {formatNumber(swale.swale_properties.estimated_volume_gallons)} gal
-                        </span>
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Dimensions:</span>
+                          <span className="font-medium">
+                            {swale.swale_properties.cross_section_width_feet}ft × {swale.swale_properties.cross_section_depth_feet}ft
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Capacity:</span>
+                          <span className="font-medium text-blue-600">
+                            {formatNumber(swale.swale_properties.estimated_volume_gallons)} gal
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfigureMode("pick-zone")}
+                    className="w-full gap-1 text-xs"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add another swale
+                  </Button>
+                </>
               )}
             </TabsContent>
           </Tabs>

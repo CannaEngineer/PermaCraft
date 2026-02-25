@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CompanionSpeciesCard } from './companion-species-card';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Save, Loader2 } from 'lucide-react';
+import { Sparkles, Save, Loader2, Check } from 'lucide-react';
 
 interface GuildDesignerProps {
   farmId: string;
@@ -18,15 +18,17 @@ interface GuildDesignerProps {
     soil_type?: string;
     rainfall_inches?: number;
   };
+  onSaved?: () => void;
 }
 
-export function GuildDesigner({ farmId, focalSpecies, farmContext }: GuildDesignerProps) {
+export function GuildDesigner({ farmId, focalSpecies, farmContext, onSaved }: GuildDesignerProps) {
   const [companions, setCompanions] = useState<any[]>([]);
   const [guildName, setGuildName] = useState('');
   const [preferNative, setPreferNative] = useState(true);
   const [edibleFocus, setEdibleFocus] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const { toast } = useToast();
 
   async function handleGetSuggestions() {
@@ -97,12 +99,11 @@ export function GuildDesigner({ farmId, focalSpecies, farmContext }: GuildDesign
     setSaving(true);
 
     try {
-      // Save as custom guild template
       const response = await fetch('/api/guilds/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: guildName,
+          name: guildName || `${focalSpecies.common_name} Guild`,
           focal_species_id: focalSpecies.id,
           companion_species: companions,
           is_public: false
@@ -113,10 +114,15 @@ export function GuildDesigner({ farmId, focalSpecies, farmContext }: GuildDesign
         throw new Error('Failed to save guild');
       }
 
-      toast({ title: 'Guild template saved' });
+      setSaved(true);
+      toast({
+        title: 'Guild saved',
+        description: `${guildName || focalSpecies.common_name + ' Guild'} with ${companions.length} companions`
+      });
+      onSaved?.();
     } catch (error) {
       console.error('Failed to save guild:', error);
-      toast({ title: 'Save failed', variant: 'destructive' });
+      toast({ title: 'Save failed', description: 'Please try again.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -208,19 +214,24 @@ export function GuildDesigner({ farmId, focalSpecies, farmContext }: GuildDesign
 
             <Button
               onClick={handleSaveGuild}
-              disabled={saving}
+              disabled={saving || saved}
               className="w-full"
-              variant="outline"
+              variant={saved ? 'default' : 'outline'}
             >
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
                 </>
+              ) : saved ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Guild Saved
+                </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Save Guild Template
+                  Save Guild
                 </>
               )}
             </Button>

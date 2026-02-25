@@ -21,13 +21,19 @@ export async function captureMapSnapshot(
     quality = 0.95,
   } = options;
 
-  // Wait for map to be fully loaded
-  await new Promise<void>(resolve => {
+  // Wait for map to be fully loaded (with timeout to prevent infinite hang)
+  await new Promise<void>((resolve, reject) => {
     if (map.loaded()) {
       resolve();
-    } else {
-      map.once('idle', () => resolve());
+      return;
     }
+    const timeout = setTimeout(() => {
+      reject(new Error('Map snapshot timed out waiting for map to load. Try again once tiles have loaded.'));
+    }, 10000);
+    map.once('idle', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
   });
 
   // Trigger a repaint and capture on the next render frame.

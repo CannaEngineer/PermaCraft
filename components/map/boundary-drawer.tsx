@@ -312,7 +312,16 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
     map.current.on("draw.update", handleUpdate);
     map.current.on("draw.delete", handleDelete);
 
+    // Resize map when container dimensions change (e.g. after panel transitions)
+    const resizeObserver = new ResizeObserver(() => {
+      map.current?.resize();
+    });
+    if (mapContainer.current) {
+      resizeObserver.observe(mapContainer.current);
+    }
+
     return () => {
+      resizeObserver.disconnect();
       if (searchMarker.current) {
         searchMarker.current.remove();
         searchMarker.current = null;

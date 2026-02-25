@@ -107,20 +107,27 @@ export function JournalListPanel({ farmId }: JournalListPanelProps) {
 
       {/* Empty state */}
       {entries.length === 0 && (
-        <div className="text-center py-12 space-y-3">
-          <div className="h-12 w-12 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto">
-            <BookOpen className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+        <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 p-6 text-center space-y-4">
+          <div className="h-14 w-14 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center mx-auto">
+            <BookOpen className="h-7 w-7 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <p className="text-sm font-medium">No journal entries yet</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Track observations, weather, harvests, and wildlife sightings.
+            <p className="font-semibold">Start Your Farm Journal</p>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-[260px] mx-auto">
+              Record observations, weather, harvests, and wildlife sightings to track your farm's progress over time.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Log your first observation
+          <Button onClick={() => setFormOpen(true)} className="gap-2 bg-amber-600 hover:bg-amber-700 text-white">
+            <Plus className="h-4 w-4" />
+            Write Your First Entry
           </Button>
+          <div className="flex flex-wrap justify-center gap-1.5 pt-1">
+            {['Weather', 'Harvest', 'Wildlife', 'Soil', 'Planting'].map((tag) => (
+              <Badge key={tag} variant="outline" className="text-xs font-normal text-muted-foreground border-amber-200 dark:border-amber-800">
+                {tag}
+              </Badge>
+            ))}
+          </div>
         </div>
       )}
 

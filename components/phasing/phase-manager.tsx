@@ -11,9 +11,10 @@ import { format } from 'date-fns';
 
 interface PhaseManagerProps {
   farmId: string;
+  onSaved?: () => void;
 }
 
-export function PhaseManager({ farmId }: PhaseManagerProps) {
+export function PhaseManager({ farmId, onSaved }: PhaseManagerProps) {
   const [phases, setPhases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -54,17 +55,24 @@ export function PhaseManager({ farmId }: PhaseManagerProps) {
         throw new Error('Failed to save phase');
       }
 
-      toast({ title: editingPhase ? 'Phase updated' : 'Phase created' });
+      const phaseName = formData.name || 'Phase';
+      toast({
+        title: editingPhase ? 'Phase updated' : 'Phase added',
+        description: editingPhase
+          ? `"${phaseName}" has been updated.`
+          : `"${phaseName}" added to your timeline.`,
+      });
       setShowForm(false);
       setEditingPhase(null);
-      loadPhases();
+      await loadPhases();
+      onSaved?.();
     } catch (error) {
       console.error('Failed to save phase:', error);
-      toast({ title: 'Failed to save phase', variant: 'destructive' });
+      toast({ title: 'Failed to save phase', description: 'Please try again.', variant: 'destructive' });
     }
   }
 
-  async function handleDelete(phaseId: string) {
+  async function handleDelete(phaseId: string, phaseName?: string) {
     if (!confirm('Delete this phase? Features will be unassigned.')) return;
 
     try {
@@ -72,11 +80,15 @@ export function PhaseManager({ farmId }: PhaseManagerProps) {
         method: 'DELETE'
       });
 
-      toast({ title: 'Phase deleted' });
-      loadPhases();
+      toast({
+        title: 'Phase deleted',
+        description: phaseName ? `"${phaseName}" removed from timeline.` : undefined,
+      });
+      await loadPhases();
+      onSaved?.();
     } catch (error) {
       console.error('Failed to delete phase:', error);
-      toast({ title: 'Failed to delete phase', variant: 'destructive' });
+      toast({ title: 'Failed to delete phase', description: 'Please try again.', variant: 'destructive' });
     }
   }
 
@@ -153,7 +165,7 @@ export function PhaseManager({ farmId }: PhaseManagerProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(phase.id)}
+                      onClick={() => handleDelete(phase.id, phase.name)}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

@@ -163,7 +163,7 @@ export function AnnotationEditForm({
 
       {/* Submit */}
       <div className="flex justify-end gap-2">
-        <Button type="submit" size="sm" disabled={saving}>
+        <Button type="submit" size="sm" disabled={saving || !designRationale.trim()}>
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

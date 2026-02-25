@@ -189,7 +189,7 @@ export function MapBottomDrawer({
   return (
     <div
       className={cn(
-        "absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20",
+        "absolute bottom-14 md:bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20",
         tokens.animation.slide,
         isCollapsed ? 'translate-y-full' : 'translate-y-0'
       )}
@@ -220,7 +220,7 @@ export function MapBottomDrawer({
                 <Badge
                   onClick={(e) => { e.stopPropagation(); openTab('vitals'); }}
                   variant="outline"
-                  className="cursor-pointer hover:bg-accent text-[10px] shrink-0 border-amber-400 text-amber-700 dark:text-amber-400"
+                  className="cursor-pointer hover:bg-accent text-[10px] shrink-0 border-amber-400 text-amber-700 dark:text-amber-300"
                 >
                   Diversify guild
                 </Badge>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PanelHeader } from './panel-header';
-import { Search, Leaf, Loader2, X, ArrowRight, AlertCircle } from 'lucide-react';
+import { Search, Leaf, Loader2, X, ArrowRight, AlertCircle, Plus } from 'lucide-react';
 import type { Species } from '@/lib/db/schema';
 
 const LAYERS = ['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'] as const;
@@ -18,7 +18,11 @@ const layerColors: Record<string, string> = {
   aquatic: 'bg-blue-500 text-white',
 };
 
-export function PlantsPanel() {
+interface PlantsPanelProps {
+  onSelectSpecies?: (species: Species) => void;
+}
+
+export function PlantsPanel({ onSelectSpecies }: PlantsPanelProps = {}) {
   const [species, setSpecies] = useState<Species[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -156,7 +160,7 @@ export function PlantsPanel() {
         ) : (
           <div className="divide-y divide-border/30">
             {species.slice(0, 50).map((sp) => (
-              <SpeciesRow key={sp.id} species={sp} />
+              <SpeciesRow key={sp.id} species={sp} onSelect={onSelectSpecies} />
             ))}
             {species.length > 50 && (
               <p className="text-xs text-muted-foreground text-center py-3">
@@ -181,7 +185,7 @@ export function PlantsPanel() {
   );
 }
 
-function SpeciesRow({ species }: { species: Species }) {
+function SpeciesRow({ species, onSelect }: { species: Species; onSelect?: (species: Species) => void }) {
   let functions: string[] = [];
   if (species.permaculture_functions) {
     try {
@@ -191,17 +195,29 @@ function SpeciesRow({ species }: { species: Species }) {
   }
 
   return (
-    <div className="px-4 py-3">
+    <button
+      type="button"
+      onClick={() => onSelect?.(species)}
+      className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors group cursor-pointer"
+      aria-label={`Add ${species.common_name} to farm`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{species.common_name}</p>
           <p className="text-xs text-muted-foreground italic truncate">{species.scientific_name}</p>
         </div>
-        <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
-          layerColors[species.layer] || 'bg-gray-500 text-white'
-        }`}>
-          {species.layer}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
+            layerColors[species.layer] || 'bg-gray-500 text-white'
+          }`}>
+            {species.layer}
+          </span>
+          {onSelect && (
+            <span className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-green-600 text-white p-0.5">
+              <Plus className="h-3.5 w-3.5" />
+            </span>
+          )}
+        </div>
       </div>
       {functions.length > 0 && (
         <div className="flex gap-1 mt-1.5 flex-wrap">
@@ -217,6 +233,6 @@ function SpeciesRow({ species }: { species: Species }) {
           Native
         </span>
       ) : null}
-    </div>
+    </button>
   );
 }

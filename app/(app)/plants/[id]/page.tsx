@@ -43,7 +43,7 @@ export default async function PlantStoryPage({ params }: Props) {
 
   return (
     <>
-      <PlantStoryClient speciesId={id} />
+      <PlantStoryClient speciesId={id} isAuthenticated={!!session} />
       {!session && (
         <div className="mt-10">
           <RegisterCTA variant="plants" />

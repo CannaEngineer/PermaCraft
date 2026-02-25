@@ -275,6 +275,38 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     loadAll();
   }, [farm?.id]);
 
+  // Handle addSpecies URL param (from "Add to Farm" CTA on plant story page)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const addSpeciesId = params.get('addSpecies');
+    if (!addSpeciesId) return;
+
+    // Clear param from URL so it doesn't re-trigger
+    const url = new URL(window.location.href);
+    url.searchParams.delete('addSpecies');
+    window.history.replaceState({}, '', url.toString());
+
+    // Ensure we're on the farm section
+    setActiveSection('farm');
+
+    // Fetch species and enter planting mode
+    (async () => {
+      try {
+        const res = await fetch(`/api/species/${addSpeciesId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const species = data.species;
+        if (species) {
+          setPendingPlantSpecies(prev => ({ species, seq: (prev?.seq ?? 0) + 1 }));
+          setSaveToast({ message: `Click the map to place ${species.common_name}`, type: 'success' });
+          setTimeout(() => setSaveToast(null), 4000);
+        }
+      } catch {
+        // Species not found — silently ignore
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setSaveToast({ message, type });
     setTimeout(() => setSaveToast(null), 3000);
@@ -426,7 +458,16 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const handleSelectSpecies = (species: Species) => {
     closeDrawer();
     setPendingPlantSpecies(prev => ({ species, seq: (prev?.seq ?? 0) + 1 }));
+    setSaveToast({ message: `Click the map to place ${species.common_name}`, type: 'success' });
+    setTimeout(() => setSaveToast(null), 4000);
   };
+  // Handler for PlantsPanel species row click → switch to farm + enter planting mode
+  const handlePlantsPanelSelect = useCallback((species: Species) => {
+    setActiveSection('farm');
+    setPendingPlantSpecies(prev => ({ species, seq: (prev?.seq ?? 0) + 1 }));
+    setSaveToast({ message: `Click the map to place ${species.common_name}`, type: 'success' });
+    setTimeout(() => setSaveToast(null), 4000);
+  }, [setActiveSection]);
   const handleOpenWaterSystem = useCallback(() => openDrawer('water-system', 'max'), [openDrawer]);
   const handleOpenGuildDesigner = useCallback(() => {
     if (!guildContext?.focalSpecies) setGuildContext({ focalSpecies: null, farmContext });
@@ -496,7 +537,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       case 'explore':
         return <ExplorePanel />;
       case 'plants':
-        return <PlantsPanel />;
+        return <PlantsPanel onSelectSpecies={handlePlantsPanelSelect} />;
       case 'learn':
         return <LearnPanel />;
       case 'ai':
@@ -638,6 +679,9 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
               farmId={farm.id}
               focalSpecies={guildContext.focalSpecies}
               farmContext={guildContext.farmContext}
+              onSaved={() => {
+                fetch(`/api/farms/${farm.id}/guilds`).then(r => r.json()).then(d => setGuilds(d.guilds || []));
+              }}
             />
           ) : (
             <div className="p-6 space-y-4">
@@ -674,7 +718,9 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             </div>
           )
         ) : drawerContent === 'phase-manager' ? (
-          <PhaseManager farmId={farm.id} />
+          <PhaseManager farmId={farm.id} onSaved={() => {
+            fetch(`/api/farms/${farm.id}/phases`).then(r => r.json()).then(d => setFarmPhases(d.phases || []));
+          }} />
         ) : drawerContent === 'export' ? (
           <ExportPanel farmId={farm.id} farmName={farm.name} mapInstance={mapRef.current} />
         ) : drawerContent === 'species-picker' ? (

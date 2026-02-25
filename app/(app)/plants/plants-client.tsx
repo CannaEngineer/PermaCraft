@@ -22,12 +22,44 @@ export function PlantsClient({ isAuthenticated }: PlantsClientProps) {
   const [species, setSpecies] = useState<Species[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [plantedSpeciesIds, setPlantedSpeciesIds] = useState<Set<string>>(new Set());
 
   const [nativeFilter, setNativeFilter] = useState<'all' | 'native' | 'naturalized'>('all');
   const [layerFilter, setLayerFilter] = useState<string[]>([]);
   const [functionFilter, setFunctionFilter] = useState<string[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch planted species from user's farms
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const farmsRes = await fetch('/api/farms');
+        if (!farmsRes.ok) return;
+        const farmsData = await farmsRes.json();
+        const farms = farmsData.farms || [];
+        if (farms.length === 0) return;
+
+        // Fetch plantings from all farms in parallel
+        const plantingResults = await Promise.all(
+          farms.map((f: any) =>
+            fetch(`/api/farms/${f.id}/plantings`).then(r => r.ok ? r.json() : { plantings: [] })
+          )
+        );
+
+        const ids = new Set<string>();
+        for (const result of plantingResults) {
+          for (const p of result.plantings || []) {
+            if (p.species_id) ids.add(p.species_id);
+          }
+        }
+        setPlantedSpeciesIds(ids);
+      } catch {
+        // Silently handle — feature is non-critical
+      }
+    })();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchSpecies();
@@ -271,6 +303,7 @@ export function PlantsClient({ isAuthenticated }: PlantsClientProps) {
                 >
                   <SpeciesCard
                     species={s}
+                    isPlanted={plantedSpeciesIds.has(s.id)}
                     onClick={() => router.push(`/plants/${s.id}`)}
                   />
                 </div>

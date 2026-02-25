@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Download, FileImage, FileText } from 'lucide-react';
+import { Download, FileImage, FileText, Loader2 } from 'lucide-react';
 import { captureMapSnapshot, downloadSnapshot } from '@/lib/export/snapshot';
 import maplibregl from 'maplibre-gl';
 
@@ -20,7 +20,7 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
   const [includeZones, setIncludeZones] = useState(true);
   const [includePlantings, setIncludePlantings] = useState(true);
   const [includePhases, setIncludePhases] = useState(true);
-  const [exporting, setExporting] = useState(false);
+  const [exportingType, setExportingType] = useState<'png' | 'pdf' | null>(null);
   const { toast } = useToast();
 
   async function handleExportPNG() {
@@ -29,7 +29,7 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
       return;
     }
 
-    setExporting(true);
+    setExportingType('png');
 
     try {
       const dataUrl = await captureMapSnapshot(mapInstance, {
@@ -51,7 +51,7 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
         : 'PNG export failed. Please try again.';
       toast({ title: message, variant: 'destructive' });
     } finally {
-      setExporting(false);
+      setExportingType(null);
     }
   }
 
@@ -61,7 +61,7 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
       return;
     }
 
-    setExporting(true);
+    setExportingType('pdf');
 
     try {
       // Capture map
@@ -126,7 +126,7 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
         : 'PDF export failed. Please try again.';
       toast({ title: message, variant: 'destructive' });
     } finally {
-      setExporting(false);
+      setExportingType(null);
     }
   }
 
@@ -138,8 +138,10 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
     quality: number
   ): Promise<string> {
     return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(dataUrl), 5000); // fallback after 5s
       const img = new Image();
       img.onload = () => {
+        clearTimeout(timeout);
         let { width, height } = img;
         if (width > maxWidth || height > maxHeight) {
           const ratio = Math.min(maxWidth / width, maxHeight / height);
@@ -153,7 +155,7 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
         ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
-      img.onerror = () => resolve(dataUrl); // fallback to original
+      img.onerror = () => { clearTimeout(timeout); resolve(dataUrl); };
       img.src = dataUrl;
     });
   }
@@ -209,21 +211,29 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
 
         <Button
           onClick={handleExportPNG}
-          disabled={exporting}
+          disabled={!!exportingType}
           className="w-full"
           variant="outline"
         >
-          <FileImage className="h-4 w-4 mr-2" />
-          Export Map as PNG
+          {exportingType === 'png' ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <FileImage className="h-4 w-4 mr-2" />
+          )}
+          {exportingType === 'png' ? 'Exporting PNG...' : 'Export Map as PNG'}
         </Button>
 
         <Button
           onClick={handleExportPDF}
-          disabled={exporting}
+          disabled={!!exportingType}
           className="w-full"
         >
-          <FileText className="h-4 w-4 mr-2" />
-          {exporting ? 'Exporting...' : 'Export Farm Plan as PDF'}
+          {exportingType === 'pdf' ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <FileText className="h-4 w-4 mr-2" />
+          )}
+          {exportingType === 'pdf' ? 'Exporting PDF...' : 'Export Farm Plan as PDF'}
         </Button>
       </CardContent>
     </Card>
