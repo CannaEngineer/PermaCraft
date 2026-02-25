@@ -10,7 +10,7 @@ export async function GET() {
     const session = await requireAuth();
 
     const result = await db.execute({
-      sql: 'SELECT id, name, acres FROM farms WHERE user_id = ? ORDER BY updated_at DESC',
+      sql: 'SELECT id, name, acres, center_lat, center_lng FROM farms WHERE user_id = ? ORDER BY updated_at DESC',
       args: [session.user.id],
     });
 

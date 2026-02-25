@@ -9,6 +9,8 @@ interface FarmOption {
   id: string;
   name: string;
   acres: number | null;
+  center_lat?: number | null;
+  center_lng?: number | null;
 }
 
 interface FarmSelectorDialogProps {
