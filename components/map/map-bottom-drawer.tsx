@@ -219,10 +219,10 @@ export function MapBottomDrawer({
               {lowVitalCount > 0 && plantings.length > 0 && (
                 <Badge
                   onClick={(e) => { e.stopPropagation(); openTab('vitals'); }}
-                  variant="destructive"
-                  className="cursor-pointer hover:bg-destructive/90 text-[10px] shrink-0"
+                  variant="outline"
+                  className="cursor-pointer hover:bg-accent text-[10px] shrink-0 border-amber-400 text-amber-700 dark:text-amber-400"
                 >
-                  Missing functions
+                  Diversify guild
                 </Badge>
               )}
 
