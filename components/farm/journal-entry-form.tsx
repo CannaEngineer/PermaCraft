@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { ImageIcon, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import imageCompression from 'browser-image-compression';
 
 interface JournalEntryFormProps {
   open: boolean;
@@ -37,6 +39,63 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
   const [tags, setTags] = useState<string[]>([]);
   const [shareToComm, setShareToComm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remaining = 5 - selectedFiles.length;
+    const newFiles = files.slice(0, remaining);
+
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+
+    newFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrls(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFiles = async (): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of selectedFiles) {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 3000,
+        useWebWorker: true,
+      });
+
+      const imageData = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(compressed);
+      });
+
+      const res = await fetch('/api/upload/photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ farmId, imageData }),
+      });
+
+      if (!res.ok) throw new Error('Failed to upload image');
+      const { url } = await res.json();
+      urls.push(url);
+    }
+    return urls;
+  };
 
   const toggleTag = (tag: string) => {
     setTags(prev =>
@@ -52,13 +111,23 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
     setSaving(true);
 
     try {
+      let mediaUrls: string[] | null = null;
+      if (selectedFiles.length > 0) {
+        setUploading(true);
+        try {
+          mediaUrls = await uploadFiles();
+        } finally {
+          setUploading(false);
+        }
+      }
+
       const entry = {
         id: crypto.randomUUID(),
         farm_id: farmId,
         entry_date: Math.floor(date.getTime() / 1000),
         title: title.trim() || null,
         content: content.trim(),
-        media_urls: null, // TODO: Handle file uploads
+        media_urls: mediaUrls ? JSON.stringify(mediaUrls) : null,
         weather: weather.trim() || null,
         tags: JSON.stringify(tags),
         is_shared_to_community: shareToComm ? 1 : 0
@@ -81,6 +150,8 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
       setTags([]);
       setShareToComm(false);
       setDate(new Date());
+      setSelectedFiles([]);
+      setPreviewUrls([]);
 
       if (shareToComm && data.shared === false) {
         toast.success('Journal entry saved (sharing to community failed)');
@@ -157,6 +228,43 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
             />
           </div>
 
+          {/* Photos */}
+          <div>
+            <Label>Photos (optional)</Label>
+            <div className="mt-2">
+              {previewUrls.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {previewUrls.map((url, i) => (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden border">
+                      <img src={url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedFiles.length < 5 && (
+                <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent transition-colors text-sm text-muted-foreground">
+                  <ImageIcon className="h-4 w-4" />
+                  Add Photos ({selectedFiles.length}/5)
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
           {/* Tags */}
           <div>
             <Label>Tags</Label>
@@ -193,9 +301,9 @@ export function JournalEntryForm({ open, onOpenChange, farmId, onEntryCreated }:
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!content.trim() || saving}
+            disabled={!content.trim() || saving || uploading}
           >
-            {saving ? 'Saving...' : 'Save Entry'}
+            {uploading ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Uploading...</> : saving ? 'Saving...' : 'Save Entry'}
           </Button>
         </div>
       </DialogContent>

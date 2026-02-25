@@ -10,6 +10,7 @@ import { SaveIcon, MessageSquare, Trash2, Target } from "lucide-react";
 import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { calculateGridCoordinates, formatGridRange } from "@/lib/map/zone-grid-calculator";
+import { bbox } from "@turf/bbox";
 import { toPng } from "html-to-image";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
@@ -41,6 +42,8 @@ export function FarmEditorClient({
   const [showGoalsWizard, setShowGoalsWizard] = useState(false);
   const [goals, setGoals] = useState<FarmerGoal[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [pendingZoneZoom, setPendingZoneZoom] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const mapComponentCallbacksRef = useRef<{
@@ -277,10 +280,37 @@ IMPORTANT: When suggesting new plantings:
     const hash = window.location.hash;
     if (hash.startsWith('#zone-')) {
       const zoneId = hash.substring(6); // Remove '#zone-' prefix
-      // TODO: Implement zone zoom functionality when map is ready
-      console.log('TODO: Zoom to zone:', zoneId);
+      setPendingZoneZoom(zoneId);
     }
   }, []);
+
+  // Zoom to zone when map is ready and a zone ID is pending from URL hash
+  useEffect(() => {
+    if (!pendingZoneZoom || !mapReady || !mapRef.current) return;
+
+    const zone = zones.find((z) => z.id === pendingZoneZoom);
+    if (!zone) {
+      setPendingZoneZoom(null);
+      return;
+    }
+
+    try {
+      const geometry = typeof zone.geometry === 'string'
+        ? JSON.parse(zone.geometry)
+        : zone.geometry;
+
+      const [minLng, minLat, maxLng, maxLat] = bbox(geometry);
+
+      mapRef.current.fitBounds(
+        [[minLng, minLat], [maxLng, maxLat]],
+        { padding: 80, duration: 1000, maxZoom: 19 }
+      );
+    } catch (error) {
+      console.error('Failed to zoom to zone:', error);
+    }
+
+    setPendingZoneZoom(null);
+  }, [pendingZoneZoom, mapReady, zones]);
 
   const handleSave = async (showAlert = true) => {
     setSaving(true);
@@ -972,6 +1002,7 @@ IMPORTANT: When suggesting new plantings:
             onZonesChange={handleZonesChange}
             onMapReady={(map) => {
               mapRef.current = map;
+              setMapReady(true);
             }}
             onMapLayerChange={setCurrentMapLayer}
             onGetRecommendations={handleVitalRecommendations}

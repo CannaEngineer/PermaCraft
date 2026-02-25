@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth/session';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 
 const r2 = new S3Client({
   region: 'auto',
@@ -45,11 +46,8 @@ export async function POST(
   const mediaId = crypto.randomUUID();
   const fileExtension = file.name.split('.').pop();
   const fileName = `${mediaId}.${fileExtension}`;
-  const thumbnailName = `${mediaId}_thumb.${fileExtension}`;
-
   const farmId = annotation.rows[0].farm_id;
   const filePath = `farms/${farmId}/annotations/${annotationId}/${fileName}`;
-  const thumbnailPath = `farms/${farmId}/annotations/${annotationId}/${thumbnailName}`;
 
   // Upload original file to R2
   const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -62,8 +60,30 @@ export async function POST(
 
   const fileUrl = `https://${process.env.R2_PUBLIC_URL}/${filePath}`;
 
-  // TODO: Generate thumbnail (defer to client-side for MVP)
-  const thumbnailUrl = null;
+  // Generate thumbnail for images
+  let thumbnailUrl: string | null = null;
+
+  if (file.type.startsWith('image/')) {
+    try {
+      const thumbnailBuffer = await sharp(fileBuffer)
+        .resize(300, 300, { fit: 'cover', position: 'centre' })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      const thumbPath = `farms/${farmId}/annotations/${annotationId}/${mediaId}_thumb.jpg`;
+
+      await r2.send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME!,
+        Key: thumbPath,
+        Body: thumbnailBuffer,
+        ContentType: 'image/jpeg',
+      }));
+
+      thumbnailUrl = `https://${process.env.R2_PUBLIC_URL}/${thumbPath}`;
+    } catch (thumbError) {
+      console.error('Thumbnail generation failed, continuing without thumbnail:', thumbError);
+    }
+  }
 
   // Create media attachment record
   await db.execute({

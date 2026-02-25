@@ -5,6 +5,7 @@ import { MessageSquareIcon, ShareIcon, BookmarkIcon, Trash2Icon, Copy, Check } f
 import { ReactionButton } from './reaction-button';
 import { AddToCollectionDialog } from '@/components/collections/add-to-collection-dialog';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +58,7 @@ export function PostActions({
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { toast } = useToast();
 
   const handleReact = async (type: string) => {
     if (loading) return;
@@ -191,7 +193,7 @@ export function PostActions({
       }
     } catch (error) {
       console.error('Failed to delete post:', error);
-      // TODO: Show error toast
+      toast({ title: 'Failed to delete post', description: 'Please try again.', variant: 'destructive' });
     } finally {
       setDeleteLoading(false);
     }

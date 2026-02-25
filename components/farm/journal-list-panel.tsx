@@ -224,6 +224,30 @@ function JournalEntryCard({ entry, onClick }: { entry: JournalEntry; onClick: ()
       {/* Content preview */}
       <p className="text-sm text-muted-foreground leading-relaxed">{preview}</p>
 
+      {/* Media thumbnails */}
+      {entry.media_urls && (() => {
+        try {
+          const urls: string[] = JSON.parse(entry.media_urls);
+          if (urls.length > 0) {
+            return (
+              <div className="flex gap-1.5 overflow-hidden">
+                {urls.slice(0, 3).map((url, i) => (
+                  <div key={i} className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+                {urls.length > 3 && (
+                  <div className="h-16 w-16 flex-shrink-0 rounded-md border flex items-center justify-center bg-muted">
+                    <span className="text-xs text-muted-foreground">+{urls.length - 3}</span>
+                  </div>
+                )}
+              </div>
+            );
+          }
+        } catch { /* malformed */ }
+        return null;
+      })()}
+
       {/* Tags */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -283,6 +307,29 @@ function JournalEntryDetail({ entry, onClose }: { entry: JournalEntry | null; on
           <div className="text-sm leading-relaxed whitespace-pre-wrap">
             {entry.content}
           </div>
+
+          {/* Media */}
+          {entry.media_urls && (() => {
+            try {
+              const urls: string[] = JSON.parse(entry.media_urls);
+              if (urls.length > 0) {
+                return (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {urls.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                           className="aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors">
+                          <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </>
+                );
+              }
+            } catch { /* malformed */ }
+            return null;
+          })()}
 
           {/* Tags */}
           {tags.length > 0 && (
