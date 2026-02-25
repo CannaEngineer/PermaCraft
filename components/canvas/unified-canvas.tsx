@@ -20,6 +20,7 @@ import { GuildDesigner } from '@/components/guilds/guild-designer';
 import { PhaseManager } from '@/components/phasing/phase-manager';
 import { ExportPanel } from '@/components/export/export-panel';
 import { SpeciesPickerPanel } from '@/components/map/species-picker-panel';
+import { FeatureListPanel } from '@/components/map/feature-list-panel';
 import { GoalCaptureWizard } from '@/components/farm/goal-capture-wizard';
 import { CreatePostDialog } from '@/components/farm/create-post-dialog';
 import { PhotoUploadDialog } from '@/components/immersive-map/photo-upload-dialog';
@@ -678,6 +679,17 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           <ExportPanel farmId={farm.id} farmName={farm.name} mapInstance={mapRef.current} />
         ) : drawerContent === 'species-picker' ? (
           <SpeciesPickerPanel farmId={farm.id} onSelectSpecies={handleSelectSpecies} onClose={closeDrawer} />
+        ) : drawerContent === 'feature-list' ? (
+          <FeatureListPanel
+            zones={zones}
+            plantings={plantings}
+            lines={lines}
+            guilds={guilds}
+            phases={farmPhases}
+            farmId={farm.id}
+            onFeatureSelect={handleFeatureSelect}
+            mapRef={mapRef}
+          />
         ) : drawerContent === 'journal' ? (
           <JournalListPanel farmId={farm.id} />
         ) : (

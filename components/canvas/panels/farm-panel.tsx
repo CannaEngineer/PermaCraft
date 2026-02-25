@@ -87,7 +87,7 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
             Features
           </h3>
           <button
-            onClick={() => onOpenDrawer?.('details')}
+            onClick={() => onOpenDrawer?.('feature-list')}
             className="w-full flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"
           >
             <ListTree className="h-5 w-5 text-muted-foreground" />
