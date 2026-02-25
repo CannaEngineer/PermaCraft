@@ -34,7 +34,7 @@ export function CanvasMobileNav() {
               'flex flex-col items-center justify-center gap-0.5 min-w-[48px] h-11 rounded-xl transition-all touch-manipulation active:scale-95',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
               isActive
-                ? 'text-primary'
+                ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground'
             )}
             aria-label={item.label}

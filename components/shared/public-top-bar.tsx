@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { isRouteActive } from "@/lib/nav/navigation";
 
 export function PublicTopBar() {
   const pathname = usePathname();
-  const isBlogActive = pathname?.startsWith("/learn/blog");
-  const isPlantsActive = pathname?.startsWith("/plants");
+  const isBlogActive = isRouteActive(pathname, "/learn/blog");
+  const isPlantsActive = isRouteActive(pathname, "/plants");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -16,8 +18,7 @@ export function PublicTopBar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link
           href="/"
-          className="font-serif text-xl font-bold tracking-tight no-underline hover:no-underline"
-          style={{ color: "hsl(var(--foreground))" }}
+          className="font-serif text-xl font-bold tracking-tight text-foreground no-underline hover:no-underline"
         >
           Permaculture.Studio
         </Link>
@@ -26,36 +27,35 @@ export function PublicTopBar() {
         <div className="hidden md:flex items-center gap-3">
           <Link
             href="/learn/blog"
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline ${
-              isBlogActive ? "bg-muted" : "hover:bg-muted"
-            }`}
-            style={{ color: "hsl(var(--foreground))" }}
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
+              isBlogActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
           >
             Blog
           </Link>
           <Link
             href="/plants"
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline ${
-              isPlantsActive ? "bg-muted" : "hover:bg-muted"
-            }`}
-            style={{ color: "hsl(var(--foreground))" }}
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
+              isPlantsActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
           >
             Plants
           </Link>
           <Link
             href="/login"
-            className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline"
-            style={{ color: "hsl(var(--foreground))" }}
+            className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
           >
             Sign In
           </Link>
           <Link
             href="/register"
-            className="rounded-full px-4 py-2 text-sm font-medium no-underline"
-            style={{
-              backgroundColor: "hsl(var(--primary))",
-              color: "hsl(var(--primary-foreground))",
-            }}
+            className="rounded-full px-4 py-2 text-sm font-medium no-underline bg-primary text-primary-foreground"
           >
             Get Started
           </Link>
@@ -81,39 +81,38 @@ export function PublicTopBar() {
           <Link
             href="/learn/blog"
             onClick={() => setMobileMenuOpen(false)}
-            className={`block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline ${
-              isBlogActive ? "bg-muted" : "hover:bg-muted"
-            }`}
-            style={{ color: "hsl(var(--foreground))" }}
+            className={cn(
+              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
+              isBlogActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
           >
             Blog
           </Link>
           <Link
             href="/plants"
             onClick={() => setMobileMenuOpen(false)}
-            className={`block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline ${
-              isPlantsActive ? "bg-muted" : "hover:bg-muted"
-            }`}
-            style={{ color: "hsl(var(--foreground))" }}
+            className={cn(
+              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
+              isPlantsActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
           >
             Plants
           </Link>
           <Link
             href="/login"
             onClick={() => setMobileMenuOpen(false)}
-            className="block rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted no-underline"
-            style={{ color: "hsl(var(--foreground))" }}
+            className="block rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
           >
             Sign In
           </Link>
           <Link
             href="/register"
             onClick={() => setMobileMenuOpen(false)}
-            className="block rounded-full px-4 py-3 text-sm font-medium text-center no-underline"
-            style={{
-              backgroundColor: "hsl(var(--primary))",
-              color: "hsl(var(--primary-foreground))",
-            }}
+            className="block rounded-full px-4 py-3 text-sm font-medium text-center no-underline bg-primary text-primary-foreground"
           >
             Get Started
           </Link>

@@ -4,21 +4,13 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MapIcon, LayoutDashboard, Users, Leaf, GraduationCap, LogOut, Shield, BookOpen, UserCircle, Store } from "lucide-react";
+import { MapIcon, LogOut, Shield, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { CompactMusicController } from "@/components/audio/CompactMusicController";
 import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
-
-const navigation = [
-  { name: "Canvas", href: "/canvas", icon: LayoutDashboard, requiresAuth: true },
-  { name: "Community", href: "/gallery", icon: Users, requiresAuth: false },
-  { name: "Shop", href: "/shops", icon: Store, requiresAuth: false },
-  { name: "Learn", href: "/learn", icon: GraduationCap, requiresAuth: false },
-  { name: "Blog", href: "/learn/blog", icon: BookOpen, requiresAuth: false },
-  { name: "Plants", href: "/plants", icon: Leaf, requiresAuth: false },
-];
+import { mainNavItems, isRouteActive } from "@/lib/nav/navigation";
 
 export function Sidebar({
   userName,
@@ -40,7 +32,7 @@ export function Sidebar({
   };
 
   // Filter navigation based on auth status
-  const visibleNav = navigation.filter(
+  const visibleNav = mainNavItems.filter(
     (item) => !item.requiresAuth || isAuthenticated
   );
 
@@ -66,7 +58,7 @@ export function Sidebar({
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {visibleNav.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = isRouteActive(pathname, item.href);
           return (
             <Link
               key={item.name}
@@ -74,11 +66,11 @@ export function Sidebar({
               className={cn(
                 "xp-menu-item flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors min-h-touch",
                 isActive
-                  ? "active bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-muted hover:text-foreground"
+                  ? "active bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
+              <item.icon className="h-5 w-5 flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
               <span>{item.name}</span>
             </Link>
           );
@@ -116,8 +108,8 @@ export function Sidebar({
                 className={cn(
                   "xp-menu-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors mb-2",
                   pathname.startsWith('/profile')
-                    ? "active bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-muted hover:text-foreground"
+                    ? "active bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 <UserCircle className="h-4 w-4 flex-shrink-0" />

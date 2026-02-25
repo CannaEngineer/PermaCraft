@@ -17,6 +17,7 @@ import {
   Sparkles,
   ShoppingBag,
 } from "lucide-react";
+import { isRouteActive } from "@/lib/nav/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -84,7 +85,7 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
         {/* Navigation Items */}
         <div className="flex items-center justify-around px-2 h-16">
           {visibleNav.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isRouteActive(pathname, item.href);
             const Icon = item.icon;
 
             return (
@@ -251,6 +252,21 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>
 
+                      <Link
+                        href="/learn/blog"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                          <BookOpen className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">Blog</p>
+                          <p className="text-xs text-muted-foreground">Articles & guides</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </Link>
+
                       {isAdmin && (
                         <Link
                           href="/admin"
@@ -366,6 +382,21 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                         <div className="flex-1">
                           <p className="font-medium text-sm">Plant Catalog</p>
                           <p className="text-xs text-muted-foreground">Browse species</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </Link>
+
+                      <Link
+                        href="/learn/blog"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                          <BookOpen className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">Blog</p>
+                          <p className="text-xs text-muted-foreground">Articles & guides</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>

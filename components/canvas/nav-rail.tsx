@@ -34,14 +34,14 @@ export function NavRail() {
               'relative flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 group',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
               isActive
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent'
             )}
             aria-label={item.label}
             aria-current={isActive ? 'page' : undefined}
             title={`${item.label} (${item.shortcut})`}
           >
-            <Icon className="h-[18px] w-[18px]" />
+            <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.5 : 2} />
 
             {/* Tooltip on hover */}
             <div
