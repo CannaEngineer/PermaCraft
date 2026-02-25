@@ -35,6 +35,8 @@ export async function POST(
 
     return Response.json({ view_count: countResult.rows[0]?.view_count ?? 0 });
   } catch (error) {
-    return new Response('Internal server error', { status: 500 });
+    // View tracking errors should never surface as 500 — fail silently
+    console.error('View tracking error:', error);
+    return Response.json({ view_count: 0 });
   }
 }
