@@ -235,6 +235,11 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
           )}
           {exportingType === 'pdf' ? 'Exporting PDF...' : 'Export Farm Plan as PDF'}
         </Button>
+
+        <div className="mt-4 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+          <p className="font-medium mb-1">Export tips</p>
+          <p>PNG exports the current map view at 1920×1080. PDF includes your full farm plan with zone labels and plant lists — check the boxes above to customise what's included.</p>
+        </div>
       </CardContent>
     </Card>
   );
