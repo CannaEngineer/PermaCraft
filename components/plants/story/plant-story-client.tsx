@@ -92,7 +92,7 @@ export function PlantStoryClient({ speciesId, isAuthenticated }: PlantStoryClien
         description: 'You can reposition it on the map editor.',
         action: {
           label: 'View on Map',
-          onClick: () => router.push(`/farm/${farm.id}`),
+          onClick: () => router.push(`/canvas?farm=${farm.id}&section=farm`),
         },
       });
     } catch {

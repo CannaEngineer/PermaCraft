@@ -65,7 +65,7 @@ export default function NewFarmPage() {
       }
 
       const data = await res.json();
-      router.push(`/farm/${data.id}`);
+      router.push(`/canvas?farm=${data.id}&section=farm`);
     } catch (err: any) {
       setError(err.message);
     } finally {

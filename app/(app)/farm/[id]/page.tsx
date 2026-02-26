@@ -1,11 +1,10 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Farm, Zone, FarmStorySection } from "@/lib/db/schema";
 import { FarmFeedClient } from "@/components/feed/farm-feed-client";
 import { FarmPublicView } from "@/components/farm/farm-public-view";
 import { FarmStoryPage } from "@/components/story/farm-story-page";
-import { ImmersiveMapEditor } from "@/components/immersive-map/immersive-map-editor";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -231,14 +230,6 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     );
   }
 
-  // If owner, show immersive editor
-  return (
-    <ImmersiveMapEditor
-      farm={farm}
-      initialZones={zones}
-      isOwner={isOwner}
-      initialIsPublic={!!farm.is_public}
-      isShopEnabled={isShopEnabled ?? 0}
-    />
-  );
+  // If owner, redirect to the unified canvas
+  redirect(`/canvas?farm=${id}&section=farm`);
 }
