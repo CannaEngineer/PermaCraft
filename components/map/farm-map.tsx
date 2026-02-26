@@ -1596,11 +1596,15 @@ export function FarmMap({
 
         // Load arrow icon for directional lines
         map.current.loadImage('/icons/arrow.svg').then((response) => {
-          if (response?.data && map.current && !map.current.hasImage('arrow-icon')) {
-            map.current.addImage('arrow-icon', response.data);
+          try {
+            if (response?.data && map.current && !map.current.hasImage('arrow-icon')) {
+              map.current.addImage('arrow-icon', response.data);
+            }
+          } catch {
+            // Map context may have been destroyed before the async load resolved
           }
-        }).catch((error) => {
-          console.error('Failed to load arrow icon:', error);
+        }).catch(() => {
+          // Arrow icon is optional — line arrows degrade gracefully without it
         });
 
         // Add arrows layer

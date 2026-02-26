@@ -41,7 +41,7 @@ export function fuzzyMatchSpeciesByNames(
     if (found) {
       matched.push(found);
     } else {
-      console.warn(`Could not find species for companion: "${companionName}"`);
+      console.debug(`Could not find species for companion: "${companionName}"`);
     }
   }
 
