@@ -9,6 +9,8 @@ import { TimelineViz } from './timeline-viz';
 import { GrowthPreviewCard } from './growth-preview-card';
 import { calculateGrowthMilestones } from '@/lib/time-machine/growth-milestones';
 import { getSeason, getSeasonalInfo, getSeasonalActivities } from '@/lib/time-machine/seasonal-context';
+import maplibregl from 'maplibre-gl';
+import { TimeMachineVideoExport } from '@/components/export/time-machine-video-export';
 
 interface Planting {
   id: string;
@@ -27,6 +29,8 @@ interface RedesignedTimeMachineProps {
   minYear?: number;
   maxYear?: number;
   onClose?: () => void;
+  map?: maplibregl.Map | null;
+  farmName?: string;
 }
 
 export function RedesignedTimeMachine({
@@ -35,7 +39,9 @@ export function RedesignedTimeMachine({
   onYearChange,
   minYear = new Date().getFullYear(),
   maxYear = new Date().getFullYear() + 20,
-  onClose
+  onClose,
+  map,
+  farmName,
 }: RedesignedTimeMachineProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2 | 4>(1);
@@ -124,6 +130,21 @@ export function RedesignedTimeMachine({
           </Button>
         )}
       </div>
+
+      {/* Video Export */}
+      {map && (
+        <div className="px-4 py-3 border-b border-border bg-muted/30">
+          <TimeMachineVideoExport
+            map={map}
+            farmName={farmName ?? 'Farm'}
+            minYear={minYear}
+            maxYear={maxYear}
+            currentYear={currentYear}
+            setCurrentYear={onYearChange}
+            hasPlantings={plantings.length > 0}
+          />
+        </div>
+      )}
 
       {/* Timeline */}
       <div className="p-4 md:p-6 border-b border-border">

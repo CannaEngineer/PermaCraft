@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import maplibregl from "maplibre-gl";
 import { ChevronDown, ChevronUp, Filter, Activity, Leaf, List, ChevronRight, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,10 @@ interface MapBottomDrawerProps {
   onToggleGridUnit?: () => void;
   onChangeGridDensity?: (density: GridDensity) => void;
 
+  // Map instance (for video export)
+  map?: maplibregl.Map | null;
+  farmName?: string;
+
   // Actions
   onAddPlant?: () => void;
   onDataRefresh?: () => void;
@@ -109,6 +114,8 @@ export function MapBottomDrawer({
   onChangeLayer,
   onToggleGridUnit,
   onChangeGridDensity,
+  map,
+  farmName,
   onAddPlant,
   onDataRefresh,
   onFeatureSelectFromList,
@@ -511,6 +518,8 @@ export function MapBottomDrawer({
                     onYearChange={onYearChange}
                     minYear={minYear}
                     maxYear={maxYear}
+                    map={map}
+                    farmName={farmName}
                   />
                 </>
               )}

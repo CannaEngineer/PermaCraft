@@ -3624,6 +3624,8 @@ export function FarmMap({
         }}
         onFeatureSelectFromList={onFeatureSelect}
         mapRef={map}
+        map={map.current}
+        farmName={farm.name}
       />}
 
       {/* Render planting markers */}
