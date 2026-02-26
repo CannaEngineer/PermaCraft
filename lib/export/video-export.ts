@@ -49,9 +49,13 @@ function drawPlantings(
   plantings: any[],
   year: number,
 ): void {
-  const mapCanvas = map.getCanvas();
-  const scaleX = VIDEO_WIDTH / mapCanvas.width;
-  const scaleY = VIDEO_HEIGHT / mapCanvas.height;
+  // map.project() returns CSS pixel coordinates — use container CSS dimensions, NOT
+  // map.getCanvas().width which is at devicePixelRatio scale (2x on retina displays).
+  const container = map.getContainer();
+  const cssW = container.offsetWidth;
+  const cssH = container.offsetHeight;
+  const scaleX = VIDEO_WIDTH / cssW;
+  const scaleY = VIDEO_HEIGHT / cssH;
   const zoom = map.getZoom();
 
   ctx.save();
@@ -188,6 +192,22 @@ export async function exportTimeMachineVideo(options: VideoExportOptions): Promi
 
   if (!isVideoEncoderSupported()) {
     throw new Error('Video export requires Chrome 94+, Edge 94+, or Safari 16+');
+  }
+
+  // Fit the map to show all plantings, so every frame is consistently framed.
+  // Use animate: false so the camera jumps instantly (no need to wait for animation).
+  if (plantings.length > 0) {
+    const lngs = plantings.map(p => p.lng);
+    const lats = plantings.map(p => p.lat);
+    const bounds = new maplibregl.LngLatBounds(
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    );
+    await new Promise<void>((resolve) => {
+      // Wait for the map to finish loading tiles after the camera jump.
+      map.once('idle', resolve);
+      map.fitBounds(bounds, { padding: 80, maxZoom: 18, animate: false });
+    });
   }
 
   const years = Array.from(
