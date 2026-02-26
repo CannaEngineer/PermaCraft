@@ -468,7 +468,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     setSaveToast({ message: `Click the map to place ${species.common_name}`, type: 'success' });
     setTimeout(() => setSaveToast(null), 4000);
   }, [setActiveSection]);
-  const handleOpenWaterSystem = useCallback(() => openDrawer('water-system', 'max'), [openDrawer]);
+  const handleOpenWaterSystem = useCallback(() => openDrawer('water-system', 'medium'), [openDrawer]);
   const handleOpenGuildDesigner = useCallback(() => {
     if (!guildContext?.focalSpecies) setGuildContext({ focalSpecies: null, farmContext });
     openDrawer('guild-designer', 'max');
