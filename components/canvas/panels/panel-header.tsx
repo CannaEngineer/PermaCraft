@@ -1,25 +1,16 @@
 'use client';
 
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
 
 interface PanelHeaderProps {
   title: string;
   subtitle?: string;
-  onClose?: () => void;
 }
 
-export function PanelHeader({ title, subtitle, onClose }: PanelHeaderProps) {
-  const { panelStack, popPanel, setContextPanelOpen } = useUnifiedCanvas();
+export function PanelHeader({ title, subtitle }: PanelHeaderProps) {
+  const { panelStack, popPanel } = useUnifiedCanvas();
   const hasBack = panelStack.length > 0;
-
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    } else {
-      setContextPanelOpen(false);
-    }
-  };
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 flex-shrink-0">
@@ -38,13 +29,6 @@ export function PanelHeader({ title, subtitle, onClose }: PanelHeaderProps) {
           <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
         )}
       </div>
-      <button
-        onClick={handleClose}
-        className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg hover:bg-accent transition-colors"
-        aria-label="Close panel"
-      >
-        <X className="h-4 w-4" />
-      </button>
     </div>
   );
 }
