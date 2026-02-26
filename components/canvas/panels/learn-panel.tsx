@@ -139,27 +139,43 @@ export function LearnPanel() {
   }, []);
 
   const loadData = useCallback(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [pathsData, progressData, blogData] = await Promise.all([
+          fetch('/api/learning/paths').then(r => { if (!r.ok) throw new Error('Failed'); return r.json(); }),
+          fetch('/api/learning/progress').then(r => r.json()).catch(() => null),
+          fetch('/api/blog/recent').then(r => r.json()).catch(() => []),
+        ]);
+
+        if (cancelled) return;
+
+        setPaths(Array.isArray(pathsData) ? pathsData : []);
+        const prog = progressData?.id ? progressData : null;
+        setProgress(prog);
+        setBlogPosts(Array.isArray(blogData) ? blogData : []);
+
+        if (prog?.learning_path_id) {
+          await fetchMyPath();
+        }
+      } catch (err) {
+        console.error('Learn panel load error:', err);
+        if (!cancelled) setError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
     setLoading(true);
     setError(false);
-    Promise.all([
-      fetch('/api/learning/paths').then(r => { if (!r.ok) throw new Error('Failed'); return r.json(); }),
-      fetch('/api/learning/progress').then(r => r.json()).catch(() => null),
-      fetch('/api/blog/recent').then(r => r.json()).catch(() => []),
-    ]).then(async ([pathsData, progressData, blogData]) => {
-      setPaths(Array.isArray(pathsData) ? pathsData : []);
-      const prog = progressData?.id ? progressData : null;
-      setProgress(prog);
-      setBlogPosts(Array.isArray(blogData) ? blogData : []);
+    load();
 
-      if (prog?.learning_path_id) {
-        await fetchMyPath();
-      }
-    }).catch(() => setError(true))
-      .finally(() => setLoading(false));
+    return () => { cancelled = true; };
   }, [fetchMyPath]);
 
   useEffect(() => {
-    loadData();
+    return loadData();
   }, [loadData]);
 
   // Sync tab and view
@@ -387,9 +403,9 @@ export function LearnPanel() {
             <GraduationCap className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-medium">No learning paths yet</h3>
+            <h3 className="text-sm font-medium">Permaculture learning content is coming soon</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Paths will appear here soon.
+              Structured learning paths covering zones, guilds, soil health, and more are being prepared.
             </p>
           </div>
         </div>
