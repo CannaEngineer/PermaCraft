@@ -19,7 +19,7 @@ interface TimeMachineVideoExportProps {
   maxYear: number;
   currentYear: number;
   setCurrentYear: (year: number) => void;
-  hasPlantings: boolean;
+  plantings: any[];
 }
 
 const DURATION_OPTIONS = [
@@ -35,8 +35,9 @@ export function TimeMachineVideoExport({
   maxYear,
   currentYear,
   setCurrentYear,
-  hasPlantings,
+  plantings,
 }: TimeMachineVideoExportProps) {
+  const hasPlantings = plantings.length > 0;
   const [duration, setDuration] = useState<15 | 30 | 60>(30);
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState<{ year: number; total: number; phase: string } | null>(null);
@@ -79,6 +80,7 @@ export function TimeMachineVideoExport({
         durationSeconds: duration,
         setYear: setCurrentYear,
         onProgress: (year, total, phase) => setProgress({ year, total, phase }),
+        plantings,
       });
 
       const filename = `${farmName.replace(/\s+/g, '-')}-growth-${duration}s.mp4`;

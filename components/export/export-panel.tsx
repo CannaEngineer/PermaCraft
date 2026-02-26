@@ -260,7 +260,7 @@ export function ExportPanel({ farmId, farmName, mapInstance, plantings, currentY
               maxYear={maxYear}
               currentYear={currentYear}
               setCurrentYear={setCurrentYear}
-              hasPlantings={(plantings?.length ?? 0) > 0}
+              plantings={plantings ?? []}
             />
           </div>
         )}

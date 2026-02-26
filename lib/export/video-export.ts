@@ -12,6 +12,65 @@ export interface VideoExportOptions {
   durationSeconds: number; // 15, 30, or 60
   setYear: (year: number) => void;
   onProgress?: (year: number, total: number, phase: 'capturing' | 'encoding') => void;
+  plantings?: any[]; // Planting records with lat/lng/layer/growth fields
+}
+
+// Mirrors LAYER_COLORS from planting-marker.tsx
+const LAYER_COLORS: Record<string, string> = {
+  canopy: '#166534',
+  understory: '#16a34a',
+  shrub: '#22c55e',
+  herbaceous: '#84cc16',
+  groundcover: '#a3e635',
+  vine: '#a855f7',
+  root: '#78350f',
+  aquatic: '#0284c7',
+};
+
+/** Calculate planting circle radius in map canvas pixels — mirrors PlantingMarker.calculateSize(). */
+function calcPlantingRadius(planting: any, year: number, zoom: number): number {
+  const plantedYear = planting.planted_year || year;
+  const yearsSincePlanting = year - plantedYear;
+  const yearsToMaturity = planting.years_to_maturity || 10;
+  const growthFraction = Math.max(0, Math.min(yearsSincePlanting / yearsToMaturity, 1));
+  const sigmoid = (x: number) => 1 / (1 + Math.exp(-8 * (x - 0.5)));
+  const sizeFraction = sigmoid(growthFraction);
+  const matureWidth = planting.mature_width_ft || 10;
+  const currentWidthMeters = matureWidth * sizeFraction * 0.3048;
+  const metersPerPixel = (156543.03392 * Math.cos(planting.lat * Math.PI / 180)) / Math.pow(2, zoom);
+  const diameterPixels = (currentWidthMeters / metersPerPixel) * 2.5;
+  return Math.max(12, diameterPixels) / 2; // return radius
+}
+
+/** Draw planting circles onto the compositing canvas, projecting geo coords to video pixels. */
+function drawPlantings(
+  ctx: CanvasRenderingContext2D,
+  map: maplibregl.Map,
+  plantings: any[],
+  year: number,
+): void {
+  const mapCanvas = map.getCanvas();
+  const scaleX = VIDEO_WIDTH / mapCanvas.width;
+  const scaleY = VIDEO_HEIGHT / mapCanvas.height;
+  const zoom = map.getZoom();
+
+  ctx.save();
+  for (const planting of plantings) {
+    const point = map.project([planting.lng, planting.lat]);
+    const x = point.x * scaleX;
+    const y = point.y * scaleY;
+    const radius = calcPlantingRadius(planting, year, zoom) * ((scaleX + scaleY) / 2);
+    const color = LAYER_COLORS[planting.layer] || '#16a34a';
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2 * ((scaleX + scaleY) / 2);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 const VIDEO_WIDTH = 1280;
@@ -29,7 +88,8 @@ export function isVideoEncoderSupported(): boolean {
 async function captureFrame(
   map: maplibregl.Map,
   year: number,
-  farmName: string
+  farmName: string,
+  plantings: any[],
 ): Promise<HTMLCanvasElement> {
   // Wait for map repaint
   const mapDataUrl = await new Promise<string>((resolve, reject) => {
@@ -59,6 +119,11 @@ async function captureFrame(
     img.onerror = () => resolve(); // proceed even if image fails
     img.src = mapDataUrl;
   });
+
+  // Draw plant markers (HTML DOM overlays — not in WebGL canvas)
+  if (plantings.length > 0) {
+    drawPlantings(ctx, map, plantings, year);
+  }
 
   drawOverlay(ctx, year, farmName);
   return canvas;
@@ -119,7 +184,7 @@ function drawOverlay(
  * Returns an MP4 Blob.
  */
 export async function exportTimeMachineVideo(options: VideoExportOptions): Promise<Blob> {
-  const { map, farmName, minYear, maxYear, durationSeconds, setYear, onProgress } = options;
+  const { map, farmName, minYear, maxYear, durationSeconds, setYear, onProgress, plantings = [] } = options;
 
   if (!isVideoEncoderSupported()) {
     throw new Error('Video export requires Chrome 94+, Edge 94+, or Safari 16+');
@@ -179,7 +244,7 @@ export async function exportTimeMachineVideo(options: VideoExportOptions): Promi
       setYear(year);
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      const canvas = await captureFrame(map, year, farmName);
+      const canvas = await captureFrame(map, year, farmName, plantings);
       const bitmap = await createImageBitmap(canvas);
       const timestampMicros = i * frameDurationMicros;
       const frame = new VideoFrame(bitmap, { timestamp: timestampMicros, duration: frameDurationMicros });

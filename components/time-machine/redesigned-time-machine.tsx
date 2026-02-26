@@ -141,7 +141,7 @@ export function RedesignedTimeMachine({
             maxYear={maxYear}
             currentYear={currentYear}
             setCurrentYear={onYearChange}
-            hasPlantings={plantings.length > 0}
+            plantings={plantings}
           />
         </div>
       )}
