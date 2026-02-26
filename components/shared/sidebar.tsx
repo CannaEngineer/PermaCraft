@@ -78,6 +78,7 @@ export function Sidebar({
 
         {/* Music Player - integrated into nav */}
         <div className="pt-2">
+          <p className="text-xs font-medium text-muted-foreground mb-1 px-1">Ambient Sounds</p>
           <CompactMusicController onOpenPlayer={() => setIsMusicSheetOpen(true)} />
         </div>
       </nav>
@@ -90,6 +91,7 @@ export function Sidebar({
 
       {/* Theme Toggle */}
       <div className="px-4 py-3 border-t border-border">
+        <p className="text-xs font-medium text-muted-foreground mb-1">Map Theme</p>
         <ThemeToggle />
       </div>
 
