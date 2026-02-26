@@ -268,25 +268,13 @@ export function WaterSystemPanel({ farmId }: WaterSystemPanelProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Droplets className="h-5 w-5 text-blue-500" />
-              Water System
-            </CardTitle>
-            <CardDescription>
-              Catchment areas, swales, and water storage capacity
-            </CardDescription>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => setConfigureMode("pick-zone")}
-            className="gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            Configure
-          </Button>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Droplets className="h-5 w-5 text-blue-500" />
+          Water System
+        </CardTitle>
+        <CardDescription>
+          Catchment areas, swales, and water storage capacity
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
