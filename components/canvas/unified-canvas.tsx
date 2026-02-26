@@ -730,7 +730,16 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             fetch(`/api/farms/${farm.id}/phases`).then(r => r.json()).then(d => setFarmPhases(d.phases || []));
           }} />
         ) : drawerContent === 'export' ? (
-          <ExportPanel farmId={farm.id} farmName={farm.name} mapInstance={mapRef.current} />
+          <ExportPanel
+            farmId={farm.id}
+            farmName={farm.name}
+            mapInstance={mapRef.current}
+            plantings={plantings}
+            currentYear={projectionYear}
+            setCurrentYear={setProjectionYear}
+            minYear={minYear}
+            maxYear={maxYear}
+          />
         ) : drawerContent === 'species-picker' ? (
           <SpeciesPickerPanel farmId={farm.id} onSelectSpecies={handleSelectSpecies} onClose={closeDrawer} />
         ) : drawerContent === 'feature-list' ? (

@@ -6,17 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Download, FileImage, FileText, Loader2 } from 'lucide-react';
+import { Download, FileImage, FileText, Loader2, Clapperboard } from 'lucide-react';
 import { captureMapSnapshot, downloadSnapshot } from '@/lib/export/snapshot';
 import maplibregl from 'maplibre-gl';
+import { TimeMachineVideoExport } from './time-machine-video-export';
 
 interface ExportPanelProps {
   farmId: string;
   farmName: string;
   mapInstance: maplibregl.Map | null;
+  // Video export props (optional — only present when time machine is available)
+  plantings?: any[];
+  currentYear?: number;
+  setCurrentYear?: (year: number) => void;
+  minYear?: number;
+  maxYear?: number;
 }
 
-export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps) {
+export function ExportPanel({ farmId, farmName, mapInstance, plantings, currentYear, setCurrentYear, minYear, maxYear }: ExportPanelProps) {
   const [includeZones, setIncludeZones] = useState(true);
   const [includePlantings, setIncludePlantings] = useState(true);
   const [includePhases, setIncludePhases] = useState(true);
@@ -235,6 +242,28 @@ export function ExportPanel({ farmId, farmName, mapInstance }: ExportPanelProps)
           )}
           {exportingType === 'pdf' ? 'Exporting PDF...' : 'Export Farm Plan as PDF'}
         </Button>
+
+        {/* Time Machine Video Export */}
+        {setCurrentYear && currentYear !== undefined && minYear !== undefined && maxYear !== undefined && (
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Clapperboard className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Time Lapse Video</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Export the 20-year growth simulation as an MP4 time lapse.
+            </p>
+            <TimeMachineVideoExport
+              map={mapInstance}
+              farmName={farmName}
+              minYear={minYear}
+              maxYear={maxYear}
+              currentYear={currentYear}
+              setCurrentYear={setCurrentYear}
+              hasPlantings={(plantings?.length ?? 0) > 0}
+            />
+          </div>
+        )}
 
         <div className="mt-4 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
           <p className="font-medium mb-1">Export tips</p>
