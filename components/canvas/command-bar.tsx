@@ -8,7 +8,6 @@ import { CartIconButton } from '@/components/shop/cart-icon-button';
 import { CartSheet } from '@/components/shop/cart-sheet';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
 import { useTheme } from '@/components/theme/ThemeProvider';
-import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,27 +60,34 @@ export function CommandBar({ userId, userName, saving, hasUnsavedChanges, onSave
 
       {/* Right side controls */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <FarmSwitcher />
+        {/* Farm switcher — only relevant when editing a farm */}
+        {activeSection === 'farm' ? (
+          <FarmSwitcher />
+        ) : (
+          <span className="text-sm font-medium capitalize">{activeSection}</span>
+        )}
 
         {/* Save indicator (visible when editing farm) */}
         {activeSection === 'farm' && onSave && (
-          <button
-            onClick={onSave}
-            disabled={saving || !hasUnsavedChanges}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[36px]',
-              hasUnsavedChanges
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'text-muted-foreground'
-            )}
-          >
-            {saving ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
+          saving ? (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground min-h-[36px]">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Saving...
+            </span>
+          ) : hasUnsavedChanges ? (
+            <button
+              onClick={onSave}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[36px] bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               <Save className="h-3.5 w-3.5" />
-            )}
-            {saving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved'}
-          </button>
+              Save
+            </button>
+          ) : (
+            <span className="text-xs text-muted-foreground flex items-center gap-1 min-h-[36px]">
+              <Save className="h-3 w-3" />
+              Saved
+            </span>
+          )
         )}
 
         {/* Cart */}
