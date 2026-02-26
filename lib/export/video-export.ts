@@ -151,12 +151,14 @@ export async function exportTimeMachineVideo(options: VideoExportOptions): Promi
   const encodedChunks: EncodedVideoChunk[] = [];
   const encodedMetas: EncodedVideoChunkMetadata[] = [];
 
+  let encoderError: Error | DOMException | null = null;
+
   const encoder = new VideoEncoder({
     output: (chunk, meta) => {
       encodedChunks.push(chunk);
       encodedMetas.push(meta ?? {});
     },
-    error: (e) => { throw e; },
+    error: (e) => { encoderError = e; },
   });
 
   encoder.configure({
@@ -167,28 +169,35 @@ export async function exportTimeMachineVideo(options: VideoExportOptions): Promi
     framerate: Math.max(1, totalYears / durationSeconds),
   });
 
-  // Capture each year
-  for (let i = 0; i < years.length; i++) {
-    const year = years[i];
-    onProgress?.(year, totalYears, 'capturing');
+  try {
+    // Capture each year
+    for (let i = 0; i < years.length; i++) {
+      const year = years[i];
+      onProgress?.(year, totalYears, 'capturing');
 
-    // Set year, wait for React + map to update
-    setYear(year);
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      // Set year, wait for React + map to update
+      setYear(year);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    const canvas = await captureFrame(map, year, farmName);
-    const bitmap = await createImageBitmap(canvas);
-    const timestampMicros = i * frameDurationMicros;
-    const frame = new VideoFrame(bitmap, { timestamp: timestampMicros, duration: frameDurationMicros });
+      const canvas = await captureFrame(map, year, farmName);
+      const bitmap = await createImageBitmap(canvas);
+      const timestampMicros = i * frameDurationMicros;
+      const frame = new VideoFrame(bitmap, { timestamp: timestampMicros, duration: frameDurationMicros });
 
-    encoder.encode(frame, { keyFrame: i === 0 || i % 10 === 0 });
-    frame.close();
-    bitmap.close();
+      try {
+        encoder.encode(frame, { keyFrame: i === 0 || i % 10 === 0 });
+      } finally {
+        frame.close();
+        bitmap.close();
+      }
+    }
+
+    onProgress?.(maxYear, totalYears, 'encoding');
+    await encoder.flush();
+    if (encoderError) throw encoderError;
+  } finally {
+    encoder.close();
   }
-
-  onProgress?.(maxYear, totalYears, 'encoding');
-  await encoder.flush();
-  encoder.close();
 
   // Feed chunks to muxer in order
   for (let i = 0; i < encodedChunks.length; i++) {
