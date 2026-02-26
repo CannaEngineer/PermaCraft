@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { PanelHeader } from './panel-header';
 import { Search, Leaf, Loader2, X, ArrowRight, AlertCircle, Plus } from 'lucide-react';
 import type { Species } from '@/lib/db/schema';
@@ -186,6 +187,7 @@ export function PlantsPanel({ onSelectSpecies }: PlantsPanelProps = {}) {
 }
 
 function SpeciesRow({ species, onSelect }: { species: Species; onSelect?: (species: Species) => void }) {
+  const router = useRouter();
   let functions: string[] = [];
   if (species.permaculture_functions) {
     try {
@@ -195,11 +197,13 @@ function SpeciesRow({ species, onSelect }: { species: Species; onSelect?: (speci
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect?.(species)}
+    <div
+      onClick={() => router.push(`/plants/${species.id}`)}
       className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors group cursor-pointer"
-      aria-label={`Add ${species.common_name} to farm`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push(`/plants/${species.id}`); }}
+      aria-label={`View ${species.common_name} details`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -213,9 +217,14 @@ function SpeciesRow({ species, onSelect }: { species: Species; onSelect?: (speci
             {species.layer}
           </span>
           {onSelect && (
-            <span className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-green-600 text-white p-0.5">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onSelect(species); }}
+              className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-green-600 hover:bg-green-700 text-white p-0.5"
+              aria-label={`Add ${species.common_name} to farm`}
+            >
               <Plus className="h-3.5 w-3.5" />
-            </span>
+            </button>
           )}
         </div>
       </div>
@@ -233,6 +242,6 @@ function SpeciesRow({ species, onSelect }: { species: Species; onSelect?: (speci
           Native
         </span>
       ) : null}
-    </button>
+    </div>
   );
 }
