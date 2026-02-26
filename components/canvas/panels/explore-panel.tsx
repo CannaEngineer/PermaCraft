@@ -52,6 +52,21 @@ function timeAgo(timestamp: number): string {
   return new Date(timestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s+/g, '')          // headings
+    .replace(/\*\*(.+?)\*\*/g, '$1')    // bold
+    .replace(/\*(.+?)\*/g, '$1')        // italic
+    .replace(/~~(.+?)~~/g, '$1')        // strikethrough
+    .replace(/`{1,3}[^`]*`{1,3}/g, '') // code
+    .replace(/^\s*[-*+]\s+/gm, '')      // unordered lists
+    .replace(/^\s*\d+\.\s+/gm, '')      // ordered lists
+    .replace(/^---+$/gm, '')            // horizontal rules
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+    .replace(/\n{2,}/g, ' ')            // multiple newlines
+    .trim();
+}
+
 export function ExplorePanel() {
   const { mapRef, panelStack, pushPanel } = useUnifiedCanvas();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -196,14 +211,14 @@ export function ExplorePanel() {
                   {/* Content preview */}
                   {post.content && (
                     <p className="text-xs text-muted-foreground line-clamp-2 mb-2 pl-6">
-                      {post.content}
+                      {stripMarkdown(post.content)}
                     </p>
                   )}
 
                   {/* AI excerpt if insight */}
                   {post.type === 'ai_insight' && post.ai_response_excerpt && (
                     <p className="text-xs text-purple-600 dark:text-purple-400 line-clamp-2 mb-2 italic">
-                      {post.ai_response_excerpt}
+                      {stripMarkdown(post.ai_response_excerpt)}
                     </p>
                   )}
 
