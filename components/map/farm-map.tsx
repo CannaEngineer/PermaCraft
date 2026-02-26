@@ -3722,7 +3722,7 @@ export function FarmMap({
       />
 
       {/* Map Controls FAB - only Create Post action (other actions moved to bottom drawer) */}
-      <MapControlsSheet
+      {!hideStatusBar && <MapControlsSheet
         mapLayer={mapLayer}
         onChangeLayer={changeMapLayer}
         gridUnit={gridUnit}
@@ -3731,7 +3731,7 @@ export function FarmMap({
         onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
         onCreatePost={() => setShowCreatePost(true)}
         hasPlantings={plantings.length > 0}
-      />
+      />}
 
     </div>
   );
