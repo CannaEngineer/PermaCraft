@@ -581,11 +581,12 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
               externalShowSpeciesPicker={triggerSpeciesPicker}
               onSpeciesPickerOpened={handleSpeciesPickerOpened}
               onDrawComplete={() => exitDrawingMode()}
+              hideStatusBar={activeSection !== 'farm' && activeSection !== 'plants'}
             />
           </div>
 
           {/* Farm mode overlays */}
-          {activeSection === 'farm' && (
+          {(activeSection === 'farm' || activeSection === 'plants') && (
             <>
               <DrawingToolbar
                 onToolSelect={() => {}}

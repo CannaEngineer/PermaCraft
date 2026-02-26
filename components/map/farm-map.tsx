@@ -120,6 +120,8 @@ interface FarmMapProps {
   onSpeciesPickerOpened?: () => void;
   /** Called after a draw.create event completes, so the parent can exit drawing mode. */
   onDrawComplete?: () => void;
+  /** When true, hides the bottom status bar / drawer (use on non-farm sections to avoid context confusion). */
+  hideStatusBar?: boolean;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -139,6 +141,7 @@ export function FarmMap({
   externalShowSpeciesPicker,
   onSpeciesPickerOpened,
   onDrawComplete,
+  hideStatusBar,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -3579,7 +3582,7 @@ export function FarmMap({
       </div>
 
       {/* Bottom Drawer - Features, Filters, Vitals & Time */}
-      <MapBottomDrawer
+      {!hideStatusBar && <MapBottomDrawer
         mapLayer={mapLayer}
         gridUnit={gridUnit}
         gridDensity={gridDensity}
@@ -3607,7 +3610,7 @@ export function FarmMap({
         }}
         onFeatureSelectFromList={onFeatureSelect}
         mapRef={map}
-      />
+      />}
 
       {/* Render planting markers */}
       {map.current && filteredPlantings.map(planting => (
