@@ -30,16 +30,25 @@ export async function POST(
   const farmName = farm.rows[0].name as string;
 
   // Generate PDF
-  const pdfBuffer = await generateFarmPlanPDF({
-    farmName,
-    mapImageDataUrl: body.mapImageDataUrl,
-    includeZones: body.includeZones,
-    includePlantings: body.includePlantings,
-    includePhases: body.includePhases,
-    zones: body.zones || [],
-    plantings: body.plantings || [],
-    phases: body.phases || []
-  });
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await generateFarmPlanPDF({
+      farmName,
+      mapImageDataUrl: body.mapImageDataUrl,
+      includeZones: body.includeZones,
+      includePlantings: body.includePlantings,
+      includePhases: body.includePhases,
+      zones: body.zones || [],
+      plantings: body.plantings || [],
+      phases: body.phases || []
+    });
+  } catch (error) {
+    console.error('PDF generation failed:', error);
+    return NextResponse.json(
+      { error: 'PDF generation failed', detail: String(error) },
+      { status: 500 }
+    );
+  }
 
   // Return PDF as downloadable file
   return new NextResponse(new Uint8Array(pdfBuffer), {
