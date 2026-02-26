@@ -122,6 +122,9 @@ interface FarmMapProps {
   onDrawComplete?: () => void;
   /** When true, hides the bottom status bar / drawer (use on non-farm sections to avoid context confusion). */
   hideStatusBar?: boolean;
+  /** Optional external year control — if provided, overrides internal projectionYear state. */
+  externalCurrentYear?: number;
+  externalOnYearChange?: (year: number) => void;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -142,6 +145,8 @@ export function FarmMap({
   onSpeciesPickerOpened,
   onDrawComplete,
   hideStatusBar,
+  externalCurrentYear,
+  externalOnYearChange,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -219,7 +224,12 @@ export function FarmMap({
   const [quickLabelPosition, setQuickLabelPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Time Machine state - projection year for growth simulation
-  const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
+  // If external control props are provided, use them; otherwise use internal state
+  const [internalYear, setInternalYear] = useState<number>(
+    externalCurrentYear ?? new Date().getFullYear()
+  );
+  const projectionYear = externalCurrentYear ?? internalYear;
+  const setProjectionYear = externalOnYearChange ?? setInternalYear;
 
   // Removed separate drawer state - now using unified bottom drawer with tabs
 

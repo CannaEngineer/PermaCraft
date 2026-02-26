@@ -230,6 +230,11 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     { value: 'other', label: 'Other' },
   ];
 
+  // Time Machine state — lifted here so ExportPanel and FarmMap share one source of truth
+  const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
+  const minYear = new Date().getFullYear();
+  const maxYear = new Date().getFullYear() + 20;
+
   // Feature selection
   const [selectedFeature, setSelectedFeature] = useState<{
     id: string;
@@ -582,6 +587,8 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
               onSpeciesPickerOpened={handleSpeciesPickerOpened}
               onDrawComplete={() => exitDrawingMode()}
               hideStatusBar={activeSection !== 'farm' && activeSection !== 'plants'}
+              externalCurrentYear={projectionYear}
+              externalOnYearChange={setProjectionYear}
             />
           </div>
 
