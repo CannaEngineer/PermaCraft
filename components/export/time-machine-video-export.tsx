@@ -1,7 +1,7 @@
 // components/export/time-machine-video-export.tsx
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Video, Loader2 } from 'lucide-react';
@@ -42,9 +42,19 @@ export function TimeMachineVideoExport({
   const [progress, setProgress] = useState<{ year: number; total: number; phase: string } | null>(null);
   const { toast } = useToast();
 
-  const originalYear = currentYear; // Remember so we can restore after export
+  // Track currentYear in a ref so handleExport captures it at click time
+  // without needing currentYear in the useCallback dep array (which would
+  // cause the callback to rebuild on every year tick during export).
+  const currentYearRef = useRef(currentYear);
+  useEffect(() => { currentYearRef.current = currentYear; }, [currentYear]);
+
+  // Guard state updates after component unmounts (e.g. panel closed mid-export)
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const handleExport = useCallback(async () => {
+    const originalYear = currentYearRef.current; // Captured at click time via ref
+
     if (!map) {
       toast({ title: 'Map not ready', variant: 'destructive' });
       return;
@@ -74,19 +84,20 @@ export function TimeMachineVideoExport({
       const filename = `${farmName.replace(/\s+/g, '-')}-growth-${duration}s.mp4`;
       downloadVideo(blob, filename);
       toast({ title: 'Time lapse exported!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Video export failed:', error);
-      toast({
-        title: error?.message ?? 'Video export failed. Please try again.',
-        variant: 'destructive',
-      });
+      const message = error instanceof Error
+        ? error.message
+        : 'Video export failed. Please try again.';
+      toast({ title: message, variant: 'destructive' });
     } finally {
-      // Restore original year
-      setCurrentYear(originalYear);
-      setIsExporting(false);
-      setProgress(null);
+      if (mountedRef.current) {
+        setCurrentYear(originalYear);
+        setIsExporting(false);
+        setProgress(null);
+      }
     }
-  }, [map, farmName, minYear, maxYear, duration, setCurrentYear, originalYear, toast]);
+  }, [map, farmName, minYear, maxYear, duration, setCurrentYear, toast]);
 
   const disabled = !map || !hasPlantings || isExporting;
 
