@@ -19,7 +19,7 @@ export function NavRail() {
 
   return (
     <nav
-      className="hidden md:flex flex-col items-center w-14 py-3 gap-1 glass-panel-strong border-r border-border/40"
+      className="hidden md:flex flex-col items-center w-16 py-3 gap-1 glass-panel-strong border-r border-border/40"
       aria-label="Main navigation"
     >
       {navItems.map((item) => {
@@ -31,7 +31,7 @@ export function NavRail() {
             key={item.id}
             onClick={() => setActiveSection(item.id)}
             className={cn(
-              'relative flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 group',
+              'relative flex flex-col items-center justify-center w-14 h-auto py-1.5 px-1 rounded-xl transition-all duration-200 group gap-0.5',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
               isActive
                 ? 'bg-primary/10 text-primary'
@@ -41,7 +41,8 @@ export function NavRail() {
             aria-current={isActive ? 'page' : undefined}
             title={`${item.label} (${item.shortcut})`}
           >
-            <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.5 : 2} />
+            <Icon className="h-4 w-4" strokeWidth={isActive ? 2.5 : 2} />
+            <span className="text-[9px] leading-tight font-medium">{item.label}</span>
 
             {/* Tooltip on hover */}
             <div
