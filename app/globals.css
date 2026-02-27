@@ -1080,4 +1080,24 @@
     box-shadow: 0 4px 12px hsl(var(--primary) / 0.3);
     transform: none;
   }
+
+  .landing-screenshot-marquee {
+    animation: none;
+  }
+}
+
+/* Screenshot gallery marquee */
+@keyframes landing-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.landing-screenshot-marquee {
+  display: flex;
+  width: max-content;
+  animation: landing-marquee 50s linear infinite;
+}
+
+.landing-screenshot-marquee:hover {
+  animation-play-state: paused;
 }
