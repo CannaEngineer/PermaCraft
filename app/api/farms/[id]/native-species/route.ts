@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { getAllSpecies } from '@/lib/species/species-queries';
 import { matchNativeSpecies } from '@/lib/species/native-matcher';
+import { getFarmRegion, getRegionName } from '@/lib/species/region-mapper';
 import type { Farm } from '@/lib/db/schema';
 
 export async function GET(
@@ -33,7 +34,15 @@ export async function GET(
     // Match species to farm
     const matched = matchNativeSpecies(farm, allSpecies);
 
-    return Response.json(matched);
+    // Include farm context so frontend can display zone/region info
+    const region = getFarmRegion(farm.center_lat, farm.center_lng);
+    const farm_info = {
+      climate_zone: farm.climate_zone || null,
+      region,
+      region_name: getRegionName(region),
+    };
+
+    return Response.json({ ...matched, farm_info });
   } catch (error) {
     console.error('Farm native species API error:', error);
     return Response.json(

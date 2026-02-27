@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Search, Leaf } from 'lucide-react';
+import { X, Search, Leaf, MapPin } from 'lucide-react';
 import type { Species } from '@/lib/db/schema';
 import { getGuildCompanions, groupSpeciesByLayer, LAYER_ORDER } from '@/lib/species/species-utils';
 
@@ -61,6 +61,11 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
     perfect_match: Species[];
     good_match: Species[];
   }>({ perfect_match: [], good_match: [] });
+  const [farmInfo, setFarmInfo] = useState<{
+    climate_zone: string | null;
+    region: string;
+    region_name: string;
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'perfect' | 'good' | 'all'>('perfect');
@@ -78,6 +83,9 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
         perfect_match: data.perfect_match || [],
         good_match: data.good_match || []
       });
+      if (data.farm_info) {
+        setFarmInfo(data.farm_info);
+      }
     } catch (error) {
       console.error('Failed to load native species:', error);
     } finally {
@@ -143,6 +151,14 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
             <p className="text-xs text-muted-foreground mt-1 truncate">
               Good partners for <span className="font-medium text-green-600">{companionFilterFor}</span>
             </p>
+          )}
+          {!companionFilterFor && farmInfo?.climate_zone && (
+            <div className="flex items-center gap-1 mt-1">
+              <MapPin className="h-3 w-3 text-green-600" />
+              <span className="text-xs text-muted-foreground">
+                Zone {farmInfo.climate_zone} &middot; {farmInfo.region_name}
+              </span>
+            </div>
           )}
         </div>
         <Button
@@ -228,8 +244,13 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
               </Button>
             </div>
           ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              {searchQuery ? 'No plants found matching your search.' : 'No plants available.'}
+            <div className="p-8 text-center text-muted-foreground space-y-2">
+              <p>{searchQuery ? 'No plants found matching your search.' : 'No plants available.'}</p>
+              {!searchQuery && !farmInfo?.climate_zone && (
+                <p className="text-xs">
+                  Your farm&apos;s hardiness zone hasn&apos;t been detected yet. Try creating a new farm or ask for zone detection in the Plants panel.
+                </p>
+              )}
             </div>
           )
         ) : companionFilterFor && groupedByLayer ? (

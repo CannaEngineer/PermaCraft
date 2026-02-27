@@ -542,7 +542,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       case 'explore':
         return <ExplorePanel />;
       case 'plants':
-        return <PlantsPanel onSelectSpecies={handlePlantsPanelSelect} />;
+        return <PlantsPanel onSelectSpecies={handlePlantsPanelSelect} farmId={farm.id} />;
       case 'learn':
         return <LearnPanel />;
       case 'ai':

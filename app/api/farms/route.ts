@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { centroid } from '@turf/centroid';
 import { bbox } from '@turf/bbox';
 import type { Polygon } from 'geojson';
+import { lookupHardinessZone } from '@/lib/species/hardiness-zone-lookup';
 
 export async function GET() {
   try {
@@ -59,11 +60,20 @@ export async function POST(request: NextRequest) {
 
     const farmId = crypto.randomUUID();
 
+    // Auto-detect USDA hardiness zone (non-blocking — farm creation succeeds even if lookup fails)
+    let climate_zone: string | null = null;
+    try {
+      const zoneResult = await lookupHardinessZone(center_lat, center_lng);
+      climate_zone = zoneResult.zone;
+    } catch (error) {
+      console.warn('Hardiness zone lookup failed during farm creation:', error);
+    }
+
     // Create farm
     await db.execute({
-      sql: `INSERT INTO farms (id, user_id, name, description, acres, center_lat, center_lng, zoom_level, is_public)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [farmId, session.user.id, name, description, acres, center_lat, center_lng, zoom_level, 0],
+      sql: `INSERT INTO farms (id, user_id, name, description, acres, center_lat, center_lng, zoom_level, climate_zone, is_public)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [farmId, session.user.id, name, description, acres, center_lat, center_lng, zoom_level, climate_zone, 0],
     });
 
     // Create farm boundary zone
