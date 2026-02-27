@@ -213,6 +213,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             {/* Author Card */}
             <Card>
               <CardContent className="pt-6">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Curated by</p>
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <User className="h-6 w-6 text-primary" />
@@ -220,7 +221,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                   <div>
                     <p className="font-medium">{post.author_name || 'Permaculture.Studio Team'}</p>
                     <p className="text-sm text-muted-foreground">
-                      Expert in permaculture and sustainable living
+                      Regenerative Systems Designer
                     </p>
                   </div>
                 </div>

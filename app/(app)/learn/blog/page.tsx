@@ -10,7 +10,7 @@ import { BookOpen, Clock, TrendingUp, Zap, Eye, FileText, BarChart3, Timer, Spar
 
 export const metadata = {
   title: 'Blog - Permaculture.Studio',
-  description: 'Learn permaculture through expert articles and guides',
+  description: 'Learn permaculture through curated articles and guides',
 };
 
 export default async function BlogPage() {

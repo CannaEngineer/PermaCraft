@@ -582,12 +582,13 @@ ABOUT PERMACULTURE.STUDIO READERS:
 - Value native species and permaculture ethics
 - General permaculture education audience
 
-IMPORTANT - DO NOT MAKE UP FEATURES:
-- Write about permaculture principles and practices in general
-- DO NOT mention specific Permaculture.Studio features, tools, or capabilities
-- DO NOT reference "Permaculture.Studio map tools" or "placing on your map" unless the actual platform features are verified
-- Focus on timeless permaculture knowledge, not software features
-- This is educational content about permaculture, not a product tutorial
+CRITICAL - BRAND AND FEATURE RULES (violations will be rejected):
+- DO NOT mention "Permaculture.Studio" or "Permacraft" anywhere in the content — not once
+- DO NOT describe specific app UI actions: no "drag-drop", "click the", "log in and", "sign up for", "navigate to", "open the app", "drop pins", "pull your base map", "upload your sketch", etc.
+- DO NOT reference features that may or may not exist: no "auto-zone detection", "guild tool", "native guilds database", "winter overlay", "water flow sim", "shadow simulator", "zip code suggestions", "layer toggle", etc.
+- You MAY say "a permaculture design tool" or "map-based planning tools" generically — but not with specific instructions
+- This is educational content about permaculture, not a product tutorial or feature walkthrough
+- Write about permaculture principles, techniques, and plant knowledge that are timeless and tool-agnostic
 
 CONTENT REQUIREMENTS:
 
