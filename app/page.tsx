@@ -112,17 +112,16 @@ export default async function LandingPage() {
           </h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: "🗺️", title: "Map Editor", desc: "Draw zones and plantings on a satellite view of your actual land." },
-              { icon: "🤖", title: "AI Recommendations", desc: "Get permaculture-informed suggestions based on your climate, soil, and design." },
-              { icon: "🌱", title: "Native Species First", desc: "Every suggestion prioritizes native plants. Non-natives are clearly marked." },
-              { icon: "⏩", title: "Growth Simulation", desc: "Slide through time and watch your food forest fill in, year by year." },
+              { title: "Map Editor", desc: "Draw zones and plantings on a satellite view of your actual land." },
+              { title: "AI Recommendations", desc: "Get permaculture-informed suggestions based on your climate, soil, and design." },
+              { title: "Native Species First", desc: "Every suggestion prioritizes native plants. Non-natives are clearly marked." },
+              { title: "Growth Simulation", desc: "Slide through time and watch your food forest fill in, year by year." },
             ].map((f, i) => (
               <div
                 key={f.title}
                 className="landing-scroll-reveal rounded-xl border p-6 transition-all hover:shadow-lg"
                 style={{ animationDelay: `${i * 0.1}s`, borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
               >
-                <div className="mb-3 text-2xl">{f.icon}</div>
                 <h3 className="mb-2 font-serif text-lg font-bold">{f.title}</h3>
                 <p className="text-sm text-muted-foreground" style={{ lineHeight: 1.6 }}>{f.desc}</p>
               </div>
