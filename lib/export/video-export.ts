@@ -95,14 +95,15 @@ async function captureFrame(
   farmName: string,
   plantings: any[],
 ): Promise<HTMLCanvasElement> {
-  // Wait for map repaint
+  // Capture the map canvas synchronously inside the render event handler.
+  // Do NOT defer with an extra requestAnimationFrame — that extra frame allows
+  // the WebGL drawing buffer to be swapped/cleared before toDataURL() runs,
+  // producing a black image even when preserveDrawingBuffer is true.
   const mapDataUrl = await new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Frame capture timed out')), 8000);
     map.once('render', () => {
-      requestAnimationFrame(() => {
-        clearTimeout(timeout);
-        resolve(map.getCanvas().toDataURL('image/jpeg', 0.85));
-      });
+      clearTimeout(timeout);
+      resolve(map.getCanvas().toDataURL('image/jpeg', 0.85));
     });
     map.triggerRepaint();
   });
