@@ -960,6 +960,95 @@ export interface ShopNotification {
   created_at: number;
 }
 
+// ─── Task Management ──────────────────────────────────────────────────────────
+
+export type TaskType = 'planting' | 'watering' | 'harvesting' | 'maintenance' | 'observation' | 'pruning' | 'mulching' | 'custom';
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
+export type TaskPriority = 1 | 2 | 3 | 4; // low, medium, high, urgent
+
+export interface Task {
+  id: string;
+  farm_id: string;
+  title: string;
+  description: string | null;
+  task_type: TaskType;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: number | null;
+  completed_at: number | null;
+  assigned_to: string | null;
+  related_planting_id: string | null;
+  related_zone_id: string | null;
+  recurrence: string | null; // JSON: { pattern, interval, end_date }
+  tags: string | null; // JSON array
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TaskRecurrence {
+  pattern: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'seasonal';
+  interval: number;
+  end_date?: number;
+}
+
+// ─── Crop Planning ────────────────────────────────────────────────────────────
+
+export type CropPlanSeason = 'spring' | 'summer' | 'fall' | 'winter' | 'year-round';
+export type CropPlanStatus = 'draft' | 'active' | 'completed' | 'archived';
+export type CropItemStatus = 'planned' | 'sown' | 'transplanted' | 'growing' | 'harvesting' | 'done';
+
+export interface CropPlan {
+  id: string;
+  farm_id: string;
+  name: string;
+  season: CropPlanSeason;
+  year: number;
+  status: CropPlanStatus;
+  notes: string | null;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CropPlanItem {
+  id: string;
+  crop_plan_id: string;
+  species_id: string | null;
+  variety_id: string | null;
+  zone_id: string | null;
+  name: string;
+  planned_sow_date: number | null;
+  planned_transplant_date: number | null;
+  planned_harvest_date: number | null;
+  quantity: number | null;
+  unit: string | null;
+  expected_yield: number | null;
+  expected_yield_unit: string | null;
+  actual_yield: number | null;
+  actual_yield_unit: string | null;
+  status: CropItemStatus;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface HarvestLog {
+  id: string;
+  farm_id: string;
+  crop_plan_item_id: string | null;
+  planting_id: string | null;
+  species_id: string | null;
+  harvest_date: number;
+  quantity: number;
+  unit: string;
+  quality_rating: number | null;
+  notes: string | null;
+  photo_url: string | null;
+  created_by: string;
+  created_at: number;
+}
+
 export interface JournalEntry {
   id: string;
   farm_id: string;

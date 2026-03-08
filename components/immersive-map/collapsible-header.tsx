@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag, Menu, User, LayoutDashboard, ArrowLeft, X } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag, Menu, User, LayoutDashboard, ArrowLeft, X, CheckSquare, CalendarDays, BarChart3 } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
@@ -91,6 +91,18 @@ export function CollapsibleHeader({
                   <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{goalsCount}</span>
                 )}
               </button>
+              <Link href={`/farm/${farm.id}/tasks`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Tasks</span>
+              </Link>
+              <Link href={`/farm/${farm.id}/plan`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Crop Plans</span>
+              </Link>
+              <Link href={`/farm/${farm.id}/reports`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Reports</span>
+              </Link>
               <Link href={`/farm/${farm.id}/shop`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                 <ShoppingBag className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium">{isShopEnabled ? 'Manage Shop' : 'Open a Shop'}</span>
@@ -233,6 +245,27 @@ export function CollapsibleHeader({
                     </span>
                   )}
                 </Button>
+
+                <Link href={`/farm/${farm.id}/tasks`}>
+                  <Button variant="ghost" size="sm">
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Tasks
+                  </Button>
+                </Link>
+
+                <Link href={`/farm/${farm.id}/plan`}>
+                  <Button variant="ghost" size="sm">
+                    <CalendarDays className="h-4 w-4 mr-2" />
+                    Plan
+                  </Button>
+                </Link>
+
+                <Link href={`/farm/${farm.id}/reports`}>
+                  <Button variant="ghost" size="sm">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Reports
+                  </Button>
+                </Link>
 
                 <Link href={`/farm/${farm.id}/shop`}>
                   <Button variant="ghost" size="sm">

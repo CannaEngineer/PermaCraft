@@ -10,12 +10,12 @@
 | # | Tend Feature | PermaCraft Status | Gap | Priority |
 |---|-------------|-------------------|-----|----------|
 | 1 | No acreage or crop limits | **HAVE** | None — unlimited farms, zones, plantings | — |
-| 2 | Advanced crop & production planning | **PARTIAL** | We have species placement + AI analysis but lack structured crop rotation, planting calendars, harvest scheduling, and yield tracking | HIGH |
-| 3 | 39,000+ crop & variety templates | **GAP** | ~350 species seeded. No variety/cultivar data (e.g., 'Early Girl' tomato vs 'Cherokee Purple') | HIGH |
-| 4 | Task & workflow management | **GAP** | No task system. No planting reminders, seasonal checklists, or to-do lists | HIGH |
+| 2 | Advanced crop & production planning | **HAVE** | Crop plans with seasonal scheduling, sow/transplant/harvest dates, yield tracking, harvest logs. `/farm/[id]/plan` | CLOSED |
+| 3 | 39,000+ crop & variety templates | **PARTIAL** | ~350 species + `plant_varieties` table with cultivar/hybrid/heirloom support. Community contributions enabled. USDA bulk import next. | MEDIUM |
+| 4 | Task & workflow management | **HAVE** | Full task board with types, priorities, due dates, recurrence support, zone/planting linking. `/farm/[id]/tasks` | CLOSED |
 | 5 | Greenhouse & field operations | **GAP** | No greenhouse modeling, indoor/outdoor tracking, or operational logs | MEDIUM |
 | 6 | Farm map & field layout | **HAVE** | Strong — MapLibre with zones, plantings, lines, layers, measurement grid, snap-to-grid, immersive editor. This is our competitive advantage. | — |
-| 7 | Pre-built reports & dashboards | **PARTIAL** | Admin analytics exists, but no user-facing farm reports (yield reports, seasonal summaries, planting reports, PDF/print) | HIGH |
+| 7 | Pre-built reports & dashboards | **HAVE** | Farm reports with overview metrics, species diversity charts, layer distribution, permaculture function coverage, harvest logs, health score. `/farm/[id]/reports` | CLOSED |
 | 8 | Soil Health Logs | **PARTIAL** | `soil_type` on farms + regional knowledge, but no structured soil test logging (pH, NPK, organic matter over time) | MEDIUM |
 | 9 | Notes & Observations with Photos | **PARTIAL** | Annotations with media exist (`/api/farms/[id]/annotations` + media upload), but UX is limited. No observation journal feed. | MEDIUM |
 | 10 | Data import tools | **PARTIAL** | Species SQL seed imports exist, but no user-facing CSV/spreadsheet import for plantings, crop plans, or farm data | MEDIUM |
