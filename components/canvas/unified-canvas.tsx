@@ -27,6 +27,9 @@ import { PhotoUploadDialog } from '@/components/immersive-map/photo-upload-dialo
 import { DeleteFarmDialog } from '@/components/shared/delete-farm-dialog';
 import { JournalListPanel } from '@/components/farm/journal-list-panel';
 import { JournalEntryForm } from '@/components/farm/journal-entry-form';
+import { TasksDrawer } from '@/components/farm/tasks-drawer';
+import { CropPlanDrawer } from '@/components/farm/crop-plan-drawer';
+import { ReportsDrawer } from '@/components/farm/reports-drawer';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap } from 'lucide-react';
 import { WelcomeWalkthrough } from './welcome-walkthrough';
@@ -755,6 +758,12 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           />
         ) : drawerContent === 'journal' ? (
           <JournalListPanel farmId={farm.id} />
+        ) : drawerContent === 'tasks' ? (
+          <TasksDrawer farmId={farm.id} />
+        ) : drawerContent === 'crop-plan' ? (
+          <CropPlanDrawer farmId={farm.id} />
+        ) : drawerContent === 'reports' ? (
+          <ReportsDrawer farmId={farm.id} />
         ) : (
           <div className="p-4 text-muted-foreground">
             {drawerContent ? 'Loading...' : 'Select a feature or use the action menu'}

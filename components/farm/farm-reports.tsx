@@ -369,7 +369,7 @@ export function FarmReports({ farmId, farmName }: FarmReportsProps) {
 
             {/* Quick Links */}
             <div className="grid grid-cols-2 gap-3">
-              <Link href={`/farm/${farmId}/tasks`}>
+              <Link href={`/canvas?farm=${farmId}&section=farm`}>
                 <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
                   <CardContent className="p-4 text-center">
                     <CheckCircle2 className="h-8 w-8 text-blue-600 mx-auto mb-2" />
@@ -378,7 +378,7 @@ export function FarmReports({ farmId, farmName }: FarmReportsProps) {
                   </CardContent>
                 </Card>
               </Link>
-              <Link href={`/farm/${farmId}/plan`}>
+              <Link href={`/canvas?farm=${farmId}&section=farm`}>
                 <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
                   <CardContent className="p-4 text-center">
                     <Sprout className="h-8 w-8 text-green-600 mx-auto mb-2" />

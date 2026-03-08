@@ -2,7 +2,7 @@
 
 import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
-import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight, MapPin, Plus, BookOpen } from 'lucide-react';
+import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight, MapPin, Plus, BookOpen, CheckSquare, Calendar, BarChart3 } from 'lucide-react';
 
 interface FarmPanelProps {
   onOpenDrawer?: (content: string) => void;
@@ -93,6 +93,36 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
             <ListTree className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm">Feature Manager</span>
           </button>
+        </div>
+
+        {/* Farm Management */}
+        <div>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Farm Management
+          </h3>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => onOpenDrawer?.('tasks')}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-accent/50 transition-colors"
+            >
+              <CheckSquare className="h-5 w-5 text-blue-500" />
+              <span className="text-[11px] font-medium">Tasks</span>
+            </button>
+            <button
+              onClick={() => onOpenDrawer?.('crop-plan')}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-accent/50 transition-colors"
+            >
+              <Calendar className="h-5 w-5 text-green-500" />
+              <span className="text-[11px] font-medium">Crop Plan</span>
+            </button>
+            <button
+              onClick={() => onOpenDrawer?.('reports')}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-accent/50 transition-colors"
+            >
+              <BarChart3 className="h-5 w-5 text-purple-500" />
+              <span className="text-[11px] font-medium">Reports</span>
+            </button>
+          </div>
         </div>
 
         {/* Cross-links to other sections */}
