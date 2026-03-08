@@ -9,8 +9,18 @@ export async function GET(request: NextRequest) {
     const nativeParam = searchParams.get('filter');
     const layer = searchParams.get('layer');
     const search = searchParams.get('search');
+    const hardinessZone = searchParams.get('zone');
+    const region = searchParams.get('region');
+    const permacultureOnly = searchParams.get('permaculture') === 'true';
 
-    const filters: any = {};
+    const filters: {
+      native?: boolean;
+      layer?: string;
+      search?: string;
+      hardinessZone?: string;
+      region?: string;
+      permacultureOnly?: boolean;
+    } = {};
 
     if (nativeParam === 'native') {
       filters.native = true;
@@ -24,6 +34,18 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       filters.search = search;
+    }
+
+    if (hardinessZone) {
+      filters.hardinessZone = hardinessZone;
+    }
+
+    if (region) {
+      filters.region = region;
+    }
+
+    if (permacultureOnly) {
+      filters.permacultureOnly = true;
     }
 
     const species = await getAllSpecies(filters);
