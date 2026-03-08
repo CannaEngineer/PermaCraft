@@ -29,7 +29,10 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
-    "cleanup:test-users": "dotenv -e .env.local -- tsx scripts/cleanup-test-users.ts"
+    "cleanup:test-users": "dotenv -e .env.local -- tsx scripts/cleanup-test-users.ts",
+    "scrape:plants": "dotenv -e .env.local -- tsx scripts/plant-scraper/index.ts",
+    "scrape:plants:list": "tsx scripts/plant-scraper/index.ts --list",
+    "scrape:plants:import": "dotenv -e .env.local -- tsx scripts/plant-scraper/import-scraped.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
