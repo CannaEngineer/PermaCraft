@@ -42,7 +42,9 @@ export function ExportPanel({ farmId, farmName, mapInstance, plantings, currentY
       const dataUrl = await captureMapSnapshot(mapInstance, {
         format: 'png',
         width: 1920,
-        height: 1080
+        height: 1080,
+        plantings: plantings,
+        currentYear: currentYear,
       });
 
       const filename = `${farmName.replace(/\s+/g, '-')}-${Date.now()}.png`;
@@ -71,10 +73,12 @@ export function ExportPanel({ farmId, farmName, mapInstance, plantings, currentY
     setExportingType('pdf');
 
     try {
-      // Capture map
+      // Capture map (including planting markers composited onto the canvas)
       const rawDataUrl = await captureMapSnapshot(mapInstance, {
         format: 'jpeg',
-        quality: 0.9
+        quality: 0.9,
+        plantings: plantings,
+        currentYear: currentYear,
       });
 
       // Downscale image before sending to reduce payload size
