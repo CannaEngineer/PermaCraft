@@ -2,10 +2,6 @@ const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['pdfkit'],
-  outputFileTracingIncludes: {
-    '/api/farms/[id]/export/pdf': ['./node_modules/pdfkit/js/data/**/*'],
-  },
   images: {
     remotePatterns: [
       {
