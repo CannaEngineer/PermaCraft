@@ -66,9 +66,11 @@ export function MapControlPanel({
         <Button
           onClick={toggleControlPanel}
           size="icon"
-          className="glass-panel rounded-full h-14 w-14"
+          variant="secondary"
+          className="glass-panel rounded-xl h-10 w-10 shadow-md"
+          title="Map Controls"
         >
-          <Layers className="h-5 w-5" />
+          <Layers className="h-4 w-4" />
         </Button>
       </motion.div>
     );

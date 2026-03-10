@@ -17,7 +17,7 @@ export function CreatePostFAB({ farmId, onPostCreated }: CreatePostFABProps) {
     <>
       <Button
         size="lg"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
+        className="fixed bottom-[88px] right-5 md:bottom-8 md:right-8 h-14 w-14 rounded-full shadow-xl z-[45]"
         onClick={() => setOpen(true)}
       >
         <PlusIcon className="h-6 w-6" />
