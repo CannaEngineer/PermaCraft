@@ -3052,191 +3052,20 @@ export function FarmMap({
         unit={gridUnit}
       />
 
-      {/* Zoom Level Indicator */}
-      <div className={`absolute top-4 right-4 z-10 rounded-lg shadow-md px-3 py-2 text-sm font-medium transition-colors ${
+      {/* Zoom Level Indicator — top-left to avoid conflict with MapControlPanel (top-right) */}
+      <div className={`absolute top-3 left-3 z-10 rounded-lg shadow-md px-2.5 py-1.5 text-xs font-medium transition-colors pointer-events-none ${
         currentZoom > 18
-          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-          : 'bg-white text-slate-700'
+          ? 'bg-blue-50/90 text-blue-700 border border-blue-200 backdrop-blur-sm'
+          : 'bg-card/90 text-card-foreground backdrop-blur-sm'
       }`}>
         {getZoomLabel(currentZoom)}
       </div>
 
-      {/* Map Layer Selector - REMOVED - now in FAB menu */}
-      <div className="hidden absolute top-4 left-4 z-10">
-        <Button
-          onClick={() => {
-            setShowLayerMenu(!showLayerMenu);
-            setShowHelp(false);
-          }}
-          variant="secondary"
-          size="sm"
-          className="bg-card text-card-foreground shadow-lg"
-        >
-          <Layers className="h-4 w-4 mr-2" />
-          {mapLayer === "satellite" && "Satellite"}
-          {mapLayer === "mapbox-satellite" && "Mapbox Sat"}
-          {mapLayer === "terrain-3d" && "3D Terrain"}
-          {mapLayer === "street" && "Street"}
-          {mapLayer === "terrain" && "Terrain"}
-          {mapLayer === "topo" && "OpenTopoMap"}
-          {mapLayer === "usgs" && "USGS Topo"}
-        </Button>
+      {/* Legacy map layer & grid selectors removed — now in MapControlPanel */}
 
-        {showLayerMenu && (
-          <div className="absolute top-full mt-2 bg-card rounded shadow-lg p-2 space-y-1 min-w-[160px] z-50">
-            <button
-              onClick={() => changeMapLayer("satellite")}
-              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                mapLayer === "satellite" ? "bg-accent font-medium" : ""
-              }`}
-            >
-              Satellite (ESRI)
-            </button>
-            <button
-              onClick={() => changeMapLayer("mapbox-satellite")}
-              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                mapLayer === "mapbox-satellite" ? "bg-accent font-medium" : ""
-              }`}
-            >
-              Mapbox Satellite
-            </button>
-            <button
-              onClick={() => changeMapLayer("terrain-3d")}
-              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                mapLayer === "terrain-3d" ? "bg-accent font-medium" : ""
-              }`}
-            >
-              3D Terrain
-            </button>
-            <div className="border-t border-border my-1"></div>
-            <button
-              onClick={() => changeMapLayer("terrain")}
-              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                mapLayer === "terrain" ? "bg-accent font-medium" : ""
-              }`}
-            >
-              Terrain Map
-            </button>
-            <button
-              onClick={() => changeMapLayer("topo")}
-              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                mapLayer === "topo" ? "bg-accent font-medium" : ""
-              }`}
-            >
-              OpenTopoMap
-            </button>
-            <button
-              onClick={() => changeMapLayer("usgs")}
-              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                mapLayer === "usgs" ? "bg-accent font-medium" : ""
-              }`}
-            >
-              USGS Topo
-            </button>
-            <button
-              onClick={() => changeMapLayer("street")}
-              className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                mapLayer === "street" ? "bg-accent font-medium" : ""
-              }`}
-            >
-              Street Map
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Grid Controls - REMOVED - now in FAB menu */}
-      <div className="hidden absolute top-20 left-4 z-10 gap-2">
-        <Button
-          onClick={() =>
-            setGridUnit(gridUnit === "imperial" ? "metric" : "imperial")
-          }
-          variant="secondary"
-          size="sm"
-          className="bg-card text-card-foreground shadow-lg"
-        >
-          {gridUnit === "imperial" ? "Feet" : "Meters"} ⟷
-        </Button>
-
-        <div className="relative">
-          <Button
-            onClick={() => {
-              setShowGridMenu(!showGridMenu);
-              setShowLayerMenu(false);
-              setShowHelp(false);
-            }}
-            variant="secondary"
-            size="sm"
-            className="bg-card text-card-foreground shadow-lg"
-          >
-            Grid: {gridDensity === "auto" ? "Auto" : gridDensity.charAt(0).toUpperCase() + gridDensity.slice(1)} ▾
-          </Button>
-
-          {showGridMenu && (
-            <div className="absolute top-full mt-2 bg-card rounded shadow-lg p-2 space-y-1 min-w-[140px] z-50">
-              <button
-                onClick={() => {
-                  setGridDensity("auto");
-                  setShowGridMenu(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                  gridDensity === "auto" ? "bg-accent font-medium" : ""
-                }`}
-              >
-                Auto
-              </button>
-              <button
-                onClick={() => {
-                  setGridDensity("sparse");
-                  setShowGridMenu(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                  gridDensity === "sparse" ? "bg-accent font-medium" : ""
-                }`}
-              >
-                Sparse
-              </button>
-              <button
-                onClick={() => {
-                  setGridDensity("normal");
-                  setShowGridMenu(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                  gridDensity === "normal" ? "bg-accent font-medium" : ""
-                }`}
-              >
-                Normal
-              </button>
-              <button
-                onClick={() => {
-                  setGridDensity("dense");
-                  setShowGridMenu(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                  gridDensity === "dense" ? "bg-accent font-medium" : ""
-                }`}
-              >
-                Dense
-              </button>
-              <button
-                onClick={() => {
-                  setGridDensity("off");
-                  setShowGridMenu(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-accent ${
-                  gridDensity === "off" ? "bg-accent font-medium" : ""
-                }`}
-              >
-                Off
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Selected Species Indicator - Shown when planting mode active */}
+      {/* Selected Species Indicator — below zoom label, left side */}
       {plantingMode && selectedSpecies && !showSpeciesPicker && (
-        <div className="absolute top-36 left-4 z-10 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg max-w-[260px] animate-in slide-in-from-left-4 fade-in duration-300">
+        <div className="absolute top-12 left-3 z-10 bg-green-600 text-white px-4 py-3 rounded-xl shadow-lg max-w-[240px] animate-in slide-in-from-left-4 fade-in duration-300">
           <div className="flex items-center gap-2 mb-1">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
@@ -3263,9 +3092,9 @@ export function FarmMap({
       )}
 
 
-      {/* 3D Terrain Controls - Desktop Only - positioned at bottom right when terrain enabled */}
+      {/* 3D Terrain Controls — left side to avoid FAB conflict */}
       {terrainEnabled && (
-        <div className="hidden md:flex absolute bottom-20 right-4 z-10 flex-col gap-2">
+        <div className="hidden md:flex absolute bottom-4 left-14 z-10 gap-1.5">
           <Button
             onClick={() => {
               if (map.current) {
@@ -3275,10 +3104,10 @@ export function FarmMap({
             }}
             variant="secondary"
             size="sm"
-            className="bg-card text-card-foreground shadow-lg"
+            className="bg-card/90 backdrop-blur-sm text-card-foreground shadow-md h-9"
             title="Tilt up (increase pitch)"
           >
-            ⬆️ Tilt
+            Tilt
           </Button>
           <Button
             onClick={() => {
@@ -3289,10 +3118,10 @@ export function FarmMap({
             }}
             variant="secondary"
             size="sm"
-            className="bg-card text-card-foreground shadow-lg"
+            className="bg-card/90 backdrop-blur-sm text-card-foreground shadow-md h-9"
             title="Tilt down (decrease pitch)"
           >
-            ⬇️ Flat
+            Flat
           </Button>
           <Button
             onClick={() => {
@@ -3302,124 +3131,19 @@ export function FarmMap({
             }}
             variant="secondary"
             size="sm"
-            className="bg-card text-card-foreground shadow-lg"
+            className="bg-card/90 backdrop-blur-sm text-card-foreground shadow-md h-9"
             title="Reset view to north-up, flat"
           >
-            🧭 Reset
+            Reset
           </Button>
         </div>
       )}
 
-      {/* Drawing Tools Help - Desktop Only - positioned at bottom right */}
-      <div className="hidden md:block absolute bottom-4 right-4 z-10">
-        <Button
-          onClick={() => {
-            setShowHelp(!showHelp);
-            setShowLayerMenu(false);
-          }}
-          variant="secondary"
-          size="sm"
-          className="bg-card text-card-foreground shadow-lg"
-        >
-          <HelpCircle className="h-4 w-4 mr-2" />
-          Help
-        </Button>
+      {/* Help — moved to MapControlPanel keyboard shortcuts tooltip (no longer a standalone button) */}
 
-        {showHelp && (
-          <div className="absolute bottom-full mb-2 right-0 bg-card rounded shadow-lg p-4 w-80 max-w-[calc(100vw-2rem)] z-50">
-            <h3 className="font-semibold mb-3">
-              Drawing Tools (Top-Right Corner)
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 flex items-center justify-center bg-muted rounded text-xs">
-                  📍
-                </div>
-                <div>
-                  <div className="font-medium">Point Tool</div>
-                  <div className="text-muted-foreground text-xs">
-                    Click the map to mark locations
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 flex items-center justify-center bg-muted rounded text-xs">
-                  📏
-                </div>
-                <div>
-                  <div className="font-medium">Line Tool</div>
-                  <div className="text-muted-foreground text-xs">
-                    Click points to draw a path. Double-click to finish.
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 flex items-center justify-center bg-muted rounded text-xs">
-                  ⬡
-                </div>
-                <div>
-                  <div className="font-medium">Polygon Tool</div>
-                  <div className="text-muted-foreground text-xs">
-                    Click points to draw an area. Double-click to close.
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 flex items-center justify-center bg-muted rounded text-xs">
-                  ⭕
-                </div>
-                <div>
-                  <div className="font-medium">Circle Tool</div>
-                  <div className="text-muted-foreground text-xs">
-                    Click center, then click edge to set radius.
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 flex items-center justify-center bg-muted rounded text-xs">
-                  🗑️
-                </div>
-                <div>
-                  <div className="font-medium">Delete Tool</div>
-                  <div className="text-muted-foreground text-xs">
-                    Click it, then click a feature to delete
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <h3 className="font-semibold mt-4 mb-2">Keyboard Shortcuts</h3>
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Toggle snap-to-grid</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">S</kbd>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Toggle grid visibility</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">G</kbd>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Toggle measurements</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">M</kbd>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Temp. disable snap (hold)</span>
-                <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">Shift</kbd>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-              <strong>How to use:</strong> Click a tool button in the top-right
-              corner, then click on the map to draw. Your cursor will change to
-              indicate the active tool.
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Zone Labeling Panel */}
+      {/* Zone Labeling Panel — positioned to avoid drawing toolbar and bottom drawer */}
       {selectedZone && (
-        <div className="absolute bottom-4 left-4 bg-card rounded shadow-lg p-4 z-10 w-96 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto">
+        <div className="absolute bottom-36 md:bottom-4 left-4 md:left-20 bg-card/95 backdrop-blur-sm rounded-xl shadow-xl p-4 z-20 w-80 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto border border-border/30">
           <div className="flex items-center gap-2 mb-3">
             <Tag className="h-4 w-4" />
             <h3 className="font-medium">Label Zone</h3>
@@ -3554,39 +3278,36 @@ export function FarmMap({
         </div>
       )}
 
-      {/* Drawing Mode Context Label */}
+      {/* Drawing Mode Context Label — top center, no overlap with corners */}
       {drawMode !== 'simple_select' && drawMode !== 'direct_select' && (
-        <div className="absolute top-3 right-20 z-10 bg-green-600 text-white px-3 py-1.5 rounded-md text-xs font-medium shadow-lg animate-in fade-in duration-200">
-          {drawMode === 'draw_polygon' && '📐 Drawing Zone Area'}
-          {drawMode === 'draw_line_string' && '〰️ Drawing Path/Swale'}
-          {drawMode === 'draw_point' && '📍 Mark Location'}
-          {circleMode && '⭕ Drawing Circle Zone'}
-        </div>
-      )}
-
-      {/* Finish Line Button - Touch Devices Only */}
-      {drawMode === 'draw_line_string' && (
-        <div className="absolute top-14 right-20 z-10 md:hidden">
-          <Button
-            onClick={() => {
-              if (draw.current) {
-                // Get the feature being drawn
-                const features = draw.current.getAll();
-                if (features.features.length > 0) {
-                  // Changing mode to simple_select completes the drawing
-                  draw.current.changeMode('simple_select');
-                  toast({
-                    title: 'Line completed',
-                    description: 'Tap to continue editing or exit drawing mode'
-                  });
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+          <div className="bg-green-600/95 backdrop-blur-sm text-white px-3.5 py-2 rounded-full text-xs font-medium shadow-lg animate-in fade-in duration-200 whitespace-nowrap">
+            {drawMode === 'draw_polygon' && 'Drawing Zone Area'}
+            {drawMode === 'draw_line_string' && 'Drawing Path/Swale'}
+            {drawMode === 'draw_point' && 'Mark Location'}
+            {circleMode && 'Drawing Circle Zone'}
+          </div>
+          {/* Finish Line — inline next to label on mobile */}
+          {drawMode === 'draw_line_string' && (
+            <Button
+              onClick={() => {
+                if (draw.current) {
+                  const features = draw.current.getAll();
+                  if (features.features.length > 0) {
+                    draw.current.changeMode('simple_select');
+                    toast({
+                      title: 'Line completed',
+                      description: 'Tap to continue editing or exit drawing mode'
+                    });
+                  }
                 }
-              }
-            }}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-          >
-            ✓ Finish Line
-          </Button>
+              }}
+              size="sm"
+              className="md:hidden bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-full h-8 text-xs"
+            >
+              Finish
+            </Button>
+          )}
         </div>
       )}
 

@@ -138,7 +138,7 @@ export function ZoneQuickLabelForm({
     <>
       {/* Transparent backdrop to catch clicks */}
       <div
-        className="fixed inset-0 z-[999]"
+        className="fixed inset-0 z-[60]"
         onClick={handleSkip}
       />
 
@@ -146,7 +146,7 @@ export function ZoneQuickLabelForm({
       <div
         ref={formRef}
         style={formStyle}
-        className="z-[1000] bg-card rounded-lg shadow-2xl border-2 border-green-500 w-[280px] max-md:w-auto animate-in fade-in slide-in-from-top-2 duration-200"
+        className="z-[65] bg-card rounded-xl shadow-2xl border-2 border-green-500 w-[280px] max-md:w-auto animate-in fade-in slide-in-from-top-2 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

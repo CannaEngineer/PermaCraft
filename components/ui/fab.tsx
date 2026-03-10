@@ -18,19 +18,24 @@ interface FABProps {
   icon?: React.ReactNode;
   /** Expandable menu actions (if provided, FAB becomes expandable) */
   actions?: FABAction[];
-  /** Custom className for positioning */
+  /** Custom className for positioning overrides */
   className?: string;
   /** Label for accessibility */
   ariaLabel: string;
 }
 
 /**
- * Context-Aware Floating Action Button
+ * Floating Action Button — Material 3 / Apple HIG pattern.
  *
- * Positioned in the bottom-right corner for maximum mobile accessibility.
- * Can be used as:
- * 1. Simple FAB with single action
- * 2. Expandable FAB with multiple actions (speed dial)
+ * Positioning: bottom-right, above mobile nav bar (88px), standard desktop (8/8).
+ * Z-index: 45 — above map controls (z-30), below drawers (z-55) and modals (z-60+).
+ *
+ * Features:
+ * - Speed dial expansion with staggered animation
+ * - Labels always visible (mobile-friendly, no hover dependency)
+ * - Scrim backdrop on expand for focus
+ * - 44px+ touch targets on all interactive elements
+ * - Smooth rotation animation on toggle
  */
 export function FAB({
   onAction,
@@ -55,58 +60,72 @@ export function FAB({
   };
 
   return (
-    <div className={cn("fixed bottom-[88px] right-6 z-[45] md:bottom-24 md:right-8", className)}>
-      {/* Expanded Action Menu (Speed Dial) */}
+    <div className={cn(
+      "fixed bottom-[88px] right-5 z-[45] md:bottom-8 md:right-8",
+      className
+    )}>
+      {/* Speed Dial Actions */}
       {actions && actions.length > 0 && isExpanded && (
-        <div className="absolute bottom-[72px] right-0 flex flex-col gap-3 mb-4 items-end">
-          {actions.map((action, index) => (
-            <button
-              key={index}
-              onClick={() => handleActionClick(action)}
-              className="group flex items-center justify-end gap-3 transition-all duration-200 ease-out animate-in slide-in-from-bottom-4"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              {/* Action Label */}
-              <span className="bg-card text-card-foreground px-3 py-2 rounded-lg shadow-lg text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                {action.label}
-              </span>
-              {/* Action Icon Button */}
-              <div
+        <>
+          {/* Scrim backdrop */}
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-[1px] -z-10 animate-in fade-in duration-150"
+            onClick={() => setIsExpanded(false)}
+            aria-hidden
+          />
+
+          {/* Action items */}
+          <div className="absolute bottom-16 right-0 flex flex-col gap-2.5 pb-2 items-end">
+            {actions.map((action, index) => (
+              <button
+                key={action.label}
+                onClick={() => handleActionClick(action)}
                 className={cn(
-                  "h-12 w-12 rounded-full shadow-lg flex items-center justify-center flex-shrink-0 transition-transform hover:scale-110 active:scale-95",
-                  action.color || "bg-primary text-primary-foreground"
+                  "group flex items-center gap-2.5 transition-all duration-200 ease-out",
+                  "opacity-0 translate-y-2 animate-in fade-in slide-in-from-bottom-2 fill-mode-forwards"
                 )}
+                style={{
+                  animationDelay: `${index * 35}ms`,
+                  animationDuration: '200ms',
+                }}
               >
-                {action.icon}
-              </div>
-            </button>
-          ))}
-        </div>
+                {/* Label — always visible (no hover-only on mobile) */}
+                <span className="bg-card/95 backdrop-blur-sm text-card-foreground px-3 py-1.5 rounded-full shadow-lg text-sm font-medium whitespace-nowrap border border-border/30">
+                  {action.label}
+                </span>
+                {/* Icon circle — 44px minimum touch target */}
+                <div
+                  className={cn(
+                    "h-11 w-11 rounded-full shadow-lg flex items-center justify-center flex-shrink-0",
+                    "text-white transition-transform hover:scale-110 active:scale-95",
+                    action.color || "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {action.icon}
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Main FAB Button */}
       <button
         onClick={handleMainClick}
         className={cn(
-          "h-14 w-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200",
-          "bg-primary text-primary-foreground border-2 border-primary-foreground/20",
-          "hover:scale-110 active:scale-95",
+          "h-14 w-14 rounded-full shadow-xl flex items-center justify-center",
+          "transition-all duration-250 ease-out",
+          "bg-primary text-primary-foreground",
+          "hover:shadow-2xl hover:brightness-110",
+          "active:scale-95",
           "focus:outline-none focus:ring-4 focus:ring-primary/30",
-          "[data-theme='windows-xp']_&:shadow-[0_0_0_2px_rgba(0,0,0,0.1)]",
-          isExpanded && "rotate-45"
+          isExpanded && "rotate-45 shadow-lg"
         )}
         aria-label={ariaLabel}
+        aria-expanded={actions && actions.length > 0 ? isExpanded : undefined}
       >
         {isExpanded ? <X className="h-6 w-6" /> : icon}
       </button>
-
-      {/* Backdrop for Expandable Menu */}
-      {isExpanded && (
-        <div
-          className="fixed inset-0 bg-black/20 -z-10"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
     </div>
   );
 }

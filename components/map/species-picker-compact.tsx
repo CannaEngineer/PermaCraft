@@ -103,12 +103,12 @@ export function SpeciesPickerCompact({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/10 z-[998]"
+        className="fixed inset-0 bg-black/10 z-[60]"
         onClick={onClose}
       />
 
       {/* Compact Picker Panel */}
-      <div className="fixed top-4 right-4 z-[999] w-[320px] max-w-[calc(100vw-2rem)] bg-card rounded-lg shadow-2xl border border-border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="fixed top-4 right-4 z-[65] w-[320px] max-w-[calc(100vw-2rem)] bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
         {/* Header with Search */}
         <div className="p-3 border-b border-border">
           <div className="flex items-center justify-between mb-2">

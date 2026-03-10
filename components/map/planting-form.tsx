@@ -39,12 +39,12 @@ export function PlantingForm({ species, position, zones, onSubmit, onCancel }: P
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/20 z-[999]"
+        className="fixed inset-0 bg-black/20 z-[60]"
         onClick={onCancel}
       />
 
       {/* Form - Side-anchored panel (left on desktop, bottom on mobile) */}
-      <div className="fixed inset-y-0 left-0 z-[1000] w-[380px] max-w-[90vw] max-md:inset-x-0 max-md:inset-y-auto max-md:bottom-0 max-md:w-full max-md:max-h-[80dvh] animate-in slide-in-from-left duration-200 max-md:slide-in-from-bottom max-md:pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed inset-y-0 left-0 z-[65] w-[380px] max-w-[90vw] max-md:inset-x-0 max-md:inset-y-auto max-md:bottom-0 max-md:w-full max-md:max-h-[80dvh] animate-in slide-in-from-left duration-200 max-md:slide-in-from-bottom max-md:pb-[env(safe-area-inset-bottom)]">
         <form
           onSubmit={handleSubmit}
           className="bg-card rounded-lg shadow-2xl border border-border h-full overflow-hidden flex flex-col max-md:rounded-t-2xl max-md:rounded-b-none"
