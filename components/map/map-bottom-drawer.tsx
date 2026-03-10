@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import maplibregl from "maplibre-gl";
-import { ChevronDown, ChevronUp, Filter, Activity, Leaf, List, ChevronRight, Map } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, Activity, Leaf, List, ChevronRight, Map, Square, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
@@ -81,8 +81,10 @@ interface MapBottomDrawerProps {
   map?: maplibregl.Map | null;
   farmName?: string;
 
-  // Actions
+  // Design + Farm actions (unified)
   onAddPlant?: () => void;
+  onDrawZone?: () => void;
+  onCreatePost?: () => void;
   onDataRefresh?: () => void;
 
   // Feature List props
@@ -117,6 +119,8 @@ export function MapBottomDrawer({
   map,
   farmName,
   onAddPlant,
+  onDrawZone,
+  onCreatePost,
   onDataRefresh,
   onFeatureSelectFromList,
   mapRef,
@@ -244,15 +248,36 @@ export function MapBottomDrawer({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+            <div className="flex items-center gap-1 shrink-0 ml-2">
               {onAddPlant && (
                 <Button
                   size="sm"
                   onClick={onAddPlant}
-                  className="h-8 text-xs px-3"
+                  className="h-8 text-xs px-2.5"
                 >
                   <Leaf className="h-3 w-3 mr-1" />
-                  Add Plant
+                  Plant
+                </Button>
+              )}
+              {onDrawZone && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onDrawZone}
+                  className="h-8 text-xs px-2.5"
+                >
+                  <Square className="h-3 w-3 mr-1" />
+                  Zone
+                </Button>
+              )}
+              {onCreatePost && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onCreatePost}
+                  className="h-8 text-xs px-2.5"
+                >
+                  <MessageSquare className="h-3 w-3" />
                 </Button>
               )}
               <Button
@@ -328,15 +353,26 @@ export function MapBottomDrawer({
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          <div className="flex items-center gap-1 shrink-0 ml-2">
             {onAddPlant && (
               <Button
                 size="sm"
                 onClick={onAddPlant}
-                className="h-8 text-xs px-3"
+                className="h-8 text-xs px-2.5"
               >
                 <Leaf className="h-3 w-3 mr-1" />
-                Add Plant
+                Plant
+              </Button>
+            )}
+            {onDrawZone && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onDrawZone}
+                className="h-8 text-xs px-2.5"
+              >
+                <Square className="h-3 w-3 mr-1" />
+                Zone
               </Button>
             )}
             <Button

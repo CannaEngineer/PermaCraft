@@ -123,41 +123,25 @@ Located in MapBottomDrawer, provides navigation and organization for farm featur
 **Local Storage**:
 - `feature-list-view` - Active view preference (type/layer/phase)
 
-### Map Info Sheet (Redesigned)
+### Unified Bottom Drawer (Design + Farm Management)
 
-Located in MapBottomDrawer position, provides modern card-based UI for stats, filters, and actions.
-
-**Feature Flag**: `NEXT_PUBLIC_USE_REDESIGNED_INFO_SHEET` (default: `false`)
+`MapBottomDrawer` is the single unified panel for both design tools and farm management. It combines:
+- **Design actions** (Add Plant, Draw Zone, Create Post) in the peek bar
+- **Feature list** (zones, plantings, lines, guilds, phases) with search and grouping
+- **Filter pills** for layer and function filtering
+- **Farm vitals** and time machine for growth simulation
+- **Map settings** (layer selection, grid units, grid density)
 
 **Components**:
-- `components/map/redesigned-map-info-sheet.tsx` - Main container with 3 sections (Overview, Filters, Advanced)
-- `components/map/info-cards/quick-stats-card.tsx` - Grid display of farm statistics
+- `components/map/map-bottom-drawer.tsx` - Unified panel (3 tabs: Features, Filters, Vitals & Time)
 - `components/map/info-cards/compact-filter-pills.tsx` - Toggle filter pills with counts
-- `components/map/info-cards/quick-actions-bar.tsx` - Quick action buttons
+- `components/map/feature-list-panel.tsx` - Feature list with search/grouping
 
 **Design Tokens**: `lib/design/map-info-tokens.ts` - Centralized spacing, colors, typography, animations
 
-**Documentation**: `docs/components/redesigned-map-info-sheet.md`
-
-**Features**:
-- Card-based layout (Google/Apple polish level)
-- Quick actions bar (Add Plant, Draw Zone, Water System, Guild)
-- Real-time stats (plantings, zones, functions, coverage)
-- Filter pills with color coding and counts
-- Three-section tabs: Overview, Filters, Advanced
-- Mobile-optimized (44px touch targets, responsive grids)
-- Fully accessible (ARIA labels, keyboard nav, screen reader support)
-- Performance optimized (memoization, debounced updates)
-
-**Integration**:
-```tsx
-// In farm-map.tsx, conditional rendering based on feature flag
-{process.env.NEXT_PUBLIC_USE_REDESIGNED_INFO_SHEET === 'true' ? (
-  <RedesignedMapInfoSheet {...props} />
-) : (
-  <MapBottomDrawer {...props} />
-)}
-```
+**Architecture**:
+- **Classic editor** (`FarmMap`): Uses `MapBottomDrawer` directly with all actions
+- **Immersive editor**: Passes `hideStatusBar` to `FarmMap`, uses its own `MapFAB` + `BottomDrawer` + `MapControlPanel` instead
 
 ## Key Files Reference
 

@@ -17,7 +17,6 @@ import { SpeciesPickerCompact } from "./species-picker-compact";
 import { ZoneQuickLabelForm } from "./zone-quick-label-form";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
-import { MapControlsSheet } from "./map-controls-sheet";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { generateGridLines, generateViewportLabels, generateDimensionLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import {
@@ -3316,7 +3315,7 @@ export function FarmMap({
         <CompassRose bearing={bearing} />
       </div>
 
-      {/* Bottom Drawer - Features, Filters, Vitals & Time */}
+      {/* Bottom Drawer - Unified design tools + farm management */}
       {!hideStatusBar && <MapBottomDrawer
         mapLayer={mapLayer}
         gridUnit={gridUnit}
@@ -3343,6 +3342,16 @@ export function FarmMap({
           setPlantingMode(true);
           setShowSpeciesPicker(true);
         }}
+        onDrawZone={() => {
+          if (draw.current) {
+            try {
+              draw.current.changeMode('draw_polygon' as any);
+            } catch (e) {
+              console.error('Failed to enter draw mode:', e);
+            }
+          }
+        }}
+        onCreatePost={() => setShowCreatePost(true)}
         onFeatureSelectFromList={onFeatureSelect}
         mapRef={map}
         map={map.current}
@@ -3458,17 +3467,6 @@ export function FarmMap({
         }}
       />
 
-      {/* Map Controls FAB - only Create Post action (other actions moved to bottom drawer) */}
-      {!hideStatusBar && <MapControlsSheet
-        mapLayer={mapLayer}
-        onChangeLayer={changeMapLayer}
-        gridUnit={gridUnit}
-        onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
-        gridDensity={gridDensity}
-        onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
-        onCreatePost={() => setShowCreatePost(true)}
-        hasPlantings={plantings.length > 0}
-      />}
 
     </div>
   );
