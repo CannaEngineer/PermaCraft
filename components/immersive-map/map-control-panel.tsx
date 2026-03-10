@@ -2,7 +2,8 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { Layers, Grid, Settings, HelpCircle, ChevronRight, Minimize2, Target } from "lucide-react";
+import { Layers, Grid, Minimize2, ChevronRight, Keyboard } from "lucide-react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayerPanel } from "@/components/layers/layer-panel";
 
@@ -19,7 +20,20 @@ interface MapControlPanelProps {
   onLayerVisibilityChange?: (layerIds: string[]) => void;
 }
 
-type PanelSection = 'layers' | 'grid' | 'options' | 'help' | 'design';
+/**
+ * Simplified Map Control Panel — 2 sections + keyboard shortcut tooltip.
+ *
+ * Before: 5 accordion sections (Map Layers, Grid Settings, Map Options, Design Layers, Help)
+ * After:  2 sections (Layers, Grid & Options) + keyboard shortcut tooltip button
+ *
+ * Changes:
+ *   - Merged "Map Layers" and "Design Layers" into one "Layers" section
+ *   - Merged "Map Options" (single 3D toggle) into "Grid & Options"
+ *   - Moved "Help" from a full section to a compact tooltip (always accessible, zero clicks)
+ *   - Reduced cognitive load: users scan 2 section headers instead of 5
+ */
+
+type PanelSection = 'layers' | 'grid';
 
 export function MapControlPanel({
   farmId,
@@ -38,6 +52,8 @@ export function MapControlPanel({
   const toggleSection = (section: PanelSection) => {
     setControlPanelSection(controlPanelSection === section ? null : section);
   };
+
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   if (controlPanelMinimized) {
     return (
@@ -68,17 +84,46 @@ export function MapControlPanel({
       {/* Panel Header */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">
         <h3 className="text-sm font-semibold">Map Controls</h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleControlPanel}
-          className="h-6 w-6"
-        >
-          <Minimize2 className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {/* Keyboard Shortcuts — compact popover instead of full accordion section */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setShowShortcuts(!showShortcuts)}
+              title="Keyboard shortcuts"
+            >
+              <Keyboard className="h-3 w-3" />
+            </Button>
+            <AnimatePresence>
+              {showShortcuts && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute right-0 top-full mt-1 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg p-3 text-xs space-y-1 z-50 whitespace-nowrap"
+                >
+                  <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">C</kbd> Toggle chat</p>
+                  <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">D</kbd> Drawing mode</p>
+                  <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">Esc</kbd> Close panel</p>
+                  <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">Space</kbd> Pan map</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleControlPanel}
+            className="h-6 w-6"
+          >
+            <Minimize2 className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
-      {/* Layers Section */}
+      {/* Layers Section — combines Map Layers + Design Layers */}
       <div className="mb-2">
         <button
           onClick={() => toggleSection('layers')}
@@ -86,7 +131,7 @@ export function MapControlPanel({
         >
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
-            <span className="text-sm font-medium">Map Layers</span>
+            <span className="text-sm font-medium">Layers</span>
           </div>
           <ChevronRight
             className={`h-4 w-4 transition-transform ${
@@ -104,33 +149,48 @@ export function MapControlPanel({
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="pl-8 pr-2 py-2 space-y-1">
-                {[
-                  { value: 'satellite', label: 'Satellite' },
-                  { value: 'terrain', label: 'Terrain' },
-                  { value: 'topo', label: 'OpenTopoMap' },
-                  { value: 'usgs', label: 'USGS Topo' },
-                  { value: 'street', label: 'Street' },
-                ].map((layer) => (
-                  <button
-                    key={layer.value}
-                    onClick={() => onLayerChange(layer.value)}
-                    className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                      currentLayer === layer.value
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'hover:bg-accent/50'
-                    }`}
-                  >
-                    {layer.label}
-                  </button>
-                ))}
+              <div className="pl-4 pr-2 py-2 space-y-3">
+                {/* Base Map */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Base Map</label>
+                  <div className="space-y-0.5">
+                    {[
+                      { value: 'satellite', label: 'Satellite' },
+                      { value: 'terrain', label: 'Terrain' },
+                      { value: 'topo', label: 'OpenTopoMap' },
+                      { value: 'usgs', label: 'USGS Topo' },
+                      { value: 'street', label: 'Street' },
+                    ].map((layer) => (
+                      <button
+                        key={layer.value}
+                        onClick={() => onLayerChange(layer.value)}
+                        className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                          currentLayer === layer.value
+                            ? 'bg-primary/20 text-primary border border-primary/30'
+                            : 'hover:bg-accent/50'
+                        }`}
+                      >
+                        {layer.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Design Layers */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Design Layers</label>
+                  <LayerPanel
+                    farmId={farmId}
+                    onLayerVisibilityChange={onLayerVisibilityChange}
+                  />
+                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Grid Section */}
+      {/* Grid & Options Section — combines Grid Settings + Map Options */}
       <div className="mb-2">
         <button
           onClick={() => toggleSection('grid')}
@@ -138,7 +198,7 @@ export function MapControlPanel({
         >
           <div className="flex items-center gap-2">
             <Grid className="h-4 w-4" />
-            <span className="text-sm font-medium">Grid Settings</span>
+            <span className="text-sm font-medium">Grid & Options</span>
           </div>
           <ChevronRight
             className={`h-4 w-4 transition-transform ${
@@ -156,7 +216,8 @@ export function MapControlPanel({
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="pl-8 pr-2 py-2 space-y-2">
+              <div className="pl-4 pr-2 py-2 space-y-3">
+                {/* Units */}
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Units</label>
                   <div className="flex gap-1">
@@ -183,6 +244,7 @@ export function MapControlPanel({
                   </div>
                 </div>
 
+                {/* Density */}
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Density</label>
                   <select
@@ -196,44 +258,10 @@ export function MapControlPanel({
                     <option value="dense">Dense</option>
                   </select>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
-      {/* Options Section */}
-      <div className="mb-2">
-        <button
-          onClick={() => toggleSection('options')}
-          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            <span className="text-sm font-medium">Map Options</span>
-          </div>
-          <ChevronRight
-            className={`h-4 w-4 transition-transform ${
-              controlPanelSection === 'options' ? 'rotate-90' : ''
-            }`}
-          />
-        </button>
-
-        <AnimatePresence>
-          {controlPanelSection === 'options' && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="pl-8 pr-2 py-2">
-                <button
-                  onClick={onTerrainToggle}
-                  className="w-full text-left px-3 py-1.5 rounded text-sm hover:bg-accent/50 transition-colors"
-                >
-                  <label className="flex items-center cursor-pointer">
+                {/* 3D Terrain toggle */}
+                <div>
+                  <label className="flex items-center cursor-pointer px-1 py-1 rounded text-sm hover:bg-accent/50 transition-colors">
                     <input
                       type="checkbox"
                       checked={terrainEnabled}
@@ -242,81 +270,7 @@ export function MapControlPanel({
                     />
                     3D Terrain
                   </label>
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Design Layers Section */}
-      <div className="mb-2">
-        <button
-          onClick={() => toggleSection('design')}
-          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            <span className="text-sm font-medium">Design Layers</span>
-          </div>
-          <ChevronRight
-            className={`h-4 w-4 transition-transform ${
-              controlPanelSection === 'design' ? 'rotate-90' : ''
-            }`}
-          />
-        </button>
-
-        <AnimatePresence>
-          {controlPanelSection === 'design' && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="pl-2 pr-2 py-2">
-                <LayerPanel
-                  farmId={farmId}
-                  onLayerVisibilityChange={onLayerVisibilityChange}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Help Section */}
-      <div>
-        <button
-          onClick={() => toggleSection('help')}
-          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">Help</span>
-          </div>
-          <ChevronRight
-            className={`h-4 w-4 transition-transform ${
-              controlPanelSection === 'help' ? 'rotate-90' : ''
-            }`}
-          />
-        </button>
-
-        <AnimatePresence>
-          {controlPanelSection === 'help' && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="pl-8 pr-2 py-2 text-xs text-muted-foreground space-y-1">
-                <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">C</kbd> Toggle chat</p>
-                <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">D</kbd> Drawing mode</p>
-                <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">Esc</kbd> Close panel</p>
-                <p><kbd className="px-1 py-0.5 bg-accent rounded text-xs">Space</kbd> Pan map</p>
+                </div>
               </div>
             </motion.div>
           )}

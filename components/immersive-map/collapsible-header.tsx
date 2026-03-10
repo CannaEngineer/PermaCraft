@@ -28,10 +28,13 @@ interface CollapsibleHeaderProps {
 /**
  * Simplified Collapsible Header.
  *
- * Expanded state shows only essential map-editor actions: Save, Goals.
- * Non-map actions (Tasks, Reports, Crop Plans, Shop, Journal, Farm Info)
- * live in the mobile slide-out menu or desktop overflow menu.
- * AI Chat and Settings are always visible.
+ * Changes from previous version:
+ *   - Slide-out menu items grouped into 3 clear sections with labels:
+ *     "Navigate", "Farm Design", and "Manage"
+ *   - Removed duplicate Save button from slide-out (it's always in the header)
+ *   - Added Escape key to close the slide-out menu
+ *   - Auto-close menu after clicking any item (already existed, now consistent)
+ *   - Clearer visual hierarchy with section headings
  */
 export function CollapsibleHeader({
   farm,
@@ -61,9 +64,38 @@ export function CollapsibleHeader({
     }
   }, [headerCollapsed]);
 
+  // Close slide-out menu with Escape key
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
+
+  // Helper to create a menu action button with consistent styling
+  const MenuAction = ({ icon: Icon, label, onClick }: { icon: typeof Target; label: string; onClick: () => void }) => (
+    <button onClick={() => { onClick(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+      <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <span className="text-sm">{label}</span>
+    </button>
+  );
+
+  // Helper to create a menu link with consistent styling
+  const MenuLink = ({ icon: Icon, label, href, badge }: { icon: typeof Target; label: string; href: string; badge?: number }) => (
+    <Link href={href} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+      <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <span className="text-sm flex-1">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="bg-primary text-primary-foreground text-xs rounded-full h-5 min-w-[1.25rem] px-1 flex items-center justify-center">{badge}</span>
+      )}
+    </Link>
+  );
+
   return (
     <>
-    {/* Slide-out menu — unified for mobile and desktop overflow */}
+    {/* Slide-out menu — grouped into clear sections */}
     <AnimatePresence>
       {mobileMenuOpen && (
         <>
@@ -82,72 +114,42 @@ export function CollapsibleHeader({
             className="fixed inset-y-0 left-0 w-72 bg-background/95 backdrop-blur-xl border-r border-border shadow-2xl z-[70]"
           >
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className="font-semibold text-sm">Farm Menu</h2>
+              <h2 className="font-semibold text-sm">{farm.name}</h2>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMobileMenuOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="p-3 space-y-1">
-              <Link href="/dashboard" className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Dashboard</span>
-              </Link>
-              <Link href={`/profile/${farm.user_id}`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <User className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">My Profile</span>
-              </Link>
+            <div className="p-3 space-y-4 overflow-y-auto max-h-[calc(100vh-64px)]">
 
-              <div className="h-px bg-border/30 my-2" />
+              {/* Section: Navigate */}
+              <div>
+                <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Navigate</p>
+                <MenuLink icon={LayoutDashboard} label="Dashboard" href="/dashboard" />
+                <MenuLink icon={User} label="My Profile" href={`/profile/${farm.user_id}`} />
+              </div>
 
-              <button onClick={() => { onOpenGoals(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <Target className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Farm Goals</span>
-                {goalsCount > 0 && (
-                  <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{goalsCount}</span>
+              {/* Section: Farm Design */}
+              <div>
+                <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Farm Design</p>
+                <MenuAction icon={Target} label="Goals" onClick={onOpenGoals} />
+                {onOpenFarmInfo && (
+                  <MenuAction icon={Info} label="Farm Info" onClick={onOpenFarmInfo} />
                 )}
-              </button>
-              {onOpenFarmInfo && (
-                <button onClick={() => { onOpenFarmInfo(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <Info className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">Farm Info</span>
-                </button>
-              )}
-              {onOpenJournalEntry && (
-                <button onClick={() => { onOpenJournalEntry(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <BookOpen className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">Journal Entry</span>
-                </button>
-              )}
+                {onOpenJournalEntry && (
+                  <MenuAction icon={BookOpen} label="Journal Entry" onClick={onOpenJournalEntry} />
+                )}
+                <MenuAction icon={Download} label="Export" onClick={onExport} />
+              </div>
 
-              <div className="h-px bg-border/30 my-2" />
+              {/* Section: Manage */}
+              <div>
+                <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Manage</p>
+                <MenuLink icon={CheckSquare} label="Tasks" href={`/farm/${farm.id}/tasks`} />
+                <MenuLink icon={CalendarDays} label="Crop Plans" href={`/farm/${farm.id}/plan`} />
+                <MenuLink icon={BarChart3} label="Reports" href={`/farm/${farm.id}/reports`} />
+                <MenuLink icon={ShoppingBag} label={isShopEnabled ? 'Manage Shop' : 'Open a Shop'} href={`/farm/${farm.id}/shop`} />
+              </div>
 
-              <Link href={`/farm/${farm.id}/tasks`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <CheckSquare className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Tasks</span>
-              </Link>
-              <Link href={`/farm/${farm.id}/plan`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <CalendarDays className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Crop Plans</span>
-              </Link>
-              <Link href={`/farm/${farm.id}/reports`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Reports</span>
-              </Link>
-              <Link href={`/farm/${farm.id}/shop`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <ShoppingBag className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">{isShopEnabled ? 'Manage Shop' : 'Open a Shop'}</span>
-              </Link>
-
-              <div className="h-px bg-border/30 my-2" />
-
-              <button onClick={() => { onExport(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <Download className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Export</span>
-              </button>
-              <button onClick={() => { onSave(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <SaveIcon className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">{saving ? 'Saving...' : hasUnsavedChanges ? 'Save Now' : 'Saved'}</span>
-              </button>
             </div>
           </motion.div>
         </>

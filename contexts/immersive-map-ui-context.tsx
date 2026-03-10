@@ -30,8 +30,8 @@ interface ImmersiveMapUIState {
 
   // Control Panel
   controlPanelMinimized: boolean;
-  controlPanelSection: 'layers' | 'grid' | 'options' | 'help' | 'design' | null;
-  setControlPanelSection: (section: 'layers' | 'grid' | 'options' | 'help' | 'design' | null) => void;
+  controlPanelSection: 'layers' | 'grid' | null;
+  setControlPanelSection: (section: 'layers' | 'grid' | null) => void;
   toggleControlPanel: () => void;
 
   // Drawing Mode
@@ -63,7 +63,7 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   const [uiMode, setUIModeRaw] = useState<UIMode>('idle');
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [controlPanelMinimized, setControlPanelMinimized] = useState(false);
-  const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | 'design' | null>('layers');
+  const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | null>('layers');
   const [drawingMode, setDrawingMode] = useState(false);
   const [activeDrawTool, setActiveDrawTool] = useState<'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null>(null);
   const [drawerContent, setDrawerContent] = useState<DrawerContentType | null>(null);
