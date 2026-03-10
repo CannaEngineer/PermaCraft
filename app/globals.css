@@ -871,6 +871,18 @@
   }
 }
 
+/* FAB speed-dial item entrance */
+@keyframes fabItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes marquee {
   0% {
     transform: translateX(0);

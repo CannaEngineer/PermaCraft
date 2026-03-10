@@ -80,13 +80,9 @@ export function FAB({
               <button
                 key={action.label}
                 onClick={() => handleActionClick(action)}
-                className={cn(
-                  "group flex items-center gap-2.5 transition-all duration-200 ease-out",
-                  "opacity-0 translate-y-2 animate-in fade-in slide-in-from-bottom-2 fill-mode-forwards"
-                )}
+                className="group flex items-center gap-2.5 transition-all duration-200 ease-out"
                 style={{
-                  animationDelay: `${index * 35}ms`,
-                  animationDuration: '200ms',
+                  animation: `fabItemIn 200ms ${index * 35}ms ease-out both`,
                 }}
               >
                 {/* Label — always visible (no hover-only on mobile) */}
