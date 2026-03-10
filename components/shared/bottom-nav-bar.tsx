@@ -6,13 +6,10 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Users,
-  Leaf,
   GraduationCap,
   User,
-  BookOpen,
   Shield,
   LogOut,
-  Settings,
   ChevronRight,
   Sparkles,
   ShoppingBag,
@@ -188,15 +185,15 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                 <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
               </div>
 
-              {/* Scrollable Content */}
+              {/* Scrollable Content — simplified: removed duplicate nav links, compacted settings */}
               <div className="overflow-y-auto overscroll-contain px-6 pb-6">
                 {isAuthenticated ? (
                   <>
                     {/* User Profile Section */}
-                    <div className="py-6">
+                    <div className="py-5">
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 ring-2 ring-primary/10">
-                          <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
+                        <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+                          <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
                             {userInitials}
                           </AvatarFallback>
                         </Avatar>
@@ -204,65 +201,49 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                           <h3 className="text-lg font-semibold text-foreground truncate">
                             {userName}
                           </h3>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            Premium Member
-                          </p>
+                          {userId && (
+                            <Link
+                              href={`/profile/${userId}`}
+                              onClick={() => setShowProfileMenu(false)}
+                              className="text-sm text-primary hover:underline"
+                            >
+                              View Profile
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    <Separator className="my-2" />
+                    <Separator className="my-1" />
 
-                    {/* Navigation Links */}
-                    <div className="py-4 space-y-1">
-                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Quick Access
-                      </p>
-
-                      {userId && (
-                        <Link
-                          href={`/profile/${userId}`}
-                          onClick={() => setShowProfileMenu(false)}
-                          className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                            <User className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">View Profile</p>
-                            <p className="text-xs text-muted-foreground">Your public profile</p>
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                        </Link>
-                      )}
-
+                    {/* Quick Access — only items NOT in the main bottom nav */}
+                    <div className="py-3 space-y-1">
                       <Link
-                        href="/plants"
+                        href="/gallery"
                         onClick={() => setShowProfileMenu(false)}
                         className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                          <Leaf className="w-5 h-5 text-green-600" />
+                        <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                          <Users className="w-5 h-5 text-violet-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-sm">Plant Catalog</p>
-                          <p className="text-xs text-muted-foreground">Browse species</p>
+                          <p className="font-medium text-sm">Community</p>
+                          <p className="text-xs text-muted-foreground">Farm gallery & feed</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>
 
                       <Link
-                        href="/learn/blog"
+                        href="/shops"
                         onClick={() => setShowProfileMenu(false)}
                         className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-orange-600" />
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                          <ShoppingBag className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-sm">Blog</p>
-                          <p className="text-xs text-muted-foreground">Articles & guides</p>
+                          <p className="font-medium text-sm">Shop</p>
+                          <p className="text-xs text-muted-foreground">Browse farm shops</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>
@@ -278,69 +259,46 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                           </div>
                           <div className="flex-1">
                             <p className="font-medium text-sm text-amber-900 dark:text-amber-100">Admin Dashboard</p>
-                            <p className="text-xs text-amber-700 dark:text-amber-300">Manage platform</p>
                           </div>
                           <ChevronRight className="w-5 h-5 text-amber-600" />
                         </Link>
                       )}
                     </div>
 
-                    <Separator className="my-2" />
+                    <Separator className="my-1" />
 
-                    {/* Music Player Section */}
-                    <div className="py-4">
-                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Music
-                      </p>
-                      <div className="px-3">
-                        <CompactMusicController
-                          onOpenPlayer={() => setIsMusicSheetOpen(true)}
-                          variant="mobile"
-                        />
-                      </div>
-                    </div>
-
-                    <Separator className="my-2" />
-
-                    {/* Appearance Section */}
-                    <div className="py-4">
-                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Appearance
-                      </p>
-                      <div className="px-3">
+                    {/* Settings row — compact: theme + music side by side */}
+                    <div className="py-3 flex items-center gap-3 px-3">
+                      <div className="flex-1">
                         <ThemeToggle />
                       </div>
+                      <CompactMusicController
+                        onOpenPlayer={() => setIsMusicSheetOpen(true)}
+                        variant="mobile"
+                      />
                     </div>
 
-                    <Separator className="my-2" />
+                    <Separator className="my-1" />
 
-                    {/* Actions */}
-                    <div className="py-4 space-y-2">
+                    {/* Sign Out */}
+                    <div className="py-3">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start h-12 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="w-full justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={handleLogout}
                       >
                         <LogOut className="h-5 w-5 mr-3" />
                         <span className="font-medium">Sign Out</span>
                       </Button>
-
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-center h-12 text-muted-foreground"
-                        onClick={() => setShowProfileMenu(false)}
-                      >
-                        Close
-                      </Button>
                     </div>
                   </>
                 ) : (
                   <>
-                    {/* Not Signed In State */}
+                    {/* Not Signed In State — simplified */}
                     <div className="py-6">
                       <div className="text-center space-y-2 mb-6">
-                        <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4">
-                          <Sparkles className="w-8 h-8 text-primary" />
+                        <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-3">
+                          <Sparkles className="w-7 h-7 text-primary" />
                         </div>
                         <h3 className="text-xl font-bold">Welcome!</h3>
                         <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
@@ -348,7 +306,6 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                         </p>
                       </div>
 
-                      {/* Auth Buttons */}
                       <div className="space-y-3">
                         <Link href="/login" onClick={() => setShowProfileMenu(false)}>
                           <Button className="w-full h-12 text-base font-semibold rounded-xl">
@@ -363,83 +320,17 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                       </div>
                     </div>
 
-                    <Separator className="my-2" />
+                    <Separator className="my-1" />
 
-                    {/* Quick Links */}
-                    <div className="py-4 space-y-1">
-                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Explore
-                      </p>
-
-                      <Link
-                        href="/plants"
-                        onClick={() => setShowProfileMenu(false)}
-                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                          <Leaf className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">Plant Catalog</p>
-                          <p className="text-xs text-muted-foreground">Browse species</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      </Link>
-
-                      <Link
-                        href="/learn/blog"
-                        onClick={() => setShowProfileMenu(false)}
-                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">Blog</p>
-                          <p className="text-xs text-muted-foreground">Articles & guides</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      </Link>
-                    </div>
-
-                    <Separator className="my-2" />
-
-                    {/* Music Player Section */}
-                    <div className="py-4">
-                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Music
-                      </p>
-                      <div className="px-3">
-                        <CompactMusicController
-                          onOpenPlayer={() => setIsMusicSheetOpen(true)}
-                          variant="mobile"
-                        />
-                      </div>
-                    </div>
-
-                    <Separator className="my-2" />
-
-                    {/* Appearance Section */}
-                    <div className="py-4">
-                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        Appearance
-                      </p>
-                      <div className="px-3">
+                    {/* Settings row — compact */}
+                    <div className="py-3 flex items-center gap-3 px-3">
+                      <div className="flex-1">
                         <ThemeToggle />
                       </div>
-                    </div>
-
-                    <Separator className="my-2" />
-
-                    {/* Close Button */}
-                    <div className="py-4">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-center h-12 text-muted-foreground"
-                        onClick={() => setShowProfileMenu(false)}
-                      >
-                        Close
-                      </Button>
+                      <CompactMusicController
+                        onOpenPlayer={() => setIsMusicSheetOpen(true)}
+                        variant="mobile"
+                      />
                     </div>
                   </>
                 )}

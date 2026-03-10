@@ -1,17 +1,21 @@
 'use client';
 
-import { Home, Map, Globe, Leaf, GraduationCap, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Home, Map, Leaf, GraduationCap, MessageSquare } from 'lucide-react';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
 import { cn } from '@/lib/utils';
 
+/**
+ * Desktop nav rail — mirrors mobile nav for consistency (5 items).
+ *
+ * Removed: Explore (accessible from Home), Shop (accessible from farm menu / profile).
+ * Users learn one navigation model that works identically on both form factors.
+ */
 const navItems: { id: CanvasSection; icon: typeof Home; label: string; shortcut: string }[] = [
   { id: 'home', icon: Home, label: 'Home', shortcut: '1' },
   { id: 'farm', icon: Map, label: 'Farm', shortcut: '2' },
-  { id: 'explore', icon: Globe, label: 'Explore', shortcut: '3' },
-  { id: 'plants', icon: Leaf, label: 'Plants', shortcut: '4' },
-  { id: 'learn', icon: GraduationCap, label: 'Learn', shortcut: '5' },
-  { id: 'ai', icon: MessageSquare, label: 'AI', shortcut: '6' },
-  { id: 'shop', icon: ShoppingBag, label: 'Shop', shortcut: '7' },
+  { id: 'plants', icon: Leaf, label: 'Plants', shortcut: '3' },
+  { id: 'learn', icon: GraduationCap, label: 'Learn', shortcut: '4' },
+  { id: 'ai', icon: MessageSquare, label: 'AI', shortcut: '5' },
 ];
 
 export function NavRail() {

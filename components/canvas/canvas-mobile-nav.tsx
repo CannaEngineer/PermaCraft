@@ -1,17 +1,25 @@
 'use client';
 
-import { Home, Map, Globe, Leaf, GraduationCap, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Home, Map, Leaf, GraduationCap, MessageSquare } from 'lucide-react';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
 import { cn } from '@/lib/utils';
 
+/**
+ * Mobile bottom nav — 5 items max (Google Material / Apple HIG best practice).
+ *
+ * Removed from primary nav:
+ *   - Explore → accessible from Home panel (community feed)
+ *   - Shop → accessible from profile sheet and farm menu
+ *
+ * This keeps the most-used actions within thumb reach while avoiding
+ * the "too many tiny targets" anti-pattern.
+ */
 const mobileNavItems: { id: CanvasSection; icon: typeof Home; label: string }[] = [
   { id: 'home', icon: Home, label: 'Home' },
   { id: 'farm', icon: Map, label: 'Farm' },
-  { id: 'explore', icon: Globe, label: 'Explore' },
   { id: 'plants', icon: Leaf, label: 'Plants' },
   { id: 'learn', icon: GraduationCap, label: 'Learn' },
   { id: 'ai', icon: MessageSquare, label: 'AI' },
-  { id: 'shop', icon: ShoppingBag, label: 'Shop' },
 ];
 
 export function CanvasMobileNav() {
