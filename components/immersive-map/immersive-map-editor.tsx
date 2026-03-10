@@ -185,6 +185,7 @@ function ImmersiveMapEditorContent({
 
   // Get UI context
   const {
+    uiMode,
     chatOpen,
     setChatOpen,
     openDrawer,
@@ -639,25 +640,38 @@ function ImmersiveMapEditorContent({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+      // Escape — always returns to idle/safe state (even from inputs)
+      if (e.key === 'Escape') {
+        if (drawingMode) {
+          exitDrawingMode();
+        } else if (chatOpen) {
+          setChatOpen(false);
+        } else if (drawerContent) {
+          closeDrawer();
+        }
+        return;
+      }
+
+      // Don't trigger shortcuts while typing in inputs
+      if (isTyping) return;
+
       // C - Toggle chat
       if (e.key === 'c' && !e.metaKey && !e.ctrlKey) {
-        const target = e.target as HTMLElement;
-        // Don't trigger if typing in input
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
         setChatOpen(!chatOpen);
       }
 
       // H - Toggle header
       if (e.key === 'h' && !e.metaKey && !e.ctrlKey) {
-        const target = e.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
         setHeaderCollapsed(!headerCollapsed);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed]);
+  }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed, drawingMode, exitDrawingMode, drawerContent, closeDrawer]);
 
   // MapFAB action handlers
   const handleAddPlant = () => {
@@ -760,26 +774,31 @@ function ImmersiveMapEditorContent({
         />
       </div>
 
-      {/* Collapsible Header */}
-      <CollapsibleHeader
-        farm={farm}
-        hasUnsavedChanges={hasUnsavedChanges}
-        saving={saving}
-        goalsCount={goals.length}
-        isPublic={initialIsPublic}
-        isShopEnabled={isShopEnabled}
-        onSave={() => handleSave(true)}
-        onOpenChat={() => setChatOpen(true)}
-        onOpenGoals={() => setShowGoalsWizard(true)}
-        onDeleteClick={() => setDeleteDialogOpen(true)}
-        onExport={handleOpenExport}
-      />
+      {/* Collapsible Header — hidden during drawing mode for maximum map focus */}
+      {uiMode !== 'drawing' && (
+        <CollapsibleHeader
+          farm={farm}
+          hasUnsavedChanges={hasUnsavedChanges}
+          saving={saving}
+          goalsCount={goals.length}
+          isPublic={initialIsPublic}
+          isShopEnabled={isShopEnabled}
+          onSave={() => handleSave(true)}
+          onOpenChat={() => setChatOpen(true)}
+          onOpenGoals={() => setShowGoalsWizard(true)}
+          onDeleteClick={() => setDeleteDialogOpen(true)}
+          onExport={handleOpenExport}
+          onOpenJournalEntry={handleOpenJournalEntry}
+          onOpenFarmInfo={handleOpenFarmInfo}
+        />
+      )}
 
-      {/* Drawing Toolbar (conditional) */}
+      {/* Drawing Toolbar (only during drawing mode) */}
       <DrawingToolbar
         onToolSelect={(tool) => console.log("Tool selected:", tool)}
-        onZoneTypeClick={() => console.log("Zone type click")}
+        onZoneTypeClick={() => {}}
         currentZoneType={currentZoneType}
+        onZoneTypeChange={setCurrentZoneType}
       />
 
       {/* Bottom Drawer */}
@@ -921,14 +940,12 @@ function ImmersiveMapEditorContent({
         }}
       />
 
-      {/* Map FAB */}
+      {/* Map FAB — auto-hides in drawing/chatting modes */}
       <MapFAB
         onAddPlant={handleAddPlant}
         onWaterSystem={handleOpenWaterSystem}
         onBuildGuild={handleOpenGuildDesigner}
         onTimeline={handleOpenPhaseManager}
-        onJournalEntry={handleOpenJournalEntry}
-        onFarmInfo={handleOpenFarmInfo}
       />
 
       {/* Create Post Dialog */}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag, Menu, User, LayoutDashboard, ArrowLeft, X, CheckSquare, CalendarDays, BarChart3 } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag, Menu, User, LayoutDashboard, X, CheckSquare, CalendarDays, BarChart3, BookOpen, Info } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
@@ -21,8 +21,18 @@ interface CollapsibleHeaderProps {
   onOpenGoals: () => void;
   onDeleteClick: () => void;
   onExport: () => void;
+  onOpenJournalEntry?: () => void;
+  onOpenFarmInfo?: () => void;
 }
 
+/**
+ * Simplified Collapsible Header.
+ *
+ * Expanded state shows only essential map-editor actions: Save, Goals.
+ * Non-map actions (Tasks, Reports, Crop Plans, Shop, Journal, Farm Info)
+ * live in the mobile slide-out menu or desktop overflow menu.
+ * AI Chat and Settings are always visible.
+ */
 export function CollapsibleHeader({
   farm,
   hasUnsavedChanges,
@@ -35,6 +45,8 @@ export function CollapsibleHeader({
   onOpenGoals,
   onDeleteClick,
   onExport,
+  onOpenJournalEntry,
+  onOpenFarmInfo,
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -51,7 +63,7 @@ export function CollapsibleHeader({
 
   return (
     <>
-    {/* Mobile navigation menu */}
+    {/* Slide-out menu — unified for mobile and desktop overflow */}
     <AnimatePresence>
       {mobileMenuOpen && (
         <>
@@ -59,7 +71,7 @@ export function CollapsibleHeader({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] md:hidden"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
             onClick={() => setMobileMenuOpen(false)}
           />
           <motion.div
@@ -67,7 +79,7 @@ export function CollapsibleHeader({
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-y-0 left-0 w-72 bg-background/95 backdrop-blur-xl border-r border-border shadow-2xl z-[70] md:hidden"
+            className="fixed inset-y-0 left-0 w-72 bg-background/95 backdrop-blur-xl border-r border-border shadow-2xl z-[70]"
           >
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h2 className="font-semibold text-sm">Farm Menu</h2>
@@ -84,6 +96,9 @@ export function CollapsibleHeader({
                 <User className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium">My Profile</span>
               </Link>
+
+              <div className="h-px bg-border/30 my-2" />
+
               <button onClick={() => { onOpenGoals(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                 <Target className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium">Farm Goals</span>
@@ -91,6 +106,21 @@ export function CollapsibleHeader({
                   <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{goalsCount}</span>
                 )}
               </button>
+              {onOpenFarmInfo && (
+                <button onClick={() => { onOpenFarmInfo(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <Info className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium">Farm Info</span>
+                </button>
+              )}
+              {onOpenJournalEntry && (
+                <button onClick={() => { onOpenJournalEntry(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium">Journal Entry</span>
+                </button>
+              )}
+
+              <div className="h-px bg-border/30 my-2" />
+
               <Link href={`/farm/${farm.id}/tasks`} className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                 <CheckSquare className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium">Tasks</span>
@@ -107,6 +137,9 @@ export function CollapsibleHeader({
                 <ShoppingBag className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium">{isShopEnabled ? 'Manage Shop' : 'Open a Shop'}</span>
               </Link>
+
+              <div className="h-px bg-border/30 my-2" />
+
               <button onClick={() => { onExport(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                 <Download className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium">Export</span>
@@ -123,9 +156,9 @@ export function CollapsibleHeader({
     <motion.header
       initial={false}
       animate={{
-        height: headerCollapsed ? 48 : 120,
-        paddingTop: headerCollapsed ? 8 : 16,
-        paddingBottom: headerCollapsed ? 8 : 12,
+        height: headerCollapsed ? 48 : 96,
+        paddingTop: headerCollapsed ? 8 : 12,
+        paddingBottom: headerCollapsed ? 8 : 8,
       }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/50"
@@ -135,19 +168,19 @@ export function CollapsibleHeader({
         {/* Left: Farm Identity */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Mobile menu button — always visible, pulses on first collapse */}
+            {/* Menu button — opens slide-out with all non-map actions */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setMobileMenuOpen(true)}
-              className={`flex-shrink-0 h-9 w-9 md:hidden ${showMenuHint ? 'animate-pulse ring-2 ring-primary/50 rounded-lg' : ''}`}
+              className={`flex-shrink-0 h-9 w-9 ${showMenuHint ? 'animate-pulse ring-2 ring-primary/50 rounded-lg' : ''}`}
               aria-label="Open farm menu"
             >
               <Menu className="h-5 w-5" />
             </Button>
             <motion.h1
               animate={{
-                fontSize: headerCollapsed ? '1.125rem' : '1.875rem',
+                fontSize: headerCollapsed ? '1.125rem' : '1.5rem',
               }}
               transition={{ duration: 0.25 }}
               className="font-serif font-bold text-foreground truncate"
@@ -155,7 +188,7 @@ export function CollapsibleHeader({
               {farm.name}
             </motion.h1>
 
-            {/* Status Badges (desktop only) */}
+            {/* Status Badges */}
             <AnimatePresence>
               {!headerCollapsed && (
                 <motion.div
@@ -202,7 +235,7 @@ export function CollapsibleHeader({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
-                className="text-sm text-muted-foreground line-clamp-1 mt-1"
+                className="text-sm text-muted-foreground line-clamp-1 mt-0.5 ml-12"
               >
                 {farm.description}
               </motion.p>
@@ -210,9 +243,9 @@ export function CollapsibleHeader({
           </AnimatePresence>
         </div>
 
-        {/* Right: Actions */}
+        {/* Right: Essential actions only */}
         <div className="flex items-center gap-2">
-          {/* Expanded actions */}
+          {/* Save + Goals — only when expanded, desktop only */}
           <AnimatePresence>
             {!headerCollapsed && (
               <motion.div
@@ -245,48 +278,9 @@ export function CollapsibleHeader({
                     </span>
                   )}
                 </Button>
-
-                <Link href={`/farm/${farm.id}/tasks`}>
-                  <Button variant="ghost" size="sm">
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Tasks
-                  </Button>
-                </Link>
-
-                <Link href={`/farm/${farm.id}/plan`}>
-                  <Button variant="ghost" size="sm">
-                    <CalendarDays className="h-4 w-4 mr-2" />
-                    Plan
-                  </Button>
-                </Link>
-
-                <Link href={`/farm/${farm.id}/reports`}>
-                  <Button variant="ghost" size="sm">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Reports
-                  </Button>
-                </Link>
-
-                <Link href={`/farm/${farm.id}/shop`}>
-                  <Button variant="ghost" size="sm">
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    {isShopEnabled ? 'Manage Shop' : 'Open a Shop'}
-                  </Button>
-                </Link>
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Export Button - Desktop only */}
-          <Button
-            variant="outline"
-            size={headerCollapsed ? "icon" : "default"}
-            onClick={onExport}
-            className="hidden md:flex"
-          >
-            <Download className={headerCollapsed ? "h-4 w-4" : "h-4 w-4 sm:mr-2"} />
-            {!headerCollapsed && <span className="hidden sm:inline">Export</span>}
-          </Button>
 
           {/* Always visible: AI Chat */}
           <Button
@@ -295,7 +289,7 @@ export function CollapsibleHeader({
             onClick={onOpenChat}
           >
             <MessageSquare className={headerCollapsed ? "h-4 w-4" : "h-4 w-4 sm:mr-2"} />
-            {!headerCollapsed && <span className="hidden sm:inline">AI Assistant</span>}
+            {!headerCollapsed && <span className="hidden sm:inline">AI Chat</span>}
           </Button>
 
           {/* Settings */}

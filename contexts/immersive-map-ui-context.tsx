@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 export type DrawerContentType =
   | 'zone' | 'planting' | 'species-picker' | 'zone-quick-label'
@@ -8,7 +8,22 @@ export type DrawerContentType =
   | 'phase-manager' | 'export' | 'journal' | 'feature-list'
   | 'tasks' | 'crop-plan' | 'reports';
 
+/**
+ * UI modes control which panels are visible at any time.
+ * Only 1-2 surfaces show per mode, instead of 4-6 simultaneously.
+ *
+ * - idle: Default state. Header (collapsed) + FAB visible. Map is interactive.
+ * - drawing: Drawing toolbar + minimal "Done" escape. Everything else hidden.
+ * - viewing: Details drawer visible. FAB auto-dismissed.
+ * - chatting: Full-screen chat overlay. Other panels hidden.
+ */
+export type UIMode = 'idle' | 'drawing' | 'viewing' | 'chatting';
+
 interface ImmersiveMapUIState {
+  // UI Mode (contextual visibility)
+  uiMode: UIMode;
+  setUIMode: (mode: UIMode) => void;
+
   // Header
   headerCollapsed: boolean;
   setHeaderCollapsed: (collapsed: boolean) => void;
@@ -45,6 +60,7 @@ interface ImmersiveMapUIState {
 const ImmersiveMapUIContext = createContext<ImmersiveMapUIState | undefined>(undefined);
 
 export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
+  const [uiMode, setUIModeRaw] = useState<UIMode>('idle');
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [controlPanelMinimized, setControlPanelMinimized] = useState(false);
   const [controlPanelSection, setControlPanelSection] = useState<'layers' | 'grid' | 'options' | 'help' | 'design' | null>('layers');
@@ -52,43 +68,66 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   const [activeDrawTool, setActiveDrawTool] = useState<'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null>(null);
   const [drawerContent, setDrawerContent] = useState<DrawerContentType | null>(null);
   const [drawerHeight, setDrawerHeight] = useState<'peek' | 'medium' | 'max'>('medium');
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpenRaw] = useState(false);
   const [mapInteracted, setMapInteracted] = useState(false);
 
-  const toggleControlPanel = () => {
-    setControlPanelMinimized(!controlPanelMinimized);
-  };
+  // Set UI mode with side effects for contextual visibility
+  const setUIMode = useCallback((mode: UIMode) => {
+    setUIModeRaw(mode);
+  }, []);
 
-  const enterDrawingMode = () => {
+  const toggleControlPanel = useCallback(() => {
+    setControlPanelMinimized(prev => !prev);
+  }, []);
+
+  const enterDrawingMode = useCallback(() => {
     setDrawingMode(true);
     setDrawerContent(null); // Close drawer when entering draw mode
-  };
+    setChatOpenRaw(false); // Close chat when drawing
+    setUIModeRaw('drawing');
+  }, []);
 
-  const exitDrawingMode = () => {
+  const exitDrawingMode = useCallback(() => {
     setDrawingMode(false);
     setActiveDrawTool(null);
-  };
+    setUIModeRaw('idle');
+  }, []);
 
-  const openDrawer = (
+  const openDrawer = useCallback((
     content: DrawerContentType,
     height: 'peek' | 'medium' | 'max' = 'medium'
   ) => {
     setDrawerContent(content);
     setDrawerHeight(height);
-  };
+    setUIModeRaw('viewing');
+  }, []);
 
-  const closeDrawer = () => {
+  const closeDrawer = useCallback(() => {
     setDrawerContent(null);
-  };
+    setUIModeRaw('idle');
+  }, []);
 
-  const registerMapInteraction = () => {
+  // Wrap setChatOpen to sync with uiMode
+  const setChatOpen = useCallback((open: boolean) => {
+    setChatOpenRaw(open);
+    if (open) {
+      setDrawerContent(null); // Close drawer when chatting
+      setUIModeRaw('chatting');
+    } else {
+      setUIModeRaw('idle');
+    }
+  }, []);
+
+  const registerMapInteraction = useCallback(() => {
     if (!mapInteracted) {
       setMapInteracted(true);
       setHeaderCollapsed(true);
     }
-  };
+  }, [mapInteracted]);
 
   const value: ImmersiveMapUIState = {
+    uiMode,
+    setUIMode,
     headerCollapsed,
     setHeaderCollapsed,
     controlPanelMinimized,
