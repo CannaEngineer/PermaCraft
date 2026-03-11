@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
+  Compass,
   Users,
   GraduationCap,
   User,
@@ -25,7 +26,7 @@ import { MusicPlayerSheet } from "@/components/audio/MusicPlayerSheet";
 
 const primaryNavItems = [
   { name: "Canvas", href: "/canvas", icon: LayoutDashboard, label: "Home", requiresAuth: true },
-  { name: "Community", href: "/gallery", icon: Users, label: "Community", requiresAuth: false },
+  { name: "Discover", href: "/gallery", icon: Compass, label: "Discover", requiresAuth: false },
   { name: "Shop", href: "/shops", icon: ShoppingBag, label: "Shop", requiresAuth: false },
   { name: "Learn", href: "/learn", icon: GraduationCap, label: "Learn", requiresAuth: false },
 ];
@@ -224,11 +225,11 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                         className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-colors active:scale-[0.98] touch-manipulation"
                       >
                         <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-violet-600" />
+                          <Compass className="w-5 h-5 text-violet-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-sm">Community</p>
-                          <p className="text-xs text-muted-foreground">Farm gallery & feed</p>
+                          <p className="font-medium text-sm">Discover</p>
+                          <p className="text-xs text-muted-foreground">Farm tours, stories & shops</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </Link>

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard,
-  Users,
+  Compass,
   Store,
   GraduationCap,
   BookOpen,
@@ -9,7 +9,7 @@ import {
 
 export const mainNavItems = [
   { name: 'Canvas', href: '/canvas', icon: LayoutDashboard, requiresAuth: true },
-  { name: 'Community', href: '/gallery', icon: Users, requiresAuth: false },
+  { name: 'Discover', href: '/gallery', icon: Compass, requiresAuth: false },
   { name: 'Shop', href: '/shops', icon: Store, requiresAuth: false },
   { name: 'Learn', href: '/learn', icon: GraduationCap, requiresAuth: false },
   { name: 'Blog', href: '/learn/blog', icon: BookOpen, requiresAuth: false },
