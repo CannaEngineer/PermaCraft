@@ -1084,3 +1084,99 @@ export interface FarmStorySection {
   created_at: number;
   updated_at: number;
 }
+
+// ─── PermaTour AI (Self-Guided Farm Tours) ──────────────────────────────────
+
+export interface TourConfig {
+  id: string;
+  farm_id: string;
+  slug: string;
+  published: number;
+  ai_system_prompt: string | null;
+  primary_color: string;
+  default_route_id: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export type TourPoiCategory = 'garden' | 'orchard' | 'water_feature' | 'structure' | 'wildlife' | 'compost' | 'greenhouse' | 'food_forest' | 'general';
+
+export interface TourPoi {
+  id: string;
+  farm_id: string;
+  name: string;
+  category: TourPoiCategory | string;
+  lat: number;
+  lng: number;
+  qr_code_id: string;
+  description: string | null;
+  media_urls: string | null; // JSON array
+  species_list: string | null; // JSON array
+  active: number;
+  sort_order: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export type TourRouteDifficulty = 'easy' | 'moderate' | 'challenging';
+
+export interface TourRoute {
+  id: string;
+  farm_id: string;
+  name: string;
+  duration_minutes: number | null;
+  distance_meters: number | null;
+  poi_sequence: string; // JSON array of POI IDs
+  cached_route_geojson: string | null;
+  difficulty: TourRouteDifficulty | string;
+  is_default: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TourSession {
+  id: string;
+  farm_id: string;
+  route_id: string | null;
+  device_type: string | null;
+  started_at: number;
+  ended_at: number | null;
+  pois_visited_count: number;
+  shares_count: number;
+  completion_percentage: number;
+}
+
+export type TourEventType =
+  | 'session_start'
+  | 'poi_arrived'
+  | 'poi_departed'
+  | 'qr_scanned'
+  | 'ai_query'
+  | 'plant_id_scan'
+  | 'share_tapped'
+  | 'comment_submitted'
+  | 'route_completed'
+  | 'session_end';
+
+export interface TourEvent {
+  id: string;
+  session_id: string;
+  farm_id: string;
+  poi_id: string | null;
+  event_type: TourEventType | string;
+  payload: string | null; // JSON
+  created_at: number;
+}
+
+export type TourCommentStatus = 'pending' | 'approved' | 'rejected';
+
+export interface TourComment {
+  id: string;
+  poi_id: string;
+  farm_id: string;
+  session_id: string | null;
+  content: string;
+  status: TourCommentStatus;
+  moderation_score: number | null;
+  created_at: number;
+}
