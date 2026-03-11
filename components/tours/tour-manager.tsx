@@ -19,7 +19,7 @@ import {
   Footprints,
   Monitor,
   Share2,
-  Route,
+  Router,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { FarmTour } from '@/lib/db/schema';
@@ -334,7 +334,7 @@ function TourTypeBadge({ tourType }: { tourType: string }) {
         ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
         : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
     }`}>
-      {isVirtual ? <Monitor className="h-2.5 w-2.5" /> : <Route className="h-2.5 w-2.5" />}
+      {isVirtual ? <Monitor className="h-2.5 w-2.5" /> : <Router className="h-2.5 w-2.5" />}
       {isVirtual ? 'Virtual' : 'In-Person'}
     </span>
   );
