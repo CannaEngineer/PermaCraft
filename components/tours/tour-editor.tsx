@@ -493,7 +493,7 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
                       </span>
                     )}
                     {stop.quiz_question && (
-                      <HelpCircle className="h-3 w-3 text-amber-500" title="Has quiz question" />
+                      <span title="Has quiz question"><HelpCircle className="h-3 w-3 text-amber-500" /></span>
                     )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">

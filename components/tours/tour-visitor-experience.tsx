@@ -461,7 +461,7 @@ export function TourVisitorExperience({ slug }: TourVisitorExperienceProps) {
                   <span className="text-sm font-medium flex-1">{stop.title}</span>
                   <div className="flex items-center gap-2">
                     {stop.quiz_question && (
-                      <HelpCircle className="h-3.5 w-3.5 text-amber-500" title="Has quiz" />
+                      <span title="Has quiz"><HelpCircle className="h-3.5 w-3.5 text-amber-500" /></span>
                     )}
                     {stop.is_optional === 1 && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
