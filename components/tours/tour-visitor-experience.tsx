@@ -29,7 +29,7 @@ import {
   Monitor,
   Map,
   Share2,
-  Route,
+  Router,
   HelpCircle,
   CheckCircle,
   XCircle,
@@ -392,7 +392,7 @@ export function TourVisitorExperience({ slug }: TourVisitorExperienceProps) {
               </span>
               {isInPerson && tour.total_distance_meters && (
                 <span className="flex items-center gap-1">
-                  <Route className="h-4 w-4" />
+                  <Router className="h-4 w-4" />
                   {tour.total_distance_meters < 1000
                     ? `${Math.round(tour.total_distance_meters)}m`
                     : `${(tour.total_distance_meters / 1000).toFixed(1)}km`}
@@ -674,7 +674,7 @@ export function TourVisitorExperience({ slug }: TourVisitorExperienceProps) {
         {/* Navigation directions for in-person tours */}
         {isInPerson && currentStop?.direction_from_previous && currentStopIndex > 0 && (
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 mb-4 flex items-start gap-2.5">
-            <Route className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <Router className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
             <div>
               <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-0.5">
                 Getting Here

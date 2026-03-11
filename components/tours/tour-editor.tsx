@@ -26,7 +26,7 @@ import {
   Share2,
   Monitor,
   Map,
-  Route,
+  Router,
   MessageSquare,
   HelpCircle,
 } from 'lucide-react';
@@ -524,7 +524,7 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
                   {/* Navigation hint preview for in-person tours */}
                   {isInPerson && stop.direction_from_previous && idx > 0 && (
                     <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1 truncate">
-                      <Route className="h-3 w-3 inline mr-1" />
+                      <Router className="h-3 w-3 inline mr-1" />
                       {stop.direction_from_previous}
                     </p>
                   )}
@@ -559,7 +559,7 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
       {isInPerson && stops.length >= 2 && (
         <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
           <div className="flex items-center gap-2 mb-2">
-            <Route className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Router className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <h4 className="font-medium text-sm">Route Summary</h4>
           </div>
           <div className="grid grid-cols-3 gap-4 text-sm">
