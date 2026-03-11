@@ -6,7 +6,7 @@ import { FarmFeedClient } from '@/components/feed/farm-feed-client';
 import type { Farm } from '@/lib/db/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Footprints } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -44,6 +44,7 @@ interface FarmPublicViewProps {
   };
   currentUserId?: string;
   isShopEnabled?: number;
+  publishedTours?: { id: string; title: string; share_slug: string; estimated_duration_minutes: number | null; stop_count: number }[];
 }
 
 export function FarmPublicView({
@@ -53,6 +54,7 @@ export function FarmPublicView({
   initialFeedData,
   currentUserId,
   isShopEnabled,
+  publishedTours = [],
 }: FarmPublicViewProps) {
   return (
     <div className="min-h-screen bg-background">
@@ -103,6 +105,31 @@ export function FarmPublicView({
           </div>
         </div>
       </div>
+
+      {/* Tours Section */}
+      {publishedTours.length > 0 && (
+        <div className="bg-primary/5 border-b">
+          <div className="container mx-auto px-4 py-6">
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Footprints className="h-5 w-5" />
+              Self-Guided Tours
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {publishedTours.map(tour => (
+                <Link key={tour.id} href={`/tour/${tour.share_slug}`}>
+                  <div className="border rounded-xl p-4 bg-card hover:shadow-md transition-shadow cursor-pointer">
+                    <p className="font-medium">{tour.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {tour.stop_count} stops
+                      {tour.estimated_duration_minutes ? ` · ~${tour.estimated_duration_minutes} min` : ''}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Map Section */}
       <div className="container mx-auto px-4 py-8">

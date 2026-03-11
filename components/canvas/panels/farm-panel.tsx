@@ -2,7 +2,8 @@
 
 import { PanelHeader } from './panel-header';
 import { useUnifiedCanvas } from '@/contexts/unified-canvas-context';
-import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight, MapPin, Plus, BookOpen, CheckSquare, Calendar, BarChart3 } from 'lucide-react';
+import { Droplets, Leaf, Layers, Timer, Download, ListTree, MessageSquare, Globe, ArrowRight, MapPin, Plus, BookOpen, CheckSquare, Calendar, BarChart3, Footprints, Store } from 'lucide-react';
+import Link from 'next/link';
 
 interface FarmPanelProps {
   onOpenDrawer?: (content: string) => void;
@@ -122,6 +123,29 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
               <BarChart3 className="h-5 w-5 text-purple-500" />
               <span className="text-[11px] font-medium">Reports</span>
             </button>
+          </div>
+        </div>
+
+        {/* Outreach */}
+        <div>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Outreach
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href={`/farm/${activeFarm.id}/tours`}
+              className="flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"
+            >
+              <Footprints className="h-5 w-5 text-teal-500" />
+              <span className="text-sm font-medium">Tours</span>
+            </Link>
+            <Link
+              href={`/farm/${activeFarm.id}/story`}
+              className="flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"
+            >
+              <BookOpen className="h-5 w-5 text-rose-500" />
+              <span className="text-sm font-medium">Story</span>
+            </Link>
           </div>
         </div>
 

@@ -165,6 +165,20 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   const storyPublished = farmRow.story_published as number | null;
   const storyTheme = (farmRow.story_theme as string) || 'earth';
 
+  // Fetch published tours for visitors
+  let publishedTours: any[] = [];
+  if (!isOwner) {
+    const toursResult = await db.execute({
+      sql: `SELECT t.id, t.title, t.share_slug, t.estimated_duration_minutes,
+                   (SELECT COUNT(*) FROM tour_stops WHERE tour_id = t.id) as stop_count
+            FROM farm_tours t
+            WHERE t.farm_id = ? AND t.status = 'published' AND t.access_type != 'password'
+            ORDER BY t.updated_at DESC`,
+      args: [id],
+    });
+    publishedTours = toursResult.rows as any[];
+  }
+
   // If visitor (not owner), show story page (if published) or public view
   if (!isOwner) {
     if (storyPublished === 1) {
@@ -213,6 +227,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
             storyTheme={storyTheme}
             species={speciesResult.rows as any[]}
             fulfillment={fulfillment}
+            publishedTours={publishedTours}
           />
         );
       }
@@ -226,6 +241,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
         initialFeedData={initialFeedData}
         currentUserId={session.user.id}
         isShopEnabled={isShopEnabled ?? 0}
+        publishedTours={publishedTours}
       />
     );
   }

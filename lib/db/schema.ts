@@ -932,6 +932,75 @@ export interface OrderItem {
   created_at: number;
 }
 
+// ─── Farm Tours ──────────────────────────────────────────────────────────────
+
+export type TourStatus = 'draft' | 'published' | 'archived';
+export type TourAccessType = 'public' | 'link_only' | 'password';
+export type TourDifficulty = 'easy' | 'moderate' | 'challenging';
+export type TourStopType = 'point_of_interest' | 'garden_bed' | 'water_feature' | 'structure' | 'food_forest' | 'animal_area' | 'composting' | 'welcome' | 'farewell' | 'custom';
+
+export interface FarmTour {
+  id: string;
+  farm_id: string;
+  title: string;
+  description: string | null;
+  cover_image_url: string | null;
+  status: TourStatus;
+  access_type: TourAccessType;
+  access_password: string | null;
+  estimated_duration_minutes: number | null;
+  difficulty: TourDifficulty;
+  seasonal_notes: string | null;
+  welcome_message: string | null;
+  completion_message: string | null;
+  allow_comments: number;
+  show_map: number;
+  visitor_count: number;
+  share_slug: string | null;
+  created_at: number;
+  updated_at: number;
+  published_at: number | null;
+}
+
+export interface TourStop {
+  id: string;
+  tour_id: string;
+  title: string;
+  description: string | null;
+  rich_content: string | null;
+  media_urls: string | null;
+  lat: number | null;
+  lng: number | null;
+  radius_meters: number;
+  zone_id: string | null;
+  planting_id: string | null;
+  stop_type: TourStopType;
+  display_order: number;
+  is_optional: number;
+  audio_url: string | null;
+  estimated_time_minutes: number;
+  seasonal_visibility: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TourVisit {
+  id: string;
+  tour_id: string;
+  visitor_user_id: string | null;
+  visitor_name: string | null;
+  visitor_email: string | null;
+  session_token: string | null;
+  started_at: number;
+  completed_at: number | null;
+  stops_visited: string | null;
+  last_stop_id: string | null;
+  rating: number | null;
+  feedback: string | null;
+  device_type: string | null;
+  referrer: string | null;
+}
+
 export interface ProductReview {
   id: string;
   product_id: string;

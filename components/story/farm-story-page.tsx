@@ -58,6 +58,7 @@ interface FarmStoryPageProps {
     pickup?: boolean;
     delivery?: boolean;
   };
+  publishedTours?: { id: string; title: string; share_slug: string; estimated_duration_minutes: number | null; stop_count: number }[];
 }
 
 export function FarmStoryPage({
@@ -72,6 +73,7 @@ export function FarmStoryPage({
   storyTheme,
   species,
   fulfillment,
+  publishedTours = [],
 }: FarmStoryPageProps) {
   // Build a lookup by section_type for easy access
   const sectionMap = new Map<string, FarmStorySection>();
@@ -190,6 +192,7 @@ export function FarmStoryPage({
           isShopEnabled={isShopEnabled}
           farmId={farm.id}
           theme={storyTheme}
+          publishedTours={publishedTours}
         />
       )}
 
