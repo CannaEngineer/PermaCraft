@@ -28,6 +28,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { TourStop, TourStopType, TourType, VirtualMediaType } from '@/lib/db/schema';
+import { StopLocationPicker } from './stop-location-picker';
 
 const STOP_TYPES: { value: TourStopType; label: string; icon: typeof MapPin }[] = [
   { value: 'point_of_interest', label: 'Point of Interest', icon: Star },
@@ -385,32 +386,16 @@ export function TourStopEditor({ farmId, tourId, stopId, tourType = 'in_person',
       <div className="space-y-2">
         <Label>Map Location (optional)</Label>
         <p className="text-xs text-muted-foreground mb-2">
-          Add coordinates to show this stop on the tour map
+          Use your device&apos;s GPS or pick a spot on the map
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="stop-lat" className="text-xs text-muted-foreground">Latitude</Label>
-            <Input
-              id="stop-lat"
-              type="number"
-              step="any"
-              placeholder="e.g., 37.7749"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="stop-lng" className="text-xs text-muted-foreground">Longitude</Label>
-            <Input
-              id="stop-lng"
-              type="number"
-              step="any"
-              placeholder="e.g., -122.4194"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-            />
-          </div>
-        </div>
+        <StopLocationPicker
+          lat={lat}
+          lng={lng}
+          onLocationChange={(newLat, newLng) => {
+            setLat(newLat);
+            setLng(newLng);
+          }}
+        />
       </div>
 
       {/* Estimated Time */}
