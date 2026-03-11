@@ -9,6 +9,7 @@ import { isRouteActive } from "@/lib/nav/navigation";
 
 export function PublicTopBar() {
   const pathname = usePathname();
+  const isDiscoverActive = isRouteActive(pathname, "/gallery");
   const isBlogActive = isRouteActive(pathname, "/learn/blog");
   const isPlantsActive = isRouteActive(pathname, "/plants");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -25,6 +26,17 @@ export function PublicTopBar() {
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-3">
+          <Link
+            href="/gallery"
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
+              isDiscoverActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
+          >
+            Discover
+          </Link>
           <Link
             href="/learn/blog"
             className={cn(
@@ -78,6 +90,18 @@ export function PublicTopBar() {
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-lg px-6 py-4 space-y-2">
+          <Link
+            href="/gallery"
+            onClick={() => setMobileMenuOpen(false)}
+            className={cn(
+              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
+              isDiscoverActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
+          >
+            Discover Farms
+          </Link>
           <Link
             href="/learn/blog"
             onClick={() => setMobileMenuOpen(false)}
