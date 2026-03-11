@@ -2,7 +2,8 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Truck, Package, Car } from 'lucide-react';
+import { MapPin, Truck, Package, Car, Footprints } from 'lucide-react';
+import Link from 'next/link';
 
 interface StoryVisitSectionProps {
   title: string;
@@ -18,6 +19,7 @@ interface StoryVisitSectionProps {
   isShopEnabled?: boolean;
   farmId: string;
   theme: string;
+  publishedTours?: { id: string; title: string; share_slug: string; estimated_duration_minutes: number | null; stop_count: number }[];
 }
 
 const THEME_ACCENTS: Record<string, string> = {
@@ -37,6 +39,7 @@ export function StoryVisitSection({
   isShopEnabled,
   farmId,
   theme,
+  publishedTours = [],
 }: StoryVisitSectionProps) {
   const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${centerLng - 0.01},${centerLat - 0.01},${centerLng + 0.01},${centerLat + 0.01}&layer=mapnik&marker=${centerLat},${centerLng}`;
   const directionsUrl = `https://www.openstreetmap.org/directions?to=${centerLat},${centerLng}`;
@@ -84,6 +87,23 @@ export function StoryVisitSection({
                     <Car className="w-3.5 h-3.5" />Local Delivery
                   </Badge>
                 )}
+              </div>
+            )}
+
+            {/* Tour links */}
+            {publishedTours.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Self-Guided Tours</p>
+                <div className="flex flex-wrap gap-2">
+                  {publishedTours.map(tour => (
+                    <Link key={tour.id} href={`/tour/${tour.share_slug}`}>
+                      <Button variant="secondary" className="gap-2">
+                        <Footprints className="w-4 h-4" />
+                        {tour.title}
+                      </Button>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
 
