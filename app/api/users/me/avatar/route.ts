@@ -2,6 +2,8 @@ import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
+export const dynamic = 'force-dynamic';
+
 let r2: S3Client | null = null;
 
 function getR2Client(): S3Client {

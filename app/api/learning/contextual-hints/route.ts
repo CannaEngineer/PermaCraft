@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/learning/contextual-hints - Get contextual hints based on trigger
 export async function GET(request: NextRequest) {
   const session = await getSession();

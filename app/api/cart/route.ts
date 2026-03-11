@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const AddToCartSchema = z.object({
   product_id: z.string().min(1),
   variant_id: z.string().optional().nullable(),

@@ -6,6 +6,8 @@ import { bbox } from '@turf/bbox';
 import type { Polygon } from 'geojson';
 import { lookupHardinessZone } from '@/lib/species/hardiness-zone-lookup';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await requireAuth();

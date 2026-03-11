@@ -2,6 +2,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { NextRequest } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Saved Posts Feed API
  *

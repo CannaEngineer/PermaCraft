@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const readSchema = z.object({
   postId: z.string(),
   action: z.enum(['start', 'complete']),

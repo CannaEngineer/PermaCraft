@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { openrouter } from '@/lib/ai/openrouter';
 import { getLessonGenerationModel } from '@/lib/ai/model-settings';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/admin/content/generate - Generate a new lesson with AI
 export async function POST(request: NextRequest) {
   try {

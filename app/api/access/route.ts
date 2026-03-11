@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   const { code } = await request.json();
   const betaCode = process.env.BETA_ACCESS_CODE;

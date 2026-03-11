@@ -2,6 +2,8 @@ import { getCacheStats } from '@/lib/ai/response-cache';
 import { requireAdmin } from '@/lib/auth/admin';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await requireAdmin();

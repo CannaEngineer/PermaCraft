@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const CreateOrderSchema = z.object({
   buyer_name: z.string().min(1).max(200).optional(),
   buyer_email: z.string().email().optional(),
