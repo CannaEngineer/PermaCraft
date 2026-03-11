@@ -27,6 +27,8 @@ import {
   Recycle,
   Flag,
   Waypoints,
+  Share2,
+  Sun,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -292,19 +294,49 @@ export function TourVisitorExperience({ slug }: TourVisitorExperienceProps) {
   const { tour, stops, farm } = tourData;
   const DiffIcon = DIFFICULTY_ICONS[tour.difficulty] || Footprints;
 
+  // Share handler
+  const handleShareTour = () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: tour.title, text: tour.description || `Tour of ${farm.name}`, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url);
+    }
+  };
+
   // Landing / Welcome Screen
   if (!started) {
     return (
       <div className="min-h-screen bg-background">
+        {/* Cover Image */}
+        {tour.cover_image_url && (
+          <div className="relative h-48 sm:h-64 w-full overflow-hidden">
+            <img
+              src={tour.cover_image_url}
+              alt={tour.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+          </div>
+        )}
+
         {/* Hero */}
-        <div className="relative bg-gradient-to-b from-primary/10 to-background pt-16 pb-12 px-4">
+        <div className={`relative bg-gradient-to-b from-primary/10 to-background ${tour.cover_image_url ? 'pt-6' : 'pt-16'} pb-12 px-4`}>
           <div className="max-w-xl mx-auto text-center">
             <p className="text-sm text-muted-foreground mb-2">
               A tour of <span className="font-medium text-foreground">{farm.name}</span>
             </p>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">{tour.title}</h1>
             {tour.description && (
-              <p className="text-muted-foreground max-w-md mx-auto mb-6">{tour.description}</p>
+              <p className="text-muted-foreground max-w-md mx-auto mb-4">{tour.description}</p>
+            )}
+
+            {/* Seasonal Notes */}
+            {tour.seasonal_notes && (
+              <div className="inline-flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-full px-3 py-1 mb-4">
+                <Sun className="h-3 w-3" />
+                {tour.seasonal_notes}
+              </div>
             )}
 
             {/* Tour Info */}
@@ -319,16 +351,21 @@ export function TourVisitorExperience({ slug }: TourVisitorExperienceProps) {
                   ~{tour.estimated_duration_minutes} min
                 </span>
               )}
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 capitalize">
                 <DiffIcon className="h-4 w-4" />
                 {tour.difficulty}
               </span>
             </div>
 
-            <Button size="lg" onClick={handleStartTour} className="gap-2 px-8">
-              <Navigation className="h-5 w-5" />
-              Start Tour
-            </Button>
+            <div className="flex items-center justify-center gap-3">
+              <Button size="lg" onClick={handleStartTour} className="gap-2 px-8">
+                <Navigation className="h-5 w-5" />
+                Start Tour
+              </Button>
+              <Button size="lg" variant="outline" onClick={handleShareTour} title="Share this tour">
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -436,9 +473,13 @@ export function TourVisitorExperience({ slug }: TourVisitorExperienceProps) {
           </div>
         )}
 
-        <div className="flex items-center gap-3 mt-8">
+        <div className="flex items-center gap-3 mt-8 flex-wrap justify-center">
           <Button variant="outline" onClick={() => { setCompleted(false); setCurrentStopIndex(0); setStarted(false); }}>
             Restart Tour
+          </Button>
+          <Button variant="outline" onClick={handleShareTour} className="gap-1.5">
+            <Share2 className="h-4 w-4" />
+            Share Tour
           </Button>
           <Link href="/gallery">
             <Button variant="ghost">Explore More Farms</Button>

@@ -17,6 +17,9 @@ import {
   Loader2,
   ArrowLeft,
   Footprints,
+  Archive,
+  ArchiveRestore,
+  CopyPlus,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { FarmTour } from '@/lib/db/schema';
@@ -90,6 +93,48 @@ export function TourManager({ farmId, farmName }: TourManagerProps) {
       }
     } catch {
       alert('Failed to update tour status');
+    }
+  };
+
+  const handleArchive = async (tour: FarmTour) => {
+    const newStatus = tour.status === 'archived' ? 'draft' : 'archived';
+    try {
+      const res = await fetch(`/api/farms/${farmId}/tours/${tour.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        fetchTours();
+      }
+    } catch {
+      alert('Failed to update tour');
+    }
+  };
+
+  const handleDuplicate = async (tour: FarmTour) => {
+    try {
+      const res = await fetch(`/api/farms/${farmId}/tours`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `${tour.title} (Copy)`,
+          description: tour.description,
+          cover_image_url: tour.cover_image_url,
+          access_type: tour.access_type,
+          difficulty: tour.difficulty,
+          seasonal_notes: tour.seasonal_notes,
+          welcome_message: tour.welcome_message,
+          completion_message: tour.completion_message,
+          show_map: tour.show_map,
+          allow_comments: tour.allow_comments,
+        }),
+      });
+      if (res.ok) {
+        fetchTours();
+      }
+    } catch {
+      alert('Failed to duplicate tour');
     }
   };
 
@@ -257,7 +302,7 @@ export function TourManager({ farmId, farmName }: TourManagerProps) {
               )}
 
               {/* Quick Actions Row */}
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -267,26 +312,47 @@ export function TourManager({ farmId, farmName }: TourManagerProps) {
                   <Pencil className="h-3 w-3" />
                   Edit Stops
                 </Button>
-                <Button
-                  variant={tour.status === 'published' ? 'outline' : 'default'}
-                  size="sm"
-                  className="text-xs gap-1.5"
-                  onClick={() => handleTogglePublish(tour)}
-                >
-                  <Eye className="h-3 w-3" />
-                  {tour.status === 'published' ? 'Unpublish' : 'Publish'}
-                </Button>
-                {tour.visitor_count > 0 && (
+                {tour.status !== 'archived' && (
                   <Button
-                    variant="outline"
+                    variant={tour.status === 'published' ? 'outline' : 'default'}
                     size="sm"
                     className="text-xs gap-1.5"
-                    onClick={() => { setSelectedTourId(tour.id); setView('analytics'); }}
+                    onClick={() => handleTogglePublish(tour)}
                   >
-                    <BarChart3 className="h-3 w-3" />
-                    Analytics
+                    <Eye className="h-3 w-3" />
+                    {tour.status === 'published' ? 'Unpublish' : 'Publish'}
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  onClick={() => { setSelectedTourId(tour.id); setView('analytics'); }}
+                >
+                  <BarChart3 className="h-3 w-3" />
+                  Analytics
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  onClick={() => handleDuplicate(tour)}
+                >
+                  <CopyPlus className="h-3 w-3" />
+                  Duplicate
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  onClick={() => handleArchive(tour)}
+                >
+                  {tour.status === 'archived' ? (
+                    <><ArchiveRestore className="h-3 w-3" /> Unarchive</>
+                  ) : (
+                    <><Archive className="h-3 w-3" /> Archive</>
+                  )}
+                </Button>
               </div>
             </div>
           ))}

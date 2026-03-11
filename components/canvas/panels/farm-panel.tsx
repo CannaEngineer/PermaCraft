@@ -132,13 +132,13 @@ export function FarmPanel({ onOpenDrawer }: FarmPanelProps) {
             Outreach
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            <Link
-              href={`/farm/${activeFarm.id}/tours`}
+            <button
+              onClick={() => onOpenDrawer?.('tours')}
               className="flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"
             >
               <Footprints className="h-5 w-5 text-teal-500" />
               <span className="text-sm font-medium">Tours</span>
-            </Link>
+            </button>
             <Link
               href={`/farm/${activeFarm.id}/story`}
               className="flex items-center gap-2.5 p-3 rounded-xl hover:bg-accent/50 transition-colors text-left"

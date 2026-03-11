@@ -10,7 +10,6 @@ import { Switch } from '@/components/ui/switch';
 import {
   ArrowLeft,
   Plus,
-  GripVertical,
   Pencil,
   Trash2,
   Loader2,
@@ -24,6 +23,14 @@ import {
   Clock,
   Save,
   Settings,
+  CheckCircle2,
+  AlertCircle,
+  Globe,
+  Link as LinkIcon,
+  Lock,
+  Share2,
+  QrCode,
+  Rocket,
 } from 'lucide-react';
 import type { FarmTour, TourStop } from '@/lib/db/schema';
 import { TourStopEditor } from './tour-stop-editor';
@@ -48,7 +55,15 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
   // Tour settings form
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [accessType, setAccessType] = useState('public');
+  const [accessPassword, setAccessPassword] = useState('');
+  const [difficulty, setDifficulty] = useState('easy');
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [completionMessage, setCompletionMessage] = useState('');
+  const [seasonalNotes, setSeasonalNotes] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [showLaunchChecklist, setShowLaunchChecklist] = useState(false);
+  const [showSharePanel, setShowSharePanel] = useState(false);
 
   const fetchTour = useCallback(async () => {
     try {
@@ -59,6 +74,12 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
         setStops(data.stops);
         setTitle(data.tour.title);
         setDescription(data.tour.description || '');
+        setAccessType(data.tour.access_type || 'public');
+        setAccessPassword(data.tour.access_password || '');
+        setDifficulty(data.tour.difficulty || 'easy');
+        setWelcomeMessage(data.tour.welcome_message || '');
+        setCompletionMessage(data.tour.completion_message || '');
+        setSeasonalNotes(data.tour.seasonal_notes || '');
       }
     } catch (err) {
       console.error('Failed to fetch tour:', err);
@@ -77,7 +98,16 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
       const res = await fetch(`/api/farms/${farmId}/tours/${tourId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({
+          title,
+          description,
+          access_type: accessType,
+          access_password: accessType === 'password' ? accessPassword : null,
+          difficulty,
+          welcome_message: welcomeMessage || null,
+          completion_message: completionMessage || null,
+          seasonal_notes: seasonalNotes || null,
+        }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -219,31 +249,48 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
             variant="ghost"
             size="sm"
             className="gap-1.5 text-xs"
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={() => { setShowSettings(!showSettings); setShowSharePanel(false); }}
           >
             <Settings className="h-3.5 w-3.5" />
             Settings
           </Button>
-          {tour.visitor_count > 0 && (
-            <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={onViewAnalytics}>
-              <BarChart3 className="h-3.5 w-3.5" />
-              Analytics
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={onViewAnalytics}>
+            <BarChart3 className="h-3.5 w-3.5" />
+            Analytics
+          </Button>
+          {tour.status === 'published' ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={() => { setShowSharePanel(!showSharePanel); setShowSettings(false); }}
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                Share
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={handlePublish}
+                disabled={publishing}
+              >
+                {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                Unpublish
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={handlePublish}
+              disabled={publishing || stops.length === 0}
+            >
+              {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
+              Publish
             </Button>
           )}
-          <Button
-            variant={tour.status === 'published' ? 'outline' : 'default'}
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={handlePublish}
-            disabled={publishing}
-          >
-            {publishing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Eye className="h-3.5 w-3.5" />
-            )}
-            {tour.status === 'published' ? 'Unpublish' : 'Publish Tour'}
-          </Button>
         </div>
       </div>
 
@@ -269,13 +316,74 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
       {/* Settings Collapse */}
       {showSettings && (
         <div className="border rounded-lg p-4 space-y-4 bg-muted/50">
-          <div className="space-y-2">
-            <Label>Tour Name</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Tour Name</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Difficulty</Label>
+              <div className="flex gap-1">
+                {(['easy', 'moderate', 'challenging'] as const).map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setDifficulty(d)}
+                    className={`flex-1 px-2 py-1.5 rounded text-xs capitalize transition-colors ${
+                      difficulty === d ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted-foreground/10'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+          </div>
+          <div className="space-y-2">
+            <Label>Access</Label>
+            <div className="flex gap-1">
+              {([
+                { v: 'public', icon: Globe, l: 'Public' },
+                { v: 'link_only', icon: LinkIcon, l: 'Link Only' },
+                { v: 'password', icon: Lock, l: 'Password' },
+              ]).map(opt => (
+                <button
+                  key={opt.v}
+                  onClick={() => setAccessType(opt.v)}
+                  className={`flex items-center gap-1.5 flex-1 px-2 py-1.5 rounded text-xs transition-colors ${
+                    accessType === opt.v ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted-foreground/10'
+                  }`}
+                >
+                  <opt.icon className="h-3 w-3" />
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+            {accessType === 'password' && (
+              <Input
+                placeholder="Tour password"
+                value={accessPassword}
+                onChange={(e) => setAccessPassword(e.target.value)}
+                className="mt-1"
+              />
+            )}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Welcome Message</Label>
+              <Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={2} placeholder="Shown when visitors arrive" />
+            </div>
+            <div className="space-y-2">
+              <Label>Completion Message</Label>
+              <Textarea value={completionMessage} onChange={(e) => setCompletionMessage(e.target.value)} rows={2} placeholder="Shown at tour end" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Seasonal Notes</Label>
+            <Input value={seasonalNotes} onChange={(e) => setSeasonalNotes(e.target.value)} placeholder="e.g., Best in spring. Skip in winter." />
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setShowSettings(false)}>Cancel</Button>
@@ -285,6 +393,38 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
               Save
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Share Panel */}
+      {showSharePanel && tour.status === 'published' && tour.share_slug && (
+        <div className="border rounded-lg p-4 space-y-3 bg-muted/50">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <Share2 className="h-4 w-4" />
+            Share Your Tour
+          </h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/tour/${tour.share_slug}`}
+                className="text-sm"
+              />
+              <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={handleCopyLink}>
+                <Copy className="h-3.5 w-3.5" />
+                {copiedLink ? 'Copied!' : 'Copy'}
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <a href={`/tour/${tour.share_slug}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                  <ExternalLink className="h-3 w-3" />
+                  Preview Tour
+                </Button>
+              </a>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowSharePanel(false)}>Close</Button>
         </div>
       )}
 
@@ -394,21 +534,123 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
         )}
       </div>
 
-      {/* Publish CTA at bottom */}
-      {stops.length > 0 && tour.status === 'draft' && (
-        <div className="border rounded-lg p-4 bg-primary/5 flex items-center justify-between">
+      {/* Launch Checklist */}
+      {tour.status === 'draft' && (
+        <LaunchChecklist
+          tour={tour}
+          stops={stops}
+          onPublish={handlePublish}
+          publishing={publishing}
+        />
+      )}
+
+      {/* Share CTA for published tours */}
+      {tour.status === 'published' && !showSharePanel && (
+        <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 flex items-center justify-between">
           <div>
-            <p className="font-medium text-sm">Ready to share?</p>
+            <p className="font-medium text-sm text-green-800 dark:text-green-300">Tour is live!</p>
             <p className="text-xs text-muted-foreground">
-              Publish your tour to generate a shareable link for visitors
+              Share it with your visitors
             </p>
           </div>
-          <Button onClick={handlePublish} disabled={publishing} className="gap-1.5">
-            {publishing && <Loader2 className="h-4 w-4 animate-spin" />}
-            Publish Tour
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowSharePanel(true)}>
+            <Share2 className="h-3.5 w-3.5" />
+            Share
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+function LaunchChecklist({
+  tour,
+  stops,
+  onPublish,
+  publishing,
+}: {
+  tour: FarmTour;
+  stops: TourStop[];
+  onPublish: () => void;
+  publishing: boolean;
+}) {
+  const checks = [
+    {
+      label: 'At least one tour stop',
+      passed: stops.length > 0,
+      tip: 'Add stops to mark interesting points along the tour',
+    },
+    {
+      label: 'Tour has a description',
+      passed: !!tour.description,
+      tip: 'Add a description in Settings so visitors know what to expect',
+    },
+    {
+      label: 'All stops have descriptions',
+      passed: stops.length > 0 && stops.every(s => !!s.description),
+      tip: 'Add descriptions to each stop — tell the story behind each location',
+    },
+    {
+      label: 'Welcome or completion message set',
+      passed: !!tour.welcome_message || !!tour.completion_message,
+      tip: 'Personal messages make the tour feel welcoming (set in Settings)',
+    },
+  ];
+
+  const requiredPassed = checks[0].passed; // At least one stop is required
+  const allPassed = checks.every(c => c.passed);
+  const passedCount = checks.filter(c => c.passed).length;
+
+  return (
+    <div className="border rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm flex items-center gap-2">
+          <Rocket className="h-4 w-4" />
+          Launch Checklist
+        </h3>
+        <span className="text-xs text-muted-foreground">{passedCount}/{checks.length}</span>
+      </div>
+
+      <div className="space-y-1.5">
+        {checks.map((check, i) => (
+          <div key={i} className="flex items-start gap-2">
+            {check.passed ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className={`text-sm ${check.passed ? 'text-muted-foreground line-through' : 'font-medium'}`}>
+                {check.label}
+              </p>
+              {!check.passed && (
+                <p className="text-xs text-muted-foreground">{check.tip}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <Button
+          onClick={onPublish}
+          disabled={publishing || !requiredPassed}
+          className="gap-1.5"
+          variant={allPassed ? 'default' : 'outline'}
+        >
+          {publishing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Rocket className="h-4 w-4" />
+          )}
+          {allPassed ? 'Publish Tour' : 'Publish Anyway'}
+        </Button>
+        {!allPassed && requiredPassed && (
+          <p className="text-xs text-muted-foreground">
+            Some items aren't complete, but you can still publish
+          </p>
+        )}
+      </div>
     </div>
   );
 }

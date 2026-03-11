@@ -207,13 +207,41 @@ export function TourAnalytics({ farmId, tourId, onBack }: TourAnalyticsProps) {
         </div>
       )}
 
+      {/* Stop Popularity */}
+      {Object.keys(data.stop_popularity).length > 0 && (
+        <div className="border rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3">Most Visited Stops</h3>
+          <div className="space-y-2">
+            {Object.entries(data.stop_popularity)
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, 10)
+              .map(([stopId, count]) => {
+                const maxCount = Math.max(...Object.values(data.stop_popularity), 1);
+                const pct = Math.round((count / maxCount) * 100);
+                return (
+                  <div key={stopId} className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground font-mono w-16 truncate">{stopId.slice(0, 8)}</span>
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs font-medium w-8 text-right">{count}</span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Empty state for no visits */}
       {data.total_visits === 0 && (
         <div className="text-center py-12">
           <Users className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
           <h3 className="font-medium mb-1">No visitors yet</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mb-4">
             Share your tour link to start seeing analytics here
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Go back and use the Share button to get your tour link
           </p>
         </div>
       )}

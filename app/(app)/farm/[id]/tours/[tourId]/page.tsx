@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
-import { TourManager } from '@/components/tours/tour-manager';
+import { TourEditorPage } from '@/components/tours/tour-editor-page';
 
 interface PageProps {
   params: Promise<{ id: string; tourId: string }>;
@@ -34,7 +34,7 @@ export default async function FarmTourEditPage({ params }: PageProps) {
 
   return (
     <div className="container max-w-3xl mx-auto py-8 px-4">
-      <TourManager farmId={id} farmName={farm.name} />
+      <TourEditorPage farmId={id} farmName={farm.name} tourId={tourId} />
     </div>
   );
 }
