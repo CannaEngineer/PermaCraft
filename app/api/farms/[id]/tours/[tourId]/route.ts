@@ -48,8 +48,9 @@ export async function PATCH(
   const allowedFields = [
     'title', 'description', 'cover_image_url', 'status', 'access_type',
     'access_password', 'estimated_duration_minutes', 'difficulty',
+    'tour_type', 'route_mode', 'route_geometry', 'total_distance_meters',
     'seasonal_notes', 'welcome_message', 'completion_message',
-    'show_map', 'allow_comments',
+    'show_map', 'allow_comments', 'tags', 'og_image_url', 'embed_enabled',
   ];
 
   const updates: string[] = [];

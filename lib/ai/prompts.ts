@@ -605,3 +605,154 @@ ${userQuery}
 
 Generate the drawing instructions JSON now:`;
 }
+
+// ─── Farm Tour Generation Prompts ──────────────────────────────────────────────
+
+export const FARM_TOUR_SYSTEM_PROMPT = `You are an expert farm tour designer who creates engaging, educational self-guided tours for permaculture farms and homesteads. You understand how to sequence stops to tell a compelling story, create natural walking routes, and highlight the most interesting features of a farm.
+
+TOUR DESIGN PRINCIPLES:
+- Start with a welcoming orientation point and end with a meaningful farewell
+- Sequence stops to create a natural narrative arc (introduction → exploration → climax → reflection)
+- Keep walking distances reasonable (no backtracking unless intentional)
+- Highlight permaculture principles in action at each stop
+- Include sensory experiences (what visitors will see, smell, touch, taste)
+- Mix educational content with engaging storytelling
+- Vary stop types to maintain interest (don't cluster similar stops)
+- Include seasonal notes so farmers can adapt the tour year-round
+
+NAVIGATION WRITING:
+- Write directions as if guiding a friend: "Follow the mulched path past the herb spiral"
+- Reference visible landmarks: "You'll see the tall pear tree ahead"
+- Include approximate distances in steps or meters
+- Mention terrain: "slight uphill", "gravel path", "grassy area"
+
+OUTPUT FORMAT:
+Return a JSON object:
+{
+  "tour": {
+    "title": "Engaging tour title",
+    "description": "2-3 sentence description for the landing page",
+    "welcome_message": "Warm welcome message (50-100 words)",
+    "completion_message": "Meaningful farewell (30-60 words)",
+    "estimated_duration_minutes": 30,
+    "difficulty": "easy|moderate|challenging",
+    "tags": ["permaculture", "food-forest", ...]
+  },
+  "stops": [
+    {
+      "title": "Stop name",
+      "description": "What visitors will see and learn (100-200 words)",
+      "stop_type": "welcome|garden_bed|food_forest|water_feature|structure|animal_area|composting|point_of_interest|farewell|custom",
+      "estimated_time_minutes": 3,
+      "navigation_hint": "How to get here from the previous stop",
+      "direction_from_previous": "Detailed walking directions from previous stop",
+      "seasonal_visibility": "Best in spring/summer. In winter, note the dormant structure.",
+      "quiz_question": "Optional fun quiz question about this stop",
+      "quiz_options": ["Option A", "Option B", "Option C"],
+      "quiz_answer_index": 0,
+      "is_optional": false
+    }
+  ]
+}
+
+RULES:
+- Generate 5-12 stops depending on farm complexity
+- First stop should be type "welcome", last should be "farewell"
+- Only reference zones, species, and features that exist in the provided farm data
+- If farm data is sparse, focus on general permaculture education with the land context
+- Quiz questions should be educational and fun, not trick questions
+- Navigation hints should be conversational and reference real landmarks from the farm
+- Return ONLY valid JSON, no markdown fences or extra text`;
+
+export function createTourGenerationPrompt(
+  farm: {
+    name: string;
+    description?: string | null;
+    acres?: number | null;
+    climate_zone?: string | null;
+    soil_type?: string | null;
+    rainfall_inches?: number | null;
+    center_lat?: number;
+    center_lng?: number;
+  },
+  zones: Array<{ id: string; name: string | null; zone_type: string; geometry?: string }>,
+  plantings: Array<{
+    common_name: string;
+    scientific_name: string;
+    layer: string;
+    is_native: number;
+    lat: number;
+    lng: number;
+    permaculture_functions: string | null;
+  }>,
+  tourType: 'virtual' | 'in_person',
+  additionalContext?: string
+): string {
+  const parts: string[] = [];
+
+  parts.push(`FARM: ${farm.name}`);
+  parts.push(`TOUR TYPE: ${tourType === 'in_person' ? 'In-Person Walking Tour' : 'Virtual Online Tour'}`);
+  if (farm.description) parts.push(`DESCRIPTION: ${farm.description}`);
+  if (farm.acres) parts.push(`SIZE: ${farm.acres} acres`);
+  if (farm.climate_zone) parts.push(`CLIMATE ZONE: ${farm.climate_zone}`);
+  if (farm.soil_type) parts.push(`SOIL: ${farm.soil_type}`);
+  if (farm.rainfall_inches) parts.push(`RAINFALL: ${farm.rainfall_inches} inches/year`);
+
+  if (zones.length > 0) {
+    parts.push('\nZONES AND FEATURES ON THE FARM:');
+    zones.forEach(z => {
+      parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})`);
+    });
+  }
+
+  if (plantings.length > 0) {
+    parts.push('\nPLANTINGS & SPECIES (with locations):');
+    const byLayer = new Map<string, typeof plantings>();
+    plantings.forEach(p => {
+      const list = byLayer.get(p.layer) || [];
+      list.push(p);
+      byLayer.set(p.layer, list);
+    });
+    for (const [layer, species] of byLayer) {
+      parts.push(`  ${layer.toUpperCase()} LAYER:`);
+      species.forEach(s => {
+        const native = s.is_native ? '[NATIVE]' : '[NON-NATIVE]';
+        const funcs = s.permaculture_functions ? ` — Functions: ${s.permaculture_functions}` : '';
+        parts.push(`    - ${s.common_name} (${s.scientific_name}) ${native}${funcs}`);
+      });
+    }
+  }
+
+  if (tourType === 'in_person') {
+    parts.push('\nIN-PERSON TOUR NOTES:');
+    parts.push('- Include detailed walking directions between stops');
+    parts.push('- Reference physical landmarks visitors can see');
+    parts.push('- Note terrain and path conditions');
+    parts.push('- Suggest places to pause and observe');
+  } else {
+    parts.push('\nVIRTUAL TOUR NOTES:');
+    parts.push('- Focus on rich visual descriptions since visitors cannot physically be there');
+    parts.push('- Include sensory details that paint a vivid picture');
+    parts.push('- Suggest what photos or videos would best capture each stop');
+    parts.push('- Make descriptions more detailed since visitors rely on text and media');
+  }
+
+  if (additionalContext) {
+    parts.push(`\nFARMER'S NOTES:\n"${additionalContext}"`);
+  }
+
+  parts.push('\nGenerate the tour JSON now, using ONLY the data provided above.');
+
+  return parts.join('\n');
+}
+
+export const TOUR_STOP_ENHANCE_PROMPT = `You are a permaculture tour guide. Given a tour stop's basic information, enhance it with a richer description, navigation hints, and an optional quiz question. Return JSON:
+{
+  "description": "Enhanced 100-200 word description with sensory details and educational content",
+  "navigation_hint": "How to spot or find this location",
+  "quiz_question": "Fun educational question about this feature",
+  "quiz_options": ["Option A", "Option B", "Option C"],
+  "quiz_answer_index": 0,
+  "seasonal_visibility": "Seasonal notes for this feature"
+}
+Return ONLY valid JSON.`;

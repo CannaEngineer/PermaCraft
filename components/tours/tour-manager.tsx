@@ -17,6 +17,9 @@ import {
   Loader2,
   ArrowLeft,
   Footprints,
+  Monitor,
+  Share2,
+  Route,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { FarmTour } from '@/lib/db/schema';
@@ -171,6 +174,7 @@ export function TourManager({ farmId, farmName }: TourManagerProps) {
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-lg truncate">{tour.title}</h3>
                     <StatusBadge status={tour.status} />
+                    <TourTypeBadge tourType={(tour as any).tour_type || 'in_person'} />
                     <AccessBadge accessType={tour.access_type} />
                   </div>
                   {tour.description && (
@@ -318,6 +322,20 @@ function AccessBadge({ accessType }: { accessType: string }) {
   return (
     <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
       {labels[accessType] || accessType}
+    </span>
+  );
+}
+
+function TourTypeBadge({ tourType }: { tourType: string }) {
+  const isVirtual = tourType === 'virtual';
+  return (
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 ${
+      isVirtual
+        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+    }`}>
+      {isVirtual ? <Monitor className="h-2.5 w-2.5" /> : <Route className="h-2.5 w-2.5" />}
+      {isVirtual ? 'Virtual' : 'In-Person'}
     </span>
   );
 }
