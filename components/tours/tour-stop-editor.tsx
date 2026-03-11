@@ -18,7 +18,7 @@ import {
   Recycle,
   Flag,
   Star,
-  Waypoints,
+  Milestone,
   Save,
 } from 'lucide-react';
 import type { TourStop, TourStopType } from '@/lib/db/schema';
@@ -32,7 +32,7 @@ const STOP_TYPES: { value: TourStopType; label: string; icon: typeof MapPin }[] 
   { value: 'animal_area', label: 'Animal Area', icon: Dog },
   { value: 'composting', label: 'Composting', icon: Recycle },
   { value: 'welcome', label: 'Welcome Point', icon: Flag },
-  { value: 'farewell', label: 'Farewell Point', icon: Waypoints },
+  { value: 'farewell', label: 'Farewell Point', icon: Milestone },
   { value: 'custom', label: 'Custom', icon: MapPin },
 ];
 
