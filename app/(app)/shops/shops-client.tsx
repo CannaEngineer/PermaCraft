@@ -57,7 +57,7 @@ export function ShopsClient({ isAuthenticated }: ShopsClientProps) {
         <Store className="w-7 h-7 sm:w-8 sm:h-8 text-primary flex-shrink-0" />
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Farm Shops</h1>
-          <p className="text-sm text-muted-foreground">Buy directly from local permaculture farms</p>
+          <p className="text-sm text-muted-foreground">Buy seeds, plants, and produce directly from permaculture farms</p>
         </div>
       </div>
 

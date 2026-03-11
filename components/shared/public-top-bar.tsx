@@ -12,6 +12,7 @@ export function PublicTopBar() {
   const isDiscoverActive = isRouteActive(pathname, "/gallery");
   const isBlogActive = isRouteActive(pathname, "/learn/blog");
   const isPlantsActive = isRouteActive(pathname, "/plants");
+  const isShopsActive = isRouteActive(pathname, "/shops");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -25,7 +26,7 @@ export function PublicTopBar() {
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-1">
           <Link
             href="/gallery"
             className={cn(
@@ -36,17 +37,6 @@ export function PublicTopBar() {
             )}
           >
             Discover
-          </Link>
-          <Link
-            href="/learn/blog"
-            className={cn(
-              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
-              isBlogActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Blog
           </Link>
           <Link
             href="/plants"
@@ -60,17 +50,41 @@ export function PublicTopBar() {
             Plants
           </Link>
           <Link
-            href="/login"
-            className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
+            href="/shops"
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
+              isShopsActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
           >
-            Sign In
+            Shops
           </Link>
           <Link
-            href="/register"
-            className="rounded-full px-4 py-2 text-sm font-medium no-underline bg-primary text-primary-foreground"
+            href="/learn/blog"
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
+              isBlogActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
           >
-            Get Started
+            Blog
           </Link>
+          <div className="ml-2 flex items-center gap-2">
+            <Link
+              href="/login"
+              className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-full px-5 py-2 text-sm font-medium no-underline bg-primary text-primary-foreground"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
 
         {/* Mobile hamburger button */}
@@ -89,7 +103,7 @@ export function PublicTopBar() {
 
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-lg px-6 py-4 space-y-2">
+        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-lg px-6 py-4 space-y-1">
           <Link
             href="/gallery"
             onClick={() => setMobileMenuOpen(false)}
@@ -103,6 +117,30 @@ export function PublicTopBar() {
             Discover Farms
           </Link>
           <Link
+            href="/plants"
+            onClick={() => setMobileMenuOpen(false)}
+            className={cn(
+              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
+              isPlantsActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
+          >
+            Plant Catalog
+          </Link>
+          <Link
+            href="/shops"
+            onClick={() => setMobileMenuOpen(false)}
+            className={cn(
+              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
+              isShopsActive
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted"
+            )}
+          >
+            Farm Shops
+          </Link>
+          <Link
             href="/learn/blog"
             onClick={() => setMobileMenuOpen(false)}
             className={cn(
@@ -114,32 +152,22 @@ export function PublicTopBar() {
           >
             Blog
           </Link>
-          <Link
-            href="/plants"
-            onClick={() => setMobileMenuOpen(false)}
-            className={cn(
-              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
-              isPlantsActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Plants
-          </Link>
-          <Link
-            href="/login"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/register"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block rounded-full px-4 py-3 text-sm font-medium text-center no-underline bg-primary text-primary-foreground"
-          >
-            Get Started
-          </Link>
+          <div className="pt-2 border-t border-border/50 mt-2 space-y-1">
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-full px-4 py-3 text-sm font-medium text-center no-underline bg-primary text-primary-foreground"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
       )}
     </nav>

@@ -111,7 +111,7 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
               Explore. Tour. Support Local.
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-              Take virtual farm tours, read farm stories, browse local products, and connect directly with permaculture farmers in your area.
+              Take virtual farm tours, read farm stories, browse local products, and connect directly with permaculture farmers.
             </p>
           </div>
 
@@ -326,23 +326,39 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
             Share Your Farm with the World
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-6">
-            Create virtual tours, tell your story, list products, and connect with customers who care about sustainable, local food.
+            Create virtual tours, tell your story, list products, and connect with customers who value regenerative food.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {isAuthenticated ? (
-              <Link href="/canvas">
-                <Button size="lg" className="gap-2">
-                  <Sprout className="w-5 h-5" />
-                  Go to My Farms
-                </Button>
-              </Link>
+              <>
+                <Link href="/canvas">
+                  <Button size="lg" className="gap-2">
+                    <Sprout className="w-5 h-5" />
+                    Go to My Farms
+                  </Button>
+                </Link>
+                <Link href="/shops">
+                  <Button size="lg" variant="outline" className="gap-2">
+                    <Store className="w-5 h-5" />
+                    Manage My Shop
+                  </Button>
+                </Link>
+              </>
             ) : (
-              <Link href="/register">
-                <Button size="lg" className="gap-2">
-                  <Sprout className="w-5 h-5" />
-                  Start Your Farm Profile
-                </Button>
-              </Link>
+              <>
+                <Link href="/register">
+                  <Button size="lg" className="gap-2">
+                    <Sprout className="w-5 h-5" />
+                    Start Designing — Free
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="lg" variant="outline" className="gap-2">
+                    <Store className="w-5 h-5" />
+                    Open a Farm Shop
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
         </div>
