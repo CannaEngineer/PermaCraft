@@ -8,6 +8,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
 
+export const dynamic = 'force-dynamic';
+
 const chatSchema = z.object({
   query: z.string().min(1).max(5000),
   conversationId: z.string().max(100).optional(),

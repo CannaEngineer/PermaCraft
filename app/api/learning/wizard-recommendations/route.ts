@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { LearningPath } from '@/lib/db/schema';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 // Scoring weights for calculating learning path match scores
 const SCORING_WEIGHTS = {
   PERFECT_LAND_MATCH: 40,

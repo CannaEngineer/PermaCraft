@@ -2,6 +2,8 @@ import { requireAuth } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { lookupHardinessZone } from '@/lib/species/hardiness-zone-lookup';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/farms/backfill-zones
  * Backfill USDA hardiness zones for the current user's farms where climate_zone is NULL.

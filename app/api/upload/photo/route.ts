@@ -3,6 +3,8 @@ import { uploadScreenshot } from "@/lib/storage/r2";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Photo Upload API Route
  *

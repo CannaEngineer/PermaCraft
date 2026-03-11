@@ -3,6 +3,8 @@ import { generateBlogPost_Auto } from '@/lib/blog/auto-generator';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth/session';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     // Verify admin user

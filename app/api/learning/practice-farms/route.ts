@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { PracticeFarm } from '@/lib/db/schema';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/learning/practice-farms - List user's practice farms
 export async function GET(request: NextRequest) {
   const session = await getSession();

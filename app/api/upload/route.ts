@@ -4,6 +4,8 @@ import { uploadScreenshot } from "@/lib/storage/r2";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const uploadSchema = z.object({
   farmId: z.string(),
   imageData: z.string(),

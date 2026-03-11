@@ -3,6 +3,8 @@ import { openrouter } from '@/lib/ai/openrouter';
 import { requireAuth } from '@/lib/auth/session';
 import { buildGuildSuggestionPrompt } from '@/lib/ai/guild-prompter';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   const session = await requireAuth();
 

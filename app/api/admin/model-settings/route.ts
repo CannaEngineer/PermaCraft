@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { clearModelSettingsCache } from '@/lib/ai/model-settings';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const settingsSchema = z.object({
   // Blog Generation
   blogTextModel: z.string().min(1),

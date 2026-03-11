@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { openrouter } from '@/lib/ai/openrouter';
 import { getAITutorModel } from '@/lib/ai/model-settings';
 
+export const dynamic = 'force-dynamic';
+
 export const runtime = 'edge';
 
 // POST /api/learning/ai-tutor - Chat with AI tutor about current lesson

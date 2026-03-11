@@ -52,6 +52,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
 
+export const dynamic = 'force-dynamic';
+
 const DEBUG = process.env.NODE_ENV !== "production";
 
 /**
