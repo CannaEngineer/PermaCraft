@@ -69,11 +69,15 @@ export async function POST(
     access_password,
     estimated_duration_minutes,
     difficulty = 'easy',
+    tour_type = 'in_person',
+    route_mode = 'walking',
     seasonal_notes,
     welcome_message,
     completion_message,
     show_map = 1,
     allow_comments = 1,
+    tags,
+    embed_enabled = 1,
   } = body;
 
   if (!title || typeof title !== 'string' || title.trim().length === 0) {
@@ -85,14 +89,18 @@ export async function POST(
 
   await db.execute({
     sql: `INSERT INTO farm_tours (id, farm_id, title, description, cover_image_url, status, access_type, access_password,
-          estimated_duration_minutes, difficulty, seasonal_notes, welcome_message, completion_message, show_map, allow_comments, share_slug)
-          VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          estimated_duration_minutes, difficulty, tour_type, route_mode, seasonal_notes, welcome_message, completion_message,
+          show_map, allow_comments, share_slug, tags, embed_enabled)
+          VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       id, farmId, title.trim(), description || null, cover_image_url || null,
       access_type, access_password || null,
       estimated_duration_minutes || null, difficulty,
+      tour_type, route_mode || null,
       seasonal_notes || null, welcome_message || null, completion_message || null,
       show_map, allow_comments, shareSlug,
+      tags ? JSON.stringify(tags) : null,
+      embed_enabled,
     ],
   });
 

@@ -24,6 +24,9 @@ export async function PATCH(
     'lat', 'lng', 'radius_meters', 'zone_id', 'planting_id',
     'stop_type', 'display_order', 'is_optional', 'audio_url',
     'estimated_time_minutes', 'seasonal_visibility',
+    'navigation_hint', 'direction_from_previous', 'distance_from_previous_meters',
+    'heading_degrees', 'virtual_media_url', 'virtual_media_type',
+    'quiz_question', 'quiz_options', 'quiz_answer_index',
   ];
 
   const updates: string[] = [];

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Clock, Footprints, Eye, ChevronRight } from 'lucide-react';
+import { MapPin, Clock, Footprints, Eye, ChevronRight, Monitor, Map } from 'lucide-react';
 
 interface FarmTourCardProps {
   tour: {
@@ -24,6 +24,7 @@ interface FarmTourCardProps {
     farm_screenshot: string | null;
     acres: number | null;
     climate_zone: string | null;
+    tour_type?: string;
   };
 }
 
@@ -55,10 +56,21 @@ export function FarmTourCard({ tour }: FarmTourCardProps) {
               <Footprints className="w-12 h-12 text-green-600/40 dark:text-green-400/40" />
             </div>
           )}
-          {/* Difficulty badge */}
-          <Badge className={`absolute top-3 left-3 ${difficultyColors[tour.difficulty] || difficultyColors.easy} border-0 text-xs font-medium`}>
-            {tour.difficulty}
-          </Badge>
+          {/* Tour type + Difficulty badges */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5">
+            {tour.tour_type === 'virtual' ? (
+              <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-0 text-xs font-medium gap-1">
+                <Monitor className="w-2.5 h-2.5" /> Virtual
+              </Badge>
+            ) : (
+              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 text-xs font-medium gap-1">
+                <Map className="w-2.5 h-2.5" /> In-Person
+              </Badge>
+            )}
+            <Badge className={`${difficultyColors[tour.difficulty] || difficultyColors.easy} border-0 text-xs font-medium`}>
+              {tour.difficulty}
+            </Badge>
+          </div>
           {/* Duration */}
           {tour.estimated_duration_minutes && (
             <Badge variant="secondary" className="absolute top-3 right-3 bg-black/60 text-white border-0 backdrop-blur-sm text-xs">

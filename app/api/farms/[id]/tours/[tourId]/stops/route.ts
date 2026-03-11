@@ -60,6 +60,15 @@ export async function POST(
     audio_url,
     estimated_time_minutes = 3,
     seasonal_visibility,
+    navigation_hint,
+    direction_from_previous,
+    distance_from_previous_meters,
+    heading_degrees,
+    virtual_media_url,
+    virtual_media_type,
+    quiz_question,
+    quiz_options,
+    quiz_answer_index,
   } = body;
 
   if (!title || typeof title !== 'string' || title.trim().length === 0) {
@@ -82,8 +91,11 @@ export async function POST(
   await db.execute({
     sql: `INSERT INTO tour_stops (id, tour_id, title, description, rich_content, media_urls,
           lat, lng, radius_meters, zone_id, planting_id, stop_type, display_order,
-          is_optional, audio_url, estimated_time_minutes, seasonal_visibility)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          is_optional, audio_url, estimated_time_minutes, seasonal_visibility,
+          navigation_hint, direction_from_previous, distance_from_previous_meters,
+          heading_degrees, virtual_media_url, virtual_media_type,
+          quiz_question, quiz_options, quiz_answer_index)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       id, tourId, title.trim(), description || null, rich_content || null,
       media_urls ? JSON.stringify(media_urls) : null,
@@ -91,6 +103,10 @@ export async function POST(
       zone_id || null, planting_id || null, stop_type, order,
       is_optional, audio_url || null, estimated_time_minutes,
       seasonal_visibility || null,
+      navigation_hint || null, direction_from_previous || null,
+      distance_from_previous_meters ?? null, heading_degrees ?? null,
+      virtual_media_url || null, virtual_media_type || null,
+      quiz_question || null, quiz_options || null, quiz_answer_index ?? null,
     ],
   });
 

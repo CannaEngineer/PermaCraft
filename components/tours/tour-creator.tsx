@@ -14,8 +14,13 @@ import {
   Footprints,
   TreePine,
   Mountain,
+  Monitor,
+  Map,
+  Sparkles,
+  Car,
+  Bike,
 } from 'lucide-react';
-import type { FarmTour, TourAccessType, TourDifficulty } from '@/lib/db/schema';
+import type { FarmTour, TourAccessType, TourDifficulty, TourType, TourRouteMode } from '@/lib/db/schema';
 
 interface TourCreatorProps {
   farmId: string;
@@ -26,17 +31,26 @@ interface TourCreatorProps {
 export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
-  // Step 1: Basics
+  // Step 1: Tour Type
+  const [tourType, setTourType] = useState<TourType>('in_person');
+
+  // Step 2: Basics
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  // Step 2: Settings
+  // Step 3: Settings
   const [accessType, setAccessType] = useState<TourAccessType>('public');
   const [accessPassword, setAccessPassword] = useState('');
   const [difficulty, setDifficulty] = useState<TourDifficulty>('easy');
+  const [routeMode, setRouteMode] = useState<TourRouteMode>('walking');
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [completionMessage, setCompletionMessage] = useState('');
+  const [aiContext, setAiContext] = useState('');
+  const [useAi, setUseAi] = useState(false);
+
+  const totalSteps = 3;
 
   const handleCreate = async () => {
     if (!title.trim()) return;
@@ -51,6 +65,8 @@ export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
           access_type: accessType,
           access_password: accessType === 'password' ? accessPassword : null,
           difficulty,
+          tour_type: tourType,
+          route_mode: tourType === 'in_person' ? routeMode : null,
           welcome_message: welcomeMessage.trim() || null,
           completion_message: completionMessage.trim() || null,
         }),
@@ -61,6 +77,31 @@ export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
         return;
       }
       const tour = await res.json();
+
+      // If AI assist is enabled, generate stops
+      if (useAi) {
+        setAiGenerating(true);
+        try {
+          const genRes = await fetch(`/api/farms/${farmId}/tours/${tour.id}/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              additionalContext: aiContext.trim() || undefined,
+            }),
+          });
+          if (genRes.ok) {
+            const genData = await genRes.json();
+            // Use the AI-updated tour data
+            onCreated(genData.tour);
+            return;
+          }
+        } catch {
+          // If AI fails, still proceed with the empty tour
+        } finally {
+          setAiGenerating(false);
+        }
+      }
+
       onCreated(tour);
     } catch (err) {
       alert('Failed to create tour');
@@ -68,6 +109,8 @@ export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
       setSaving(false);
     }
   };
+
+  const isLoading = saving || aiGenerating;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -79,24 +122,124 @@ export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
         <div>
           <h2 className="text-xl font-bold tracking-tight">Create a Tour</h2>
           <p className="text-muted-foreground text-sm">
-            Step {step} of 2 — {step === 1 ? 'Name & description' : 'Settings'}
+            Step {step} of {totalSteps} —{' '}
+            {step === 1 ? 'Tour type' : step === 2 ? 'Name & description' : 'Settings & AI'}
           </p>
         </div>
       </div>
 
       {/* Progress */}
       <div className="flex gap-2">
-        <div className={`h-1 flex-1 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-        <div className={`h-1 flex-1 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+        {Array.from({ length: totalSteps }).map((_, i) => (
+          <div key={i} className={`h-1 flex-1 rounded-full ${step >= i + 1 ? 'bg-primary' : 'bg-muted'}`} />
+        ))}
       </div>
 
+      {/* Step 1: Tour Type */}
       {step === 1 && (
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <Label>What kind of tour are you creating?</Label>
+            <div className="grid gap-3">
+              <button
+                onClick={() => setTourType('in_person')}
+                className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${
+                  tourType === 'in_person'
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                    : 'border-border hover:border-muted-foreground/30'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  tourType === 'in_person' ? 'bg-primary/10' : 'bg-muted'
+                }`}>
+                  <Map className={`h-6 w-6 ${tourType === 'in_person' ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold">In-Person Tour</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Visitors physically walk your farm with turn-by-turn navigation between waypoints.
+                    Includes walking directions, distance tracking, and compass headings.
+                  </p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Footprints className="h-3 w-3" /> Waypoint navigation</span>
+                    <span className="flex items-center gap-1"><Map className="h-3 w-3" /> Live map</span>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setTourType('virtual')}
+                className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${
+                  tourType === 'virtual'
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                    : 'border-border hover:border-muted-foreground/30'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  tourType === 'virtual' ? 'bg-primary/10' : 'bg-muted'
+                }`}>
+                  <Monitor className={`h-6 w-6 ${tourType === 'virtual' ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold">Virtual Tour</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    An online experience visitors can take from anywhere. Rich with photos, videos,
+                    and immersive descriptions of your farm.
+                  </p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Monitor className="h-3 w-3" /> Rich media</span>
+                    <span className="flex items-center gap-1"><Globe className="h-3 w-3" /> Accessible anywhere</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Route mode for in-person */}
+          {tourType === 'in_person' && (
+            <div className="space-y-3">
+              <Label>How will visitors travel?</Label>
+              <div className="flex gap-2">
+                {([
+                  { value: 'walking' as const, icon: Footprints, label: 'Walking' },
+                  { value: 'cycling' as const, icon: Bike, label: 'Cycling' },
+                  { value: 'driving' as const, icon: Car, label: 'Driving' },
+                ]).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRouteMode(opt.value)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition-colors ${
+                      routeMode === opt.value
+                        ? 'border-primary bg-primary/5 font-medium'
+                        : 'border-border hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    <opt.icon className="h-4 w-4" />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={() => setStep(2)}>
+              Continue
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Name & Description */}
+      {step === 2 && (
         <div className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="tour-title">Tour Name</Label>
             <Input
               id="tour-title"
-              placeholder="e.g., Seasonal Farm Walk, Food Forest Discovery Tour"
+              placeholder={tourType === 'in_person'
+                ? 'e.g., Seasonal Farm Walk, Permaculture Discovery Trail'
+                : 'e.g., Virtual Food Forest Tour, Farm From Home'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
@@ -122,9 +265,10 @@ export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
             </p>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-between">
+            <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
             <Button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
               disabled={!title.trim()}
             >
               Continue
@@ -133,8 +277,52 @@ export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
         </div>
       )}
 
-      {step === 2 && (
+      {/* Step 3: Settings & AI */}
+      {step === 3 && (
         <div className="space-y-5">
+          {/* AI Assist */}
+          <div className="border rounded-xl p-4 space-y-3 bg-gradient-to-br from-violet-50/50 to-blue-50/50 dark:from-violet-950/20 dark:to-blue-950/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-violet-500" />
+                <div>
+                  <p className="font-semibold text-sm">AI Tour Builder</p>
+                  <p className="text-xs text-muted-foreground">
+                    Let AI create tour stops based on your farm's zones and plantings
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setUseAi(!useAi)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  useAi ? 'bg-violet-500' : 'bg-muted'
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                  useAi ? 'translate-x-5' : ''
+                }`} />
+              </button>
+            </div>
+            {useAi && (
+              <div className="space-y-2 pt-1">
+                <Label htmlFor="ai-context" className="text-xs">
+                  Tell the AI about your tour (optional)
+                </Label>
+                <Textarea
+                  id="ai-context"
+                  placeholder="e.g., Focus on the food forest and water systems. Our visitors are mostly families with kids. We want them to learn about companion planting."
+                  value={aiContext}
+                  onChange={(e) => setAiContext(e.target.value)}
+                  rows={3}
+                  className="text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  The AI will use your farm data (zones, plantings, species) to generate relevant tour stops
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Access Type */}
           <div className="space-y-3">
             <Label>Who can access this tour?</Label>
@@ -200,41 +388,43 @@ export function TourCreator({ farmId, onCreated, onCancel }: TourCreatorProps) {
             </div>
           </div>
 
-          {/* Welcome Message */}
-          <div className="space-y-2">
-            <Label htmlFor="welcome-msg">Welcome Message (optional)</Label>
-            <Textarea
-              id="welcome-msg"
-              placeholder="Welcome! We're glad you're here. A few things to know before you start..."
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          {/* Completion Message */}
-          <div className="space-y-2">
-            <Label htmlFor="done-msg">Completion Message (optional)</Label>
-            <Textarea
-              id="done-msg"
-              placeholder="Thanks for visiting! We hope you enjoyed the tour. Come back anytime."
-              value={completionMessage}
-              onChange={(e) => setCompletionMessage(e.target.value)}
-              rows={3}
-            />
-          </div>
+          {/* Welcome/Completion Messages (collapsed unless not using AI) */}
+          {!useAi && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="welcome-msg">Welcome Message (optional)</Label>
+                <Textarea
+                  id="welcome-msg"
+                  placeholder="Welcome! We're glad you're here. A few things to know before you start..."
+                  value={welcomeMessage}
+                  onChange={(e) => setWelcomeMessage(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="done-msg">Completion Message (optional)</Label>
+                <Textarea
+                  id="done-msg"
+                  placeholder="Thanks for visiting! We hope you enjoyed the tour. Come back anytime."
+                  value={completionMessage}
+                  onChange={(e) => setCompletionMessage(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex justify-between">
-            <Button variant="ghost" onClick={() => setStep(1)}>
+            <Button variant="ghost" onClick={() => setStep(2)}>
               Back
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={saving || !title.trim() || (accessType === 'password' && !accessPassword.trim())}
+              disabled={isLoading || !title.trim() || (accessType === 'password' && !accessPassword.trim())}
               className="gap-2"
             >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create Tour & Add Stops
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {aiGenerating ? 'AI is building your tour...' : useAi ? 'Create & Generate with AI' : 'Create Tour & Add Stops'}
             </Button>
           </div>
         </div>

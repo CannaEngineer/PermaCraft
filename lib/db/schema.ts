@@ -937,7 +937,10 @@ export interface OrderItem {
 export type TourStatus = 'draft' | 'published' | 'archived';
 export type TourAccessType = 'public' | 'link_only' | 'password';
 export type TourDifficulty = 'easy' | 'moderate' | 'challenging';
+export type TourType = 'virtual' | 'in_person';
+export type TourRouteMode = 'walking' | 'driving' | 'cycling';
 export type TourStopType = 'point_of_interest' | 'garden_bed' | 'water_feature' | 'structure' | 'food_forest' | 'animal_area' | 'composting' | 'welcome' | 'farewell' | 'custom';
+export type VirtualMediaType = 'photo_360' | 'video_360' | 'photo' | 'video' | 'embed';
 
 export interface FarmTour {
   id: string;
@@ -950,6 +953,10 @@ export interface FarmTour {
   access_password: string | null;
   estimated_duration_minutes: number | null;
   difficulty: TourDifficulty;
+  tour_type: TourType;
+  route_mode: TourRouteMode | null;
+  route_geometry: string | null; // GeoJSON LineString
+  total_distance_meters: number | null;
   seasonal_notes: string | null;
   welcome_message: string | null;
   completion_message: string | null;
@@ -957,6 +964,12 @@ export interface FarmTour {
   show_map: number;
   visitor_count: number;
   share_slug: string | null;
+  ai_generated: number;
+  ai_model: string | null;
+  tags: string | null; // JSON array
+  og_image_url: string | null;
+  embed_enabled: number;
+  featured: number;
   created_at: number;
   updated_at: number;
   published_at: number | null;
@@ -980,6 +993,18 @@ export interface TourStop {
   audio_url: string | null;
   estimated_time_minutes: number;
   seasonal_visibility: string | null;
+  navigation_hint: string | null;
+  direction_from_previous: string | null;
+  distance_from_previous_meters: number | null;
+  heading_degrees: number | null;
+  ar_marker_id: string | null;
+  virtual_media_url: string | null;
+  virtual_media_type: VirtualMediaType | null;
+  ai_generated: number;
+  ai_description: string | null;
+  quiz_question: string | null;
+  quiz_options: string | null; // JSON array
+  quiz_answer_index: number | null;
   created_at: number;
   updated_at: number;
 }
