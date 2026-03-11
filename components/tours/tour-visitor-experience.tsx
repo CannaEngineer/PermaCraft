@@ -26,7 +26,7 @@ import {
   Dog,
   Recycle,
   Flag,
-  Waypoints,
+  Milestone,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -54,7 +54,7 @@ const STOP_ICONS: Record<string, typeof MapPin> = {
   animal_area: Dog,
   composting: Recycle,
   welcome: Flag,
-  farewell: Waypoints,
+  farewell: Milestone,
   custom: MapPin,
 };
 
