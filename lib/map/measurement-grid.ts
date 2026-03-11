@@ -57,6 +57,16 @@ export function getFixedGridInterval(unit: GridUnit): GridInterval {
 }
 
 /**
+ * Return the next power of two >= n (minimum 1).
+ * Used for hierarchical label skip logic so zooming in only ADDS labels,
+ * never removes previously visible ones.
+ */
+function nextPowerOfTwo(n: number): number {
+  if (n <= 1) return 1;
+  return Math.pow(2, Math.ceil(Math.log2(n)));
+}
+
+/**
  * Convert column index to letter label (0→A, 1→B, ..., 25→Z, 26→AA, etc.)
  */
 function getColumnLabel(index: number): string {
@@ -190,14 +200,27 @@ export function generateGridLines(
     count++;
   }
 
-  // Generate alphanumeric labels at grid intersections
+  // Generate alphanumeric labels ONLY at COARSE grid intersections
+  // This ensures labels stay consistent regardless of subdivision (fine/coarse).
   // Columns are labeled A, B, C, etc. (west to east)
   // Rows are labeled 1, 2, 3, etc. (south to north)
   count = 0;
-  for (let rowIndex = 0; rowIndex < latLines.length && count < 100; rowIndex++) {
-    for (let colIndex = 0; colIndex < lngLines.length && count < 100; colIndex++) {
-      const rowLabel = rowIndex + 1; // Start from 1
-      const colLabel = getColumnLabel(colIndex);
+  for (let rowIndex = 0; rowIndex < latLines.length && count < 200; rowIndex++) {
+    const lat = latLines[rowIndex];
+    // Only label at coarse-aligned positions
+    const coarseRowIndex = Math.round((lat - originLat) / coarseLatStep);
+    const isCoarseRow = Math.abs(lat - (originLat + coarseRowIndex * coarseLatStep)) < coarseLatStep * 0.01;
+    if (!isCoarseRow) continue;
+
+    for (let colIndex = 0; colIndex < lngLines.length && count < 200; colIndex++) {
+      const lng = lngLines[colIndex];
+      // Only label at coarse-aligned positions
+      const coarseColIndex = Math.round((lng - originLng) / coarseLngStep);
+      const isCoarseCol = Math.abs(lng - (originLng + coarseColIndex * coarseLngStep)) < coarseLngStep * 0.01;
+      if (!isCoarseCol) continue;
+
+      const rowLabel = coarseRowIndex + 1; // Start from 1
+      const colLabel = getColumnLabel(coarseColIndex);
 
       labels.push({
         type: 'Feature',
@@ -206,7 +229,7 @@ export function generateGridLines(
         },
         geometry: {
           type: 'Point',
-          coordinates: [lngLines[colIndex], latLines[rowIndex]]
+          coordinates: [lng, lat]
         }
       });
       count++;
@@ -257,19 +280,10 @@ export function generateViewportLabels(
   const coarseLatStep = metersToDegreesLat(coarseIntervalMeters);
   const coarseLngStep = metersToDegreesLng(coarseIntervalMeters, centerLat);
 
-  // Determine actual interval for rendering
-  const actualInterval = subdivision === 'fine'
-    ? { value: coarseInterval.value / 5, unit: coarseInterval.unit }
-    : coarseInterval;
-
-  const actualIntervalMeters = unit === 'imperial'
-    ? feetToMeters(actualInterval.value)
-    : actualInterval.value;
-
-  const latStep = metersToDegreesLat(actualIntervalMeters);
-  const lngStep = metersToDegreesLng(actualIntervalMeters, centerLat);
-
-  // Find which grid lines intersect the viewport
+  // ALWAYS iterate over COARSE grid positions for labels.
+  // This ensures labels are stable regardless of subdivision (fine/coarse).
+  // Fine grid adds visual lines between coarse intersections, but labels
+  // only appear at coarse positions with consistent indices.
   const visibleLabels: Feature<Point>[] = [];
 
   // Calculate grid origin based on COARSE grid (ensures consistency)
@@ -279,38 +293,41 @@ export function generateViewportLabels(
   const originLat = Math.floor(farmSouth / coarseLatStep) * coarseLatStep;
   const originLng = Math.floor(farmWest / coarseLngStep) * coarseLngStep;
 
-  // Find latitude lines in viewport
-  const vpLatLines: number[] = [];
-  for (let lat = originLat; lat <= viewportBounds.north; lat += latStep) {
+  // Find COARSE latitude lines in viewport (labels always at coarse positions)
+  const vpCoarseLatLines: number[] = [];
+  for (let lat = originLat; lat <= viewportBounds.north; lat += coarseLatStep) {
     if (lat >= viewportBounds.south) {
-      vpLatLines.push(lat);
+      vpCoarseLatLines.push(lat);
     }
   }
 
-  // Find longitude lines in viewport
-  const vpLngLines: number[] = [];
-  for (let lng = originLng; lng <= viewportBounds.east; lng += lngStep) {
+  // Find COARSE longitude lines in viewport
+  const vpCoarseLngLines: number[] = [];
+  for (let lng = originLng; lng <= viewportBounds.east; lng += coarseLngStep) {
     if (lng >= viewportBounds.west) {
-      vpLngLines.push(lng);
+      vpCoarseLngLines.push(lng);
     }
   }
 
-  // originLat and originLng already calculated above (based on COARSE grid)
-
-  // Calculate skip interval based on visible grid line count (not zoom breakpoints)
-  // Target: ~8 labels per axis maximum for readability
-  // This eliminates sudden label doubling/halving at zoom thresholds
+  // Hierarchical skip using powers of 2.
+  // This guarantees that zooming in only ADDS labels, never removes them.
+  // Example: skip=4 shows indices 0,4,8,12. skip=2 shows 0,2,4,6,8,10,12.
+  // All indices visible at skip=4 remain visible at skip=2.
   const maxLabelsPerAxis = 8;
-  const latSkip = Math.max(1, Math.ceil(vpLatLines.length / maxLabelsPerAxis));
-  const lngSkip = Math.max(1, Math.ceil(vpLngLines.length / maxLabelsPerAxis));
+  const rawLatSkip = Math.ceil(vpCoarseLatLines.length / maxLabelsPerAxis);
+  const rawLngSkip = Math.ceil(vpCoarseLngLines.length / maxLabelsPerAxis);
+  const latSkip = nextPowerOfTwo(rawLatSkip);
+  const lngSkip = nextPowerOfTwo(rawLngSkip);
 
-  // Generate labels for visible grid intersections
-  for (const lat of vpLatLines) {
-    for (const lng of vpLngLines) {
-      const rowIndex = Math.round((lat - originLat) / latStep);
-      const colIndex = Math.round((lng - originLng) / lngStep);
+  // Generate labels at COARSE grid intersections with stable indices
+  for (const lat of vpCoarseLatLines) {
+    for (const lng of vpCoarseLngLines) {
+      // ALWAYS use coarse step for index calculation - this is what makes
+      // labels stable across zoom levels and subdivision changes
+      const rowIndex = Math.round((lat - originLat) / coarseLatStep);
+      const colIndex = Math.round((lng - originLng) / coarseLngStep);
 
-      // Skip labels based on visible line count for smooth density transitions
+      // Hierarchical skip (power-of-2) for smooth density transitions
       if (rowIndex % latSkip !== 0 || colIndex % lngSkip !== 0) {
         continue;
       }
