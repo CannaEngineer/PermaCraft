@@ -1,175 +1,144 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Leaf, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isRouteActive } from "@/lib/nav/navigation";
 
 export function PublicTopBar() {
   const pathname = usePathname();
-  const isDiscoverActive = isRouteActive(pathname, "/gallery");
-  const isBlogActive = isRouteActive(pathname, "/learn/blog");
-  const isPlantsActive = isRouteActive(pathname, "/plants");
-  const isShopsActive = isRouteActive(pathname, "/shops");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const navItems = [
+    { href: "/gallery", label: "Explore Farms", short: "Farms" },
+    { href: "/gallery?tab=tours", label: "Tours", short: "Tours", matchPath: "/tour" },
+    { href: "/plants", label: "Plant Database", short: "Plants" },
+    { href: "/learn/blog", label: "Blog", short: "Blog" },
+    { href: "/shops", label: "Farm Shops", short: "Shops" },
+  ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <nav
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        scrolled
+          ? "bg-background/90 backdrop-blur-xl border-b border-border/40 shadow-sm"
+          : "bg-background/80 backdrop-blur-lg border-b border-border/30"
+      )}
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         <Link
           href="/"
-          className="font-serif text-xl font-bold tracking-tight text-foreground no-underline hover:no-underline"
+          className="flex items-center gap-2 font-serif text-xl font-bold tracking-tight text-foreground no-underline hover:no-underline"
         >
-          Permaculture.Studio
+          <Leaf className="h-5 w-5 text-primary" />
+          <span className="hidden sm:inline">Permaculture.Studio</span>
+          <span className="sm:hidden">P.Studio</span>
         </Link>
 
-        {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-1">
-          <Link
-            href="/gallery"
-            className={cn(
-              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
-              isDiscoverActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Discover
-          </Link>
-          <Link
-            href="/plants"
-            className={cn(
-              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
-              isPlantsActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Plants
-          </Link>
-          <Link
-            href="/shops"
-            className={cn(
-              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
-              isShopsActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Shops
-          </Link>
-          <Link
-            href="/learn/blog"
-            className={cn(
-              "rounded-md px-4 py-2 text-sm font-medium transition-colors no-underline text-foreground",
-              isBlogActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Blog
-          </Link>
-          <div className="ml-2 flex items-center gap-2">
-            <Link
-              href="/login"
-              className="rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-full px-5 py-2 text-sm font-medium no-underline bg-primary text-primary-foreground"
-            >
-              Get Started
-            </Link>
-          </div>
+        {/* Desktop nav - visitor focused */}
+        <div className="hidden lg:flex items-center gap-0.5">
+          {navItems.map((item) => {
+            const active = isRouteActive(pathname, item.href) || (item.matchPath && isRouteActive(pathname, item.matchPath));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm font-medium transition-all no-underline",
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground/70 hover:text-foreground hover:bg-foreground/5"
+                )}
+              >
+                {item.short}
+              </Link>
+            );
+          })}
         </div>
 
-        {/* Mobile hamburger button */}
+        {/* Farmer entry - subtle */}
+        <div className="hidden lg:flex items-center gap-2">
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-muted-foreground/60 no-underline transition-all hover:text-foreground hover:bg-foreground/5"
+            title="Farmer login"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span>Farmer Login</span>
+          </Link>
+          <Link
+            href="/register"
+            className="rounded-full border border-border/50 px-4 py-2 text-xs font-medium text-muted-foreground no-underline transition-all hover:border-primary/40 hover:text-primary hover:bg-primary/5"
+          >
+            List Your Farm
+          </Link>
+        </div>
+
+        {/* Mobile hamburger */}
         <button
-          className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+          className="lg:hidden p-2 rounded-full hover:bg-foreground/5 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
         >
-          {mobileMenuOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Mobile dropdown menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-lg px-6 py-4 space-y-1">
-          <Link
-            href="/gallery"
-            onClick={() => setMobileMenuOpen(false)}
-            className={cn(
-              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
-              isDiscoverActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Discover Farms
-          </Link>
-          <Link
-            href="/plants"
-            onClick={() => setMobileMenuOpen(false)}
-            className={cn(
-              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
-              isPlantsActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Plant Catalog
-          </Link>
-          <Link
-            href="/shops"
-            onClick={() => setMobileMenuOpen(false)}
-            className={cn(
-              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
-              isShopsActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Farm Shops
-          </Link>
-          <Link
-            href="/learn/blog"
-            onClick={() => setMobileMenuOpen(false)}
-            className={cn(
-              "block rounded-lg px-4 py-3 text-sm font-medium transition-colors no-underline text-foreground",
-              isBlogActive
-                ? "bg-primary/10 text-primary"
-                : "hover:bg-muted"
-            )}
-          >
-            Blog
-          </Link>
-          <div className="pt-2 border-t border-border/50 mt-2 space-y-1">
+      {/* Mobile dropdown */}
+      <div
+        className={cn(
+          "lg:hidden overflow-hidden transition-all duration-300 ease-out",
+          mobileMenuOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        <div className="bg-background/95 backdrop-blur-xl border-t border-border/30 px-6 py-4 space-y-1">
+          {navItems.map((item) => {
+            const active = isRouteActive(pathname, item.href) || (item.matchPath && isRouteActive(pathname, item.matchPath));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "block rounded-xl px-4 py-3 text-sm font-medium transition-colors no-underline",
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground hover:bg-foreground/5"
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          <div className="pt-3 mt-2 border-t border-border/30 flex gap-2">
             <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="block rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted no-underline text-foreground"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-border/50 py-2.5 text-xs font-medium text-muted-foreground no-underline"
             >
-              Sign In
+              <Eye className="h-3.5 w-3.5" />
+              Login
             </Link>
             <Link
               href="/register"
               onClick={() => setMobileMenuOpen(false)}
-              className="block rounded-full px-4 py-3 text-sm font-medium text-center no-underline bg-primary text-primary-foreground"
+              className="flex-1 flex items-center justify-center rounded-full border border-border/50 py-2.5 text-xs font-medium text-muted-foreground no-underline"
             >
-              Get Started
+              List Your Farm
             </Link>
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }
