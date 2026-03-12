@@ -4,9 +4,35 @@ import { openrouter, FREE_VISION_MODELS, FALLBACK_VISION_MODEL } from "@/lib/ai/
 import { GENERAL_PERMACULTURE_SYSTEM_PROMPT, createGeneralChatPrompt } from "@/lib/ai/prompts";
 import { manageConversationContext } from "@/lib/ai/context-manager";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/ai/rate-limit";
+import { getFarmPlanningModel } from "@/lib/ai/model-settings";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
+
+/**
+ * Detect whether a query is a complex planning request that benefits from
+ * MiniMax M2.5's planning optimization and structured output strengths.
+ *
+ * M2.5 is routed for queries involving:
+ * - Multi-step implementation plans
+ * - Budget/cost estimation
+ * - Seasonal scheduling and timelines
+ * - Phased design strategies
+ * - Material lists and procurement
+ */
+function isComplexPlanningQuery(query: string): boolean {
+  const planningPatterns = [
+    /\b(implementation|action)\s*plan\b/i,
+    /\b(year[- ]by[- ]year|phase[- ]by[- ]phase|week[- ]by[- ]week|step[- ]by[- ]step)\b/i,
+    /\b(budget|cost\s+estimat|material\s+list|shopping\s+list)\b/i,
+    /\b(planting\s+schedule|planting\s+calendar|seasonal\s+plan)\b/i,
+    /\b(plan\s+my\s+(whole|entire)|design\s+my\s+(whole|entire))\b/i,
+    /\b(timeline|gantt|project\s+plan|roadmap)\b/i,
+    /\b(how\s+much\s+will\s+it\s+cost|total\s+cost|estimate\s+the\s+cost)\b/i,
+    /\b(create\s+a\s+plan|make\s+a\s+plan|build\s+a\s+plan|develop\s+a\s+plan)\b/i,
+  ];
+  return planningPatterns.some(pattern => pattern.test(query));
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -118,31 +144,60 @@ export async function POST(request: NextRequest) {
       conversationHistory = managedHistory;
     }
 
-    // Call AI — use same model fallback chain but text-only (no images)
+    // Detect complex planning queries — route to MiniMax M2.5 for optimized planning
+    const isPlanningQuery = isComplexPlanningQuery(query);
+
     let completion;
     let usedModel = FREE_VISION_MODELS[0];
 
-    for (const model of FREE_VISION_MODELS) {
+    if (isPlanningQuery) {
+      // Use MiniMax M2.5 for planning queries (better structured output, planning optimization)
+      const planningModel = await getFarmPlanningModel();
       try {
         completion = await openrouter.chat.completions.create({
-          model,
+          model: planningModel,
           messages: [
             { role: "system", content: GENERAL_PERMACULTURE_SYSTEM_PROMPT },
             ...conversationHistory,
             { role: "user", content: userPrompt },
           ],
-          max_tokens: 4000,
+          temperature: 0.3, // Lower temperature for structured planning output
+          max_tokens: 6000, // Planning queries need more tokens for detailed plans
         });
 
         if (completion?.choices?.[0]?.message?.content) {
-          usedModel = model;
-          break;
+          usedModel = planningModel;
         }
       } catch (error: any) {
-        const isRetryable = error?.status === 429 || error?.status === 413 ||
-                            error?.status === 404 || error?.error?.message?.includes('unsupported');
-        if (!isRetryable) throw error;
-        continue;
+        console.warn(`Planning model ${planningModel} failed, falling back to standard chain:`, error?.status);
+        completion = undefined; // Fall through to standard chain
+      }
+    }
+
+    // Standard model fallback chain (used for non-planning queries, or if planning model fails)
+    if (!completion?.choices?.[0]?.message?.content) {
+      for (const model of FREE_VISION_MODELS) {
+        try {
+          completion = await openrouter.chat.completions.create({
+            model,
+            messages: [
+              { role: "system", content: GENERAL_PERMACULTURE_SYSTEM_PROMPT },
+              ...conversationHistory,
+              { role: "user", content: userPrompt },
+            ],
+            max_tokens: 4000,
+          });
+
+          if (completion?.choices?.[0]?.message?.content) {
+            usedModel = model;
+            break;
+          }
+        } catch (error: any) {
+          const isRetryable = error?.status === 429 || error?.status === 413 ||
+                              error?.status === 404 || error?.error?.message?.includes('unsupported');
+          if (!isRetryable) throw error;
+          continue;
+        }
       }
     }
 
