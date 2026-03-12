@@ -48,7 +48,6 @@ export function StopLocationPicker({ lat, lng, onLocationChange }: StopLocationP
     if (mapRef.current || !mapContainer.current) return;
 
     const maplibregl = await import('maplibre-gl');
-    await import('maplibre-gl/dist/maplibre-gl.css');
     (window as any).__maplibregl = maplibregl.default || maplibregl;
     const MapLib = maplibregl.default || maplibregl;
 
