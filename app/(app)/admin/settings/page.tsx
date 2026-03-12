@@ -74,6 +74,8 @@ export default async function AdminSettingsPage() {
             sketchImageModel: settings.sketch_image_model,
             practiceFeedbackModel: settings.practice_feedback_model,
             lessonPersonalizationModel: settings.lesson_personalization_model,
+            farmReportModel: settings.farm_report_model,
+            farmPlanningModel: settings.farm_planning_model,
           }}
         />
       </div>
