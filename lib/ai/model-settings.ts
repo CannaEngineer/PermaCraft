@@ -36,6 +36,12 @@ export interface ModelSettings {
 
   // Species Content Generation
   species_content_model: string;
+
+  // Farm Report Generation (structured documents, plans, schedules)
+  farm_report_model: string;
+
+  // Farm Planning (complex multi-step implementation plans)
+  farm_planning_model: string;
 }
 
 /**
@@ -54,6 +60,8 @@ const DEFAULT_SETTINGS: ModelSettings = {
   practice_feedback_model: 'x-ai/grok-4.1-fast',
   lesson_personalization_model: 'x-ai/grok-4.1-fast',
   species_content_model: 'x-ai/grok-4.1-fast',
+  farm_report_model: 'minimax/minimax-m2.5',
+  farm_planning_model: 'minimax/minimax-m2.5',
 };
 
 /**
@@ -159,6 +167,16 @@ export async function getLessonPersonalizationModel(): Promise<string> {
 export async function getSpeciesContentModel(): Promise<string> {
   const settings = await getModelSettings();
   return settings.species_content_model;
+}
+
+export async function getFarmReportModel(): Promise<string> {
+  const settings = await getModelSettings();
+  return settings.farm_report_model;
+}
+
+export async function getFarmPlanningModel(): Promise<string> {
+  const settings = await getModelSettings();
+  return settings.farm_planning_model;
 }
 
 /**

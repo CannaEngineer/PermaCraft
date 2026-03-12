@@ -47,10 +47,27 @@ import {
   getMapAnalysisVisionModel,
   getMapAnalysisFallbackModel,
   getSketchInstructionModel,
+  getFarmPlanningModel,
 } from "@/lib/ai/model-settings";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
+
+/**
+ * Detect complex planning queries that benefit from MiniMax M2.5's
+ * planning optimization strengths (structured output, task sequencing).
+ */
+function isComplexPlanningQuery(query: string): boolean {
+  const planningPatterns = [
+    /\b(implementation|action)\s*plan\b/i,
+    /\b(year[- ]by[- ]year|phase[- ]by[- ]phase|week[- ]by[- ]week|step[- ]by[- ]step)\b/i,
+    /\b(budget|cost\s+estimat|material\s+list|shopping\s+list)\b/i,
+    /\b(planting\s+schedule|planting\s+calendar|seasonal\s+plan)\b/i,
+    /\b(plan\s+my\s+(whole|entire)|design\s+my\s+(whole|entire))\b/i,
+    /\b(timeline|gantt|project\s+plan|roadmap)\b/i,
+  ];
+  return planningPatterns.some(pattern => pattern.test(query));
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -671,7 +688,48 @@ export async function POST(request: NextRequest) {
       throw new Error("All AI models are currently unavailable. Please try again later.");
     }
 
-    const response = completion.choices[0]?.message?.content || "No response generated";
+    let response = completion.choices[0]?.message?.content || "No response generated";
+
+    /**
+     * STEP 7.25: Enhance planning queries with MiniMax M2.5
+     *
+     * For complex planning queries (implementation plans, budgets, schedules),
+     * route through MiniMax M2.5 which excels at structured planning output.
+     * The vision model's terrain analysis is used as context for M2.5's
+     * planning optimization.
+     */
+    if (isComplexPlanningQuery(query)) {
+      try {
+        const planningModel = await getFarmPlanningModel();
+        if (DEBUG) console.log(`Enhancing planning query with ${planningModel}`);
+
+        const planningCompletion = await openrouter.chat.completions.create({
+          model: planningModel,
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert permaculture implementation planner. You take terrain analysis from a vision AI and enhance it with structured, actionable planning details. Add specific timelines, cost estimates, material lists, and phased implementation steps. Keep the original analysis content but enrich it with planning structure. Format your response in markdown with clear headings.`,
+            },
+            {
+              role: "user",
+              content: `ORIGINAL TERRAIN ANALYSIS:\n${response}\n\nUSER'S PLANNING REQUEST:\n${query}\n\nFARM CONTEXT:\nName: ${farm.name}\nAcres: ${farm.acres || 'unknown'}\nClimate Zone: ${farm.climate_zone || 'unknown'}\nSoil: ${farm.soil_type || 'unknown'}\n\nEnhance the terrain analysis above with structured implementation planning: phases, timelines, cost estimates, and material lists. Preserve the terrain-specific insights while adding actionable planning structure.`,
+            },
+          ],
+          temperature: 0.3,
+          max_tokens: 6000,
+        });
+
+        const planningResponse = planningCompletion?.choices?.[0]?.message?.content;
+        if (planningResponse) {
+          response = planningResponse;
+          usedModel = `${usedModel}+${planningModel}`;
+          if (DEBUG) console.log(`Planning enhancement succeeded with ${planningModel}`);
+        }
+      } catch (planningError) {
+        // Non-fatal: fall back to vision-only response
+        console.warn('Planning enhancement failed, using vision-only response:', planningError);
+      }
+    }
 
     /**
      * STEP 7.5: Cache the response if optimizations are enabled

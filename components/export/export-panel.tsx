@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Download, FileImage, FileText, Loader2, Clapperboard } from 'lucide-react';
+import { Download, FileImage, FileText, Loader2, Clapperboard, Sparkles, ClipboardList } from 'lucide-react';
 import { captureMapSnapshot, downloadSnapshot } from '@/lib/export/snapshot';
 import maplibregl from 'maplibre-gl';
 import { TimeMachineVideoExport } from './time-machine-video-export';
+import { AIReportDialog } from './ai-report-dialog';
 
 interface ExportPanelProps {
   farmId: string;
@@ -28,6 +29,7 @@ export function ExportPanel({ farmId, farmName, mapInstance, plantings, currentY
   const [includePlantings, setIncludePlantings] = useState(true);
   const [includePhases, setIncludePhases] = useState(true);
   const [exportingType, setExportingType] = useState<'png' | 'pdf' | null>(null);
+  const [showAIReport, setShowAIReport] = useState(false);
   const { toast } = useToast();
 
   async function handleExportPNG() {
@@ -268,6 +270,32 @@ export function ExportPanel({ farmId, farmName, mapInstance, plantings, currentY
             />
           </div>
         )}
+
+        {/* AI-Powered Report Generation */}
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">AI Farm Report</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Generate a comprehensive farm plan with planting schedules, cost estimates, and maintenance calendars using AI.
+          </p>
+          <Button
+            onClick={() => setShowAIReport(true)}
+            variant="outline"
+            className="w-full"
+          >
+            <ClipboardList className="h-4 w-4 mr-2" />
+            Generate AI Farm Report
+          </Button>
+        </div>
+
+        <AIReportDialog
+          farmId={farmId}
+          farmName={farmName}
+          open={showAIReport}
+          onOpenChange={setShowAIReport}
+        />
 
         <div className="mt-4 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
           <p className="font-medium mb-1">Export tips</p>

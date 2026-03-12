@@ -29,6 +29,10 @@ const settingsSchema = z.object({
   // Practice & Personalization
   practiceFeedbackModel: z.string().min(1),
   lessonPersonalizationModel: z.string().min(1),
+
+  // Farm Reports & Planning (MiniMax M2.5)
+  farmReportModel: z.string().min(1).optional().default('minimax/minimax-m2.5'),
+  farmPlanningModel: z.string().min(1).optional().default('minimax/minimax-m2.5'),
 });
 
 export async function POST(request: Request) {
@@ -71,10 +75,12 @@ export async function POST(request: Request) {
           sketch_image_model,
           practice_feedback_model,
           lesson_personalization_model,
+          farm_report_model,
+          farm_planning_model,
           updated_at,
           updated_by
         )
-        VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), ?)
+        VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), ?)
         ON CONFLICT(id) DO UPDATE SET
           blog_text_model = excluded.blog_text_model,
           blog_image_prompt_model = excluded.blog_image_prompt_model,
@@ -87,6 +93,8 @@ export async function POST(request: Request) {
           sketch_image_model = excluded.sketch_image_model,
           practice_feedback_model = excluded.practice_feedback_model,
           lesson_personalization_model = excluded.lesson_personalization_model,
+          farm_report_model = excluded.farm_report_model,
+          farm_planning_model = excluded.farm_planning_model,
           updated_at = excluded.updated_at,
           updated_by = excluded.updated_by
       `,
@@ -102,6 +110,8 @@ export async function POST(request: Request) {
         data.sketchImageModel,
         data.practiceFeedbackModel,
         data.lessonPersonalizationModel,
+        data.farmReportModel,
+        data.farmPlanningModel,
         session.user.id,
       ],
     });

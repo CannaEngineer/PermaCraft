@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Save, RotateCcw, Zap, MessageSquare, MapPin, Image, FileText, Sparkles } from 'lucide-react';
+import { Save, RotateCcw, Zap, MessageSquare, MapPin, Image, FileText, Sparkles, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AIModel {
@@ -49,6 +49,10 @@ interface ComprehensiveModelSettingsFormProps {
     // Practice & Personalization
     practiceFeedbackModel: string;
     lessonPersonalizationModel: string;
+
+    // Farm Reports & Planning (MiniMax M2.5)
+    farmReportModel: string;
+    farmPlanningModel: string;
   };
 }
 
@@ -435,6 +439,64 @@ export function ComprehensiveModelSettingsForm({ currentSettings }: Comprehensiv
                 </SelectTrigger>
                 <SelectContent>
                   {IMAGE_GENERATION_MODELS.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Farm Reports & Planning Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-primary" />
+          <h3 className="text-xl font-semibold">Farm Reports & Planning</h3>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Report Generation</CardTitle>
+              <CardDescription>AI-powered farm reports with cost estimates and schedules (default: MiniMax M2.5)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={settings.farmReportModel}
+                onValueChange={(value) => setSettings({ ...settings, farmReportModel: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEXT_MODELS.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Planning Optimization</CardTitle>
+              <CardDescription>Complex planning queries, implementation plans (default: MiniMax M2.5)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={settings.farmPlanningModel}
+                onValueChange={(value) => setSettings({ ...settings, farmPlanningModel: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEXT_MODELS.map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       {model.label}
                     </SelectItem>
