@@ -34,14 +34,24 @@ export default function LoginPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Login failed");
+        let errorMessage = "Login failed";
+        try {
+          const data = await res.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          // Response wasn't JSON (e.g. server error page)
+          if (res.status >= 500) {
+            errorMessage = "Server error. Please try again later.";
+          }
+        }
+        setError(errorMessage);
+        return;
       }
 
       router.push("/canvas");
       router.refresh();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
