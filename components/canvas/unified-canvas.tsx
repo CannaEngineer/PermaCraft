@@ -12,7 +12,7 @@ import { CanvasMobileNav } from './canvas-mobile-nav';
 import { FarmMap } from '@/components/map/farm-map';
 import { DrawingToolbar } from '@/components/immersive-map/drawing-toolbar';
 import { BottomDrawer } from '@/components/immersive-map/bottom-drawer';
-import { MapFAB } from '@/components/immersive-map/map-fab';
+import { ThinHeader } from '@/components/immersive-map/thin-header';
 import { AnnotationPanel } from '@/components/annotations/annotation-panel';
 import { CommentThread } from '@/components/comments/comment-thread';
 import { WaterSystemPanel } from '@/components/water/water-system-panel';
@@ -20,7 +20,9 @@ import { GuildDesigner } from '@/components/guilds/guild-designer';
 import { PhaseManager } from '@/components/phasing/phase-manager';
 import { ExportPanel } from '@/components/export/export-panel';
 import { SpeciesPickerPanel } from '@/components/map/species-picker-panel';
-import { FeatureListPanel } from '@/components/map/feature-list-panel';
+import { FeatureListPanel, FilterPillsRow } from '@/components/map/feature-list-panel';
+import { ManageTab } from '@/components/map/manage-tab';
+import { StoryTab } from '@/components/map/story-tab';
 import { GoalCaptureWizard } from '@/components/farm/goal-capture-wizard';
 import { CreatePostDialog } from '@/components/farm/create-post-dialog';
 import { PhotoUploadDialog } from '@/components/immersive-map/photo-upload-dialog';
@@ -206,6 +208,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const [postDialogOpen, setPostDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [journalFormOpen, setJournalFormOpen] = useState(false);
+  const [storyDraftCount, setStoryDraftCount] = useState(0);
 
   // Farm data
   const [goals, setGoals] = useState<FarmerGoal[]>([]);
@@ -485,6 +488,41 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const handleOpenExport = useCallback(() => openDrawer('export', 'max'), [openDrawer]);
   const handleOpenJournalEntry = useCallback(() => setJournalFormOpen(true), []);
 
+  // Story draft count refresh
+  const refreshStoryCount = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/farms/${farm.id}/story-entries?status=draft`);
+      if (res.ok) {
+        const data = await res.json();
+        setStoryDraftCount((data.entries || []).length);
+      }
+    } catch { /* silently ignore */ }
+  }, [farm.id]);
+
+  useEffect(() => { refreshStoryCount(); }, [refreshStoryCount]);
+
+  // Year change handler with phase transition detection
+  const prevYearRef = useRef(projectionYear);
+  const handleProjectionYearChange = useCallback((newYear: number) => {
+    const prevYear = prevYearRef.current;
+    setProjectionYear(newYear);
+    prevYearRef.current = newYear;
+
+    // Only fire on forward movement
+    if (newYear > prevYear && farmPhases.length > 0) {
+      for (const phase of farmPhases) {
+        if (phase.start_date) {
+          const phaseYear = new Date(phase.start_date * 1000).getFullYear();
+          if (newYear === phaseYear && prevYear !== phaseYear) {
+            import('@/lib/map/story-automation').then(({ queuePhaseTransition }) => {
+              queuePhaseTransition(phase.name, farm.id).then(() => refreshStoryCount()).catch(() => {});
+            });
+          }
+        }
+      }
+    }
+  }, [farmPhases, farm.id, refreshStoryCount]);
+
   // Drawer opener for FarmPanel
   const handleOpenDrawer = useCallback((content: string) => {
     openDrawer(content as any, 'max');
@@ -598,6 +636,11 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           {/* Farm mode overlays */}
           {(activeSection === 'farm' || activeSection === 'plants') && (
             <>
+              <ThinHeader
+                farmName={farm.name}
+                farmId={farm.id}
+                onExport={handleOpenExport}
+              />
               <DrawingToolbar
                 onToolSelect={() => {}}
                 onZoneTypeClick={() => setShowZoneTypePicker(true)}
@@ -634,13 +677,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
                   </div>
                 </div>
               )}
-              <MapFAB
-                onAddPlant={handleAddPlant}
-                onWaterSystem={handleOpenWaterSystem}
-                onBuildGuild={handleOpenGuildDesigner}
-                onTimeline={handleOpenPhaseManager}
-                onJournalEntry={handleOpenJournalEntry}
-              />
             </>
           )}
 
@@ -666,86 +702,12 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         )}
       </div>
 
-      {/* Bottom Drawer (for farm tools) */}
-      <BottomDrawer>
-        {drawerContent === 'details' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
-          <AnnotationPanel
-            farmId={farm.id}
-            featureId={selectedFeature.id}
-            featureType={selectedFeature.type}
-            onClose={() => { closeDrawer(); setSelectedFeature(null); }}
-          />
-        ) : drawerContent === 'comments' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
-          <CommentThread
-            farmId={farm.id}
-            currentUserId={farm.user_id}
-            featureId={selectedFeature.id}
-            featureType={selectedFeature.type}
-          />
-        ) : drawerContent === 'water-system' ? (
-          <WaterSystemPanel farmId={farm.id} />
-        ) : drawerContent === 'guild-designer' ? (
-          guildContext?.focalSpecies ? (
-            <GuildDesigner
-              farmId={farm.id}
-              focalSpecies={guildContext.focalSpecies}
-              farmContext={guildContext.farmContext}
-              onSaved={() => {
-                fetch(`/api/farms/${farm.id}/guilds`).then(r => r.json()).then(d => setGuilds(d.guilds || []));
-              }}
-            />
-          ) : (
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <Sparkles className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-                <p className="font-semibold">Choose a focal plant for your guild</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Select a plant from your farm or tap one on the map.
-                </p>
-              </div>
-              {plantings.length > 0 && (
-                <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                  {Array.from(new Map(plantings.map(p => [p.species_id || p.common_name, p])).values()).map((p: any) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setGuildContext({
-                        focalSpecies: { id: p.species_id, common_name: p.common_name, scientific_name: p.scientific_name, layer: p.layer, native_region: p.native_region },
-                        farmContext,
-                      })}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
-                        <Leaf className="h-4 w-4 text-green-700 dark:text-green-300" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{p.common_name}</p>
-                        <p className="text-xs text-muted-foreground italic truncate">{p.scientific_name}</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground capitalize flex-shrink-0">{p.layer}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        ) : drawerContent === 'phase-manager' ? (
-          <PhaseManager farmId={farm.id} onSaved={() => {
-            fetch(`/api/farms/${farm.id}/phases`).then(r => r.json()).then(d => setFarmPhases(d.phases || []));
-          }} />
-        ) : drawerContent === 'export' ? (
-          <ExportPanel
-            farmId={farm.id}
-            farmName={farm.name}
-            mapInstance={mapRef.current}
-            plantings={plantings}
-            currentYear={projectionYear}
-            setCurrentYear={setProjectionYear}
-            minYear={minYear}
-            maxYear={maxYear}
-          />
-        ) : drawerContent === 'species-picker' ? (
-          <SpeciesPickerPanel farmId={farm.id} onSelectSpecies={handleSelectSpecies} onClose={closeDrawer} />
-        ) : drawerContent === 'feature-list' ? (
+      {/* Bottom Drawer (3-tab: Design / Manage / Story) */}
+      <BottomDrawer
+        onAddPlant={handleAddPlant}
+        onDrawZone={() => {/* Drawing handled by enterDrawingMode in the drawer */}}
+        storyDraftCount={storyDraftCount}
+        designContent={
           <FeatureListPanel
             zones={zones}
             plantings={plantings}
@@ -756,20 +718,106 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             onFeatureSelect={handleFeatureSelect}
             mapRef={mapRef}
           />
-        ) : drawerContent === 'journal' ? (
-          <JournalListPanel farmId={farm.id} />
-        ) : drawerContent === 'tasks' ? (
-          <TasksDrawer farmId={farm.id} />
-        ) : drawerContent === 'crop-plan' ? (
-          <CropPlanDrawer farmId={farm.id} />
-        ) : drawerContent === 'reports' ? (
-          <ReportsDrawer farmId={farm.id} />
-        ) : (
-          <div className="p-4 text-muted-foreground">
-            {drawerContent ? 'Loading...' : 'Select a feature or use the action menu'}
-          </div>
-        )}
-      </BottomDrawer>
+        }
+        manageContent={
+          <ManageTab
+            farmId={farm.id}
+            zones={zones}
+            plantings={plantings}
+            phases={farmPhases}
+            currentYear={projectionYear}
+            onYearChange={handleProjectionYearChange}
+            onStoryCountChange={refreshStoryCount}
+            mapRef={mapRef}
+          />
+        }
+        storyContent={
+          <StoryTab
+            farmId={farm.id}
+            onDraftCountChange={setStoryDraftCount}
+          />
+        }
+        detailContent={
+          drawerContent === 'details' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
+            <AnnotationPanel
+              farmId={farm.id}
+              featureId={selectedFeature.id}
+              featureType={selectedFeature.type}
+              onClose={() => { closeDrawer(); setSelectedFeature(null); }}
+            />
+          ) : drawerContent === 'comments' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
+            <CommentThread
+              farmId={farm.id}
+              currentUserId={farm.user_id}
+              featureId={selectedFeature.id}
+              featureType={selectedFeature.type}
+            />
+          ) : drawerContent === 'water-system' ? (
+            <WaterSystemPanel farmId={farm.id} />
+          ) : drawerContent === 'guild-designer' ? (
+            guildContext?.focalSpecies ? (
+              <GuildDesigner
+                farmId={farm.id}
+                focalSpecies={guildContext.focalSpecies}
+                farmContext={guildContext.farmContext}
+                onSaved={() => {
+                  fetch(`/api/farms/${farm.id}/guilds`).then(r => r.json()).then(d => setGuilds(d.guilds || []));
+                }}
+              />
+            ) : (
+              <div className="p-6 space-y-4">
+                <div className="text-center">
+                  <Sparkles className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                  <p className="font-semibold">Choose a focal plant for your guild</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select a plant from your farm or tap one on the map.
+                  </p>
+                </div>
+                {plantings.length > 0 && (
+                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                    {Array.from(new Map(plantings.map(p => [p.species_id || p.common_name, p])).values()).map((p: any) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setGuildContext({
+                          focalSpecies: { id: p.species_id, common_name: p.common_name, scientific_name: p.scientific_name, layer: p.layer, native_region: p.native_region },
+                          farmContext,
+                        })}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+                          <Leaf className="h-4 w-4 text-green-700 dark:text-green-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{p.common_name}</p>
+                          <p className="text-xs text-muted-foreground italic truncate">{p.scientific_name}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground capitalize flex-shrink-0">{p.layer}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          ) : drawerContent === 'phase-manager' ? (
+            <PhaseManager farmId={farm.id} onSaved={() => {
+              fetch(`/api/farms/${farm.id}/phases`).then(r => r.json()).then(d => setFarmPhases(d.phases || []));
+            }} />
+          ) : drawerContent === 'export' ? (
+            <ExportPanel
+              farmId={farm.id}
+              farmName={farm.name}
+              mapInstance={mapRef.current}
+              plantings={plantings}
+              currentYear={projectionYear}
+              setCurrentYear={setProjectionYear}
+              minYear={minYear}
+              maxYear={maxYear}
+            />
+          ) : drawerContent === 'species-picker' ? (
+            <SpeciesPickerPanel farmId={farm.id} onSelectSpecies={handleSelectSpecies} onClose={closeDrawer} />
+          ) : null
+        }
+      />
 
       {/* Dialogs */}
       <Dialog open={showGoalsWizard} onOpenChange={setShowGoalsWizard}>

@@ -19,6 +19,8 @@ export type DrawerContentType =
  */
 export type UIMode = 'idle' | 'drawing' | 'viewing' | 'chatting';
 
+export type BottomDrawerTab = 'design' | 'manage' | 'story';
+
 interface ImmersiveMapUIState {
   // UI Mode (contextual visibility)
   uiMode: UIMode;
@@ -48,6 +50,14 @@ interface ImmersiveMapUIState {
   closeDrawer: () => void;
   setDrawerHeight: (height: 'peek' | 'medium' | 'max') => void;
 
+  // Bottom Drawer Tabs
+  activeTab: BottomDrawerTab;
+  setActiveTab: (tab: BottomDrawerTab) => void;
+
+  // Zone-link mode (for linking crop plans to zones)
+  zoneLinkMode: boolean;
+  setZoneLinkMode: (active: boolean) => void;
+
   // Chat
   chatOpen: boolean;
   setChatOpen: (open: boolean) => void;
@@ -70,6 +80,8 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
   const [drawerHeight, setDrawerHeight] = useState<'peek' | 'medium' | 'max'>('medium');
   const [chatOpen, setChatOpenRaw] = useState(false);
   const [mapInteracted, setMapInteracted] = useState(false);
+  const [activeTab, setActiveTab] = useState<BottomDrawerTab>('design');
+  const [zoneLinkMode, setZoneLinkMode] = useState(false);
 
   // Set UI mode with side effects for contextual visibility
   const setUIMode = useCallback((mode: UIMode) => {
@@ -144,6 +156,10 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
     openDrawer,
     closeDrawer,
     setDrawerHeight,
+    activeTab,
+    setActiveTab,
+    zoneLinkMode,
+    setZoneLinkMode,
     chatOpen,
     setChatOpen,
     mapInteracted,

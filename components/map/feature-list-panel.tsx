@@ -90,6 +90,65 @@ function getFeatureType(feature: any, allFeatures: { zones: any[]; plantings: an
   return null;
 }
 
+/** Feature type filter pills */
+const FEATURE_TYPE_PILLS = [
+  { value: 'all', label: 'All' },
+  { value: 'zones', label: 'Zones' },
+  { value: 'plants', label: 'Plants' },
+  { value: 'lines', label: 'Lines' },
+  { value: 'guilds', label: 'Guilds' },
+];
+
+interface FilterPillsRowProps {
+  activeTypeFilter: string;
+  onTypeFilterChange: (value: string) => void;
+  activeLayerFilters: Set<string>;
+  onLayerFilterToggle: (layer: string) => void;
+}
+
+/**
+ * Standalone filter pills row for inline use in the Design tab.
+ * Shows feature type pills + layer pills in a horizontally scrollable row.
+ */
+export function FilterPillsRow({
+  activeTypeFilter,
+  onTypeFilterChange,
+  activeLayerFilters,
+  onLayerFilterToggle,
+}: FilterPillsRowProps) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+      {FEATURE_TYPE_PILLS.map((pill) => (
+        <button
+          key={pill.value}
+          onClick={() => onTypeFilterChange(pill.value)}
+          className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            activeTypeFilter === pill.value
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-accent/60 text-muted-foreground hover:bg-accent'
+          }`}
+        >
+          {pill.label}
+        </button>
+      ))}
+      <div className="w-px bg-border flex-shrink-0 mx-1" />
+      {PLANTING_LAYERS.map((layer) => (
+        <button
+          key={layer.value}
+          onClick={() => onLayerFilterToggle(layer.value)}
+          className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            activeLayerFilters.has(layer.value)
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-accent/60 text-muted-foreground hover:bg-accent'
+          }`}
+        >
+          {layer.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function FeatureListPanel({
   zones,
   plantings,

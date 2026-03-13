@@ -4,11 +4,10 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ImmersiveMapUIProvider, useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { LayerProvider } from "@/contexts/layer-context";
-import { CollapsibleHeader } from "./collapsible-header";
+import { ThinHeader } from "./thin-header";
 import { DrawingToolbar } from "./drawing-toolbar";
 import { BottomDrawer } from "./bottom-drawer";
 import { ChatOverlay } from "./chat-overlay";
-import { MapFAB } from "./map-fab";
 import { FarmMap } from "@/components/map/farm-map";
 import { AnnotationPanel } from "@/components/annotations/annotation-panel";
 import { CommentThread } from "@/components/comments/comment-thread";
@@ -775,22 +774,12 @@ function ImmersiveMapEditorContent({
         />
       </div>
 
-      {/* Collapsible Header — hidden during drawing mode for maximum map focus */}
+      {/* Thin Header — persistent bar with farm name, back, overflow menu */}
       {uiMode !== 'drawing' && (
-        <CollapsibleHeader
-          farm={farm}
-          hasUnsavedChanges={hasUnsavedChanges}
-          saving={saving}
-          goalsCount={goals.length}
-          isPublic={initialIsPublic}
-          isShopEnabled={isShopEnabled}
-          onSave={() => handleSave(true)}
-          onOpenChat={() => setChatOpen(true)}
-          onOpenGoals={() => setShowGoalsWizard(true)}
-          onDeleteClick={() => setDeleteDialogOpen(true)}
+        <ThinHeader
+          farmName={farm.name}
+          farmId={farm.id}
           onExport={handleOpenExport}
-          onOpenJournalEntry={handleOpenJournalEntry}
-          onOpenFarmInfo={handleOpenFarmInfo}
         />
       )}
 
@@ -939,14 +928,6 @@ function ImmersiveMapEditorContent({
         onDeleteSuccess={() => {
           router.push("/dashboard");
         }}
-      />
-
-      {/* Map FAB — auto-hides in drawing/chatting modes */}
-      <MapFAB
-        onAddPlant={handleAddPlant}
-        onWaterSystem={handleOpenWaterSystem}
-        onBuildGuild={handleOpenGuildDesigner}
-        onTimeline={handleOpenPhaseManager}
       />
 
       {/* Create Post Dialog */}
