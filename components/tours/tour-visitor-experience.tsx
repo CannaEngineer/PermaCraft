@@ -40,7 +40,7 @@ import {
   Copy,
   Check,
   Compass,
-  MapPinned,
+  MapPin as MapPinned,
   Eye,
   Navigation2,
   AlertTriangle,

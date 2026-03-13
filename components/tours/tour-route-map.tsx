@@ -44,7 +44,7 @@ export function TourRouteMap({
 
     (async () => {
       const maplibregl = await import('maplibre-gl');
-      await import('maplibre-gl/dist/maplibre-gl.css');
+      // CSS is imported globally in app/globals.css
 
       if (cancelled || !mapContainer.current) return;
 
