@@ -5,10 +5,15 @@ import { z } from "zod";
 
 const cropPlanSchema = z.object({
   name: z.string().min(1).max(200),
-  season: z.enum(["spring", "summer", "fall", "winter", "year-round"]),
-  year: z.number().min(2020).max(2100),
+  season: z.enum(["spring", "summer", "fall", "winter", "year-round"]).optional().default("year-round"),
+  year: z.number().min(2020).max(2100).optional().default(new Date().getFullYear()),
   status: z.enum(["draft", "active", "completed", "archived"]).default("draft"),
   notes: z.string().max(2000).optional().nullable(),
+  zone_id: z.string().uuid().optional().nullable(),
+  start_date: z.number().int().optional().nullable(),
+  end_date: z.number().int().optional().nullable(),
+  variety: z.string().max(500).optional().nullable(),
+  expected_yield: z.string().max(500).optional().nullable(),
 });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -61,9 +66,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const planId = crypto.randomUUID();
 
     await db.execute({
-      sql: `INSERT INTO crop_plans (id, farm_id, name, season, year, status, notes, created_by, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
-      args: [planId, farmId, validated.name, validated.season, validated.year, validated.status, validated.notes || null, session.user.id],
+      sql: `INSERT INTO crop_plans (id, farm_id, name, season, year, status, notes, zone_id, start_date, end_date, variety, expected_yield, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
+      args: [
+        planId, farmId, validated.name, validated.season, validated.year, validated.status,
+        validated.notes || null, validated.zone_id || null, validated.start_date || null,
+        validated.end_date || null, validated.variety || null, validated.expected_yield || null,
+        session.user.id,
+      ],
     });
 
     const result = await db.execute({ sql: "SELECT * FROM crop_plans WHERE id = ?", args: [planId] });

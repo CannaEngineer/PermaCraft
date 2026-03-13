@@ -19,6 +19,7 @@ const updateTaskSchema = z.object({
     end_date: z.number().optional(),
   }).optional().nullable(),
   tags: z.array(z.string()).optional().nullable(),
+  completion_note: z.string().max(500).optional().nullable(),
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string; taskId: string }> }) {
@@ -50,6 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (validated.related_zone_id !== undefined) { setClauses.push("related_zone_id = ?"); args.push(validated.related_zone_id); }
     if (validated.recurrence !== undefined) { setClauses.push("recurrence = ?"); args.push(validated.recurrence ? JSON.stringify(validated.recurrence) : null); }
     if (validated.tags !== undefined) { setClauses.push("tags = ?"); args.push(validated.tags ? JSON.stringify(validated.tags) : null); }
+    if (validated.completion_note !== undefined) { setClauses.push("completion_note = ?"); args.push(validated.completion_note); }
 
     if (validated.status !== undefined) {
       setClauses.push("status = ?");
