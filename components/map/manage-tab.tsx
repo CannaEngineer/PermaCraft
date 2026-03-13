@@ -6,7 +6,6 @@ import { ChevronDown, ChevronRight, Plus, Check, MapPin, Calendar, ListTodo, Clo
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RedesignedTimeMachine } from '@/components/time-machine/redesigned-time-machine';
-import { queueMilestone } from '@/lib/map/story-automation';
 
 interface ManageTabProps {
   farmId: string;
@@ -139,7 +138,15 @@ export function ManageTab({
               const storyRes = await fetch(`/api/farms/${farmId}/story-entries?source_prefix=crop_plan:${entry.source_id}`);
               const storyData = await storyRes.json();
               if (!storyData.entries || storyData.entries.length === 0) {
-                await queueMilestone(entry.source_id, farmId);
+                await fetch(`/api/farms/${farmId}/story-entries`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    type: 'milestone',
+                    content: `Planting milestone reached — Planting Window.`,
+                    status: 'draft',
+                  }),
+                });
                 onStoryCountChange?.();
               }
             } catch {
