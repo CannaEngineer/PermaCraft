@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Crosshair, Loader2, MapPin, Move } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Crosshair, Loader2, MapPin, Move, Search, X } from 'lucide-react';
+
+interface SearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  type: string;
+  address?: Record<string, string>;
+}
 
 interface StopLocationPickerProps {
   lat: string;
@@ -19,6 +28,14 @@ export function StopLocationPicker({ lat, lng, onLocationChange }: StopLocationP
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Address search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const hasCoords = lat !== '' && lng !== '';
 
@@ -194,8 +211,125 @@ export function StopLocationPicker({ lat, lng, onLocationChange }: StopLocationP
     }, 50);
   };
 
+  // Address search with Nominatim (debounced)
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (value.trim().length < 3) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value.trim())}&limit=5&addressdetails=1`,
+          { headers: { 'Accept': 'application/json' } }
+        );
+        if (res.ok) {
+          const data: SearchResult[] = await res.json();
+          setSearchResults(data);
+          setShowResults(data.length > 0);
+        }
+      } catch {
+        // Silent fail on search
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+  };
+
+  const handleSelectSearchResult = (result: SearchResult) => {
+    const latitude = parseFloat(result.lat);
+    const longitude = parseFloat(result.lon);
+
+    onLocationChange(latitude.toFixed(6), longitude.toFixed(6));
+    setSearchQuery(result.display_name.split(',').slice(0, 2).join(','));
+    setShowResults(false);
+
+    if (!showMap) {
+      setShowMap(true);
+      setTimeout(() => initMap(latitude, longitude), 50);
+    } else if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [longitude, latitude],
+        zoom: 18,
+        duration: 1000,
+      });
+      placeMarker(latitude, longitude);
+    }
+  };
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Cleanup search timeout
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
+
   return (
     <div className="space-y-3">
+      {/* Address search */}
+      <div ref={searchContainerRef} className="relative">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search address or place name..."
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={() => searchResults.length > 0 && setShowResults(true)}
+            className="pl-8 pr-8 h-9 text-sm"
+          />
+          {searching && (
+            <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          )}
+          {!searching && searchQuery && (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); setSearchResults([]); setShowResults(false); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Search results dropdown */}
+        {showResults && searchResults.length > 0 && (
+          <div className="absolute z-20 top-full mt-1 w-full bg-background border rounded-lg shadow-lg overflow-hidden">
+            {searchResults.map((result, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleSelectSearchResult(result)}
+                className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted/70 transition-colors border-b last:border-b-0 flex items-start gap-2"
+              >
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                <span className="line-clamp-2 text-xs leading-relaxed">{result.display_name}</span>
+              </button>
+            ))}
+            <div className="px-3 py-1.5 bg-muted/30 border-t">
+              <p className="text-[10px] text-muted-foreground">Powered by OpenStreetMap Nominatim</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Action buttons */}
       <div className="flex flex-wrap gap-2">
         <Button
