@@ -265,10 +265,10 @@ export default async function BlogPostPage({ params }: PageProps) {
                     Create an account to earn experience points and badges for reading
                     articles!
                   </p>
-                  <Link href="/register">
+                  <Link href="/login">
                     <Button className="w-full">
                       <Award className="h-4 w-4 mr-2" />
-                      Sign Up Free
+                      Sign In
                     </Button>
                   </Link>
                 </CardContent>

@@ -562,10 +562,10 @@ export default async function LandingPage() {
           <div className="landing-scroll-reveal mt-16 pt-8 border-t border-border/20">
             <p className="text-xs text-muted-foreground/50 mb-3">Are you a farmer or land steward?</p>
             <Link
-              href={isSignedIn ? "/canvas" : "/register"}
+              href={isSignedIn ? "/canvas" : "/login"}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground/70 no-underline transition-all hover:text-primary"
             >
-              {isSignedIn ? "Go to your farm dashboard" : "List your farm on the platform"}
+              {isSignedIn ? "Go to your farm dashboard" : "Farmer login"}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
             </Link>
           </div>
@@ -605,8 +605,8 @@ export default async function LandingPage() {
             <div>
               <p className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">For Farmers</p>
               <div className="flex flex-col gap-2.5 text-sm">
-                <Link href={isSignedIn ? "/canvas" : "/register"} className="no-underline text-muted-foreground hover:text-foreground transition-colors">
-                  {isSignedIn ? "Dashboard" : "List Your Farm"}
+                <Link href={isSignedIn ? "/canvas" : "/login"} className="no-underline text-muted-foreground hover:text-foreground transition-colors">
+                  {isSignedIn ? "Dashboard" : "Farmer Login"}
                 </Link>
                 <Link href="/login" className="no-underline text-muted-foreground hover:text-foreground transition-colors">Farmer Login</Link>
               </div>

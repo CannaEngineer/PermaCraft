@@ -346,13 +346,13 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
               </>
             ) : (
               <>
-                <Link href="/register">
+                <Link href="/login">
                   <Button size="lg" className="gap-2">
                     <Sprout className="w-5 h-5" />
-                    Start Designing — Free
+                    Start Designing — Sign In
                   </Button>
                 </Link>
-                <Link href="/register">
+                <Link href="/login">
                   <Button size="lg" variant="outline" className="gap-2">
                     <Store className="w-5 h-5" />
                     Open a Farm Shop

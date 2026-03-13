@@ -93,7 +93,7 @@ export function LandingNav({ isSignedIn }: LandingNavProps) {
                 <span>Farmer Login</span>
               </Link>
               <Link
-                href="/register"
+                href="/login"
                 className="rounded-full border border-border/60 px-4 py-2 text-xs font-medium text-muted-foreground no-underline transition-all hover:border-primary/40 hover:text-primary hover:bg-primary/5"
               >
                 List Your Farm
@@ -166,13 +166,6 @@ export function LandingNav({ isSignedIn }: LandingNavProps) {
                   >
                     <Eye className="h-3.5 w-3.5" />
                     Login
-                  </Link>
-                  <Link
-                    href="/register"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 flex items-center justify-center rounded-full border border-border/50 py-2.5 text-xs font-medium text-muted-foreground no-underline"
-                  >
-                    List Your Farm
                   </Link>
                 </>
               )}
