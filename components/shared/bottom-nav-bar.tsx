@@ -313,11 +313,6 @@ export function BottomNavBar({ userName, isAuthenticated, isAdmin, userId }: Bot
                             Sign In
                           </Button>
                         </Link>
-                        <Link href="/register" onClick={() => setShowProfileMenu(false)}>
-                          <Button variant="outline" className="w-full h-12 text-base font-semibold rounded-xl">
-                            Create Account
-                          </Button>
-                        </Link>
                       </div>
                     </div>
 

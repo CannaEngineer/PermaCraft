@@ -38,7 +38,7 @@ export function RegisterCTA({ variant }: RegisterCTAProps) {
         </div>
         <p className="text-sm text-muted-foreground">{body}</p>
         <Button asChild size="sm" className="w-fit">
-          <Link href="/register">Get Started Free</Link>
+          <Link href="/login">Sign In to Get Started</Link>
         </Button>
       </CardContent>
     </Card>

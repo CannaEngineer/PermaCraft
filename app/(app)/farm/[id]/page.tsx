@@ -2,7 +2,6 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import type { Farm, Zone, FarmStorySection } from "@/lib/db/schema";
-import { FarmFeedClient } from "@/components/feed/farm-feed-client";
 import { FarmPublicView } from "@/components/farm/farm-public-view";
 import { FarmStoryPage } from "@/components/story/farm-story-page";
 
@@ -22,15 +21,18 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     args: [id, session.user.id],
   });
 
-  let isOwner = farmResult.rows.length > 0;
+  const isOwner = farmResult.rows.length > 0;
 
-  // If not found as owner, try fetching as public farm
-  if (!isOwner) {
-    farmResult = await db.execute({
-      sql: "SELECT * FROM farms WHERE id = ? AND is_public = 1",
-      args: [id],
-    });
+  // If owner, redirect to the unified canvas immediately
+  if (isOwner) {
+    redirect(`/canvas?farm=${id}&section=farm`);
   }
+
+  // Not the owner — try fetching as public farm
+  farmResult = await db.execute({
+    sql: "SELECT * FROM farms WHERE id = ? AND is_public = 1",
+    args: [id],
+  });
 
   const farmRow = farmResult.rows[0] as any;
   if (!farmRow) {
@@ -166,86 +168,78 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   const storyTheme = (farmRow.story_theme as string) || 'earth';
 
   // Fetch published tours for visitors
-  let publishedTours: any[] = [];
-  if (!isOwner) {
-    const toursResult = await db.execute({
-      sql: `SELECT t.id, t.title, t.share_slug, t.estimated_duration_minutes,
-                   (SELECT COUNT(*) FROM tour_stops WHERE tour_id = t.id) as stop_count
-            FROM farm_tours t
-            WHERE t.farm_id = ? AND t.status = 'published' AND t.access_type != 'password'
-            ORDER BY t.updated_at DESC`,
+  const toursResult = await db.execute({
+    sql: `SELECT t.id, t.title, t.share_slug, t.estimated_duration_minutes,
+                 (SELECT COUNT(*) FROM tour_stops WHERE tour_id = t.id) as stop_count
+          FROM farm_tours t
+          WHERE t.farm_id = ? AND t.status = 'published' AND t.access_type != 'password'
+          ORDER BY t.updated_at DESC`,
+    args: [id],
+  });
+  const publishedTours = toursResult.rows as any[];
+
+  // Show story page (if published) or public view
+  if (storyPublished === 1) {
+    // Fetch story sections
+    const storySectionsResult = await db.execute({
+      sql: 'SELECT * FROM farm_story_sections WHERE farm_id = ? AND is_visible = 1 ORDER BY display_order ASC',
       args: [id],
     });
-    publishedTours = toursResult.rows as any[];
-  }
+    const storySections = storySectionsResult.rows as unknown as FarmStorySection[];
 
-  // If visitor (not owner), show story page (if published) or public view
-  if (!isOwner) {
-    if (storyPublished === 1) {
-      // Fetch story sections
-      const storySectionsResult = await db.execute({
-        sql: 'SELECT * FROM farm_story_sections WHERE farm_id = ? AND is_visible = 1 ORDER BY display_order ASC',
+    if (storySections.length > 0) {
+      // Fetch species for "what we grow"
+      const speciesResult = await db.execute({
+        sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native, COUNT(*) as count
+              FROM plantings p JOIN species s ON p.species_id = s.id
+              WHERE p.farm_id = ? GROUP BY s.id ORDER BY s.layer, s.common_name`,
         args: [id],
       });
-      const storySections = storySectionsResult.rows as unknown as FarmStorySection[];
 
-      if (storySections.length > 0) {
-        // Fetch species for "what we grow"
-        const speciesResult = await db.execute({
-          sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native, COUNT(*) as count
-                FROM plantings p JOIN species s ON p.species_id = s.id
-                WHERE p.farm_id = ? GROUP BY s.id ORDER BY s.layer, s.common_name`,
+      // Fetch featured products if shop enabled
+      let featuredProducts: any[] = [];
+      let fulfillment: any = {};
+      if (isShopEnabled === 1) {
+        const productsResult = await db.execute({
+          sql: `SELECT * FROM shop_products WHERE farm_id = ? AND is_published = 1 AND is_featured = 1 ORDER BY sort_order ASC LIMIT 6`,
           args: [id],
         });
-
-        // Fetch featured products if shop enabled
-        let featuredProducts: any[] = [];
-        let fulfillment: any = {};
-        if (isShopEnabled === 1) {
-          const productsResult = await db.execute({
-            sql: `SELECT * FROM shop_products WHERE farm_id = ? AND is_published = 1 AND is_featured = 1 ORDER BY sort_order ASC LIMIT 6`,
-            args: [id],
-          });
-          featuredProducts = productsResult.rows as any[];
-          fulfillment = {
-            shipping: !!farmRow.accepts_shipping,
-            pickup: !!farmRow.accepts_pickup,
-            delivery: !!farmRow.accepts_delivery,
-          };
-        }
-
-        return (
-          <FarmStoryPage
-            farm={farm}
-            sections={storySections}
-            farmOwner={farmOwner}
-            latestScreenshot={latestScreenshot}
-            featuredProducts={featuredProducts}
-            isShopEnabled={isShopEnabled === 1}
-            initialFeedData={initialFeedData}
-            currentUserId={session.user.id}
-            storyTheme={storyTheme}
-            species={speciesResult.rows as any[]}
-            fulfillment={fulfillment}
-            publishedTours={publishedTours}
-          />
-        );
+        featuredProducts = productsResult.rows as any[];
+        fulfillment = {
+          shipping: !!farmRow.accepts_shipping,
+          pickup: !!farmRow.accepts_pickup,
+          delivery: !!farmRow.accepts_delivery,
+        };
       }
-    }
 
-    return (
-      <FarmPublicView
-        farm={farm}
-        farmOwner={farmOwner}
-        latestScreenshot={latestScreenshot}
-        initialFeedData={initialFeedData}
-        currentUserId={session.user.id}
-        isShopEnabled={isShopEnabled ?? 0}
-        publishedTours={publishedTours}
-      />
-    );
+      return (
+        <FarmStoryPage
+          farm={farm}
+          sections={storySections}
+          farmOwner={farmOwner}
+          latestScreenshot={latestScreenshot}
+          featuredProducts={featuredProducts}
+          isShopEnabled={isShopEnabled === 1}
+          initialFeedData={initialFeedData}
+          currentUserId={session.user.id}
+          storyTheme={storyTheme}
+          species={speciesResult.rows as any[]}
+          fulfillment={fulfillment}
+          publishedTours={publishedTours}
+        />
+      );
+    }
   }
 
-  // If owner, redirect to the unified canvas
-  redirect(`/canvas?farm=${id}&section=farm`);
+  return (
+    <FarmPublicView
+      farm={farm}
+      farmOwner={farmOwner}
+      latestScreenshot={latestScreenshot}
+      initialFeedData={initialFeedData}
+      currentUserId={session.user.id}
+      isShopEnabled={isShopEnabled ?? 0}
+      publishedTours={publishedTours}
+    />
+  );
 }

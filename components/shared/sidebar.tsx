@@ -148,11 +148,6 @@ export function Sidebar({
                 Log In
               </Button>
             </Link>
-            <Link href="/register">
-              <Button variant="outline" className="w-full">
-                Register
-              </Button>
-            </Link>
           </div>
         )}
       </div>
