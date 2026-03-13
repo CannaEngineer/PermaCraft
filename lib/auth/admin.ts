@@ -8,13 +8,18 @@ export async function isAdmin(): Promise<boolean> {
   const session = await getSession();
   if (!session) return false;
 
-  const result = await db.execute({
-    sql: 'SELECT is_admin FROM users WHERE id = ?',
-    args: [session.user.id],
-  });
+  try {
+    const result = await db.execute({
+      sql: 'SELECT is_admin FROM users WHERE id = ?',
+      args: [session.user.id],
+    });
 
-  if (result.rows.length === 0) return false;
-  return (result.rows[0] as any).is_admin === 1;
+    if (result.rows.length === 0) return false;
+    return (result.rows[0] as any).is_admin === 1;
+  } catch {
+    // is_admin column may not exist if migration 004 hasn't been run
+    return false;
+  }
 }
 
 /**

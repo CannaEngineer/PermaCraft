@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   image TEXT,
   password TEXT,
   emailVerified INTEGER DEFAULT 0,
+  is_admin INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER DEFAULT (unixepoch()),
   updated_at INTEGER DEFAULT (unixepoch())
 );

@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import Link from "next/link";
@@ -26,7 +25,6 @@ function getGreeting() {
 }
 
 export default async function DashboardPage() {
-  redirect("/canvas");
   const session = await requireAuth();
 
   // Get farms with their most recent screenshot and planting counts from AI analyses
