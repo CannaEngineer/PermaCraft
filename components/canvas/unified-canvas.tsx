@@ -514,9 +514,15 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         if (phase.start_date) {
           const phaseYear = new Date(phase.start_date * 1000).getFullYear();
           if (newYear === phaseYear && prevYear !== phaseYear) {
-            import('@/lib/map/story-automation').then(({ queuePhaseTransition }) => {
-              queuePhaseTransition(phase.name, farm.id).then(() => refreshStoryCount()).catch(() => {});
-            });
+            fetch(`/api/farms/${farm.id}/story-entries`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'phase',
+                content: `Entered phase: ${phase.name}.`,
+                status: 'draft',
+              }),
+            }).then(() => refreshStoryCount()).catch(() => {});
           }
         }
       }
