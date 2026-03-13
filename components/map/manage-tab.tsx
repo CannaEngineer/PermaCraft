@@ -614,8 +614,6 @@ export function ManageTab({
           plantings={plantings}
           currentYear={currentYear}
           onYearChange={onYearChange}
-          phases={phases}
-          farmId={farmId}
         />
       </section>
     </div>
