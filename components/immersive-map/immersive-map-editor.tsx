@@ -20,6 +20,9 @@ import { GuildDesigner } from "@/components/guilds/guild-designer";
 import { PhaseManager } from "@/components/phasing/phase-manager";
 import { ExportPanel } from "@/components/export/export-panel";
 import { SpeciesPickerPanel } from "@/components/map/species-picker-panel";
+import { FeatureListPanel } from "@/components/map/feature-list-panel";
+import { ManageTab } from "@/components/map/manage-tab";
+import { StoryTab } from "@/components/map/story-tab";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, Leaf } from "lucide-react";
 import { JournalEntryForm } from "@/components/farm/journal-entry-form";
@@ -288,6 +291,10 @@ function ImmersiveMapEditorContent({
 
   // Zone type for drawing
   const [currentZoneType, setCurrentZoneType] = useState<string>("other");
+
+  // Time Machine / Story state
+  const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
+  const [storyDraftCount, setStoryDraftCount] = useState(0);
 
   // Selected feature for annotation panel
   const [selectedFeature, setSelectedFeature] = useState<{
@@ -791,106 +798,132 @@ function ImmersiveMapEditorContent({
         onZoneTypeChange={setCurrentZoneType}
       />
 
-      {/* Bottom Drawer */}
-      <BottomDrawer>
-        {drawerContent === 'details' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
-          <AnnotationPanel
+      {/* Bottom Drawer (3-tab: Design / Manage / Story) */}
+      <BottomDrawer
+        onAddPlant={handleAddPlant}
+        onDrawZone={() => {/* Drawing handled by enterDrawingMode in the drawer */}}
+        storyDraftCount={storyDraftCount}
+        designContent={
+          <FeatureListPanel
+            zones={zones}
+            plantings={plantings}
+            lines={lines}
+            guilds={guilds}
+            phases={farmPhases}
             farmId={farm.id}
-            featureId={selectedFeature.id}
-            featureType={selectedFeature.type}
-            onClose={() => {
-              closeDrawer();
-              setSelectedFeature(null);
-            }}
+            onFeatureSelect={handleFeatureSelect}
+            mapRef={mapRef}
           />
-        ) : drawerContent === 'comments' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
-          <CommentThread
+        }
+        manageContent={
+          <ManageTab
             farmId={farm.id}
-            currentUserId={farm.user_id}
-            featureId={selectedFeature.id}
-            featureType={selectedFeature.type}
+            zones={zones}
+            plantings={plantings}
+            phases={farmPhases}
+            currentYear={projectionYear}
+            onYearChange={setProjectionYear}
+            mapRef={mapRef}
           />
-        ) : drawerContent === 'water-system' ? (
-          <WaterSystemPanel farmId={farm.id} />
-        ) : drawerContent === 'guild-designer' ? (
-          guildContext && guildContext.focalSpecies ? (
-            <GuildDesigner
+        }
+        storyContent={
+          <StoryTab
+            farmId={farm.id}
+            onDraftCountChange={setStoryDraftCount}
+          />
+        }
+        detailContent={
+          drawerContent === 'details' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
+            <AnnotationPanel
               farmId={farm.id}
-              focalSpecies={guildContext.focalSpecies}
-              farmContext={guildContext.farmContext}
-              onSaved={() => {
-                fetch(`/api/farms/${farm.id}/guilds`).then(r => r.json()).then(d => setGuilds(d.guilds || []));
-              }}
+              featureId={selectedFeature.id}
+              featureType={selectedFeature.type}
+              onClose={() => { closeDrawer(); setSelectedFeature(null); }}
             />
-          ) : (
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <Sparkles className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-                <p className="font-semibold">Choose a focal plant for your guild</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  A guild is designed around a central plant. Select one from your farm below, or tap a plant on the map first.
-                </p>
-              </div>
-              {plantings.length > 0 ? (
-                <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                  {/* De-duplicate by species to avoid showing the same plant multiple times */}
-                  {Array.from(new Map(plantings.map(p => [p.species_id || p.common_name, p])).values()).map((p: any) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setGuildContext({
-                          focalSpecies: {
-                            id: p.species_id,
-                            common_name: p.common_name,
-                            scientific_name: p.scientific_name,
-                            layer: p.layer,
-                            native_region: p.native_region,
-                          },
-                          farmContext: farmContext,
-                        });
-                      }}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
-                        <Leaf className="h-4 w-4 text-green-700 dark:text-green-300" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{p.common_name}</p>
-                        <p className="text-xs text-muted-foreground italic truncate">{p.scientific_name}</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground capitalize flex-shrink-0">{p.layer}</span>
-                    </button>
-                  ))}
+          ) : drawerContent === 'comments' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
+            <CommentThread
+              farmId={farm.id}
+              currentUserId={farm.user_id}
+              featureId={selectedFeature.id}
+              featureType={selectedFeature.type}
+            />
+          ) : drawerContent === 'water-system' ? (
+            <WaterSystemPanel farmId={farm.id} />
+          ) : drawerContent === 'guild-designer' ? (
+            guildContext && guildContext.focalSpecies ? (
+              <GuildDesigner
+                farmId={farm.id}
+                focalSpecies={guildContext.focalSpecies}
+                farmContext={guildContext.farmContext}
+                onSaved={() => {
+                  fetch(`/api/farms/${farm.id}/guilds`).then(r => r.json()).then(d => setGuilds(d.guilds || []));
+                }}
+              />
+            ) : (
+              <div className="p-6 space-y-4">
+                <div className="text-center">
+                  <Sparkles className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                  <p className="font-semibold">Choose a focal plant for your guild</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    A guild is designed around a central plant. Select one from your farm below, or tap a plant on the map first.
+                  </p>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No plants on this farm yet. Add plants first, then build guilds around them.
-                </p>
-              )}
-            </div>
-          )
-        ) : drawerContent === 'phase-manager' ? (
-          <PhaseManager farmId={farm.id} onSaved={() => {
-            fetch(`/api/farms/${farm.id}/phases`).then(r => r.json()).then(d => setFarmPhases(d.phases || []));
-          }} />
-        ) : drawerContent === 'export' ? (
-          <ExportPanel
-            farmId={farm.id}
-            farmName={farm.name}
-            mapInstance={mapRef.current}
-          />
-        ) : drawerContent === 'species-picker' ? (
-          <SpeciesPickerPanel
-            farmId={farm.id}
-            onSelectSpecies={handleSelectSpecies}
-            onClose={closeDrawer}
-          />
-        ) : (
-          <div className="p-4 text-muted-foreground">
-            {drawerContent ? 'Panel loading...' : 'Select a feature or use the action menu'}
-          </div>
-        )}
-      </BottomDrawer>
+                {plantings.length > 0 ? (
+                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                    {Array.from(new Map(plantings.map(p => [p.species_id || p.common_name, p])).values()).map((p: any) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setGuildContext({
+                            focalSpecies: {
+                              id: p.species_id,
+                              common_name: p.common_name,
+                              scientific_name: p.scientific_name,
+                              layer: p.layer,
+                              native_region: p.native_region,
+                            },
+                            farmContext: farmContext,
+                          });
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+                          <Leaf className="h-4 w-4 text-green-700 dark:text-green-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{p.common_name}</p>
+                          <p className="text-xs text-muted-foreground italic truncate">{p.scientific_name}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground capitalize flex-shrink-0">{p.layer}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No plants on this farm yet. Add plants first, then build guilds around them.
+                  </p>
+                )}
+              </div>
+            )
+          ) : drawerContent === 'phase-manager' ? (
+            <PhaseManager farmId={farm.id} onSaved={() => {
+              fetch(`/api/farms/${farm.id}/phases`).then(r => r.json()).then(d => setFarmPhases(d.phases || []));
+            }} />
+          ) : drawerContent === 'export' ? (
+            <ExportPanel
+              farmId={farm.id}
+              farmName={farm.name}
+              mapInstance={mapRef.current}
+            />
+          ) : drawerContent === 'species-picker' ? (
+            <SpeciesPickerPanel
+              farmId={farm.id}
+              onSelectSpecies={handleSelectSpecies}
+              onClose={closeDrawer}
+            />
+          ) : null
+        }
+      />
 
       {/* Chat Overlay */}
       <ChatOverlay
