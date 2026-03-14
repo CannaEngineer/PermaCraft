@@ -2,8 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import maplibregl from "maplibre-gl";
-import { ChevronDown, ChevronUp, Filter, Activity, Leaf, List, ChevronRight, Map, Square, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp, Leaf, ChevronRight, Map, Square } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
 import { FeatureListPanel } from "./feature-list-panel";
@@ -84,7 +83,6 @@ interface MapBottomDrawerProps {
   // Design + Farm actions (unified)
   onAddPlant?: () => void;
   onDrawZone?: () => void;
-  onCreatePost?: () => void;
   onDataRefresh?: () => void;
 
   // Feature List props
@@ -120,7 +118,6 @@ export function MapBottomDrawer({
   farmName,
   onAddPlant,
   onDrawZone,
-  onCreatePost,
   onDataRefresh,
   onFeatureSelectFromList,
   mapRef,
@@ -200,7 +197,7 @@ export function MapBottomDrawer({
   return (
     <div
       className={cn(
-        "absolute bottom-14 md:bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border text-xs z-20",
+        "absolute bottom-14 md:bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl backdrop-saturate-150 border-t border-border/30 text-xs z-20 rounded-t-2xl shadow-[0_-4px_32px_rgba(0,0,0,0.08)]",
         tokens.animation.slide,
         isCollapsed ? 'translate-y-full' : 'translate-y-0'
       )}
@@ -209,86 +206,67 @@ export function MapBottomDrawer({
     >
       {/* Peek Bar - Always Visible When Collapsed */}
       {isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border">
-          <div className="flex items-center justify-between px-3 py-2 min-h-[44px]">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <button
-                onClick={() => setIsCollapsed(false)}
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors shrink-0"
-                aria-label="Expand map info drawer"
-              >
-                <span className="text-muted-foreground">
-                  <Leaf className="inline h-3.5 w-3.5 mr-1" />
-                  {plantings.length} {plantings.length === 1 ? 'planting' : 'plantings'}
-                </span>
-                <span className="text-muted-foreground/60">|</span>
-                <span className="text-muted-foreground">
-                  {nonBoundaryZoneCount} {nonBoundaryZoneCount === 1 ? 'zone' : 'zones'}
-                </span>
-              </button>
-
+        <div className="absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl backdrop-saturate-150 border-t border-border/30 rounded-t-2xl shadow-[0_-4px_32px_rgba(0,0,0,0.08)]">
+          <div className="flex items-center justify-between px-4 py-2.5 min-h-[48px]">
+            <button
+              onClick={() => setIsCollapsed(false)}
+              className="flex items-center gap-2 text-sm hover:text-primary transition-colors min-w-0 flex-1"
+              aria-label="Expand map info drawer"
+            >
+              <span className="text-muted-foreground text-xs">
+                <Leaf className="inline h-3.5 w-3.5 mr-1" />
+                {plantings.length} {plantings.length === 1 ? 'plant' : 'plants'}
+              </span>
+              <span className="text-muted-foreground/30">|</span>
+              <span className="text-muted-foreground text-xs">
+                {nonBoundaryZoneCount} {nonBoundaryZoneCount === 1 ? 'zone' : 'zones'}
+              </span>
               {lowVitalCount > 0 && plantings.length > 0 && (
                 <Badge
                   onClick={(e) => { e.stopPropagation(); openTab('vitals'); }}
                   variant="outline"
                   className="cursor-pointer hover:bg-accent text-[10px] shrink-0 border-amber-400 text-amber-700 dark:text-amber-300"
                 >
-                  Diversify guild
+                  Diversify
                 </Badge>
               )}
-
               {activeFilterCount > 0 && (
                 <Badge
                   onClick={(e) => { e.stopPropagation(); openTab('filters'); }}
                   variant="secondary"
                   className="cursor-pointer hover:bg-secondary/90 text-[10px] shrink-0"
                 >
-                  {activeFilterCount}
+                  {activeFilterCount} filters
                 </Badge>
               )}
-            </div>
+            </button>
 
-            <div className="flex items-center gap-1 shrink-0 ml-2">
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
               {onAddPlant && (
-                <Button
-                  size="sm"
+                <button
                   onClick={onAddPlant}
-                  className="h-8 text-xs px-2.5"
+                  className="flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  <Leaf className="h-3 w-3 mr-1" />
+                  <Leaf className="h-3 w-3" />
                   Plant
-                </Button>
+                </button>
               )}
               {onDrawZone && (
-                <Button
-                  size="sm"
-                  variant="outline"
+                <button
                   onClick={onDrawZone}
-                  className="h-8 text-xs px-2.5"
+                  className="flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors"
                 >
-                  <Square className="h-3 w-3 mr-1" />
+                  <Square className="h-3 w-3" />
                   Zone
-                </Button>
+                </button>
               )}
-              {onCreatePost && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={onCreatePost}
-                  className="h-8 text-xs px-2.5"
-                >
-                  <MessageSquare className="h-3 w-3" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
+              <button
                 onClick={() => setIsCollapsed(false)}
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors"
                 aria-label="Expand"
               >
                 <ChevronUp className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -296,95 +274,45 @@ export function MapBottomDrawer({
 
       {/* Tab Bar - Visible When Expanded */}
       {!isCollapsed && (
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/95">
-          <div className="flex gap-1" role="tablist" aria-label="Map info tabs">
-            <button
-              role="tab"
-              aria-selected={activeTab === 'features'}
-              aria-controls="tabpanel-features"
-              id="tab-features"
-              onClick={() => setActiveTab('features')}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px]",
-                activeTab === 'features'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              )}
-            >
-              <List className="inline h-3 w-3 mr-1" />
-              Features
-            </button>
-            <button
-              role="tab"
-              aria-selected={activeTab === 'filters'}
-              aria-controls="tabpanel-filters"
-              id="tab-filters"
-              onClick={() => setActiveTab('filters')}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px]",
-                activeTab === 'filters'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              )}
-            >
-              <Filter className="inline h-3 w-3 mr-1" />
-              Filters
-              {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-1.5 h-4 min-w-[16px] px-1 text-[10px]">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </button>
-            <button
-              role="tab"
-              aria-selected={activeTab === 'vitals'}
-              aria-controls="tabpanel-vitals"
-              id="tab-vitals"
-              onClick={() => setActiveTab('vitals')}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px]",
-                activeTab === 'vitals'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              )}
-            >
-              <Activity className="inline h-3 w-3 mr-1" />
-              Vitals & Time
-            </button>
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/30">
+          {/* Segmented control */}
+          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 flex-1" role="tablist" aria-label="Map info tabs">
+            {([
+              { id: 'features' as Tab, label: 'Features' },
+              { id: 'filters' as Tab, label: 'Filters', badge: activeFilterCount > 0 ? activeFilterCount : undefined },
+              { id: 'vitals' as Tab, label: 'Vitals' },
+            ]).map((tab) => (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`tabpanel-${tab.id}`}
+                id={`tab-${tab.id}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                  activeTab === tab.id
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {tab.label}
+                {tab.badge && (
+                  <span className="ml-1 inline-flex items-center justify-center h-3.5 min-w-[14px] px-1 rounded-full bg-primary/15 text-primary text-[9px] font-bold">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0 ml-2">
-            {onAddPlant && (
-              <Button
-                size="sm"
-                onClick={onAddPlant}
-                className="h-8 text-xs px-2.5"
-              >
-                <Leaf className="h-3 w-3 mr-1" />
-                Plant
-              </Button>
-            )}
-            {onDrawZone && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onDrawZone}
-                className="h-8 text-xs px-2.5"
-              >
-                <Square className="h-3 w-3 mr-1" />
-                Zone
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => setIsCollapsed(true)}
-              aria-label="Collapse"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </div>
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-accent transition-colors shrink-0"
+            aria-label="Collapse"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
         </div>
       )}
 
