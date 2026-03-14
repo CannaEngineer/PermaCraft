@@ -3351,7 +3351,6 @@ export function FarmMap({
             }
           }
         }}
-        onCreatePost={() => setShowCreatePost(true)}
         onFeatureSelectFromList={onFeatureSelect}
         mapRef={map}
         map={map.current}

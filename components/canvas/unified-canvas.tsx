@@ -7,7 +7,7 @@ import { LayerProvider } from '@/contexts/layer-context';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
 import { CommandBar } from './command-bar';
 import { NavRail } from './nav-rail';
-import { ContextPanel } from './context-panel';
+// ContextPanel removed — content integrated into BottomDrawer
 import { CanvasMobileNav } from './canvas-mobile-nav';
 import { FarmMap } from '@/components/map/farm-map';
 import { DrawingToolbar } from '@/components/immersive-map/drawing-toolbar';
@@ -33,7 +33,7 @@ import { TasksDrawer } from '@/components/farm/tasks-drawer';
 import { CropPlanDrawer } from '@/components/farm/crop-plan-drawer';
 import { ReportsDrawer } from '@/components/farm/reports-drawer';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap } from 'lucide-react';
+import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap, Droplets, Timer, Download, BookOpen, Footprints } from 'lucide-react';
 import { WelcomeWalkthrough } from './welcome-walkthrough';
 import { toPng } from 'html-to-image';
 import type { Farm, Zone, FarmerGoal, Species } from '@/lib/db/schema';
@@ -41,7 +41,7 @@ import type maplibregl from 'maplibre-gl';
 
 // Lazy-loaded section panels
 const DashboardPanel = lazy(() => import('./panels/dashboard-panel').then(m => ({ default: m.DashboardPanel })));
-const FarmPanel = lazy(() => import('./panels/farm-panel').then(m => ({ default: m.FarmPanel })));
+// FarmPanel removed — content integrated into BottomDrawer tabs
 const ExplorePanel = lazy(() => import('./panels/explore-panel').then(m => ({ default: m.ExplorePanel })));
 const PlantsPanel = lazy(() => import('./panels/plants-panel').then(m => ({ default: m.PlantsPanel })));
 const LearnPanel = lazy(() => import('./panels/learn-panel').then(m => ({ default: m.LearnPanel })));
@@ -529,10 +529,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     }
   }, [farmPhases, farm.id, refreshStoryCount]);
 
-  // Drawer opener for FarmPanel
-  const handleOpenDrawer = useCallback((content: string) => {
-    openDrawer(content as any, 'max');
-  }, [openDrawer]);
 
   // Filtered zones by visible layers
   const filteredZones = useMemo(() => {
@@ -581,7 +577,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setActiveSection, activeSection, setChatOpen, chatOpen]);
 
-  // Render the active panel content (non-farm sections only — farm uses ContextPanel directly)
+  // Render the active panel content (non-farm sections use overlay panels)
   const renderPanelContent = () => {
     switch (activeSection) {
       case 'home':
@@ -698,32 +694,51 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           )}
         </div>
 
-        {/* Context Panel — farm section only */}
-        {activeSection === 'farm' && (
-          <ContextPanel>
-            <Suspense fallback={<PanelLoadingFallback />}>
-              <FarmPanel onOpenDrawer={handleOpenDrawer} />
-            </Suspense>
-          </ContextPanel>
-        )}
       </div>
 
-      {/* Bottom Drawer (3-tab: Design / Manage / Story) */}
+      {/* Bottom Drawer — unified control surface */}
       <BottomDrawer
         onAddPlant={handleAddPlant}
         onDrawZone={() => {/* Drawing handled by enterDrawingMode in the drawer */}}
         storyDraftCount={storyDraftCount}
+        plantingCount={plantings.length}
+        zoneCount={zones.filter((z: any) => z.zone_type !== 'farm_boundary').length}
         designContent={
-          <FeatureListPanel
-            zones={zones}
-            plantings={plantings}
-            lines={lines}
-            guilds={guilds}
-            phases={farmPhases}
-            farmId={farm.id}
-            onFeatureSelect={handleFeatureSelect}
-            mapRef={mapRef}
-          />
+          <div className="flex flex-col">
+            {/* Quick Tools */}
+            <div className="px-4 pt-3 pb-2">
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { icon: Droplets, label: 'Water', onClick: handleOpenWaterSystem, color: 'text-blue-500' },
+                  { icon: Leaf, label: 'Guilds', onClick: handleOpenGuildDesigner, color: 'text-green-500' },
+                  { icon: Timer, label: 'Phases', onClick: handleOpenPhaseManager, color: 'text-orange-500' },
+                  { icon: Download, label: 'Export', onClick: handleOpenExport, color: 'text-purple-500' },
+                  { icon: BookOpen, label: 'Journal', onClick: handleOpenJournalEntry, color: 'text-amber-500' },
+                ].map((tool) => (
+                  <button
+                    key={tool.label}
+                    onClick={tool.onClick}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-accent/60 transition-colors"
+                  >
+                    <tool.icon className={`h-4 w-4 ${tool.color}`} />
+                    <span className="text-[10px] font-medium text-muted-foreground">{tool.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-px bg-border/40 mx-4" />
+            {/* Feature List */}
+            <FeatureListPanel
+              zones={zones}
+              plantings={plantings}
+              lines={lines}
+              guilds={guilds}
+              phases={farmPhases}
+              farmId={farm.id}
+              onFeatureSelect={handleFeatureSelect}
+              mapRef={mapRef}
+            />
+          </div>
         }
         manageContent={
           <ManageTab
@@ -738,10 +753,31 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
           />
         }
         storyContent={
-          <StoryTab
-            farmId={farm.id}
-            onDraftCountChange={setStoryDraftCount}
-          />
+          <div className="flex flex-col">
+            <StoryTab
+              farmId={farm.id}
+              onDraftCountChange={setStoryDraftCount}
+            />
+            {/* Outreach links */}
+            <div className="border-t border-border/40 mx-4 mt-2" />
+            <div className="px-4 py-3 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Outreach</p>
+              <a
+                href={`/farm/${farm.id}/tours`}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-accent/50 transition-colors"
+              >
+                <Footprints className="h-4 w-4 text-teal-500" />
+                <span className="text-sm font-medium">Farm Tours</span>
+              </a>
+              <a
+                href={`/farm/${farm.id}/story`}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-accent/50 transition-colors"
+              >
+                <BookOpen className="h-4 w-4 text-rose-500" />
+                <span className="text-sm font-medium">Full Story Page</span>
+              </a>
+            </div>
+          </div>
         }
         detailContent={
           drawerContent === 'details' && selectedFeature && (selectedFeature.type === 'zone' || selectedFeature.type === 'planting' || selectedFeature.type === 'line') ? (
