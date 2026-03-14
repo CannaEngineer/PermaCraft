@@ -3,6 +3,37 @@ import { db } from "@/lib/db";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
+// GET /api/farms/[id] — fetch farm details
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireAuth();
+    const { id: farmId } = await context.params;
+
+    const farmResult = await db.execute({
+      sql: "SELECT * FROM farms WHERE id = ? AND user_id = ?",
+      args: [farmId, session.user.id],
+    });
+
+    if (farmResult.rows.length === 0) {
+      return Response.json(
+        { error: "Farm not found or you don't have permission" },
+        { status: 404 }
+      );
+    }
+
+    return Response.json(farmResult.rows[0]);
+  } catch (error) {
+    console.error("Farm fetch error:", error);
+    return Response.json(
+      { error: "Failed to fetch farm" },
+      { status: 500 }
+    );
+  }
+}
+
 const updateFarmSchema = z.object({
   is_public: z.union([z.literal(0), z.literal(1)]),
 });

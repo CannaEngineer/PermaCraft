@@ -626,6 +626,14 @@ NAVIGATION WRITING:
 - Include approximate distances in steps or meters
 - Mention terrain: "slight uphill", "gravel path", "grassy area"
 
+LOCATION AWARENESS:
+- The farm's GPS coordinates will be provided. Use them as the baseline location.
+- For each stop, estimate realistic lat/lng coordinates based on the farm center and the relative positions of features.
+- Place stops at plausible locations within the farm boundary (spread across the acreage).
+- When a stop references a known zone or planting with provided coordinates, use those coordinates.
+- For welcome/farewell stops, place them near the farm center or entry point.
+- Small offsets (0.0001-0.001 degrees) from the farm center create realistic on-farm positions.
+
 OUTPUT FORMAT:
 Return a JSON object:
 {
@@ -644,6 +652,8 @@ Return a JSON object:
       "description": "What visitors will see and learn (100-200 words)",
       "stop_type": "welcome|garden_bed|food_forest|water_feature|structure|animal_area|composting|point_of_interest|farewell|custom",
       "estimated_time_minutes": 3,
+      "lat": 37.7749,
+      "lng": -122.4194,
       "navigation_hint": "How to get here from the previous stop",
       "direction_from_previous": "Detailed walking directions from previous stop",
       "seasonal_visibility": "Best in spring/summer. In winter, note the dormant structure.",
@@ -662,6 +672,7 @@ RULES:
 - If farm data is sparse, focus on general permaculture education with the land context
 - Quiz questions should be educational and fun, not trick questions
 - Navigation hints should be conversational and reference real landmarks from the farm
+- EVERY stop MUST include lat and lng coordinates based on the farm's location
 - Return ONLY valid JSON, no markdown fences or extra text`;
 
 export function createTourGenerationPrompt(
@@ -692,6 +703,10 @@ export function createTourGenerationPrompt(
 
   parts.push(`FARM: ${farm.name}`);
   parts.push(`TOUR TYPE: ${tourType === 'in_person' ? 'In-Person Walking Tour' : 'Virtual Online Tour'}`);
+  if (farm.center_lat != null && farm.center_lng != null) {
+    parts.push(`FARM GPS LOCATION: ${farm.center_lat}, ${farm.center_lng}`);
+    parts.push('Use this as the base location for all tour stops. Place each stop at realistic coordinates within the farm boundary.');
+  }
   if (farm.description) parts.push(`DESCRIPTION: ${farm.description}`);
   if (farm.acres) parts.push(`SIZE: ${farm.acres} acres`);
   if (farm.climate_zone) parts.push(`CLIMATE ZONE: ${farm.climate_zone}`);
@@ -701,7 +716,19 @@ export function createTourGenerationPrompt(
   if (zones.length > 0) {
     parts.push('\nZONES AND FEATURES ON THE FARM:');
     zones.forEach(z => {
-      parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})`);
+      let locationInfo = '';
+      if (z.geometry) {
+        try {
+          const geo = JSON.parse(z.geometry);
+          if (geo.coordinates) {
+            const coords = geo.type === 'Polygon' ? geo.coordinates[0] : [geo.coordinates];
+            const avgLng = coords.reduce((s: number, c: number[]) => s + c[0], 0) / coords.length;
+            const avgLat = coords.reduce((s: number, c: number[]) => s + c[1], 0) / coords.length;
+            locationInfo = ` @ GPS(${avgLat.toFixed(6)}, ${avgLng.toFixed(6)})`;
+          }
+        } catch { /* ignore */ }
+      }
+      parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})${locationInfo}`);
     });
   }
 
@@ -718,7 +745,8 @@ export function createTourGenerationPrompt(
       species.forEach(s => {
         const native = s.is_native ? '[NATIVE]' : '[NON-NATIVE]';
         const funcs = s.permaculture_functions ? ` — Functions: ${s.permaculture_functions}` : '';
-        parts.push(`    - ${s.common_name} (${s.scientific_name}) ${native}${funcs}`);
+        const loc = (s.lat != null && s.lng != null) ? ` @ GPS(${s.lat}, ${s.lng})` : '';
+        parts.push(`    - ${s.common_name} (${s.scientific_name}) ${native}${funcs}${loc}`);
       });
     }
   }

@@ -56,11 +56,15 @@ interface TourStopEditorProps {
   tourId: string;
   stopId: string | null;
   tourType?: TourType;
+  /** Farm center latitude — used as default location for new stops */
+  farmLat?: number;
+  /** Farm center longitude — used as default location for new stops */
+  farmLng?: number;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export function TourStopEditor({ farmId, tourId, stopId, tourType = 'in_person', onSaved, onCancel }: TourStopEditorProps) {
+export function TourStopEditor({ farmId, tourId, stopId, tourType = 'in_person', farmLat, farmLng, onSaved, onCancel }: TourStopEditorProps) {
   const isNew = !stopId;
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -395,6 +399,8 @@ export function TourStopEditor({ farmId, tourId, stopId, tourType = 'in_person',
             setLat(newLat);
             setLng(newLng);
           }}
+          farmLat={farmLat}
+          farmLng={farmLng}
         />
       </div>
 
