@@ -2,6 +2,7 @@
 
 import { Home, Map, Leaf, GraduationCap, MessageSquare } from 'lucide-react';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
@@ -20,6 +21,7 @@ const navItems: { id: CanvasSection; icon: typeof Home; label: string; shortcut:
 
 export function NavRail() {
   const { activeSection, setActiveSection } = useUnifiedCanvas();
+  const router = useRouter();
 
   return (
     <nav
@@ -33,7 +35,13 @@ export function NavRail() {
         return (
           <button
             key={item.id}
-            onClick={() => setActiveSection(item.id)}
+            onClick={() => {
+              if (item.id === 'home') {
+                router.push('/dashboard');
+                return;
+              }
+              setActiveSection(item.id);
+            }}
             className={cn(
               'relative flex flex-col items-center justify-center w-14 h-auto py-1.5 px-1 rounded-xl transition-all duration-200 group gap-0.5',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',

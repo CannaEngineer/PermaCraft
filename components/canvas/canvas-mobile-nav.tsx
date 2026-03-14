@@ -2,6 +2,7 @@
 
 import { Home, Map, Leaf, GraduationCap, MessageSquare } from 'lucide-react';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
@@ -24,6 +25,7 @@ const mobileNavItems: { id: CanvasSection; icon: typeof Home; label: string }[] 
 
 export function CanvasMobileNav() {
   const { activeSection, setActiveSection } = useUnifiedCanvas();
+  const router = useRouter();
 
   return (
     <nav
@@ -37,7 +39,13 @@ export function CanvasMobileNav() {
         return (
           <button
             key={item.id}
-            onClick={() => setActiveSection(item.id)}
+            onClick={() => {
+              if (item.id === 'home') {
+                router.push('/dashboard');
+                return;
+              }
+              setActiveSection(item.id);
+            }}
             className={cn(
               'flex flex-col items-center justify-center gap-0.5 min-w-[48px] h-11 rounded-xl transition-all touch-manipulation active:scale-95',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',

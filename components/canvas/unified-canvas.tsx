@@ -557,8 +557,15 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
+      // '1' goes to dashboard (full page navigation)
+      if (e.key === '1') {
+        e.preventDefault();
+        router.push('/dashboard');
+        return;
+      }
+
       const sectionMap: Record<string, CanvasSection> = {
-        '1': 'home', '2': 'farm', '3': 'explore', '4': 'plants', '5': 'learn',
+        '2': 'farm', '3': 'explore', '4': 'plants', '5': 'learn',
         '6': 'ai', '7': 'shop',
       };
 
@@ -696,8 +703,8 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
 
       </div>
 
-      {/* Bottom Drawer — unified control surface */}
-      <BottomDrawer
+      {/* Bottom Drawer — only visible on farm/plants sections */}
+      {(activeSection === 'farm' || activeSection === 'plants') && <BottomDrawer
         onAddPlant={handleAddPlant}
         onDrawZone={() => {/* Drawing handled by enterDrawingMode in the drawer */}}
         storyDraftCount={storyDraftCount}
@@ -859,7 +866,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             <SpeciesPickerPanel farmId={farm.id} onSelectSpecies={handleSelectSpecies} onClose={closeDrawer} />
           ) : null
         }
-      />
+      />}
 
       {/* Dialogs */}
       <Dialog open={showGoalsWizard} onOpenChange={setShowGoalsWizard}>
