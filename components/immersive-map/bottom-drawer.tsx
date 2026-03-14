@@ -123,7 +123,7 @@ export function BottomDrawer({
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={0.1}
       onDragEnd={handleDragEnd}
-      className="fixed inset-x-0 bottom-0 z-[55] flex flex-col overflow-hidden rounded-t-2xl border-t border-border/30 bg-background/80 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-4px_32px_rgba(0,0,0,0.08)]"
+      className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] flex flex-col overflow-hidden rounded-t-2xl border-t border-border/30 bg-background/80 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-4px_32px_rgba(0,0,0,0.08)] max-md:bottom-14"
       style={{ willChange: 'height' }}
       data-bottom-drawer
     >

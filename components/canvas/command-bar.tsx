@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Loader2, LogOut, UserCircle, Sun, Moon, ChevronDown } from 'lucide-react';
+import { Save, Loader2, LogOut, UserCircle, Sun, Moon, ChevronDown, ArrowLeft } from 'lucide-react';
 import { UniversalSearch } from '@/components/search/universal-search';
 import { FarmSwitcher } from './farm-switcher';
 import { CartIconButton } from '@/components/shop/cart-icon-button';
@@ -41,13 +41,23 @@ export function CommandBar({ userId, userName, saving, hasUnsavedChanges, onSave
 
   return (
     <header className="flex items-center gap-2 h-12 px-3 glass-panel-strong border-b border-border/40 z-40">
-      {/* Logo */}
-      <a href="/canvas" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
-        <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground text-xs font-bold">P</span>
-        </div>
-        <span className="hidden lg:block text-sm font-semibold">Permaculture.Studio</span>
-      </a>
+      {/* Back to dashboard + Logo */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <a
+          href="/dashboard"
+          className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-accent transition-colors"
+          aria-label="Back to dashboard"
+          title="Back to dashboard"
+        >
+          <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+        </a>
+        <a href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground text-xs font-bold">P</span>
+          </div>
+          <span className="hidden lg:block text-sm font-semibold">Permaculture.Studio</span>
+        </a>
+      </div>
 
       {/* Search */}
       <div className="flex-1 max-w-md mx-auto">
