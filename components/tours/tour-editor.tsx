@@ -55,6 +55,10 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
   const [aiContext, setAiContext] = useState('');
   const [showAiPanel, setShowAiPanel] = useState(false);
 
+  // Farm location for stop defaults
+  const [farmLat, setFarmLat] = useState<number | undefined>(undefined);
+  const [farmLng, setFarmLng] = useState<number | undefined>(undefined);
+
   // Tour settings form
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -80,6 +84,20 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
   useEffect(() => {
     fetchTour();
   }, [fetchTour]);
+
+  // Fetch farm location for stop defaults
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/farms/${farmId}`);
+        if (res.ok) {
+          const farm = await res.json();
+          if (farm.center_lat != null) setFarmLat(farm.center_lat);
+          if (farm.center_lng != null) setFarmLng(farm.center_lng);
+        }
+      } catch { /* silent */ }
+    })();
+  }, [farmId]);
 
   const handleSaveSettings = async () => {
     setSavingSettings(true);
@@ -216,6 +234,8 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
         tourId={tourId}
         stopId={null}
         tourType={tour.tour_type || 'in_person'}
+        farmLat={farmLat}
+        farmLng={farmLng}
         onSaved={handleStopSaved}
         onCancel={() => setAddingStop(false)}
       />
@@ -229,6 +249,8 @@ export function TourEditor({ farmId, tourId, onBack, onViewAnalytics }: TourEdit
         tourId={tourId}
         stopId={editingStopId}
         tourType={tour.tour_type || 'in_person'}
+        farmLat={farmLat}
+        farmLng={farmLng}
         onSaved={handleStopSaved}
         onCancel={() => setEditingStopId(null)}
       />

@@ -17,9 +17,13 @@ interface StopLocationPickerProps {
   lat: string;
   lng: string;
   onLocationChange: (lat: string, lng: string) => void;
+  /** Farm center latitude — used as default map center and fallback location */
+  farmLat?: number;
+  /** Farm center longitude — used as default map center and fallback location */
+  farmLng?: number;
 }
 
-export function StopLocationPicker({ lat, lng, onLocationChange }: StopLocationPickerProps) {
+export function StopLocationPicker({ lat, lng, onLocationChange, farmLat, farmLng }: StopLocationPickerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -201,12 +205,15 @@ export function StopLocationPicker({ lat, lng, onLocationChange }: StopLocationP
 
   const handleShowMap = () => {
     setShowMap(true);
-    const centerLat = hasCoords ? parseFloat(lat) : 37.7749;
-    const centerLng = hasCoords ? parseFloat(lng) : -122.4194;
+    // Priority: existing coords > farm center > San Francisco fallback
+    const defaultLat = farmLat ?? 37.7749;
+    const defaultLng = farmLng ?? -122.4194;
+    const centerLat = hasCoords ? parseFloat(lat) : defaultLat;
+    const centerLng = hasCoords ? parseFloat(lng) : defaultLng;
     setTimeout(() => {
       initMap(
-        isNaN(centerLat) ? 37.7749 : centerLat,
-        isNaN(centerLng) ? -122.4194 : centerLng
+        isNaN(centerLat) ? defaultLat : centerLat,
+        isNaN(centerLng) ? defaultLng : centerLng
       );
     }, 50);
   };

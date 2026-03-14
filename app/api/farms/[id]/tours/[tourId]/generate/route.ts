@@ -120,6 +120,8 @@ export async function POST(
       description: string;
       stop_type: string;
       estimated_time_minutes: number;
+      lat?: number;
+      lng?: number;
       navigation_hint?: string;
       direction_from_previous?: string;
       seasonal_visibility?: string;
@@ -179,11 +181,15 @@ export async function POST(
     const stop = parsed.stops[i];
     const stopId = crypto.randomUUID();
 
-    // Try to match stop to a zone location for coordinates
+    // Resolve stop coordinates with priority:
+    // 1. Match to existing zone geometry (most accurate)
+    // 2. Match to existing planting coordinates
+    // 3. Use AI-provided coordinates (based on farm location context)
+    // 4. Fall back to farm center
     let lat: number | null = null;
     let lng: number | null = null;
 
-    // If stop type matches a zone, try to use its centroid
+    // Priority 1: Match stop title to a zone and use its centroid
     const matchedZone = zones.find(z =>
       z.name && stop.title.toLowerCase().includes(z.name.toLowerCase())
     );
@@ -191,7 +197,6 @@ export async function POST(
       try {
         const geo = JSON.parse(matchedZone.geometry);
         if (geo.coordinates) {
-          // Simple centroid for polygon
           const coords = geo.type === 'Polygon' ? geo.coordinates[0] : [geo.coordinates];
           const avgLng = coords.reduce((s: number, c: number[]) => s + c[0], 0) / coords.length;
           const avgLat = coords.reduce((s: number, c: number[]) => s + c[1], 0) / coords.length;
@@ -201,7 +206,7 @@ export async function POST(
       } catch { /* ignore parse errors */ }
     }
 
-    // If no zone match, try to match to a planting
+    // Priority 2: Match stop title to a planting
     if (!lat && !lng) {
       const matchedPlanting = plantings.find(p =>
         stop.title.toLowerCase().includes(p.common_name.toLowerCase())
@@ -210,6 +215,22 @@ export async function POST(
         lat = matchedPlanting.lat;
         lng = matchedPlanting.lng;
       }
+    }
+
+    // Priority 3: Use AI-provided coordinates
+    if (!lat && !lng && stop.lat != null && stop.lng != null) {
+      const aiLat = typeof stop.lat === 'number' ? stop.lat : parseFloat(String(stop.lat));
+      const aiLng = typeof stop.lng === 'number' ? stop.lng : parseFloat(String(stop.lng));
+      if (!isNaN(aiLat) && !isNaN(aiLng)) {
+        lat = aiLat;
+        lng = aiLng;
+      }
+    }
+
+    // Priority 4: Fall back to farm center coordinates
+    if (!lat && !lng && farm.center_lat && farm.center_lng) {
+      lat = farm.center_lat as number;
+      lng = farm.center_lng as number;
     }
 
     await db.execute({
