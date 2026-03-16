@@ -188,6 +188,9 @@ export function FarmMap({
   const mapLoadedRef = useRef(false);
   const zonesRef = useRef(zones);
   zonesRef.current = zones;
+  // Ref to access current zoneType inside event handler closures (avoids stale closure)
+  const zoneTypeRef = useRef(zoneType);
+  zoneTypeRef.current = zoneType;
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
@@ -238,6 +241,9 @@ export function FarmMap({
   const [showQuickLabelForm, setShowQuickLabelForm] = useState(false);
   const [quickLabelZoneId, setQuickLabelZoneId] = useState<string | null>(null);
   const [quickLabelPosition, setQuickLabelPosition] = useState<{ x: number; y: number } | null>(null);
+  // Ref for quick label visibility in event handler closures
+  const showQuickLabelFormRef = useRef(false);
+  showQuickLabelFormRef.current = showQuickLabelForm;
 
   // Time Machine state - projection year for growth simulation
   // If external control props are provided, use them; otherwise use internal state
@@ -1801,7 +1807,23 @@ export function FarmMap({
       };
 
       const handleDrawCreate = (e: any) => {
-        // First, do the regular draw change handling
+        // Apply the current zone type to the newly created feature immediately
+        if (e.features && e.features.length > 0 && draw.current) {
+          const currentZT = zoneTypeRef.current;
+          e.features.forEach((f: any) => {
+            if (f.properties?.user_zone_type === "farm_boundary") return;
+            const existing = draw.current!.get(f.id);
+            if (existing) {
+              existing.properties = {
+                ...existing.properties,
+                user_zone_type: currentZT,
+              };
+              draw.current!.add(existing);
+            }
+          });
+        }
+
+        // Do the regular draw change handling
         handleDrawChange(e);
 
         // Then show the appropriate form for the newly created feature
@@ -1837,8 +1859,10 @@ export function FarmMap({
             setQuickLabelPosition({ x: point.x, y: point.y });
             setShowQuickLabelForm(true);
 
-            // Deselect the feature to prevent the drawer from opening
-            // The quick label form is all we need after creation
+            // Deselect the feature so the old Label Zone panel doesn't also appear
+            setSelectedZone(null);
+
+            // Return to simple_select so user can interact with the quick label form
             if (draw.current) {
               draw.current.changeMode('simple_select');
             }
@@ -1966,6 +1990,10 @@ export function FarmMap({
 
       // Prevent farm boundary from being edited or moved
       map.current.on("draw.selectionchange", (e: any) => {
+        // Skip selection changes when the quick label form is showing
+        // to prevent the old Label Zone panel from appearing alongside it
+        if (showQuickLabelFormRef.current) return;
+
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
 
@@ -3228,7 +3256,8 @@ export function FarmMap({
       {/* Help — moved to MapControlPanel keyboard shortcuts tooltip (no longer a standalone button) */}
 
       {/* Zone Labeling Panel — positioned to avoid drawing toolbar and bottom drawer */}
-      {selectedZone && (
+      {/* Hidden when the quick label form is showing or during external drawing mode to avoid duplicates */}
+      {selectedZone && !showQuickLabelForm && !externalDrawingMode && (
         <div className="absolute bottom-36 md:bottom-4 left-4 md:left-20 bg-card/95 backdrop-blur-sm rounded-xl shadow-xl p-4 z-20 w-80 max-w-[calc(100vw-2rem)] max-h-[60vh] overflow-y-auto border border-border/30">
           <div className="flex items-center gap-2 mb-3">
             <Tag className="h-4 w-4" />

@@ -122,8 +122,8 @@ export function DrawingToolbar({
             <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </button>
 
-          {/* Drawing Tools — horizontal scroll */}
-          <div className="flex items-center gap-1.5">
+          {/* Drawing Tools — horizontal, no overflow */}
+          <div className="flex items-center gap-1">
             {/* Shape tools */}
             {tools.map((tool) => {
               const Icon = tool.icon;
@@ -132,21 +132,21 @@ export function DrawingToolbar({
                 <button
                   key={tool.id}
                   onClick={() => handleToolClick(tool.id)}
-                  className={`flex flex-col items-center justify-center gap-0.5 min-w-[52px] h-14 rounded-xl transition-all active:scale-95 ${
+                  className={`flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 h-12 rounded-xl transition-all active:scale-95 ${
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-md'
                       : 'bg-transparent text-muted-foreground hover:bg-muted/50'
                   }`}
                   title={tool.label}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4.5 w-4.5" />
                   <span className="text-[10px] font-medium leading-none">{tool.label}</span>
                 </button>
               );
             })}
 
             {/* Divider */}
-            <div className="w-px h-8 bg-border/50 mx-0.5 flex-shrink-0" />
+            <div className="w-px h-8 bg-border/50 flex-shrink-0" />
 
             {/* Edit / Delete */}
             {editTools.map((tool) => {
@@ -156,29 +156,26 @@ export function DrawingToolbar({
                 <button
                   key={tool.id}
                   onClick={() => handleToolClick(tool.id)}
-                  className={`flex flex-col items-center justify-center gap-0.5 min-w-[52px] h-14 rounded-xl transition-all active:scale-95 ${
+                  className={`flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 h-12 rounded-xl transition-all active:scale-95 ${
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-md'
                       : 'bg-transparent text-muted-foreground hover:bg-muted/50'
                   }`}
                   title={tool.label}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4.5 w-4.5" />
                   <span className="text-[10px] font-medium leading-none">{tool.label}</span>
                 </button>
               );
             })}
 
-            {/* Spacer */}
-            <div className="flex-1" />
-
             {/* Done button */}
             <button
               onClick={exitDrawingMode}
-              className="flex items-center justify-center h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-sm transition-colors active:scale-95 shadow-md"
+              className="flex items-center justify-center h-11 px-3 md:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-sm transition-colors active:scale-95 shadow-md flex-shrink-0"
               title="Done (Esc)"
             >
-              <Check className="h-4.5 w-4.5 mr-1.5" />
+              <Check className="h-4 w-4 mr-1" />
               Done
             </button>
           </div>
