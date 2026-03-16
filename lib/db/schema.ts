@@ -1075,6 +1075,7 @@ export interface Task {
   related_zone_id: string | null;
   recurrence: string | null; // JSON: { pattern, interval, end_date }
   tags: string | null; // JSON array
+  source: 'manual' | 'seasonal' | 'ai';
   created_by: string;
   created_at: number;
   updated_at: number;
