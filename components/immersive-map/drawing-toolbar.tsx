@@ -101,7 +101,7 @@ export function DrawingToolbar({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', ...DESIGN_TOKENS.spring.snappy }}
-        className="fixed left-0 right-0 bottom-16 md:bottom-0 z-30 px-3 pb-3 md:px-4 md:pb-4 pointer-events-none"
+        className="fixed left-0 right-0 bottom-16 md:bottom-0 z-[60] px-3 pb-3 md:px-4 md:pb-4 pointer-events-none"
       >
         <div className="pointer-events-auto max-w-lg mx-auto bg-background/90 backdrop-blur-xl border border-border/40 rounded-2xl shadow-[0_-4px_24px_rgba(0,0,0,0.12)] p-2">
           {/* Zone Type Selector — full-width, prominent */}
@@ -195,7 +195,7 @@ export function DrawingToolbar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="fixed inset-0 bg-black/30 z-40"
+              className="fixed inset-0 bg-black/30 z-[65]"
               onClick={() => setShowZonePicker(false)}
             />
 
@@ -210,7 +210,7 @@ export function DrawingToolbar({
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={0.15}
               onDragEnd={handlePickerDragEnd}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[75vh] flex flex-col bg-background rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.15)] overflow-hidden"
+              className="fixed inset-x-0 bottom-0 z-[70] max-h-[75vh] flex flex-col bg-background rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.15)] overflow-hidden"
             >
               {/* Drag handle */}
               <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
