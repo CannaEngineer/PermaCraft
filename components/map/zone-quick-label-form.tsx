@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
-import { USER_SELECTABLE_ZONE_TYPES, getZoneTypeConfig } from '@/lib/map/zone-types';
+import { X, ChevronDown } from 'lucide-react';
+import {
+  ZONE_TYPES,
+  ZONE_TYPE_CATEGORIES,
+  getZoneTypeConfig,
+} from '@/lib/map/zone-types';
 
 interface ZoneQuickLabelFormProps {
   position: { x: number; y: number }; // Screen coordinates where user finished drawing
   zoneId: string;
+  /** Pre-selected zone type from the drawing toolbar */
+  preselectedType?: string;
   onSave: (type: string, name?: string) => void;
   onSkip: () => void;
 }
@@ -15,55 +21,50 @@ interface ZoneQuickLabelFormProps {
 export function ZoneQuickLabelForm({
   position,
   zoneId,
+  preselectedType,
   onSave,
-  onSkip
+  onSkip,
 }: ZoneQuickLabelFormProps) {
-  const [zoneType, setZoneType] = useState<string>('other');
+  const [zoneType, setZoneType] = useState<string>(preselectedType || 'other');
   const [zoneName, setZoneName] = useState('');
+  const [showPicker, setShowPicker] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-dismiss after 10 seconds if no interaction
+  // Auto-dismiss after 15 seconds if no interaction
   useEffect(() => {
     const timer = setTimeout(() => {
       handleSkip();
-    }, 10000);
-
+    }, 15000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Focus name input on mount (desktop)
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile && nameInputRef.current) {
+      setTimeout(() => nameInputRef.current?.focus(), 100);
+    }
   }, []);
 
   // Adjust position if near viewport edges
   useEffect(() => {
     if (!formRef.current) return;
-
     const rect = formRef.current.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-    let adjustedX = position.x;
-    let adjustedY = position.y;
+    let x = position.x;
+    let y = position.y;
 
-    // Check if form would go off right edge
-    if (adjustedX + rect.width > viewportWidth - 20) {
-      adjustedX = viewportWidth - rect.width - 20;
-    }
+    if (x + rect.width > vw - 16) x = vw - rect.width - 16;
+    if (x < 16) x = 16;
+    if (y + rect.height > vh - 16) y = vh - rect.height - 16;
+    if (y < 16) y = 16;
 
-    // Check if form would go off left edge
-    if (adjustedX < 20) {
-      adjustedX = 20;
-    }
-
-    // Check if form would go off bottom edge
-    if (adjustedY + rect.height > viewportHeight - 20) {
-      adjustedY = viewportHeight - rect.height - 20;
-    }
-
-    // Check if form would go off top edge
-    if (adjustedY < 20) {
-      adjustedY = 20;
-    }
-
-    setAdjustedPosition({ x: adjustedX, y: adjustedY });
+    setAdjustedPosition({ x, y });
   }, [position]);
 
   const handleSave = () => {
@@ -71,14 +72,14 @@ export function ZoneQuickLabelForm({
   };
 
   const handleSkip = () => {
-    // Skip saves with default "other" type
-    onSave('other', undefined);
+    onSave(zoneType !== 'other' ? zoneType : 'other', undefined);
     onSkip();
   };
 
-  // Handle keyboard shortcuts
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (showPicker) return; // Don't interfere with picker navigation
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSave();
@@ -87,128 +88,133 @@ export function ZoneQuickLabelForm({
         handleSkip();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [zoneType, zoneName]);
+  }, [zoneType, zoneName, showPicker]);
 
-  // Common zone type options organized by category
-  const zoneTypeOptions = [
-    { value: 'other', label: '— Select Type —', category: '' },
-    { value: 'zone_0', label: 'Zone 0 (Home)', category: 'Permaculture Zones' },
-    { value: 'zone_1', label: 'Zone 1 (Kitchen Garden)', category: 'Permaculture Zones' },
-    { value: 'zone_2', label: 'Zone 2 (Orchard)', category: 'Permaculture Zones' },
-    { value: 'zone_3', label: 'Zone 3 (Main Crops)', category: 'Permaculture Zones' },
-    { value: 'zone_4', label: 'Zone 4 (Forage)', category: 'Permaculture Zones' },
-    { value: 'zone_5', label: 'Zone 5 (Wild)', category: 'Permaculture Zones' },
-    { value: 'annual_garden', label: 'Annual Garden', category: 'Growing Areas' },
-    { value: 'orchard', label: 'Orchard', category: 'Growing Areas' },
-    { value: 'food_forest', label: 'Food Forest', category: 'Growing Areas' },
-    { value: 'pasture', label: 'Pasture', category: 'Growing Areas' },
-    { value: 'woodland', label: 'Woodland', category: 'Growing Areas' },
-    { value: 'pond', label: 'Pond', category: 'Water Features' },
-    { value: 'swale', label: 'Swale', category: 'Water Features' },
-    { value: 'water_body', label: 'Water Body', category: 'Water Features' },
-    { value: 'water_flow', label: 'Water Flow', category: 'Water Features' },
-    { value: 'structure', label: 'Structure', category: 'Infrastructure' },
-    { value: 'path', label: 'Path', category: 'Infrastructure' },
-    { value: 'fence', label: 'Fence', category: 'Infrastructure' },
-  ];
-
-  // Detect mobile
+  const currentConfig = getZoneTypeConfig(zoneType);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  // On mobile, anchor to bottom instead
   const formStyle = isMobile
-    ? {
-        position: 'fixed' as const,
-        bottom: '1rem',
-        left: '1rem',
-        right: '1rem',
-        zIndex: 1000
-      }
-    : {
-        position: 'fixed' as const,
-        left: `${adjustedPosition.x}px`,
-        top: `${adjustedPosition.y}px`,
-        zIndex: 1000
-      };
+    ? { position: 'fixed' as const, bottom: '4.5rem', left: '0.75rem', right: '0.75rem', zIndex: 65 }
+    : { position: 'fixed' as const, left: `${adjustedPosition.x}px`, top: `${adjustedPosition.y}px`, zIndex: 65 };
 
   return (
     <>
-      {/* Transparent backdrop to catch clicks */}
-      <div
-        className="fixed inset-0 z-[60]"
-        onClick={handleSkip}
-      />
+      {/* Transparent backdrop */}
+      <div className="fixed inset-0 z-[60]" onClick={handleSkip} />
 
       {/* Quick Label Form */}
       <div
         ref={formRef}
         style={formStyle}
-        className="z-[65] bg-card rounded-xl shadow-2xl border-2 border-green-500 w-[280px] max-md:w-auto animate-in fade-in slide-in-from-top-2 duration-200"
+        className="z-[65] bg-background/95 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.16)] border border-border/50 w-[300px] max-md:w-auto animate-in fade-in slide-in-from-bottom-3 duration-200 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-3 py-2 bg-green-50 dark:bg-green-950 border-b border-green-200 dark:border-green-800 flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-green-900 dark:text-green-100">
-            Quick Label Zone
-          </h4>
-          <Button
-            type="button"
+        <div className="px-4 py-3 flex items-center justify-between border-b border-border/30">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3.5 h-3.5 rounded-md"
+              style={{ backgroundColor: currentConfig.fillColor }}
+            />
+            <h4 className="text-sm font-semibold">Label Zone</h4>
+          </div>
+          <button
             onClick={handleSkip}
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
+            className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
           >
-            <X className="h-3 w-3" />
-          </Button>
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Form Fields */}
-        <div className="p-3 space-y-3">
-          {/* Zone Type Dropdown */}
+        <div className="p-4 space-y-3">
+          {/* Zone Type Button — opens inline picker */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Zone Type
+            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+              Type
             </label>
-            <select
-              value={zoneType}
-              onChange={(e) => setZoneType(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-background"
-              autoFocus
+            <button
+              onClick={() => setShowPicker(!showPicker)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
             >
-              {zoneTypeOptions.map((option, index) => {
-                // Show category headers
-                if (index > 0 && option.category !== zoneTypeOptions[index - 1].category) {
-                  return (
-                    <optgroup key={option.category} label={option.category}>
-                      <option value={option.value}>{option.label}</option>
-                    </optgroup>
-                  );
-                } else if (index === 0 || option.category === zoneTypeOptions[index - 1].category) {
-                  return (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  );
-                }
-                return null;
-              })}
-            </select>
+              <div
+                className="w-4 h-4 rounded-md border border-black/10 flex-shrink-0"
+                style={{ backgroundColor: currentConfig.fillColor }}
+              />
+              <span className="text-sm font-medium flex-1 truncate">{currentConfig.label}</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showPicker ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Inline zone picker */}
+            {showPicker && (
+              <div className="mt-2 max-h-[200px] overflow-y-auto rounded-xl border border-border/30 bg-muted/20 p-1">
+                {Object.entries(ZONE_TYPE_CATEGORIES).filter(([cat]) => cat !== 'Other').map(([category, types]) => (
+                  <div key={category}>
+                    <button
+                      onClick={() => setExpandedCategory(expandedCategory === category ? null : category)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider hover:bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex -space-x-0.5">
+                        {types.slice(0, 3).map(t => (
+                          <div
+                            key={t}
+                            className="w-2.5 h-2.5 rounded-full border border-background"
+                            style={{ backgroundColor: ZONE_TYPES[t]?.fillColor }}
+                          />
+                        ))}
+                      </div>
+                      <span className="flex-1 text-left">{category}</span>
+                      <ChevronDown className={`h-3 w-3 transition-transform ${expandedCategory === category ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {expandedCategory === category && (
+                      <div className="pl-1 pb-1">
+                        {types.map(t => {
+                          const config = ZONE_TYPES[t];
+                          if (!config) return null;
+                          const isSelected = zoneType === t;
+                          return (
+                            <button
+                              key={t}
+                              onClick={() => {
+                                setZoneType(t);
+                                setShowPicker(false);
+                                setExpandedCategory(null);
+                              }}
+                              className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-colors ${
+                                isSelected ? 'bg-primary/10 font-semibold' : 'hover:bg-muted/50'
+                              }`}
+                            >
+                              <div
+                                className="w-3 h-3 rounded-md border border-black/10"
+                                style={{ backgroundColor: config.fillColor }}
+                              />
+                              <span className="truncate">{config.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Zone Name (Optional) */}
+          {/* Zone Name */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Name (optional)
+            <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
+              Name <span className="normal-case tracking-normal">(optional)</span>
             </label>
             <input
+              ref={nameInputRef}
               type="text"
               value={zoneName}
               onChange={(e) => setZoneName(e.target.value)}
-              placeholder='e.g., "Front Pond"'
-              className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-background"
+              placeholder='e.g. "Front Pond"'
+              className="w-full px-3 py-2.5 rounded-xl border border-border/50 bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 placeholder:text-muted-foreground/50"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -223,9 +229,9 @@ export function ZoneQuickLabelForm({
             <Button
               type="button"
               onClick={handleSkip}
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="flex-1 text-xs"
+              className="flex-1 h-10 rounded-xl text-xs font-medium"
             >
               Skip
             </Button>
@@ -233,19 +239,19 @@ export function ZoneQuickLabelForm({
               type="button"
               onClick={handleSave}
               size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700 text-xs"
+              className="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium"
             >
               Save
             </Button>
           </div>
         </div>
 
-        {/* Keyboard Hint */}
-        <div className="px-3 py-2 bg-muted/30 border-t border-border text-center">
-          <p className="text-xs text-muted-foreground">
-            <kbd className="px-1.5 py-0.5 bg-background border rounded text-xs">Enter</kbd> to save
-            {' • '}
-            <kbd className="px-1.5 py-0.5 bg-background border rounded text-xs">Esc</kbd> to skip
+        {/* Keyboard hint — desktop only */}
+        <div className="hidden md:block px-4 py-2 border-t border-border/20 text-center">
+          <p className="text-[10px] text-muted-foreground">
+            <kbd className="px-1 py-0.5 bg-muted/50 border border-border/50 rounded text-[10px]">Enter</kbd> save
+            {' · '}
+            <kbd className="px-1 py-0.5 bg-muted/50 border border-border/50 rounded text-[10px]">Esc</kbd> skip
           </p>
         </div>
       </div>

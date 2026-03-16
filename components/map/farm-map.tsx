@@ -3433,6 +3433,7 @@ export function FarmMap({
         <ZoneQuickLabelForm
           position={quickLabelPosition}
           zoneId={quickLabelZoneId}
+          preselectedType={zoneType}
           onSave={handleQuickLabelSave}
           onSkip={handleQuickLabelSkip}
         />

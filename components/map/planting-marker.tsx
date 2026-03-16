@@ -11,16 +11,9 @@ interface PlantingMarkerProps {
   onClick?: (planting: any) => void;
 }
 
-const LAYER_COLORS: Record<string, string> = {
-  canopy: '#166534',
-  understory: '#16a34a',
-  shrub: '#22c55e',
-  herbaceous: '#84cc16',
-  groundcover: '#a3e635',
-  vine: '#a855f7',
-  root: '#78350f',
-  aquatic: '#0284c7'
-};
+import { PLANTING_LAYER_COLORS } from '@/lib/design/design-system';
+
+const LAYER_COLORS = PLANTING_LAYER_COLORS;
 
 export function PlantingMarker({ planting, map, currentYear, onClick }: PlantingMarkerProps) {
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -64,7 +57,7 @@ export function PlantingMarker({ planting, map, currentYear, onClick }: Planting
     const diameterPixels = (currentWidthMeters / metersPerPixel) * 2.5;
 
     // Ensure minimum visible size
-    return Math.max(12, diameterPixels);
+    return Math.max(14, diameterPixels);
   };
 
   // Initialize marker once
@@ -74,9 +67,9 @@ export function PlantingMarker({ planting, map, currentYear, onClick }: Planting
     el.className = 'planting-marker';
     el.style.borderRadius = '50%';
     el.style.backgroundColor = LAYER_COLORS[planting.layer] || '#16a34a';
-    el.style.border = '2px solid white';
+    el.style.border = '2.5px solid white';
     el.style.cursor = 'pointer';
-    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+    el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.15)';
     el.style.transition = 'width 0.3s ease, height 0.3s ease';
     el.style.transform = 'translate(-50%, -50%)'; // Center the marker
 

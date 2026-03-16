@@ -15,17 +15,9 @@ export interface VideoExportOptions {
   plantings?: any[]; // Planting records with lat/lng/layer/growth fields
 }
 
-// Mirrors LAYER_COLORS from planting-marker.tsx
-const LAYER_COLORS: Record<string, string> = {
-  canopy: '#166534',
-  understory: '#16a34a',
-  shrub: '#22c55e',
-  herbaceous: '#84cc16',
-  groundcover: '#a3e635',
-  vine: '#a855f7',
-  root: '#78350f',
-  aquatic: '#0284c7',
-};
+import { PLANTING_LAYER_COLORS } from '@/lib/design/design-system';
+
+const LAYER_COLORS = PLANTING_LAYER_COLORS;
 
 /** Calculate planting circle radius in map canvas pixels — mirrors PlantingMarker.calculateSize(). */
 function calcPlantingRadius(planting: any, year: number, zoom: number): number {
