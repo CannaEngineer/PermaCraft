@@ -1,28 +1,37 @@
-import { FarmCardSkeleton } from "@/components/dashboard/farm-card-skeleton";
-import { Skeleton } from "@/components/ui/skeleton";
+import { IntelligenceRowSkeleton } from '@/components/dashboard/intel/intelligence-row-skeleton';
 
 export default function DashboardLoading() {
   return (
-    <div className="p-4 md:p-8">
-      {/* Header Skeleton */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-col">
+      {/* Top bar skeleton */}
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-5 w-64" />
+          <div className="h-4 w-32 animate-pulse rounded bg-muted mb-1" />
+          <div className="h-3 w-48 animate-pulse rounded bg-muted" />
         </div>
-        <Skeleton className="hidden md:block h-10 w-32 rounded" />
+        <div className="h-8 w-24 animate-pulse rounded-xl bg-muted" />
       </div>
-
-      {/* Search Skeleton */}
-      <div className="mb-6">
-        <Skeleton className="h-10 w-full max-w-2xl rounded" />
-      </div>
-
-      {/* Farm Cards Skeleton Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <FarmCardSkeleton key={i} />
+      {/* Tab strip skeleton */}
+      <div className="flex gap-2 border-b border-border bg-card px-4 py-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-12 w-32 animate-pulse rounded-t-xl bg-muted" />
         ))}
+      </div>
+      {/* Hero skeleton */}
+      <div className="border-b border-border px-4 py-3">
+        <div className="h-5 w-48 animate-pulse rounded bg-muted mb-2" />
+        <div className="flex gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-5 w-20 animate-pulse rounded-full bg-muted" />
+          ))}
+        </div>
+      </div>
+      <div className="p-4 space-y-4">
+        <IntelligenceRowSkeleton />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="h-48 animate-pulse rounded-xl bg-muted" />
+          <div className="h-48 animate-pulse rounded-xl bg-muted" />
+        </div>
       </div>
     </div>
   );
