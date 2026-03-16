@@ -303,7 +303,7 @@ export async function putLocalRecord(
 /**
  * Bulk put records from server (for initial load / full sync)
  */
-export async function bulkPutServerRecords(store: EntityStoreName, records: Record<string, any>[]) {
+export async function bulkPutServerRecords(store: EntityStoreName, records: (Record<string, any> & { id: string })[]) {
   const db = await getDB();
   const tx = db.transaction(store, 'readwrite');
 
