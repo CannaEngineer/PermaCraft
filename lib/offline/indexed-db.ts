@@ -407,7 +407,7 @@ export async function updateCheckpoint(farmId: string, serverCursor: number) {
  */
 export async function clearFarmData(farmId: string) {
   const db = await getDB();
-  const stores: EntityStoreName[] = ['zones', 'plantings', 'lines', 'guilds', 'phases'];
+  const stores = ['zones', 'plantings', 'lines', 'guilds', 'phases'] as const;
 
   for (const store of stores) {
     const tx = db.transaction(store, 'readwrite');
