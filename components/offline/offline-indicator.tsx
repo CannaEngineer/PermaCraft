@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { WifiOff, Wifi, RefreshCw } from 'lucide-react';
 import { syncOfflineChanges } from '@/lib/offline/sync-manager';
-import { getOfflineQueue } from '@/lib/offline/indexed-db';
+import { getPendingChanges } from '@/lib/offline/indexed-db';
 import { useToast } from '@/hooks/use-toast';
 
 export function OfflineIndicator() {
@@ -35,7 +35,7 @@ export function OfflineIndicator() {
   }
 
   async function updateQueueCount() {
-    const queue = await getOfflineQueue();
+    const queue = await getPendingChanges();
     setQueueCount(queue.length);
   }
 
