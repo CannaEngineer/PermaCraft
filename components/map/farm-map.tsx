@@ -178,6 +178,10 @@ export function FarmMap({
   const updateColoredZonesRef = useRef<(() => void) | null>(null);
   const updateGridRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
   const updateGridDebouncedRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
+  const initialZonesLoadedRef = useRef(false);
+  const mapLoadedRef = useRef(false);
+  const zonesRef = useRef(zones);
+  zonesRef.current = zones;
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
@@ -955,6 +959,51 @@ export function FarmMap({
     };
   }, [toast]);
 
+  // Sync zones prop into MapboxDraw when zones arrive after map has already loaded.
+  // In the Canvas flow, zones are fetched client-side and arrive after the map's
+  // "load" event has already fired with an empty zones array (stale closure).
+  useEffect(() => {
+    if (
+      !mapLoadedRef.current ||
+      initialZonesLoadedRef.current ||
+      !draw.current ||
+      zones.length === 0
+    ) {
+      return;
+    }
+
+    console.log("Late-loading zones into MapboxDraw:", zones.length);
+    zones.forEach((zone) => {
+      try {
+        const geometry =
+          typeof zone.geometry === "string"
+            ? JSON.parse(zone.geometry)
+            : zone.geometry;
+        const properties =
+          typeof zone.properties === "string"
+            ? JSON.parse(zone.properties || "{}")
+            : zone.properties || {};
+        const feature = {
+          id: zone.id,
+          type: "Feature" as const,
+          geometry: geometry,
+          properties: { ...properties, user_zone_type: zone.zone_type },
+        };
+        draw.current!.add(feature);
+      } catch (error) {
+        console.error("Failed to parse zone data:", error, zone);
+      }
+    });
+
+    initialZonesLoadedRef.current = true;
+
+    // Update colored zones and grid after loading
+    setTimeout(() => {
+      updateColoredZonesRef.current?.();
+      updateGridRef.current?.();
+    }, 200);
+  }, [zones]);
+
   /**
    * Setup Grid Layers
    *
@@ -1653,10 +1702,11 @@ export function FarmMap({
         // Load custom imagery from API
         loadCustomImagery();
 
-        // Load initial zones
-        if (draw.current && zones.length > 0) {
-          console.log("Loading zones from database:", zones);
-          zones.forEach((zone) => {
+        // Load initial zones (use ref to get latest value, avoiding stale closure)
+        const currentZones = zonesRef.current;
+        if (draw.current && currentZones.length > 0) {
+          console.log("Loading zones from database:", currentZones);
+          currentZones.forEach((zone) => {
             try {
               const geometry =
                 typeof zone.geometry === "string"
@@ -1683,11 +1733,15 @@ export function FarmMap({
             }
           });
 
+          initialZonesLoadedRef.current = true;
+
           // Update colored zones after loading initial data
           setTimeout(() => {
             updateColoredZones();
           }, 200);
         }
+
+        mapLoadedRef.current = true;
 
         if (onMapReady) {
           onMapReady(map.current);
