@@ -241,7 +241,7 @@ export async function getDirtyRecords(store: EntityStoreName) {
 /**
  * Put a record from the server (not dirty)
  */
-export async function putServerRecord(store: EntityStoreName, data: Record<string, any>) {
+export async function putServerRecord(store: EntityStoreName, data: Record<string, any> & { id: string }) {
   const db = await getDB();
   const existing = await db.get(store, data.id);
 
