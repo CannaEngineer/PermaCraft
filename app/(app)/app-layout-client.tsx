@@ -3,10 +3,11 @@
 import { Sidebar } from "@/components/shared/sidebar";
 import { BottomNavBar } from "@/components/shared/bottom-nav-bar";
 import { Toaster } from "@/components/ui/toaster";
-import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
-import { OfflineQueueIndicator } from "@/components/shared/offline-queue-indicator";
 import { PublicTopBar } from "@/components/shared/public-top-bar";
+import { OfflineSyncProvider } from "@/contexts/offline-sync-context";
+import { SyncStatusBar } from "@/components/shared/sync-status-bar";
+import { ConflictResolver } from "@/components/shared/conflict-resolver";
 
 export default function AppLayoutClient({
   children,
@@ -24,13 +25,14 @@ export default function AppLayoutClient({
   if (!isAuthenticated) {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen bg-background">
-          <OfflineIndicator />
-          <PublicTopBar />
-          <main className="pt-14">{children}</main>
-          <Toaster />
-          <OfflineQueueIndicator />
-        </div>
+        <OfflineSyncProvider>
+          <div className="min-h-screen bg-background">
+            <SyncStatusBar position="top" />
+            <PublicTopBar />
+            <main className="pt-14">{children}</main>
+            <Toaster />
+          </div>
+        </OfflineSyncProvider>
       </ErrorBoundary>
     );
   }
@@ -38,34 +40,36 @@ export default function AppLayoutClient({
 
   return (
     <ErrorBoundary>
-      <div className="h-screen flex bg-background">
-        {/* Offline Indicator */}
-        <OfflineIndicator />
+      <OfflineSyncProvider>
+        <div className="h-screen flex bg-background">
+          {/* Sync Status Bar */}
+          <SyncStatusBar position="top" />
 
-        {/* Desktop Sidebar */}
-        <aside className="hidden md:block md:w-64 flex-shrink-0 bg-card border-r border-border">
-          <Sidebar userName={userName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} userId={userId} />
-        </aside>
+          {/* Desktop Sidebar */}
+          <aside className="hidden md:block md:w-64 flex-shrink-0 bg-card border-r border-border">
+            <Sidebar userName={userName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} userId={userId} />
+          </aside>
 
-        {/* Main content area */}
-        <main className="flex-1 overflow-auto bg-background pb-16 md:pb-0">
-          {children}
-        </main>
+          {/* Main content area */}
+          <main className="flex-1 overflow-auto bg-background pb-16 md:pb-0">
+            {children}
+          </main>
 
-        {/* Mobile Bottom Navigation - hidden on desktop */}
-        <BottomNavBar
-          userName={userName}
-          isAuthenticated={isAuthenticated}
-          isAdmin={isAdmin}
-          userId={userId}
-        />
+          {/* Mobile Bottom Navigation - hidden on desktop */}
+          <BottomNavBar
+            userName={userName}
+            isAuthenticated={isAuthenticated}
+            isAdmin={isAdmin}
+            userId={userId}
+          />
 
-        {/* Toast Notifications */}
-        <Toaster />
+          {/* Toast Notifications */}
+          <Toaster />
 
-        {/* Offline Queue Indicator */}
-        <OfflineQueueIndicator />
-      </div>
+          {/* Conflict Resolution Dialog */}
+          <ConflictResolver />
+        </div>
+      </OfflineSyncProvider>
     </ErrorBoundary>
   );
 }

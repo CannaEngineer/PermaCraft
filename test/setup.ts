@@ -1,6 +1,11 @@
 import { vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+// Skip browser mocks in node environment (non-component tests)
+if (typeof window === 'undefined') {
+  // Node environment - no browser mocks needed
+} else {
+
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -47,3 +52,5 @@ Object.defineProperty(window, 'scrollTo', {
   writable: true,
   value: vi.fn(),
 });
+
+} // end if (typeof window !== 'undefined')
