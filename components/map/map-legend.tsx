@@ -23,28 +23,10 @@ interface MapLegendProps {
   maxYear?: number;
 }
 
-// Planting layer colors (matches PlantingMarker.tsx)
-const LAYER_COLORS: Record<string, string> = {
-  canopy: '#166534',
-  understory: '#16a34a',
-  shrub: '#22c55e',
-  herbaceous: '#84cc16',
-  groundcover: '#a3e635',
-  vine: '#a855f7',
-  root: '#78350f',
-  aquatic: '#0284c7'
-};
+import { PLANTING_LAYER_COLORS, PLANTING_LAYER_LABELS, PLANTING_LAYER_ORDER } from '@/lib/design/design-system';
 
-const LAYER_LABELS: Record<string, string> = {
-  canopy: 'Canopy',
-  understory: 'Understory',
-  shrub: 'Shrub',
-  herbaceous: 'Herbaceous',
-  groundcover: 'Groundcover',
-  vine: 'Vine',
-  root: 'Root',
-  aquatic: 'Aquatic'
-};
+const LAYER_COLORS = PLANTING_LAYER_COLORS;
+const LAYER_LABELS = PLANTING_LAYER_LABELS;
 
 export function MapLegend({
   mapLayer,
@@ -179,8 +161,7 @@ export function MapLegend({
   });
 
   // Convert to sorted array for display (in order of canopy -> aquatic)
-  const layerOrder = ['canopy', 'understory', 'shrub', 'herbaceous', 'groundcover', 'vine', 'root', 'aquatic'];
-  const displayPlantingLayers = layerOrder.filter(layer => usedPlantingLayers.has(layer));
+  const displayPlantingLayers = PLANTING_LAYER_ORDER.filter(layer => usedPlantingLayers.has(layer));
 
   const yearRange = maxYear - minYear;
   const progressPercent = currentYear ? ((currentYear - minYear) / yearRange) * 100 : 0;

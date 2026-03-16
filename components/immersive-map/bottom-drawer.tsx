@@ -4,7 +4,8 @@ import { useImmersiveMapUI, type BottomDrawerTab } from "@/contexts/immersive-ma
 import { motion, PanInfo } from "framer-motion";
 import { ReactNode, useRef, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Plus, PenTool, X } from "lucide-react";
+import { Plus, PenTool, X, Leaf, Map } from "lucide-react";
+import { DESIGN_TOKENS } from "@/lib/design/design-system";
 
 interface BottomDrawerProps {
   /** Content for each tab */
@@ -23,10 +24,10 @@ interface BottomDrawerProps {
   onDrawZone?: () => void;
 }
 
-const TAB_CONFIG: { id: BottomDrawerTab; label: string }[] = [
-  { id: 'design', label: 'Features' },
-  { id: 'manage', label: 'Plan' },
-  { id: 'story', label: 'Story' },
+const TAB_CONFIG: { id: BottomDrawerTab; label: string; icon: typeof Leaf }[] = [
+  { id: 'design', label: 'Features', icon: Map },
+  { id: 'manage', label: 'Plan', icon: Leaf },
+  { id: 'story', label: 'Story', icon: Leaf },
 ];
 
 export function BottomDrawer({
@@ -115,27 +116,25 @@ export function BottomDrawer({
       animate={{ height: heightMap[drawerHeight] }}
       transition={{
         type: 'spring',
-        stiffness: 300,
-        damping: 30,
-        mass: 0.8,
+        ...DESIGN_TOKENS.spring.snappy,
       }}
       drag="y"
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={0.1}
       onDragEnd={handleDragEnd}
-      className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] flex flex-col overflow-hidden rounded-t-2xl border-t border-border/30 bg-background/80 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-4px_32px_rgba(0,0,0,0.08)] max-md:bottom-14"
+      className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] flex flex-col overflow-hidden rounded-t-2xl border-t border-border/30 bg-background/85 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-4px_32px_rgba(0,0,0,0.08)] max-md:bottom-14"
       style={{ willChange: 'height' }}
       data-bottom-drawer
     >
       {/* Drag handle */}
       <div className="flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing">
-        <div className="w-9 h-[3px] bg-muted-foreground/25 rounded-full" />
+        <div className="w-9 h-[3px] bg-muted-foreground/20 rounded-full" />
       </div>
 
       {/* Header: tabs + actions — always visible */}
       <div className="flex items-center gap-2 px-4 pb-2 flex-shrink-0">
         {/* Segmented control tabs */}
-        <div className="flex items-center bg-muted/50 rounded-lg p-0.5 flex-1 min-w-0">
+        <div className="flex items-center bg-muted/40 rounded-lg p-0.5 flex-1 min-w-0">
           {TAB_CONFIG.map((tab) => {
             const isActive = activeTab === tab.id && !showDetailOverlay;
             return (
@@ -169,7 +168,7 @@ export function BottomDrawer({
           {zoneLinkMode ? (
             <button
               onClick={handleCancelZoneLink}
-              className="flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors"
+              className="flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors active:scale-95"
             >
               <X className="h-3 w-3" />
               Cancel
@@ -178,17 +177,17 @@ export function BottomDrawer({
             <>
               <button
                 onClick={onAddPlant}
-                className="flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 transition-colors active:scale-95 shadow-sm"
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Plant</span>
               </button>
               <button
                 onClick={handleDrawZone}
-                className="flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-medium bg-muted/60 hover:bg-muted text-foreground transition-colors active:scale-95"
               >
-                <PenTool className="h-3 w-3" />
-                <span className="hidden sm:inline">Zone</span>
+                <PenTool className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Draw</span>
               </button>
             </>
           )}
