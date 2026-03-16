@@ -263,7 +263,7 @@ export async function putServerRecord(store: EntityStoreName, data: Record<strin
  */
 export async function putLocalRecord(
   store: EntityStoreName,
-  data: Record<string, any>,
+  data: Record<string, any> & { id: string },
   changeType: ChangeType
 ) {
   const db = await getDB();
