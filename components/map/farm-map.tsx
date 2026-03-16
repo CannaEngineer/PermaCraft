@@ -110,8 +110,12 @@ interface FarmMapProps {
   onMapLayerChange?: (layer: string) => void;
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
   onFeatureSelect?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase', featureData?: any) => void;
+  /** Called with all overlapping features at a touch/click point for modal selection */
+  onFeaturesAtPoint?: (features: Array<{ id: string; type: 'zone' | 'planting' | 'line'; name?: string; zoneType?: string }>) => void;
   externalDrawingMode?: boolean;
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
+  /** Zone type selected in the external drawing toolbar */
+  externalZoneType?: string;
   externalSelectedSpecies?: { species: Species; seq: number } | null;
   /** When set to true, opens the internal species picker (same as map submenu Add Plant). Reset to false after acknowledging. */
   externalShowSpeciesPicker?: boolean;
@@ -137,8 +141,10 @@ export function FarmMap({
   onMapLayerChange,
   onGetRecommendations,
   onFeatureSelect,
+  onFeaturesAtPoint,
   externalDrawingMode,
   externalDrawTool,
+  externalZoneType,
   externalSelectedSpecies,
   externalShowSpeciesPicker,
   onSpeciesPickerOpened,
@@ -220,6 +226,13 @@ export function FarmMap({
       onSpeciesPickerOpened?.();
     }
   }, [externalShowSpeciesPicker, onSpeciesPickerOpened]);
+
+  // Sync external zone type from drawing toolbar into internal state
+  useEffect(() => {
+    if (externalZoneType) {
+      setZoneType(externalZoneType);
+    }
+  }, [externalZoneType]);
 
   // Zone quick label form state
   const [showQuickLabelForm, setShowQuickLabelForm] = useState(false);
@@ -2039,7 +2052,7 @@ export function FarmMap({
       }
 
       // Handle feature selection when not in any drawing mode
-      if (!circleMode && !externalDrawingMode && onFeatureSelect && map.current) {
+      if (!circleMode && !externalDrawingMode && (onFeatureSelect || onFeaturesAtPoint) && map.current) {
         const features = map.current.queryRenderedFeatures(e.point, {
           layers: [
             'colored-zones-fill',
@@ -2054,55 +2067,75 @@ export function FarmMap({
         });
 
         if (features.length > 0) {
-          const feature = features[0];
+          // Collect all unique features at this point for overlapping zone support
+          const collectedFeatures: Array<{ id: string; type: 'zone' | 'planting' | 'line'; name?: string; zoneType?: string }> = [];
+          const seenIds = new Set<string>();
 
-          // Handle zone selection (from colored layer)
-          if (feature.layer.id === 'colored-zones-fill' && feature.properties) {
-            onFeatureSelect(feature.properties.id || feature.id?.toString(), 'zone', {
-              id: feature.properties.id || feature.id,
-              name: feature.properties.name,
-              zone_type: feature.properties.user_zone_type,
-            });
+          for (const feature of features) {
+            let featureInfo: typeof collectedFeatures[0] | null = null;
 
-            // Deselect all in MapboxDraw to prevent selection UI
-            if (draw.current) {
-              draw.current.changeMode('simple_select', { featureIds: [] });
-            }
-            return;
-          }
-
-          // Handle zone selection (from MapboxDraw layers)
-          if (feature.layer.id && feature.layer.id.startsWith('gl-draw-polygon')) {
-            const zoneId = feature.id?.toString();
-            if (zoneId && draw.current) {
-              // Get the feature from MapboxDraw to access its properties
-              const drawnFeature = draw.current.get(zoneId);
-              if (drawnFeature) {
-                onFeatureSelect(zoneId, 'zone', {
-                  id: zoneId,
-                  name: drawnFeature.properties?.name,
-                  zone_type: drawnFeature.properties?.user_zone_type,
-                });
-
-                // Deselect all in MapboxDraw to prevent selection UI and quick label form
-                draw.current.changeMode('simple_select', { featureIds: [] });
-                return;
+            if (feature.layer.id === 'colored-zones-fill' && feature.properties) {
+              const id = feature.properties.id || feature.id?.toString();
+              if (id) {
+                featureInfo = {
+                  id,
+                  type: 'zone',
+                  name: feature.properties.name,
+                  zoneType: feature.properties.user_zone_type,
+                };
+              }
+            } else if (feature.layer.id?.startsWith('gl-draw-polygon')) {
+              const zoneId = feature.id?.toString();
+              if (zoneId && draw.current) {
+                const drawnFeature = draw.current.get(zoneId);
+                if (drawnFeature) {
+                  featureInfo = {
+                    id: zoneId,
+                    type: 'zone',
+                    name: drawnFeature.properties?.name,
+                    zoneType: drawnFeature.properties?.user_zone_type,
+                  };
+                }
+              }
+            } else if (feature.layer.id === 'colored-lines' && feature.properties) {
+              const id = feature.properties.id || feature.id?.toString();
+              if (id) {
+                featureInfo = {
+                  id,
+                  type: 'line',
+                  name: feature.properties.name,
+                };
               }
             }
+
+            if (featureInfo && !seenIds.has(featureInfo.id)) {
+              seenIds.add(featureInfo.id);
+              collectedFeatures.push(featureInfo);
+            }
           }
 
-          // Handle line selection
-          if (feature.layer.id === 'colored-lines' && feature.properties) {
-            onFeatureSelect(feature.properties.id || feature.id?.toString(), 'line', {
-              id: feature.properties.id || feature.id,
-              name: feature.properties.name,
-            });
-
+          if (collectedFeatures.length > 0) {
             // Deselect all in MapboxDraw to prevent selection UI
             if (draw.current) {
               draw.current.changeMode('simple_select', { featureIds: [] });
             }
-            return;
+
+            // Use onFeaturesAtPoint if available (for touch modal with overlapping support)
+            if (onFeaturesAtPoint) {
+              onFeaturesAtPoint(collectedFeatures);
+              return;
+            }
+
+            // Fallback: use onFeatureSelect with the first feature
+            if (onFeatureSelect) {
+              const f = collectedFeatures[0];
+              onFeatureSelect(f.id, f.type, {
+                id: f.id,
+                name: f.name,
+                zone_type: f.zoneType,
+              });
+              return;
+            }
           }
         }
       }
@@ -2163,7 +2196,7 @@ export function FarmMap({
         map.current.off("touchend", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {

@@ -21,6 +21,7 @@ import { PhaseManager } from "@/components/phasing/phase-manager";
 import { ExportPanel } from "@/components/export/export-panel";
 import { SpeciesPickerPanel } from "@/components/map/species-picker-panel";
 import { FeatureListPanel } from "@/components/map/feature-list-panel";
+import { FeatureTouchModal, type TouchFeature } from "@/components/map/feature-touch-modal";
 import { ManageTab } from "@/components/map/manage-tab";
 import { StoryTab } from "@/components/map/story-tab";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -302,6 +303,9 @@ function ImmersiveMapEditorContent({
     type: 'zone' | 'planting' | 'line' | 'guild' | 'phase';
   } | null>(null);
 
+  // Touch selection modal state
+  const [touchFeatures, setTouchFeatures] = useState<TouchFeature[] | null>(null);
+
   // Visible layer IDs for filtering
   const [visibleLayerIds, setVisibleLayerIds] = useState<string[]>([]);
 
@@ -442,6 +446,37 @@ function ImmersiveMapEditorContent({
     setZones(newZones);
     setHasUnsavedChanges(true);
   };
+
+  // Delete a zone by ID (removes from MapboxDraw via zones state update)
+  const handleDeleteZone = useCallback(async (zoneId: string) => {
+    try {
+      await fetch(`/api/farms/${farm.id}/zones/${zoneId}`, { method: 'DELETE' });
+      setZones(prev => prev.filter(z => z.id !== zoneId));
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error('Failed to delete zone:', error);
+    }
+  }, [farm.id]);
+
+  // Delete a line by ID
+  const handleDeleteLine = useCallback(async (lineId: string) => {
+    try {
+      await fetch(`/api/farms/${farm.id}/lines/${lineId}`, { method: 'DELETE' });
+      setLines(prev => prev.filter(l => l.id !== lineId));
+    } catch (error) {
+      console.error('Failed to delete line:', error);
+    }
+  }, [farm.id]);
+
+  // Delete a planting by ID
+  const handleDeletePlanting = useCallback(async (plantingId: string) => {
+    try {
+      await fetch(`/api/farms/${farm.id}/plantings/${plantingId}`, { method: 'DELETE' });
+      setPlantings(prev => prev.filter(p => p.id !== plantingId));
+    } catch (error) {
+      console.error('Failed to delete planting:', error);
+    }
+  }, [farm.id]);
 
   // AI screenshot capture
   const captureMapScreenshot = useCallback(async (): Promise<string> => {
@@ -643,6 +678,33 @@ function ImmersiveMapEditorContent({
     openDrawer('details', 'medium');
   }, [openDrawer, farmContext]);
 
+  // Handle touch/click on map features — shows modal for single or overlapping features
+  const handleFeaturesAtPoint = useCallback((features: Array<{ id: string; type: 'zone' | 'planting' | 'line'; name?: string; zoneType?: string }>) => {
+    setTouchFeatures(features as TouchFeature[]);
+  }, []);
+
+  // Handle action from the touch modal
+  const handleTouchModalAction = useCallback((feature: TouchFeature, action: 'edit' | 'delete' | 'details' | 'comments') => {
+    setTouchFeatures(null);
+
+    if (action === 'details') {
+      setSelectedFeature({ id: feature.id, type: feature.type });
+      openDrawer('details', 'medium');
+    } else if (action === 'comments') {
+      setSelectedFeature({ id: feature.id, type: feature.type });
+      openDrawer('comments', 'medium');
+    } else if (action === 'delete') {
+      // Delete the feature
+      if (feature.type === 'zone') {
+        handleDeleteZone(feature.id);
+      } else if (feature.type === 'line') {
+        handleDeleteLine(feature.id);
+      } else if (feature.type === 'planting') {
+        handleDeletePlanting(feature.id);
+      }
+    }
+  }, [openDrawer]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -771,8 +833,10 @@ function ImmersiveMapEditorContent({
           onMapLayerChange={setCurrentMapLayer}
           onGetRecommendations={handleVitalRecommendations}
           onFeatureSelect={handleFeatureSelect}
+          onFeaturesAtPoint={handleFeaturesAtPoint}
           externalDrawingMode={drawingMode}
           externalDrawTool={activeDrawTool}
+          externalZoneType={currentZoneType}
           externalSelectedSpecies={pendingPlantSpecies}
           externalShowSpeciesPicker={triggerSpeciesPicker}
           onSpeciesPickerOpened={handleSpeciesPickerOpened}
@@ -994,6 +1058,15 @@ function ImmersiveMapEditorContent({
           setJournalFormOpen(false);
         }}
       />
+
+      {/* Feature Touch Selection Modal */}
+      {touchFeatures && touchFeatures.length > 0 && (
+        <FeatureTouchModal
+          features={touchFeatures}
+          onSelect={handleTouchModalAction}
+          onClose={() => setTouchFeatures(null)}
+        />
+      )}
     </div>
   );
 }
