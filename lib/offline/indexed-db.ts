@@ -241,7 +241,7 @@ export async function getDirtyRecords(store: EntityStoreName) {
 /**
  * Put a record from the server (not dirty)
  */
-export async function putServerRecord(store: EntityStoreName, data: Record<string, any>) {
+export async function putServerRecord(store: EntityStoreName, data: Record<string, any> & { id: string }) {
   const db = await getDB();
   const existing = await db.get(store, data.id);
 
@@ -263,7 +263,7 @@ export async function putServerRecord(store: EntityStoreName, data: Record<strin
  */
 export async function putLocalRecord(
   store: EntityStoreName,
-  data: Record<string, any>,
+  data: Record<string, any> & { id: string },
   changeType: ChangeType
 ) {
   const db = await getDB();
@@ -303,7 +303,7 @@ export async function putLocalRecord(
 /**
  * Bulk put records from server (for initial load / full sync)
  */
-export async function bulkPutServerRecords(store: EntityStoreName, records: Record<string, any>[]) {
+export async function bulkPutServerRecords(store: EntityStoreName, records: (Record<string, any> & { id: string })[]) {
   const db = await getDB();
   const tx = db.transaction(store, 'readwrite');
 
@@ -407,7 +407,7 @@ export async function updateCheckpoint(farmId: string, serverCursor: number) {
  */
 export async function clearFarmData(farmId: string) {
   const db = await getDB();
-  const stores: EntityStoreName[] = ['zones', 'plantings', 'lines', 'guilds', 'phases'];
+  const stores = ['zones', 'plantings', 'lines', 'guilds', 'phases'] as const;
 
   for (const store of stores) {
     const tx = db.transaction(store, 'readwrite');

@@ -1,4 +1,4 @@
-import { getOfflineQueue, clearOfflineQueue } from './indexed-db';
+import { getPendingChanges, markChangeSynced } from './indexed-db';
 
 export async function syncOfflineChanges() {
   if (!navigator.onLine) {
@@ -6,7 +6,7 @@ export async function syncOfflineChanges() {
     return { success: false, error: 'Device is offline' };
   }
 
-  const queue = await getOfflineQueue();
+  const queue = await getPendingChanges();
 
   if (queue.length === 0) {
     console.log('No offline changes to sync');
@@ -20,6 +20,7 @@ export async function syncOfflineChanges() {
   for (const change of queue) {
     try {
       await syncChange(change);
+      await markChangeSynced(change.id);
     } catch (error) {
       console.error('Failed to sync change:', change, error);
       errors.push({ change, error });
@@ -27,8 +28,6 @@ export async function syncOfflineChanges() {
   }
 
   if (errors.length === 0) {
-    // All synced successfully
-    await clearOfflineQueue();
     console.log('All offline changes synced successfully');
     return { success: true, synced: queue.length };
   } else {
@@ -38,35 +37,35 @@ export async function syncOfflineChanges() {
 }
 
 async function syncChange(change: any) {
-  const { type, resource, data } = change;
+  const { changeType, resourceType, data } = change;
 
   let url = '';
   let method = '';
 
-  switch (type) {
+  switch (changeType) {
     case 'create':
-      url = `/api/farms/${data.farm_id}/${resource}s`;
+      url = `/api/farms/${data.farm_id}/${resourceType}s`;
       method = 'POST';
       break;
 
     case 'update':
-      url = `/api/farms/${data.farm_id}/${resource}s/${data.id}`;
+      url = `/api/farms/${data.farm_id}/${resourceType}s/${data.id}`;
       method = 'PATCH';
       break;
 
     case 'delete':
-      url = `/api/farms/${data.farm_id}/${resource}s/${data.id}`;
+      url = `/api/farms/${data.farm_id}/${resourceType}s/${data.id}`;
       method = 'DELETE';
       break;
 
     default:
-      throw new Error(`Unknown change type: ${type}`);
+      throw new Error(`Unknown change type: ${changeType}`);
   }
 
   const response = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    body: type !== 'delete' ? JSON.stringify(data) : undefined
+    body: changeType !== 'delete' ? JSON.stringify(data) : undefined
   });
 
   if (!response.ok) {
