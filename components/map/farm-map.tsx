@@ -1964,11 +1964,6 @@ export function FarmMap({
         }
 
         handleDrawChange(e);
-
-        // Auto-exit drawing mode after feature creation
-        if (onDrawComplete) {
-          onDrawComplete();
-        }
       };
 
       // Prevent farm boundary from being deleted
