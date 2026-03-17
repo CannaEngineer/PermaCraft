@@ -22,6 +22,7 @@ import { ExportPanel } from "@/components/export/export-panel";
 import { SpeciesPickerPanel } from "@/components/map/species-picker-panel";
 import { FeatureListPanel } from "@/components/map/feature-list-panel";
 import { FeatureTouchModal, type TouchFeature } from "@/components/map/feature-touch-modal";
+import { InteractionLayerFilter, type InteractionFilter } from "@/components/map/interaction-layer-filter";
 import { ManageTab } from "@/components/map/manage-tab";
 import { StoryTab } from "@/components/map/story-tab";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -305,6 +306,9 @@ function ImmersiveMapEditorContent({
 
   // Touch selection modal state
   const [touchFeatures, setTouchFeatures] = useState<TouchFeature[] | null>(null);
+
+  // Interaction layer filter — controls which feature types respond to touch/click
+  const [interactionFilter, setInteractionFilter] = useState<InteractionFilter>('all');
 
   // Visible layer IDs for filtering
   const [visibleLayerIds, setVisibleLayerIds] = useState<string[]>([]);
@@ -679,12 +683,19 @@ function ImmersiveMapEditorContent({
   }, [openDrawer, farmContext]);
 
   // Handle touch/click on map features — shows modal for single or overlapping features
-  const handleFeaturesAtPoint = useCallback((features: Array<{ id: string; type: 'zone' | 'planting' | 'line'; name?: string; zoneType?: string }>) => {
+  const handleFeaturesAtPoint = useCallback((features: Array<{
+    id: string;
+    type: 'zone' | 'planting' | 'line';
+    name?: string;
+    zoneType?: string;
+    plantingData?: any;
+    lineData?: any;
+  }>) => {
     setTouchFeatures(features as TouchFeature[]);
   }, []);
 
   // Handle action from the touch modal
-  const handleTouchModalAction = useCallback((feature: TouchFeature, action: 'edit' | 'delete' | 'details' | 'comments') => {
+  const handleTouchModalAction = useCallback((feature: TouchFeature, action: 'edit' | 'delete' | 'details' | 'comments' | 'companions') => {
     setTouchFeatures(null);
 
     if (action === 'details') {
@@ -693,6 +704,20 @@ function ImmersiveMapEditorContent({
     } else if (action === 'comments') {
       setSelectedFeature({ id: feature.id, type: feature.type });
       openDrawer('comments', 'medium');
+    } else if (action === 'companions') {
+      // Open guild designer with the selected planting as focal species
+      if (feature.type === 'planting' && feature.plantingData) {
+        setGuildContext({
+          focalSpecies: {
+            id: feature.plantingData.species_id,
+            common_name: feature.plantingData.common_name,
+            scientific_name: feature.plantingData.scientific_name,
+            layer: feature.plantingData.layer,
+          },
+          farmContext: farmContext,
+        });
+        openDrawer('guild-designer', 'max');
+      }
     } else if (action === 'delete') {
       // Delete the feature
       if (feature.type === 'zone') {
@@ -703,7 +728,7 @@ function ImmersiveMapEditorContent({
         handleDeletePlanting(feature.id);
       }
     }
-  }, [openDrawer]);
+  }, [openDrawer, farmContext]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -834,6 +859,7 @@ function ImmersiveMapEditorContent({
           onGetRecommendations={handleVitalRecommendations}
           onFeatureSelect={handleFeatureSelect}
           onFeaturesAtPoint={handleFeaturesAtPoint}
+          interactionFilter={interactionFilter}
           externalDrawingMode={drawingMode}
           externalDrawTool={activeDrawTool}
           externalZoneType={currentZoneType}
@@ -861,6 +887,21 @@ function ImmersiveMapEditorContent({
         currentZoneType={currentZoneType}
         onZoneTypeChange={setCurrentZoneType}
       />
+
+      {/* Interaction Layer Filter — lets users select which feature types respond to touch */}
+      {uiMode !== 'drawing' && uiMode !== 'chatting' && (
+        <div className="absolute left-3 z-30" style={{ bottom: '72px' }}>
+          <InteractionLayerFilter
+            activeFilter={interactionFilter}
+            onFilterChange={setInteractionFilter}
+            counts={{
+              zones: zones.length,
+              plants: plantings.length,
+              lines: lines.length,
+            }}
+          />
+        </div>
+      )}
 
       {/* Bottom Drawer (3-tab: Design / Manage / Story) */}
       <BottomDrawer
