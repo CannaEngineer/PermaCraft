@@ -3,14 +3,14 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 
 const FUNCTION_LABELS: Record<string, { label: string; color: string }> = {
-  nitrogen_fixer: { label: 'N-fixers', color: 'bg-green-900/60 text-green-300 border-green-800' },
-  pollinator: { label: 'Pollinators', color: 'bg-yellow-900/60 text-yellow-300 border-yellow-800' },
-  dynamic_accumulator: { label: 'Accumulators', color: 'bg-purple-900/60 text-purple-300 border-purple-800' },
-  wildlife_habitat: { label: 'Wildlife', color: 'bg-emerald-900/60 text-emerald-300 border-emerald-800' },
-  edible: { label: 'Edibles', color: 'bg-orange-900/60 text-orange-300 border-orange-800' },
-  medicinal: { label: 'Medicinal', color: 'bg-red-900/60 text-red-300 border-red-800' },
-  erosion_control: { label: 'Erosion ctrl', color: 'bg-amber-900/60 text-amber-300 border-amber-800' },
-  water_management: { label: 'Water mgmt', color: 'bg-blue-900/60 text-blue-300 border-blue-800' },
+  nitrogen_fixer: { label: 'N-fixers', color: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/60 dark:text-green-300 dark:border-green-800' },
+  pollinator: { label: 'Pollinators', color: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/60 dark:text-yellow-300 dark:border-yellow-800' },
+  dynamic_accumulator: { label: 'Accumulators', color: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/60 dark:text-purple-300 dark:border-purple-800' },
+  wildlife_habitat: { label: 'Wildlife', color: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800' },
+  edible: { label: 'Edibles', color: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/60 dark:text-orange-300 dark:border-orange-800' },
+  medicinal: { label: 'Medicinal', color: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/60 dark:text-red-300 dark:border-red-800' },
+  erosion_control: { label: 'Erosion ctrl', color: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/60 dark:text-amber-300 dark:border-amber-800' },
+  water_management: { label: 'Water mgmt', color: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/60 dark:text-blue-300 dark:border-blue-800' },
 };
 
 interface Props {
@@ -39,7 +39,7 @@ export function FarmHeroBar({ farm, ecoFunctions }: Props) {
                 key={key}
                 className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
                   isGap
-                    ? 'border-amber-800/60 bg-amber-950/40 text-amber-400/70'
+                    ? 'border-amber-300 bg-amber-50 text-amber-600 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400/70'
                     : color
                 }`}
               >
