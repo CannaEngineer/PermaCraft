@@ -4,8 +4,9 @@ import { join } from 'path';
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
-// Load .env.local for local runs (no-op if missing)
+// Load environment files for local runs (no-op if missing)
 config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), '.env') });
 
 async function runAllMigrations() {
   const url = process.env.TURSO_DATABASE_URL;
