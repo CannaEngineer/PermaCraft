@@ -79,7 +79,14 @@ export function PlantingMarker({ planting, map, currentYear, onClick }: Planting
     el.style.height = `${initialSize}px`;
 
     if (onClick) {
-      el.addEventListener('click', () => onClick(planting));
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onClick(planting);
+      });
+    } else {
+      // When no onClick handler, let clicks pass through to the map
+      // so the unified feature detection in handleMapClick can pick up plantings
+      el.style.pointerEvents = 'none';
     }
 
     elRef.current = el;

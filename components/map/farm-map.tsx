@@ -111,7 +111,29 @@ interface FarmMapProps {
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
   onFeatureSelect?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase', featureData?: any) => void;
   /** Called with all overlapping features at a touch/click point for modal selection */
-  onFeaturesAtPoint?: (features: Array<{ id: string; type: 'zone' | 'planting' | 'line'; name?: string; zoneType?: string }>) => void;
+  onFeaturesAtPoint?: (features: Array<{
+    id: string;
+    type: 'zone' | 'planting' | 'line';
+    name?: string;
+    zoneType?: string;
+    plantingData?: {
+      common_name: string;
+      scientific_name?: string;
+      layer?: string;
+      planted_year?: number;
+      mature_height_ft?: number;
+      mature_width_ft?: number;
+      years_to_maturity?: number;
+      notes?: string;
+      species_id?: string;
+    };
+    lineData?: {
+      label?: string;
+      line_type?: string;
+    };
+  }>) => void;
+  /** Filter which feature types are selectable on tap (default: 'all') */
+  interactionFilter?: 'all' | 'zones' | 'plants' | 'lines';
   externalDrawingMode?: boolean;
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
   /** Zone type selected in the external drawing toolbar */
@@ -142,6 +164,7 @@ export function FarmMap({
   onGetRecommendations,
   onFeatureSelect,
   onFeaturesAtPoint,
+  interactionFilter = 'all',
   externalDrawingMode,
   externalDrawTool,
   externalZoneType,
@@ -2081,89 +2104,144 @@ export function FarmMap({
 
       // Handle feature selection when not in any drawing mode
       if (!circleMode && !externalDrawingMode && (onFeatureSelect || onFeaturesAtPoint) && map.current) {
-        const features = map.current.queryRenderedFeatures(e.point, {
-          layers: [
-            'colored-zones-fill',
-            'colored-lines',
-            'colored-points',
-            // Include MapboxDraw layers for zone selection
-            'gl-draw-polygon-fill-inactive.cold',
-            'gl-draw-polygon-fill-inactive.hot',
-            'gl-draw-polygon-fill-active.cold',
-            'gl-draw-polygon-fill-active.hot',
-          ]
-        });
+        const collectedFeatures: Array<{
+          id: string;
+          type: 'zone' | 'planting' | 'line';
+          name?: string;
+          zoneType?: string;
+          plantingData?: any;
+          lineData?: any;
+        }> = [];
+        const seenIds = new Set<string>();
 
-        if (features.length > 0) {
-          // Collect all unique features at this point for overlapping zone support
-          const collectedFeatures: Array<{ id: string; type: 'zone' | 'planting' | 'line'; name?: string; zoneType?: string }> = [];
-          const seenIds = new Set<string>();
+        // --- Detect zones and lines from MapLibre layers ---
+        if (interactionFilter === 'all' || interactionFilter === 'zones' || interactionFilter === 'lines') {
+          const queryLayers: string[] = [];
+          if (interactionFilter === 'all' || interactionFilter === 'zones') {
+            queryLayers.push(
+              'colored-zones-fill',
+              'colored-points',
+              'gl-draw-polygon-fill-inactive.cold',
+              'gl-draw-polygon-fill-inactive.hot',
+              'gl-draw-polygon-fill-active.cold',
+              'gl-draw-polygon-fill-active.hot',
+            );
+          }
+          if (interactionFilter === 'all' || interactionFilter === 'lines') {
+            queryLayers.push('colored-lines');
+          }
 
-          for (const feature of features) {
-            let featureInfo: typeof collectedFeatures[0] | null = null;
+          // Filter to only layers that actually exist on the map
+          const existingLayers = queryLayers.filter(l => map.current!.getLayer(l));
 
-            if (feature.layer.id === 'colored-zones-fill' && feature.properties) {
-              const id = feature.properties.id || feature.id?.toString();
-              if (id) {
-                featureInfo = {
-                  id,
-                  type: 'zone',
-                  name: feature.properties.name,
-                  zoneType: feature.properties.user_zone_type,
-                };
-              }
-            } else if (feature.layer.id?.startsWith('gl-draw-polygon')) {
-              const zoneId = feature.id?.toString();
-              if (zoneId && draw.current) {
-                const drawnFeature = draw.current.get(zoneId);
-                if (drawnFeature) {
+          if (existingLayers.length > 0) {
+            const features = map.current.queryRenderedFeatures(e.point, { layers: existingLayers });
+
+            for (const feature of features) {
+              let featureInfo: typeof collectedFeatures[0] | null = null;
+
+              if (feature.layer.id === 'colored-zones-fill' && feature.properties) {
+                const id = feature.properties.id || feature.id?.toString();
+                if (id && (interactionFilter === 'all' || interactionFilter === 'zones')) {
                   featureInfo = {
-                    id: zoneId,
+                    id,
                     type: 'zone',
-                    name: drawnFeature.properties?.name,
-                    zoneType: drawnFeature.properties?.user_zone_type,
+                    name: feature.properties.name,
+                    zoneType: feature.properties.user_zone_type,
+                  };
+                }
+              } else if (feature.layer.id?.startsWith('gl-draw-polygon')) {
+                const zoneId = feature.id?.toString();
+                if (zoneId && draw.current && (interactionFilter === 'all' || interactionFilter === 'zones')) {
+                  const drawnFeature = draw.current.get(zoneId);
+                  if (drawnFeature) {
+                    featureInfo = {
+                      id: zoneId,
+                      type: 'zone',
+                      name: drawnFeature.properties?.name,
+                      zoneType: drawnFeature.properties?.user_zone_type,
+                    };
+                  }
+                }
+              } else if (feature.layer.id === 'colored-lines' && feature.properties) {
+                const id = feature.properties.id || feature.id?.toString();
+                if (id && (interactionFilter === 'all' || interactionFilter === 'lines')) {
+                  featureInfo = {
+                    id,
+                    type: 'line',
+                    name: feature.properties.name,
+                    lineData: {
+                      label: feature.properties.label,
+                      line_type: feature.properties.line_type,
+                    },
                   };
                 }
               }
-            } else if (feature.layer.id === 'colored-lines' && feature.properties) {
-              const id = feature.properties.id || feature.id?.toString();
-              if (id) {
-                featureInfo = {
-                  id,
-                  type: 'line',
-                  name: feature.properties.name,
-                };
+
+              if (featureInfo && !seenIds.has(featureInfo.id)) {
+                seenIds.add(featureInfo.id);
+                collectedFeatures.push(featureInfo);
               }
             }
+          }
+        }
 
-            if (featureInfo && !seenIds.has(featureInfo.id)) {
-              seenIds.add(featureInfo.id);
-              collectedFeatures.push(featureInfo);
+        // --- Detect plantings via coordinate proximity (DOM markers, not MapLibre layers) ---
+        if (interactionFilter === 'all' || interactionFilter === 'plants') {
+          const clickLngLat = e.lngLat;
+          // Touch radius: 20px on touch devices, 10px on desktop
+          const isTouchEvent = 'touches' in (e.originalEvent || {});
+          const hitRadiusPx = isTouchEvent ? 24 : 12;
+
+          for (const p of filteredPlantings) {
+            const plantingPoint = map.current.project([p.lng, p.lat]);
+            const dx = plantingPoint.x - e.point.x;
+            const dy = plantingPoint.y - e.point.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist <= hitRadiusPx && !seenIds.has(p.id)) {
+              seenIds.add(p.id);
+              collectedFeatures.push({
+                id: p.id,
+                type: 'planting',
+                name: p.custom_name || p.common_name,
+                plantingData: {
+                  common_name: p.common_name,
+                  scientific_name: p.scientific_name,
+                  layer: p.layer,
+                  planted_year: p.planted_year,
+                  mature_height_ft: p.mature_height_ft,
+                  mature_width_ft: p.mature_width_ft,
+                  years_to_maturity: p.years_to_maturity,
+                  notes: p.notes,
+                  species_id: p.species_id,
+                },
+              });
             }
           }
+        }
 
-          if (collectedFeatures.length > 0) {
-            // Deselect all in MapboxDraw to prevent selection UI
-            if (draw.current) {
-              draw.current.changeMode('simple_select', { featureIds: [] });
-            }
+        if (collectedFeatures.length > 0) {
+          // Deselect all in MapboxDraw to prevent selection UI
+          if (draw.current) {
+            draw.current.changeMode('simple_select', { featureIds: [] });
+          }
 
-            // Use onFeaturesAtPoint if available (for touch modal with overlapping support)
-            if (onFeaturesAtPoint) {
-              onFeaturesAtPoint(collectedFeatures);
-              return;
-            }
+          // Use onFeaturesAtPoint if available (for touch modal with overlapping support)
+          if (onFeaturesAtPoint) {
+            onFeaturesAtPoint(collectedFeatures);
+            return;
+          }
 
-            // Fallback: use onFeatureSelect with the first feature
-            if (onFeatureSelect) {
-              const f = collectedFeatures[0];
-              onFeatureSelect(f.id, f.type, {
-                id: f.id,
-                name: f.name,
-                zone_type: f.zoneType,
-              });
-              return;
-            }
+          // Fallback: use onFeatureSelect with the first feature
+          if (onFeatureSelect) {
+            const f = collectedFeatures[0];
+            onFeatureSelect(f.id, f.type, {
+              id: f.id,
+              name: f.name,
+              zone_type: f.zoneType,
+            });
+            return;
           }
         }
       }
@@ -2224,7 +2302,7 @@ export function FarmMap({
         map.current.off("touchend", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, filteredPlantings]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {
@@ -3480,7 +3558,7 @@ export function FarmMap({
           planting={planting}
           map={map.current!}
           currentYear={projectionYear}
-          onClick={(p) => {
+          onClick={onFeaturesAtPoint ? undefined : (p) => {
             setSelectedPlanting(p);
           }}
         />
