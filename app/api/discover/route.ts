@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0');
 
   try {
+    if (section === 'farms') {
+      return Response.json(await fetchFarms(q, limit, offset));
+    }
     if (section === 'tours') {
       return Response.json(await fetchTours(q, category, limit, offset));
     }
@@ -29,9 +32,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: return overview data for the discover page
-    const [featuredFarms, recentTours, recentStories, recentUpdates, topShops, stats] =
+    const [featuredFarms, recentFarms, recentTours, recentStories, recentUpdates, topShops, stats] =
       await Promise.all([
         fetchFeaturedFarms(),
+        fetchFarms('', 6, 0),
         fetchTours('', '', 6, 0),
         fetchStories('', 4, 0),
         fetchUpdates(userId, '', 6, 0),
@@ -41,6 +45,7 @@ export async function GET(request: NextRequest) {
 
     return Response.json({
       featured_farms: featuredFarms,
+      farms: recentFarms,
       tours: recentTours,
       stories: recentStories,
       updates: recentUpdates,
@@ -72,6 +77,42 @@ async function fetchFeaturedFarms() {
     `,
     args: [],
   });
+  return result.rows;
+}
+
+async function fetchFarms(q: string, limit: number, offset: number) {
+  let sql = `
+    SELECT f.id, f.name, f.description, f.acres, f.climate_zone,
+           f.center_lat, f.center_lng, f.is_shop_enabled,
+           f.story_published,
+           u.name as owner_name, u.image as owner_image,
+           (SELECT COUNT(*) FROM farm_tours WHERE farm_id = f.id AND status = 'published') as tour_count,
+           (SELECT COUNT(*) FROM farm_story_sections WHERE farm_id = f.id AND is_visible = 1) as story_section_count,
+           (SELECT COUNT(*) FROM shop_products WHERE farm_id = f.id AND is_published = 1) as product_count,
+           (SELECT COUNT(*) FROM farm_follows WHERE farm_id = f.id) as follower_count,
+           (SELECT screenshot_url FROM map_snapshots WHERE farm_id = f.id ORDER BY created_at DESC LIMIT 1) as latest_screenshot,
+           (SELECT title FROM farm_tours WHERE farm_id = f.id AND status = 'published' ORDER BY visitor_count DESC LIMIT 1) as top_tour_title,
+           (SELECT SUM(visitor_count) FROM farm_tours WHERE farm_id = f.id AND status = 'published') as total_tour_visitors
+    FROM farms f
+    JOIN users u ON f.user_id = u.id
+    WHERE f.is_public = 1
+      AND (
+        EXISTS (SELECT 1 FROM farm_tours WHERE farm_id = f.id AND status = 'published')
+        OR f.story_published = 1
+      )
+  `;
+  const args: any[] = [];
+
+  if (q) {
+    sql += ` AND (f.name LIKE ? OR f.description LIKE ? OR f.climate_zone LIKE ?)`;
+    const searchQ = `%${q}%`;
+    args.push(searchQ, searchQ, searchQ);
+  }
+
+  sql += ` ORDER BY tour_count DESC, follower_count DESC, total_tour_visitors DESC LIMIT ? OFFSET ?`;
+  args.push(limit, offset);
+
+  const result = await db.execute({ sql, args });
   return result.rows;
 }
 

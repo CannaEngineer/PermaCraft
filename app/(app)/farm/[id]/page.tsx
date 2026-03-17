@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth/session";
+import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import type { Farm, Zone, FarmStorySection } from "@/lib/db/schema";
@@ -11,25 +11,24 @@ interface PageProps {
 }
 
 export default async function FarmPage({ params, searchParams }: PageProps) {
-  const session = await requireAuth();
+  const session = await getSession();
   const { id } = await params;
   const { refresh } = await searchParams;
 
-  // First try to fetch farm as owner
-  let farmResult = await db.execute({
-    sql: "SELECT * FROM farms WHERE id = ? AND user_id = ?",
-    args: [id, session.user.id],
-  });
+  // If authenticated, check if owner
+  if (session?.user?.id) {
+    const ownerResult = await db.execute({
+      sql: "SELECT id FROM farms WHERE id = ? AND user_id = ?",
+      args: [id, session.user.id],
+    });
 
-  const isOwner = farmResult.rows.length > 0;
-
-  // If owner, redirect to the unified canvas immediately
-  if (isOwner) {
-    redirect(`/canvas?farm=${id}&section=farm`);
+    if (ownerResult.rows.length > 0) {
+      redirect(`/canvas?farm=${id}&section=farm`);
+    }
   }
 
-  // Not the owner — try fetching as public farm
-  farmResult = await db.execute({
+  // Fetch as public farm
+  const farmResult = await db.execute({
     sql: "SELECT * FROM farms WHERE id = ? AND is_public = 1",
     args: [id],
   });
@@ -86,21 +85,33 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   const zones = zonesResult.rows as unknown as Zone[];
 
   // Get feed posts
-  const feedResult = await db.execute({
-    sql: `SELECT p.*,
-                 u.name as author_name,
-                 u.image as author_image,
-                 ai.screenshot_data as ai_screenshot,
-                 (SELECT reaction_type FROM post_reactions
-                  WHERE post_id = p.id AND user_id = ?) as user_reaction
-          FROM farm_posts p
-          JOIN users u ON p.author_id = u.id
-          LEFT JOIN ai_analyses ai ON p.ai_analysis_id = ai.id
-          WHERE p.farm_id = ? AND p.is_published = 1
-          ORDER BY p.created_at DESC
-          LIMIT 21`,
-    args: [session.user.id, id],
-  });
+  const userId = session?.user?.id || null;
+  const feedArgs: any[] = userId ? [userId, id] : [id];
+  const feedSql = userId
+    ? `SELECT p.*,
+             u.name as author_name,
+             u.image as author_image,
+             ai.screenshot_data as ai_screenshot,
+             (SELECT reaction_type FROM post_reactions
+              WHERE post_id = p.id AND user_id = ?) as user_reaction
+      FROM farm_posts p
+      JOIN users u ON p.author_id = u.id
+      LEFT JOIN ai_analyses ai ON p.ai_analysis_id = ai.id
+      WHERE p.farm_id = ? AND p.is_published = 1
+      ORDER BY p.created_at DESC
+      LIMIT 21`
+    : `SELECT p.*,
+             u.name as author_name,
+             u.image as author_image,
+             ai.screenshot_data as ai_screenshot,
+             NULL as user_reaction
+      FROM farm_posts p
+      JOIN users u ON p.author_id = u.id
+      LEFT JOIN ai_analyses ai ON p.ai_analysis_id = ai.id
+      WHERE p.farm_id = ? AND p.is_published = 1
+      ORDER BY p.created_at DESC
+      LIMIT 21`;
+  const feedResult = await db.execute({ sql: feedSql, args: feedArgs });
 
   const posts = feedResult.rows.map((post: any) => {
     // Parse ai_screenshot JSON array and get first URL
@@ -221,7 +232,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
           featuredProducts={featuredProducts}
           isShopEnabled={isShopEnabled === 1}
           initialFeedData={initialFeedData}
-          currentUserId={session.user.id}
+          currentUserId={userId || undefined}
           storyTheme={storyTheme}
           species={speciesResult.rows as any[]}
           fulfillment={fulfillment}
@@ -237,7 +248,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
       farmOwner={farmOwner}
       latestScreenshot={latestScreenshot}
       initialFeedData={initialFeedData}
-      currentUserId={session.user.id}
+      currentUserId={userId || undefined}
       isShopEnabled={isShopEnabled ?? 0}
       publishedTours={publishedTours}
     />

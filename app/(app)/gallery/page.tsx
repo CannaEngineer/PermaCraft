@@ -9,8 +9,9 @@ export const metadata = {
 
 async function fetchDiscoverData(userId: string | null) {
   try {
-    const [featuredFarms, tours, stories, updates, shops, stats] = await Promise.all([
+    const [featuredFarms, farms, tours, stories, updates, shops, stats] = await Promise.all([
       fetchFeaturedFarms(),
+      fetchDiscoverableFarms(),
       fetchRecentTours(),
       fetchRecentStories(),
       fetchRecentUpdates(userId),
@@ -20,6 +21,7 @@ async function fetchDiscoverData(userId: string | null) {
 
     return {
       featured_farms: featuredFarms,
+      farms,
       tours,
       stories,
       updates,
@@ -55,6 +57,35 @@ async function fetchFeaturedFarms() {
       WHERE f.is_public = 1
       ORDER BY follower_count DESC, tour_count DESC, product_count DESC
       LIMIT 8
+    `,
+    args: [],
+  });
+  return result.rows;
+}
+
+async function fetchDiscoverableFarms() {
+  const result = await db.execute({
+    sql: `
+      SELECT f.id, f.name, f.description, f.acres, f.climate_zone,
+             f.center_lat, f.center_lng, f.is_shop_enabled,
+             f.story_published,
+             u.name as owner_name, u.image as owner_image,
+             (SELECT COUNT(*) FROM farm_tours WHERE farm_id = f.id AND status = 'published') as tour_count,
+             (SELECT COUNT(*) FROM farm_story_sections WHERE farm_id = f.id AND is_visible = 1) as story_section_count,
+             (SELECT COUNT(*) FROM shop_products WHERE farm_id = f.id AND is_published = 1) as product_count,
+             (SELECT COUNT(*) FROM farm_follows WHERE farm_id = f.id) as follower_count,
+             (SELECT screenshot_url FROM map_snapshots WHERE farm_id = f.id ORDER BY created_at DESC LIMIT 1) as latest_screenshot,
+             (SELECT title FROM farm_tours WHERE farm_id = f.id AND status = 'published' ORDER BY visitor_count DESC LIMIT 1) as top_tour_title,
+             (SELECT SUM(visitor_count) FROM farm_tours WHERE farm_id = f.id AND status = 'published') as total_tour_visitors
+      FROM farms f
+      JOIN users u ON f.user_id = u.id
+      WHERE f.is_public = 1
+        AND (
+          EXISTS (SELECT 1 FROM farm_tours WHERE farm_id = f.id AND status = 'published')
+          OR f.story_published = 1
+        )
+      ORDER BY tour_count DESC, follower_count DESC, total_tour_visitors DESC
+      LIMIT 6
     `,
     args: [],
   });

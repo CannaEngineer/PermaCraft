@@ -30,7 +30,7 @@ export function FarmStoryCard({ story }: FarmStoryCardProps) {
   const coverImage = story.story_cover || story.farm_screenshot;
 
   return (
-    <Link href={`/farm/${story.farm_id}/story`}>
+    <Link href={`/farm/${story.farm_id}`}>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full">
         <div className="flex flex-col sm:flex-row h-full">
           {/* Cover */}
