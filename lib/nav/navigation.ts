@@ -1,20 +1,42 @@
 import {
   LayoutDashboard,
   Compass,
-  Store,
-  GraduationCap,
-  BookOpen,
   Leaf,
+  GraduationCap,
+  Map,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-export const mainNavItems = [
-  { name: 'Canvas', href: '/canvas', icon: LayoutDashboard, requiresAuth: true },
-  { name: 'Discover', href: '/gallery', icon: Compass, requiresAuth: false },
-  { name: 'Shop', href: '/shops', icon: Store, requiresAuth: false },
-  { name: 'Learn', href: '/learn', icon: GraduationCap, requiresAuth: false },
-  { name: 'Blog', href: '/learn/blog', icon: BookOpen, requiresAuth: false },
-  { name: 'Plants', href: '/plants', icon: Leaf, requiresAuth: false },
-];
+export interface NavItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  href: string;
+  /** When inside canvas, this maps to a canvas section instead of a route */
+  canvasSection?: string;
+}
+
+/**
+ * Returns the unified navigation items, context-aware based on current route.
+ *
+ * - On /dashboard: primary item is "Farm" → /canvas
+ * - On /canvas: primary item is "Dashboard" → /dashboard
+ * - Remaining items are consistent everywhere
+ */
+export function getNavItems(pathname: string): NavItem[] {
+  const isCanvas = pathname === '/canvas' || pathname.startsWith('/canvas/');
+
+  const primaryItem: NavItem = isCanvas
+    ? { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }
+    : { id: 'farm', label: 'Farm', icon: Map, href: '/canvas' };
+
+  return [
+    primaryItem,
+    { id: 'discover', label: 'Discover', icon: Compass, href: '/gallery', canvasSection: 'explore' },
+    { id: 'plants', label: 'Plants', icon: Leaf, href: '/plants', canvasSection: 'plants' },
+    { id: 'learn', label: 'Learn', icon: GraduationCap, href: '/learn', canvasSection: 'learn' },
+  ];
+}
 
 /**
  * Determine if a route is active, supporting nested routes.

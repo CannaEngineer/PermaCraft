@@ -6,9 +6,9 @@ import { ImmersiveMapUIProvider, useImmersiveMapUI } from '@/contexts/immersive-
 import { LayerProvider } from '@/contexts/layer-context';
 import { useUnifiedCanvas, type CanvasSection } from '@/contexts/unified-canvas-context';
 import { CommandBar } from './command-bar';
-import { NavRail } from './nav-rail';
+import { UnifiedNavRail } from '@/components/shared/unified-nav-rail';
+import { UnifiedBottomNav } from '@/components/shared/unified-bottom-nav';
 // ContextPanel removed — content integrated into BottomDrawer
-import { CanvasMobileNav } from './canvas-mobile-nav';
 import { FarmMap } from '@/components/map/farm-map';
 import { DrawingToolbar } from '@/components/immersive-map/drawing-toolbar';
 import { BottomDrawer } from '@/components/immersive-map/bottom-drawer';
@@ -163,14 +163,20 @@ function UnifiedCanvasEmpty({ userId, userName }: { userId: string; userName: st
     );
   };
 
+  const canvasCtx = { activeSection, setActiveSection };
+
   return (
     <div className="fixed inset-0 flex flex-col bg-background">
       <CommandBar userId={userId} userName={userName} />
       <div className="flex flex-1 overflow-hidden">
-        <NavRail />
+        <UnifiedNavRail canvasContext={canvasCtx} />
         {renderContent()}
       </div>
-      <CanvasMobileNav />
+      <UnifiedBottomNav
+        userName={userName}
+        isAuthenticated={true}
+        canvasContext={canvasCtx}
+      />
     </div>
   );
 }
@@ -614,7 +620,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
 
       <div className="flex flex-1 overflow-hidden">
         {/* Nav Rail (desktop) */}
-        <NavRail />
+        <UnifiedNavRail canvasContext={{ activeSection, setActiveSection }} />
 
         {/* Map Canvas (always rendered underneath) */}
         <div className="flex-1 relative">
@@ -922,7 +928,11 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
       )}
 
       {/* Mobile bottom nav */}
-      <CanvasMobileNav />
+      <UnifiedBottomNav
+        userName={userName}
+        isAuthenticated={true}
+        canvasContext={{ activeSection, setActiveSection }}
+      />
     </div>
   );
 }
