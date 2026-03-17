@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
  * This keeps the most-used actions within thumb reach while avoiding
  * the "too many tiny targets" anti-pattern.
  */
-const mobileNavItems: { id: CanvasSection; icon: typeof Home; label: string }[] = [
+const mobileNavItems: { id: CanvasSection | 'home'; icon: typeof Home; label: string }[] = [
   { id: 'home', icon: Home, label: 'Home' },
   { id: 'farm', icon: Map, label: 'Farm' },
   { id: 'plants', icon: Leaf, label: 'Plants' },

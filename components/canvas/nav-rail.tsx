@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
  * Removed: Explore (accessible from Home), Shop (accessible from farm menu / profile).
  * Users learn one navigation model that works identically on both form factors.
  */
-const navItems: { id: CanvasSection; icon: typeof Home; label: string; shortcut: string }[] = [
+const navItems: { id: CanvasSection | 'home'; icon: typeof Home; label: string; shortcut: string }[] = [
   { id: 'home', icon: Home, label: 'Home', shortcut: '1' },
   { id: 'farm', icon: Map, label: 'Farm', shortcut: '2' },
   { id: 'plants', icon: Leaf, label: 'Plants', shortcut: '3' },

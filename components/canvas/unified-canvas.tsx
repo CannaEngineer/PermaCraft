@@ -40,7 +40,6 @@ import type { Farm, Zone, FarmerGoal, Species } from '@/lib/db/schema';
 import type maplibregl from 'maplibre-gl';
 
 // Lazy-loaded section panels
-const DashboardPanel = lazy(() => import('./panels/dashboard-panel').then(m => ({ default: m.DashboardPanel })));
 // FarmPanel removed — content integrated into BottomDrawer tabs
 const ExplorePanel = lazy(() => import('./panels/explore-panel').then(m => ({ default: m.ExplorePanel })));
 const PlantsPanel = lazy(() => import('./panels/plants-panel').then(m => ({ default: m.PlantsPanel })));
@@ -587,8 +586,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   // Render the active panel content (non-farm sections use overlay panels)
   const renderPanelContent = () => {
     switch (activeSection) {
-      case 'home':
-        return <DashboardPanel />;
       case 'explore':
         return <ExplorePanel />;
       case 'plants':
