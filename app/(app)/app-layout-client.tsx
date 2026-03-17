@@ -1,7 +1,7 @@
 "use client";
 
-import { Sidebar } from "@/components/shared/sidebar";
-import { BottomNavBar } from "@/components/shared/bottom-nav-bar";
+import { UnifiedNavRail } from "@/components/shared/unified-nav-rail";
+import { UnifiedBottomNav } from "@/components/shared/unified-bottom-nav";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { PublicTopBar } from "@/components/shared/public-top-bar";
@@ -37,7 +37,6 @@ export default function AppLayoutClient({
     );
   }
 
-
   return (
     <ErrorBoundary>
       <OfflineSyncProvider>
@@ -45,18 +44,16 @@ export default function AppLayoutClient({
           {/* Sync Status Bar */}
           <SyncStatusBar position="top" />
 
-          {/* Desktop Sidebar */}
-          <aside className="hidden md:block md:w-64 flex-shrink-0 bg-card border-r border-border">
-            <Sidebar userName={userName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} userId={userId} />
-          </aside>
+          {/* Desktop Nav Rail */}
+          <UnifiedNavRail />
 
           {/* Main content area */}
           <main className="flex-1 overflow-auto bg-background pb-16 md:pb-0">
             {children}
           </main>
 
-          {/* Mobile Bottom Navigation - hidden on desktop */}
-          <BottomNavBar
+          {/* Mobile Bottom Navigation */}
+          <UnifiedBottomNav
             userName={userName}
             isAuthenticated={isAuthenticated}
             isAdmin={isAdmin}
