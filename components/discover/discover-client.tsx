@@ -25,7 +25,6 @@ import {
   Store,
   ArrowRight,
   Loader2,
-  Tractor,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -181,7 +180,7 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full max-w-2xl mx-auto grid grid-cols-5 mb-6">
             <TabsTrigger value="farms" className="gap-1.5 text-xs sm:text-sm">
-              <Tractor className="w-4 h-4" />
+              <Sprout className="w-4 h-4" />
               Farms
             </TabsTrigger>
             <TabsTrigger value="tours" className="gap-1.5 text-xs sm:text-sm">
@@ -208,7 +207,7 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
               <LoadingGrid count={6} />
             ) : farms.length === 0 ? (
               <EmptyState
-                icon={Tractor}
+                icon={Sprout}
                 title="No farms to discover yet"
                 description="Farms with published tours or stories will appear here. Be the first to share your permaculture farm!"
               />
