@@ -24,7 +24,7 @@ interface FeaturedFarmCardProps {
 
 export function FeaturedFarmCard({ farm }: FeaturedFarmCardProps) {
   return (
-    <Link href={`/farm/${farm.id}/story`}>
+    <Link href={`/farm/${farm.id}`}>
       <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 aspect-[4/5] flex flex-col justify-end">
         {/* Background */}
         <div className="absolute inset-0">

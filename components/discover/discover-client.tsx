@@ -9,6 +9,7 @@ import { FarmTourCard } from './farm-tour-card';
 import { FarmStoryCard } from './farm-story-card';
 import { FarmUpdateCard } from './farm-update-card';
 import { FeaturedFarmCard } from './featured-farm-card';
+import { FarmDiscoveryCard } from './farm-discovery-card';
 import { ShopCard } from '@/components/shop/shop-card';
 import { RegisterCTA } from '@/components/shared/register-cta';
 import {
@@ -49,10 +50,11 @@ const SHOP_CATEGORY_FILTERS = [
 ];
 
 export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientProps) {
-  const [activeTab, setActiveTab] = useState('tours');
+  const [activeTab, setActiveTab] = useState('farms');
   const [searchQuery, setSearchQuery] = useState('');
   const [tourFilter, setTourFilter] = useState('');
   const [shopFilter, setShopFilter] = useState('');
+  const [farms, setFarms] = useState<any[]>(initialData?.farms || []);
   const [tours, setTours] = useState<any[]>(initialData?.tours || []);
   const [stories, setStories] = useState<any[]>(initialData?.stories || []);
   const [updates, setUpdates] = useState<any[]>(initialData?.updates || []);
@@ -81,6 +83,7 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
   const handleSearch = useCallback(async () => {
     const data = await fetchSection(activeTab, searchQuery, activeTab === 'tours' ? tourFilter : shopFilter);
     switch (activeTab) {
+      case 'farms': setFarms(data); break;
       case 'tours': setTours(data); break;
       case 'stories': setStories(data); break;
       case 'updates': setUpdates(data); break;
@@ -175,10 +178,14 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full max-w-xl mx-auto grid grid-cols-4 mb-6">
+          <TabsList className="w-full max-w-2xl mx-auto grid grid-cols-5 mb-6">
+            <TabsTrigger value="farms" className="gap-1.5 text-xs sm:text-sm">
+              <Sprout className="w-4 h-4" />
+              Farms
+            </TabsTrigger>
             <TabsTrigger value="tours" className="gap-1.5 text-xs sm:text-sm">
               <Footprints className="w-4 h-4" />
-              <span className="hidden sm:inline">Farm</span> Tours
+              Tours
             </TabsTrigger>
             <TabsTrigger value="stories" className="gap-1.5 text-xs sm:text-sm">
               <BookOpen className="w-4 h-4" />
@@ -193,6 +200,25 @@ export function DiscoverClient({ isAuthenticated, initialData }: DiscoverClientP
               Shops
             </TabsTrigger>
           </TabsList>
+
+          {/* Farms Tab */}
+          <TabsContent value="farms">
+            {loading ? (
+              <LoadingGrid count={6} />
+            ) : farms.length === 0 ? (
+              <EmptyState
+                icon={Sprout}
+                title="No farms to discover yet"
+                description="Farms with published tours or stories will appear here. Be the first to share your permaculture farm!"
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                {farms.map((farm: any) => (
+                  <FarmDiscoveryCard key={farm.id} farm={farm} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           {/* Tours Tab */}
           <TabsContent value="tours">
