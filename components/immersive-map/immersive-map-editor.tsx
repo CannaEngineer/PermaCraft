@@ -866,7 +866,7 @@ function ImmersiveMapEditorContent({
           externalSelectedSpecies={pendingPlantSpecies}
           externalShowSpeciesPicker={triggerSpeciesPicker}
           onSpeciesPickerOpened={handleSpeciesPickerOpened}
-          onDrawComplete={() => exitDrawingMode()}
+          onDrawComplete={() => { /* Stay in drawing mode — user clicks Done to exit */ }}
           hideStatusBar
         />
       </div>

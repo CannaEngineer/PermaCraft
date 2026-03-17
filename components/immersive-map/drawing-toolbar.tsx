@@ -71,6 +71,10 @@ export function DrawingToolbar({
     onZoneTypeChange?.(zoneType);
     setShowZonePicker(false);
     setExpandedCategory(null);
+    // Auto-activate polygon tool if no draw tool is currently active
+    if (!activeDrawTool) {
+      handleToolClick('polygon');
+    }
   };
 
   const handlePickerDragEnd = (_: any, info: PanInfo) => {
