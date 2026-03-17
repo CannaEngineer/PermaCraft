@@ -130,13 +130,22 @@ export async function getRecentAiInsights(farmId: string) {
 export async function getRecentActivity(farmId: string) {
   const result = await db.execute({
     sql: `
-      SELECT 'ai' as type, id, user_query as title, created_at FROM ai_analyses WHERE farm_id = ?
+      SELECT 'ai' as type, a.id, COALESCE(a.user_query, 'AI Analysis') as title, a.created_at
+      FROM ai_analyses a WHERE a.farm_id = ?
       UNION ALL
-      SELECT 'planting' as type, id, name as title, created_at FROM plantings WHERE farm_id = ?
+      SELECT 'planting' as type, p.id,
+        COALESCE(p.name, s.common_name, 'New planting') as title,
+        p.created_at
+      FROM plantings p
+      LEFT JOIN species s ON s.id = p.species_id
+      WHERE p.farm_id = ?
+      UNION ALL
+      SELECT 'zone' as type, z.id, COALESCE(z.name, z.zone_type, 'New zone') as title, z.created_at
+      FROM zones z WHERE z.farm_id = ?
       ORDER BY created_at DESC
       LIMIT 10
     `,
-    args: [farmId, farmId],
+    args: [farmId, farmId, farmId],
   });
   return result.rows;
 }

@@ -18,9 +18,9 @@ function categoriseInsight(response: string): 'gap' | 'opportunity' | 'insight' 
 }
 
 const CATEGORY_STYLES = {
-  gap: { label: '\u26A0 Gap', border: 'border-l-amber-500', type: 'text-amber-400' },
-  opportunity: { label: '\uD83D\uDCA1 Opportunity', border: 'border-l-teal-500', type: 'text-teal-400' },
-  insight: { label: '\u2713 Insight', border: 'border-l-green-500', type: 'text-green-400' },
+  gap: { label: '\u26A0 Gap', border: 'border-l-amber-500', type: 'text-amber-700 dark:text-amber-400' },
+  opportunity: { label: '\uD83D\uDCA1 Opportunity', border: 'border-l-teal-500', type: 'text-teal-700 dark:text-teal-400' },
+  insight: { label: '\u2713 Insight', border: 'border-l-green-500', type: 'text-green-700 dark:text-green-400' },
 };
 
 export function AiInsightsCard({ insights, farmId }: Props) {

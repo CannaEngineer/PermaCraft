@@ -154,8 +154,8 @@ export async function LearningProgress({ userId }: LearningProgressProps) {
   const data = await fetchLearningData(userId);
   const progress = data.userProgress as any;
 
-  // No learning activity yet
-  if (!data.userProgress && data.nextLessons.length === 0) {
+  // No learning activity yet — only show "Choose Path" if user has never started
+  if (!data.userProgress && !data.hasActivePath && data.nextLessons.length === 0) {
     return (
       <Card className="bg-gradient-to-br from-green-500/5 via-green-500/3 to-background border-green-500/20">
         <CardContent className="flex flex-col items-center justify-center py-8 text-center">
@@ -184,7 +184,7 @@ export async function LearningProgress({ userId }: LearningProgressProps) {
           <div>
             <CardTitle className="text-base">Learning Progress</CardTitle>
             <CardDescription className="text-xs">
-              {data.hasActivePath && progress?.path_name ? progress.path_name : 'Permaculture Foundations'}
+              {progress?.path_name || (data.hasActivePath ? 'Your Learning Path' : 'Permaculture Foundations')}
             </CardDescription>
           </div>
         </div>
@@ -227,7 +227,7 @@ export async function LearningProgress({ userId }: LearningProgressProps) {
 
       <CardContent className="space-y-4">
         {/* Progress Bar */}
-        {data.hasActivePath && (
+        {(data.hasActivePath || data.completedCount > 0) && (
           <div>
             <Progress value={data.percentComplete} className="h-2" />
             <p className="text-xs text-muted-foreground text-center mt-1">
@@ -307,7 +307,7 @@ export async function LearningProgress({ userId }: LearningProgressProps) {
               // Just started or no lessons found
               <>
                 <p className="text-sm text-muted-foreground mb-3">
-                  {data.hasActivePath ? 'Loading lessons...' : 'Choose a path to start'}
+                  {data.hasActivePath ? 'All caught up! Check back for new lessons.' : 'Choose a path to start'}
                 </p>
                 <Button asChild size="sm" className="rounded-xl">
                   <Link href="/learn">
