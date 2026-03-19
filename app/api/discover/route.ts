@@ -160,7 +160,7 @@ async function fetchStories(q: string, limit: number, offset: number) {
            (SELECT COUNT(*) FROM farm_story_sections WHERE farm_id = f.id) as section_count,
            (SELECT title FROM farm_story_sections WHERE farm_id = f.id AND section_type = 'hero' LIMIT 1) as story_title,
            (SELECT content FROM farm_story_sections WHERE farm_id = f.id AND section_type = 'hero' LIMIT 1) as story_excerpt,
-           (SELECT image_url FROM farm_story_sections WHERE farm_id = f.id AND section_type = 'hero' LIMIT 1) as story_cover,
+           (SELECT media_url FROM farm_story_sections WHERE farm_id = f.id AND section_type = 'hero' LIMIT 1) as story_cover,
            (SELECT COUNT(*) FROM farm_follows WHERE farm_id = f.id) as follower_count,
            (SELECT COUNT(*) FROM farm_tours WHERE farm_id = f.id AND status = 'published') as tour_count,
            (SELECT COUNT(*) FROM shop_products WHERE farm_id = f.id AND is_published = 1) as product_count,
@@ -168,6 +168,7 @@ async function fetchStories(q: string, limit: number, offset: number) {
     FROM farms f
     JOIN users u ON f.user_id = u.id
     WHERE f.is_public = 1
+      AND f.story_published = 1
       AND EXISTS (SELECT 1 FROM farm_story_sections WHERE farm_id = f.id)
   `;
   const args: any[] = [];
