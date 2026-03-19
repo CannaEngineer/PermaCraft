@@ -217,6 +217,8 @@ export function FarmMap({
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
+  // Track previous externalDrawingMode to detect transitions
+  const prevExternalDrawingModeRef = useRef(externalDrawingMode);
 
   // Planting mode state
   const [plantingMode, setPlantingMode] = useState(false);
@@ -267,6 +269,10 @@ export function FarmMap({
   // Ref for quick label visibility in event handler closures
   const showQuickLabelFormRef = useRef(false);
   showQuickLabelFormRef.current = showQuickLabelForm;
+  // Ref for external drawing mode in event handler closures (avoids stale closure in map init)
+  // Uses null to distinguish "not managed" (classic editor) from "managed but idle" (immersive)
+  const externalDrawingModeRef = useRef(externalDrawingMode ?? null);
+  externalDrawingModeRef.current = externalDrawingMode ?? null;
 
   // Time Machine state - projection year for growth simulation
   // If external control props are provided, use them; otherwise use internal state
@@ -2012,6 +2018,31 @@ export function FarmMap({
         // to prevent the old Label Zone panel from appearing alongside it
         if (showQuickLabelFormRef.current) return;
 
+        // When immersive editor is active (externalDrawingMode is explicitly managed)
+        // and NOT in drawing mode, prevent MapboxDraw from selecting/editing features
+        // on click. Deselect immediately so our custom handleMapClick feature-selection
+        // logic takes over (which supports zones, plantings, and lines).
+        if (externalDrawingModeRef.current === false) {
+          if (e.features && e.features.length > 0 && draw.current) {
+            // Prevent farm boundary from being selected
+            const feature = e.features[0];
+            if (feature.properties?.user_zone_type === "farm_boundary") {
+              draw.current.changeMode('simple_select');
+            }
+            // Deselect — let handleMapClick handle feature selection
+            try {
+              draw.current.changeMode('simple_select' as any, { featureIds: [] });
+            } catch {
+              // Fallback: simple_select without options
+              draw.current.changeMode('simple_select');
+            }
+          }
+          setSelectedZone(null);
+          setZoneLabel("");
+          setZoneType("other");
+          return;
+        }
+
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
 
@@ -2057,6 +2088,14 @@ export function FarmMap({
           if (circleBtn) {
             circleBtn.classList.remove('active');
           }
+        }
+
+        // When immersive editor is active and not in drawing mode, prevent MapboxDraw
+        // from entering direct_select (vertex editing) on click — our custom click
+        // handler should handle feature selection instead.
+        if (externalDrawingModeRef.current === false && e.mode === "direct_select" && draw.current) {
+          draw.current.changeMode('simple_select');
+          return;
         }
 
         // Prevent farm boundary from entering edit mode
@@ -3179,6 +3218,9 @@ export function FarmMap({
   useEffect(() => {
     if (!draw.current) return;
 
+    const wasDrawing = prevExternalDrawingModeRef.current;
+    prevExternalDrawingModeRef.current = externalDrawingMode;
+
     if (externalDrawingMode && externalDrawTool) {
       // Map tool names to MapboxDraw modes
       const modeMap: Record<string, string> = {
@@ -3198,8 +3240,29 @@ export function FarmMap({
           console.error('Failed to change draw mode:', e);
         }
       }
+    } else if (!externalDrawingMode && wasDrawing) {
+      // Transitioning from drawing → idle: force deselect all features so next click
+      // triggers feature selection instead of re-editing the last drawn feature.
+      // We must deselect even if already in simple_select, because MapboxDraw may
+      // still have the newly drawn feature selected after draw.create.
+      try {
+        if (drawMode !== 'simple_select') {
+          draw.current.changeMode('simple_select');
+        }
+        // Force deselect by re-entering simple_select with no feature IDs
+        const selectedIds = draw.current.getSelectedIds();
+        if (selectedIds.length > 0) {
+          draw.current.changeMode('simple_select' as any, { featureIds: [] });
+        }
+      } catch (e) {
+        console.error('Failed to exit draw mode:', e);
+      }
+      // Clear selected zone state so the Label Zone panel doesn't appear
+      setSelectedZone(null);
+      setZoneLabel("");
+      setZoneType("other");
     } else if (!externalDrawingMode && drawMode !== 'simple_select') {
-      // Exit drawing mode
+      // Not a drawing→idle transition, but draw mode is wrong — fix it
       try {
         draw.current.changeMode('simple_select');
       } catch (e) {
