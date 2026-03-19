@@ -122,24 +122,24 @@ export default async function LandingPage() {
           <div className="landing-fade-up" style={{ animationDelay: "0.1s" }}>
             <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              Explore {totalFarms > 0 ? `${totalFarms} farms` : "farms"} from real permaculture growers
+              {totalFarms > 0 ? `${totalFarms} farms` : "Farms"} growing real food, right now
             </p>
           </div>
 
           <h1
             className="landing-fade-up mx-auto max-w-4xl font-serif font-bold leading-[1.02] tracking-tight"
-            style={{ fontSize: "clamp(2.8rem, 8vw, 6rem)", animationDelay: "0.2s" }}
+            style={{ fontSize: "clamp(2.8rem, 8vw, 5.5rem)", animationDelay: "0.2s" }}
           >
-            Discover the future{" "}
-            <span className="landing-text-shimmer">of farming</span>
+            Know your farmer.{" "}
+            <span className="landing-text-shimmer">Visit the land.</span>
           </h1>
 
           <p
             className="landing-fade-up mx-auto mt-6 max-w-2xl text-muted-foreground"
-            style={{ fontSize: "clamp(1.05rem, 1.8vw, 1.3rem)", lineHeight: 1.7, animationDelay: "0.4s" }}
+            style={{ fontSize: "clamp(1.05rem, 1.8vw, 1.25rem)", lineHeight: 1.7, animationDelay: "0.4s" }}
           >
-            Walk through real permaculture farms, explore native plant databases,
-            schedule on-site tours, and learn from the growers shaping regenerative agriculture.
+            Real permaculture farms, open for you to explore. Walk the rows virtually,
+            learn what&apos;s growing, and buy directly from the people who tend the soil.
           </p>
 
           {/* Visitor CTAs */}
@@ -149,14 +149,14 @@ export default async function LandingPage() {
               className="landing-btn-primary inline-flex items-center gap-2 rounded-full px-8 py-4 text-base font-semibold no-underline transition-all"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              Explore Farms
+              Find a Farm
             </Link>
             <Link
-              href="/gallery?tab=tours"
+              href="/shops"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-foreground/5 px-8 py-4 text-base font-semibold no-underline transition-all hover:bg-foreground/10 text-foreground"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-              Take a Virtual Tour
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+              Shop Farm Fresh
             </Link>
           </div>
 
@@ -184,9 +184,9 @@ export default async function LandingPage() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="landing-scroll-reveal flex items-end justify-between mb-10">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">Community Farms</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">Meet Your Growers</p>
                 <h2 className="font-serif font-bold tracking-tight" style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}>
-                  Farms worth visiting
+                  These are the people feeding your community
                 </h2>
               </div>
               <Link
@@ -219,12 +219,12 @@ export default async function LandingPage() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="landing-scroll-reveal flex items-end justify-between mb-10">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">Virtual & On-Site</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">See Where It Grows</p>
                 <h2 className="font-serif font-bold tracking-tight" style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}>
-                  Walk the land
+                  Walk the land before you visit
                 </h2>
                 <p className="mt-2 max-w-lg text-muted-foreground" style={{ fontSize: "clamp(0.95rem, 1.3vw, 1.1rem)" }}>
-                  Guided tours created by farmers. Explore virtually or schedule an in-person visit.
+                  Farmers open their gates with guided tours. Explore from your couch, then book a visit in person.
                 </p>
               </div>
               <Link
@@ -296,21 +296,21 @@ export default async function LandingPage() {
           <div className="landing-scroll-reveal grid gap-12 lg:grid-cols-2 lg:items-center">
             {/* Text side */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">Plant Database</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">Learn What&apos;s Growing</p>
               <h2 className="font-serif font-bold tracking-tight" style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}>
-                {totalSpecies > 0 ? `${totalSpecies.toLocaleString()}+` : "Hundreds of"} species at your fingertips
+                {totalSpecies > 0 ? `${totalSpecies.toLocaleString()}+` : "Hundreds of"} plants, all native-first
               </h2>
               <p className="mt-4 text-muted-foreground" style={{ fontSize: "clamp(0.95rem, 1.3vw, 1.1rem)", lineHeight: 1.7 }}>
-                Explore native plants, companion planting guides, and food forest layers.
-                Every species is tagged with growing conditions, ecological functions, and permaculture uses.
+                Curious about what&apos;s in your food forest box? Want to know what thrives in your
+                backyard? Every species is tagged by region, growing season, and ecological role.
               </p>
 
               <div className="mt-8 grid grid-cols-2 gap-4">
                 {[
-                  { label: "Native species", desc: "Region-tagged plants" },
-                  { label: "Companion data", desc: "What grows well together" },
+                  { label: "Native species", desc: "Tagged by your region" },
+                  { label: "Companion planting", desc: "What grows well together" },
                   { label: "Forest layers", desc: "Canopy to groundcover" },
-                  { label: "Growth profiles", desc: "Maturity timelines" },
+                  { label: "Seasonal guides", desc: "When to plant and harvest" },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl border border-border/40 bg-card/50 p-4">
                     <p className="text-sm font-semibold text-foreground">{item.label}</p>
@@ -323,7 +323,7 @@ export default async function LandingPage() {
                 href="/plants"
                 className="mt-8 inline-flex items-center gap-2 rounded-full bg-foreground text-background px-6 py-3 text-sm font-semibold no-underline transition-all hover:opacity-90"
               >
-                Browse Plant Database
+                Explore Plants
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
               </Link>
             </div>
@@ -378,9 +378,9 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="landing-scroll-reveal flex items-end justify-between mb-10">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">From the Community</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">Voices from the Soil</p>
               <h2 className="font-serif font-bold tracking-tight" style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}>
-                Stories from the field
+                Hear it from the growers themselves
               </h2>
             </div>
             <Link
@@ -436,9 +436,9 @@ export default async function LandingPage() {
           ) : (
             <div className="grid gap-5 md:grid-cols-3">
               {[
-                { title: "Getting Started with Permaculture", desc: "Learn the core ethics and principles that guide every design on the platform." },
-                { title: "Native Plants: Why They Matter", desc: "How choosing native species creates more resilient and self-sustaining ecosystems." },
-                { title: "Designing Your First Food Forest", desc: "A step-by-step guide to layering plants for year-round abundance." },
+                { title: "What Is Permaculture, Really?", desc: "A no-jargon guide to how these farms work with nature instead of against it, and why the food tastes different." },
+                { title: "How to Read a Farm Map", desc: "Zones, guilds, food forests. Here's what you're looking at when you explore a farm on the platform." },
+                { title: "Eating with the Seasons", desc: "Why your local permaculture farm doesn't have tomatoes in January, and why that's a good thing." },
               ].map((placeholder, i) => (
                 <Link
                   key={i}
@@ -460,67 +460,87 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ============ WHAT YOU CAN DO - Experience grid ============ */}
+      {/* ============ HOW IT WORKS - Simple, human ============ */}
       <section className="py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-6">
           <div className="landing-scroll-reveal text-center mb-14">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">Your Experience</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">How It Works</p>
             <h2 className="font-serif font-bold tracking-tight" style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}>
-              Everything you need to explore
+              From screen to soil in three steps
             </h2>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Three-step flow */}
+          <div className="grid gap-6 md:grid-cols-3 mb-16">
             {[
               {
-                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
-                title: "Browse Farm Designs",
-                desc: "Explore real permaculture farms mapped out by their owners. See zones, plantings, and design decisions up close.",
+                step: "01",
+                title: "Find a farm near you",
+                desc: "Browse real permaculture farms by location, what they grow, or what they sell. Every farm is mapped and maintained by the grower.",
                 href: "/gallery",
               },
               {
-                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`,
-                title: "Virtual Farm Tours",
-                desc: "Walk through guided tours with narrated stops. See growth timelines, hear farmer insights, and learn techniques.",
+                step: "02",
+                title: "Explore before you go",
+                desc: "Take a virtual tour, read the farmer's story, browse their plant list. You'll know the land before your feet touch it.",
                 href: "/gallery?tab=tours",
               },
               {
-                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>`,
-                title: "Schedule a Visit",
-                desc: "Many farms offer on-site tours and workshops. Book directly through their farm page and plan your trip.",
-                href: "/gallery?tab=tours",
+                step: "03",
+                title: "Visit, buy, or learn",
+                desc: "Book a farm visit, order from their shop, or simply follow along as they share seasonal updates and growing wisdom.",
+                href: "/shops",
               },
+            ].map((card, i) => (
+              <Link
+                key={card.step}
+                href={card.href}
+                className="landing-scroll-reveal group rounded-2xl border border-border/40 p-7 no-underline transition-all landing-card-hover"
+                style={{ animationDelay: `${i * 0.08}s`, backgroundColor: "hsl(var(--card))" }}
+              >
+                <span className="mb-4 block font-serif text-3xl font-bold text-primary/20 group-hover:text-primary/40 transition-colors">{card.step}</span>
+                <h3 className="mb-2 text-lg font-bold text-foreground">{card.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{card.desc}</p>
+              </Link>
+            ))}
+          </div>
+
+          {/* Supporting features - compact */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
               {
-                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>`,
+                icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>`,
                 title: "Plant Database",
-                desc: "Search native species by region, forest layer, or ecological function. Find the perfect plants for any climate.",
+                desc: "Search native species by region and growing season.",
                 href: "/plants",
               },
               {
-                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`,
-                title: "Read & Learn",
-                desc: "Farmer stories, seasonal updates, permaculture principles, and practical growing guides from the community.",
-                href: "/learn/blog",
+                icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>`,
+                title: "Farm Shops",
+                desc: "Seeds, produce boxes, and plants straight from the grower.",
+                href: "/shops",
               },
               {
-                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>`,
-                title: "Farm Shops",
-                desc: "Buy seeds, nursery stock, produce boxes, and farm experiences directly from the growers you discover.",
-                href: "/shops",
+                icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`,
+                title: "Grower Stories",
+                desc: "Real experiences from people regenerating their land.",
+                href: "/learn/blog",
               },
             ].map((card, i) => (
               <Link
                 key={card.title}
                 href={card.href}
-                className="landing-scroll-reveal group rounded-2xl border border-border/40 p-6 no-underline transition-all landing-card-hover"
-                style={{ animationDelay: `${i * 0.06}s`, backgroundColor: "hsl(var(--card))" }}
+                className="landing-scroll-reveal group flex items-start gap-4 rounded-xl border border-border/30 p-5 no-underline transition-all hover:border-primary/20 hover:bg-primary/[0.02]"
+                style={{ animationDelay: `${i * 0.06}s` }}
               >
                 <div
-                  className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/8 text-primary transition-colors group-hover:bg-primary/15"
+                  className="mt-0.5 flex-shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/8 text-primary transition-colors group-hover:bg-primary/15"
                   dangerouslySetInnerHTML={{ __html: card.icon }}
                 />
-                <h3 className="mb-2 text-base font-bold text-foreground">{card.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{card.desc}</p>
+                <div>
+                  <h3 className="mb-1 text-sm font-bold text-foreground">{card.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{card.desc}</p>
+                </div>
               </Link>
             ))}
           </div>
@@ -535,37 +555,37 @@ export default async function LandingPage() {
         <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
           <div className="landing-scroll-reveal">
             <h2 className="font-serif font-bold tracking-tight" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
-              A window into{" "}
-              <span className="landing-text-shimmer">regenerative farming</span>
+              Every bite has{" "}
+              <span className="landing-text-shimmer">a story</span>
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-muted-foreground" style={{ fontSize: "clamp(1rem, 1.5vw, 1.2rem)", lineHeight: 1.7 }}>
-              Browse farms, take tours, learn from growers, and connect with a community
-              building a more abundant future.
+              The farms on this platform are real, the growers are your neighbors,
+              and the food is grown the way nature intended. Come see for yourself.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
                 href="/gallery"
                 className="landing-btn-primary inline-flex items-center gap-2 rounded-full px-8 py-4 text-base font-semibold no-underline transition-all"
               >
-                Start Exploring
+                Find Your Farm
               </Link>
               <Link
-                href="/plants"
+                href="/shops"
                 className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-8 py-4 text-base font-medium no-underline transition-all hover:bg-foreground/5 text-foreground"
               >
-                Plant Database
+                Browse Farm Shops
               </Link>
             </div>
           </div>
 
           {/* Subtle farmer CTA */}
           <div className="landing-scroll-reveal mt-16 pt-8 border-t border-border/20">
-            <p className="text-xs text-muted-foreground/50 mb-3">Are you a farmer or land steward?</p>
+            <p className="text-xs text-muted-foreground/50 mb-3">Are you a grower? List your farm and reach the people who care.</p>
             <Link
               href={isSignedIn ? "/canvas" : "/login"}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground/70 no-underline transition-all hover:text-primary"
             >
-              {isSignedIn ? "Go to your farm dashboard" : "Farmer login"}
+              {isSignedIn ? "Go to your farm dashboard" : "List your farm"}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
             </Link>
           </div>
@@ -582,7 +602,7 @@ export default async function LandingPage() {
                 <span className="font-serif text-base font-bold">Permaculture.Studio</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Explore real permaculture farms, discover native plants, and connect with regenerative growers.
+                Connecting people with the farms and growers regenerating their local food systems.
               </p>
             </div>
             <div>
@@ -613,7 +633,7 @@ export default async function LandingPage() {
             </div>
           </div>
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border/20 pt-8 text-xs text-muted-foreground/50 sm:flex-row">
-            <p className="m-0">Connecting people with regenerative farms</p>
+            <p className="m-0">Real farms. Real food. Real people.</p>
             <p className="m-0">&copy; {new Date().getFullYear()} Permaculture.Studio</p>
           </div>
         </div>
