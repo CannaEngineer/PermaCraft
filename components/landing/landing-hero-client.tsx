@@ -64,13 +64,13 @@ export function LandingHeroClient({ totalFarms, totalSpecies, totalTours, totalF
       className="landing-fade-up mt-16 flex flex-wrap items-center justify-center gap-10"
       style={{ animationDelay: "0.9s" }}
     >
-      <AnimatedCounter target={totalFarms} label="Farms" />
+      <AnimatedCounter target={totalFarms} label="Open Farms" />
       <div className="h-8 w-px bg-border/30 hidden sm:block" />
-      <AnimatedCounter target={totalSpecies} label="Plant Species" suffix="+" />
+      <AnimatedCounter target={totalSpecies} label="Species Cataloged" suffix="+" />
       <div className="h-8 w-px bg-border/30 hidden sm:block" />
-      <AnimatedCounter target={totalTours} label="Virtual Tours" />
+      <AnimatedCounter target={totalTours} label="Farm Tours" />
       <div className="h-8 w-px bg-border/30 hidden sm:block" />
-      <AnimatedCounter target={totalFarmers} label="Farmers" />
+      <AnimatedCounter target={totalFarmers} label="Growers" />
     </div>
   );
 }

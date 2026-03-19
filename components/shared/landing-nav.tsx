@@ -44,7 +44,7 @@ export function LandingNav({ isSignedIn }: LandingNavProps) {
             href="/gallery"
             className="rounded-full px-4 py-2 text-sm font-medium transition-all hover:bg-foreground/5 no-underline text-foreground/80 hover:text-foreground"
           >
-            Explore Farms
+            Find Farms
           </Link>
           <Link
             href="/gallery?tab=tours"
@@ -53,22 +53,22 @@ export function LandingNav({ isSignedIn }: LandingNavProps) {
             Tours
           </Link>
           <Link
+            href="/shops"
+            className="rounded-full px-4 py-2 text-sm font-medium transition-all hover:bg-foreground/5 no-underline text-foreground/80 hover:text-foreground"
+          >
+            Shop
+          </Link>
+          <Link
             href="/plants"
             className="rounded-full px-4 py-2 text-sm font-medium transition-all hover:bg-foreground/5 no-underline text-foreground/80 hover:text-foreground"
           >
-            Plant Database
+            Plants
           </Link>
           <Link
             href="/learn/blog"
             className="rounded-full px-4 py-2 text-sm font-medium transition-all hover:bg-foreground/5 no-underline text-foreground/80 hover:text-foreground"
           >
-            Blog
-          </Link>
-          <Link
-            href="/shops"
-            className="rounded-full px-4 py-2 text-sm font-medium transition-all hover:bg-foreground/5 no-underline text-foreground/80 hover:text-foreground"
-          >
-            Farm Shops
+            Stories
           </Link>
         </div>
 
@@ -96,7 +96,7 @@ export function LandingNav({ isSignedIn }: LandingNavProps) {
                 href="/login"
                 className="rounded-full border border-border/60 px-4 py-2 text-xs font-medium text-muted-foreground no-underline transition-all hover:border-primary/40 hover:text-primary hover:bg-primary/5"
               >
-                List Your Farm
+                I&apos;m a Grower
               </Link>
             </>
           )}
@@ -125,11 +125,11 @@ export function LandingNav({ isSignedIn }: LandingNavProps) {
       >
         <div className="bg-background/95 backdrop-blur-xl border-t border-border/30 px-6 py-5 space-y-1">
           {[
-            { href: "/gallery", label: "Explore Farms", desc: "Browse community farms and designs" },
-            { href: "/gallery?tab=tours", label: "Virtual Tours", desc: "Walk through farms from home" },
-            { href: "/plants", label: "Plant Database", desc: "Native species & companions" },
-            { href: "/learn/blog", label: "Blog & Learn", desc: "Permaculture guides and stories" },
-            { href: "/shops", label: "Farm Shops", desc: "Seeds, plants & local produce" },
+            { href: "/gallery", label: "Find Farms", desc: "Real permaculture farms near you" },
+            { href: "/shops", label: "Shop", desc: "Seeds, produce & plants from growers" },
+            { href: "/gallery?tab=tours", label: "Farm Tours", desc: "Walk the land virtually or in person" },
+            { href: "/plants", label: "Plants", desc: "Native species & growing guides" },
+            { href: "/learn/blog", label: "Stories", desc: "Hear from the growers themselves" },
           ].map((item) => (
             <Link
               key={item.href}
