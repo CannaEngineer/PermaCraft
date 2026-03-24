@@ -1,54 +1,17 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import maplibregl from "maplibre-gl";
-import { ChevronDown, ChevronUp, Leaf, ChevronRight, Map, Square } from "lucide-react";
+import { ChevronDown, ChevronUp, Leaf, Square } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FarmVitals } from "@/components/farm/farm-vitals";
 import { FeatureListPanel } from "./feature-list-panel";
 import { RedesignedTimeMachine } from "@/components/time-machine/redesigned-time-machine";
-import { CompactFilterPills } from "./info-cards/compact-filter-pills";
 import { MAP_INFO_TOKENS as tokens } from "@/lib/design/map-info-tokens";
 import { cn } from "@/lib/utils";
 
-type MapLayer = "satellite" | "mapbox-satellite" | "terrain-3d" | "terrain" | "topo" | "usgs" | "street";
-type GridDensity = "auto" | "sparse" | "normal" | "dense" | "off";
-
-const LAYER_FILTERS = [
-  { id: 'canopy', label: 'Canopy', color: '#166534' },
-  { id: 'understory', label: 'Understory', color: '#16a34a' },
-  { id: 'shrub', label: 'Shrub', color: '#22c55e' },
-  { id: 'herbaceous', label: 'Herbaceous', color: '#84cc16' },
-  { id: 'groundcover', label: 'Groundcover', color: '#a3e635' },
-  { id: 'vine', label: 'Vine', color: '#a855f7' },
-  { id: 'root', label: 'Root', color: '#78350f' },
-  { id: 'aquatic', label: 'Aquatic', color: '#0284c7' },
-];
-
-const FUNCTION_FILTERS = [
-  { id: 'nitrogen_fixer', label: 'N-Fixers' },
-  { id: 'pollinator_support', label: 'Pollinators' },
-  { id: 'dynamic_accumulator', label: 'Accumulators' },
-  { id: 'wildlife_habitat', label: 'Wildlife' },
-  { id: 'edible_fruit', label: 'Edible' },
-  { id: 'medicinal', label: 'Medicinal' },
-  { id: 'erosion_control', label: 'Erosion Control' },
-];
-
-const MAP_LAYERS: { value: MapLayer; label: string }[] = [
-  { value: 'satellite', label: 'Satellite (ESRI)' },
-  { value: 'mapbox-satellite', label: 'Mapbox Satellite' },
-  { value: 'terrain-3d', label: '3D Terrain' },
-  { value: 'terrain', label: 'Terrain Map' },
-  { value: 'topo', label: 'OpenTopoMap' },
-  { value: 'usgs', label: 'USGS Topo' },
-  { value: 'street', label: 'Street Map' },
-];
 
 interface MapBottomDrawerProps {
-  mapLayer: MapLayer;
-  gridUnit: "imperial" | "metric";
-  gridDensity: GridDensity;
   zones: any[];
   plantings?: any[];
   lines?: any[];
@@ -62,19 +25,8 @@ interface MapBottomDrawerProps {
   minYear?: number;
   maxYear?: number;
 
-  // Filters props
-  plantingFilters: string[];
-  onTogglePlantingFilter: (layer: string) => void;
-  vitalFilters: string[];
-  onToggleVitalFilter: (vital: string) => void;
-
   // Vitals props
   onGetRecommendations?: (vitalKey: string, vitalLabel: string, currentCount: number, plantList: any[]) => void;
-
-  // Map Settings props
-  onChangeLayer?: (layer: MapLayer) => void;
-  onToggleGridUnit?: () => void;
-  onChangeGridDensity?: (density: GridDensity) => void;
 
   // Map instance (for video export)
   map?: maplibregl.Map | null;
@@ -90,12 +42,9 @@ interface MapBottomDrawerProps {
   mapRef?: React.RefObject<any>;
 }
 
-type Tab = 'features' | 'filters' | 'vitals';
+type Tab = 'features' | 'vitals';
 
 export function MapBottomDrawer({
-  mapLayer,
-  gridUnit,
-  gridDensity,
   zones,
   plantings = [],
   lines = [],
@@ -106,14 +55,7 @@ export function MapBottomDrawer({
   onYearChange,
   minYear = new Date().getFullYear(),
   maxYear = new Date().getFullYear() + 20,
-  plantingFilters,
-  onTogglePlantingFilter,
-  vitalFilters,
-  onToggleVitalFilter,
   onGetRecommendations,
-  onChangeLayer,
-  onToggleGridUnit,
-  onChangeGridDensity,
   map,
   farmName,
   onAddPlant,
@@ -124,11 +66,6 @@ export function MapBottomDrawer({
 }: MapBottomDrawerProps) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('features');
-  const [settingsExpanded, setSettingsExpanded] = useState(false);
-
-  const activeFilterCount = useMemo(() => {
-    return plantingFilters.length + vitalFilters.length;
-  }, [plantingFilters.length, vitalFilters.length]);
 
   const lowVitalCount = useMemo(() => {
     if (plantings.length === 0) return 0;
@@ -155,39 +92,6 @@ export function MapBottomDrawer({
   const nonBoundaryZoneCount = useMemo(() => {
     return zones.filter((z: any) => z.zone_type !== 'farm_boundary').length;
   }, [zones]);
-
-  // Build filter pill data with counts
-  const layerPillFilters = useMemo(() => {
-    return LAYER_FILTERS.map(layer => ({
-      ...layer,
-      count: plantings.filter((p: any) => p.layer === layer.id).length,
-    }));
-  }, [plantings]);
-
-  const functionPillFilters = useMemo(() => {
-    return FUNCTION_FILTERS.map(fn => {
-      const count = plantings.filter((p: any) => {
-        if (!p.permaculture_functions) return false;
-        try {
-          const functions = typeof p.permaculture_functions === 'string'
-            ? JSON.parse(p.permaculture_functions)
-            : p.permaculture_functions;
-          return functions.includes(fn.id);
-        } catch {
-          return false;
-        }
-      }).length;
-      return { ...fn, count };
-    });
-  }, [plantings]);
-
-  const handleClearLayerFilters = useCallback(() => {
-    plantingFilters.forEach(id => onTogglePlantingFilter(id));
-  }, [plantingFilters, onTogglePlantingFilter]);
-
-  const handleClearVitalFilters = useCallback(() => {
-    vitalFilters.forEach(id => onToggleVitalFilter(id));
-  }, [vitalFilters, onToggleVitalFilter]);
 
   const openTab = (tab: Tab) => {
     setActiveTab(tab);
@@ -230,15 +134,6 @@ export function MapBottomDrawer({
                   Diversify
                 </Badge>
               )}
-              {activeFilterCount > 0 && (
-                <Badge
-                  onClick={(e) => { e.stopPropagation(); openTab('filters'); }}
-                  variant="secondary"
-                  className="cursor-pointer hover:bg-secondary/90 text-[10px] shrink-0"
-                >
-                  {activeFilterCount} filters
-                </Badge>
-              )}
             </button>
 
             <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -279,8 +174,7 @@ export function MapBottomDrawer({
           <div className="flex items-center bg-muted/50 rounded-lg p-0.5 flex-1" role="tablist" aria-label="Map info tabs">
             {([
               { id: 'features' as Tab, label: 'Features' },
-              { id: 'filters' as Tab, label: 'Filters', badge: activeFilterCount > 0 ? activeFilterCount : undefined },
-              { id: 'vitals' as Tab, label: 'Vitals' },
+              { id: 'vitals' as Tab, label: 'Vitals & Time' },
             ]).map((tab) => (
               <button
                 key={tab.id}
@@ -297,11 +191,6 @@ export function MapBottomDrawer({
                 )}
               >
                 {tab.label}
-                {tab.badge && (
-                  <span className="ml-1 inline-flex items-center justify-center h-3.5 min-w-[14px] px-1 rounded-full bg-primary/15 text-primary text-[9px] font-bold">
-                    {tab.badge}
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -341,119 +230,6 @@ export function MapBottomDrawer({
               ) : (
                 <div className="p-4 text-sm text-muted-foreground">
                   Feature list not available
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Filters Tab */}
-          {activeTab === 'filters' && (
-            <div
-              role="tabpanel"
-              id="tabpanel-filters"
-              aria-labelledby="tab-filters"
-              className="p-4 space-y-4"
-            >
-              <CompactFilterPills
-                title="Layer Filters"
-                filters={layerPillFilters}
-                activeFilters={plantingFilters}
-                onToggle={onTogglePlantingFilter}
-                onClearAll={plantingFilters.length > 0 ? handleClearLayerFilters : undefined}
-              />
-
-              <CompactFilterPills
-                title="Function Filters"
-                filters={functionPillFilters}
-                activeFilters={vitalFilters}
-                onToggle={onToggleVitalFilter}
-                onClearAll={vitalFilters.length > 0 ? handleClearVitalFilters : undefined}
-              />
-
-              {/* Collapsible Map Settings */}
-              {onChangeLayer && (
-                <div className={cn(
-                  tokens.colors.card.background,
-                  tokens.colors.card.border,
-                  'rounded-lg',
-                  tokens.spacing.card.padding
-                )}>
-                  <button
-                    onClick={() => setSettingsExpanded(!settingsExpanded)}
-                    className="flex items-center justify-between w-full text-left"
-                    aria-expanded={settingsExpanded}
-                  >
-                    <h3 className={tokens.typography.title}>
-                      <Map className="inline h-3.5 w-3.5 mr-1.5" />
-                      Map Settings
-                    </h3>
-                    <ChevronRight className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform",
-                      settingsExpanded && "rotate-90"
-                    )} />
-                  </button>
-
-                  {settingsExpanded && (
-                    <div className="mt-3 space-y-4">
-                      {/* Map Layer Selection */}
-                      <div>
-                        <div className="text-xs font-medium mb-2 text-muted-foreground">Map Layer</div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
-                          {MAP_LAYERS.map((layer) => (
-                            <button
-                              key={layer.value}
-                              onClick={() => onChangeLayer(layer.value)}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-xs transition-colors",
-                                mapLayer === layer.value
-                                  ? 'bg-primary text-primary-foreground font-medium'
-                                  : 'bg-muted/50 hover:bg-muted'
-                              )}
-                            >
-                              {layer.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Grid Unit Toggle */}
-                      {onToggleGridUnit && (
-                        <div>
-                          <div className="text-xs font-medium mb-2 text-muted-foreground">Grid Units</div>
-                          <button
-                            onClick={onToggleGridUnit}
-                            className="w-full px-3 py-2 rounded-lg text-xs bg-muted/50 hover:bg-muted transition-colors text-left"
-                          >
-                            <span className="font-medium">{gridUnit === 'imperial' ? 'Imperial (ft)' : 'Metric (m)'}</span>
-                            <span className="text-muted-foreground ml-2">Tap to toggle</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Grid Density */}
-                      {onChangeGridDensity && (
-                        <div>
-                          <div className="text-xs font-medium mb-2 text-muted-foreground">Grid Density</div>
-                          <div className="grid grid-cols-5 gap-1.5">
-                            {(['auto', 'sparse', 'normal', 'dense', 'off'] as GridDensity[]).map((density) => (
-                              <button
-                                key={density}
-                                onClick={() => onChangeGridDensity(density)}
-                                className={cn(
-                                  "px-2 py-2 rounded-lg text-xs transition-colors capitalize",
-                                  gridDensity === density
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted/50 hover:bg-muted'
-                                )}
-                              >
-                                {density}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
