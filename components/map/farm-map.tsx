@@ -229,9 +229,7 @@ export function FarmMap({
   const [showPlantingForm, setShowPlantingForm] = useState(false);
   const [plantingClickPos, setPlantingClickPos] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
 
-  // Planting filter and detail state
-  const [plantingFilters, setPlantingFilters] = useState<string[]>([]); // Empty = show all
-  const [vitalFilters, setVitalFilters] = useState<string[]>([]); // Empty = show all
+  // Planting detail state
   const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
 
   // Guild companion filter state
@@ -721,73 +719,6 @@ export function FarmMap({
     }
   }, [farm.id, loadPlantings, toast]);
 
-  // Vital type definitions with alternates (matches farm-vitals.tsx)
-  const vitalTypeMap = {
-    'nitrogen_fixer': ['nitrogen_fixer', 'nitrogen_fixing'],
-    'pollinator_support': ['pollinator_support', 'pollinator', 'pollinator_attractor'],
-    'dynamic_accumulator': ['dynamic_accumulator'],
-    'wildlife_habitat': ['wildlife_habitat', 'wildlife_food'],
-    'edible_fruit': ['edible_fruit', 'edible_nuts', 'edible'],
-    'medicinal': ['medicinal'],
-    'erosion_control': ['erosion_control', 'groundcover'],
-  };
-
-  // Filter plantings by layer and vital types
-  const filteredPlantings = plantings.filter(p => {
-    // Layer filter
-    const layerMatch = plantingFilters.length === 0 || plantingFilters.includes(p.layer);
-
-    // Vital filter (check if planting has any of the selected vital functions)
-    let vitalMatch = vitalFilters.length === 0;
-    if (!vitalMatch && p.permaculture_functions) {
-      const functions = typeof p.permaculture_functions === 'string'
-        ? JSON.parse(p.permaculture_functions)
-        : p.permaculture_functions;
-
-      // Check if any selected vital type (including alternates) matches the planting's functions
-      vitalMatch = vitalFilters.some(vitalKey => {
-        const vitalVariants = vitalTypeMap[vitalKey as keyof typeof vitalTypeMap] || [vitalKey];
-        return vitalVariants.some(variant => functions.includes(variant));
-      });
-    }
-
-    return layerMatch && vitalMatch;
-  });
-
-  // Filter lines by design layer (Track 1 integration)
-  const filteredLines = lines.filter(line => {
-    // If no layer filters active, show all lines
-    if (plantingFilters.length === 0) return true;
-
-    // If line has no layer_ids, show it (not assigned to any layer)
-    if (!line.layer_ids) return true;
-
-    // Parse layer_ids (stored as JSON array string)
-    const layerIds = typeof line.layer_ids === 'string'
-      ? JSON.parse(line.layer_ids)
-      : line.layer_ids;
-
-    // Show line if any of its layers are in the active filter
-    return Array.isArray(layerIds) && layerIds.some((id: string) => plantingFilters.includes(id));
-  });
-
-  // Toggle layer filter
-  const toggleLayerFilter = (layer: string) => {
-    setPlantingFilters(prev =>
-      prev.includes(layer)
-        ? prev.filter(l => l !== layer)
-        : [...prev, layer]
-    );
-  };
-
-  // Toggle vital filter
-  const toggleVitalFilter = (vital: string) => {
-    setVitalFilters(prev =>
-      prev.includes(vital)
-        ? prev.filter(v => v !== vital)
-        : [...prev, vital]
-    );
-  };
 
   // Update line rendering when filters change
   useEffect(() => {
@@ -797,7 +728,7 @@ export function FarmMap({
     if (!source) return;
 
     // Convert filtered lines to GeoJSON features
-    const lineFeatures = filteredLines.map((line: any) => {
+    const lineFeatures = lines.map((line: any) => {
       const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
       const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
 
@@ -819,7 +750,7 @@ export function FarmMap({
       type: 'FeatureCollection',
       features: lineFeatures
     });
-  }, [filteredLines]);
+  }, [lines]);
 
   // Handle quick label form save
   const handleQuickLabelSave = (type: string, name?: string) => {
@@ -2227,7 +2158,7 @@ export function FarmMap({
           const isTouchEvent = 'touches' in (e.originalEvent || {});
           const hitRadiusPx = isTouchEvent ? 24 : 12;
 
-          for (const p of filteredPlantings) {
+          for (const p of plantings) {
             const plantingPoint = map.current.project([p.lng, p.lat]);
             const dx = plantingPoint.x - e.point.x;
             const dy = plantingPoint.y - e.point.y;
@@ -2336,7 +2267,7 @@ export function FarmMap({
         map.current.off("touchend", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, filteredPlantings]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, plantings]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {
@@ -3569,9 +3500,6 @@ export function FarmMap({
 
       {/* Bottom Drawer - Unified design tools + farm management */}
       {!hideStatusBar && <MapBottomDrawer
-        mapLayer={mapLayer}
-        gridUnit={gridUnit}
-        gridDensity={gridDensity}
         zones={zones}
         plantings={plantings}
         lines={lines}
@@ -3582,14 +3510,7 @@ export function FarmMap({
         onYearChange={setProjectionYear}
         minYear={new Date().getFullYear()}
         maxYear={new Date().getFullYear() + 20}
-        plantingFilters={plantingFilters}
-        onTogglePlantingFilter={toggleLayerFilter}
-        vitalFilters={vitalFilters}
-        onToggleVitalFilter={toggleVitalFilter}
         onGetRecommendations={onGetRecommendations}
-        onChangeLayer={changeMapLayer}
-        onToggleGridUnit={() => setGridUnit(gridUnit === 'imperial' ? 'metric' : 'imperial')}
-        onChangeGridDensity={(density) => setGridDensity(density as GridDensity)}
         onAddPlant={() => {
           setPlantingMode(true);
           setShowSpeciesPicker(true);
@@ -3610,7 +3531,7 @@ export function FarmMap({
       />}
 
       {/* Render planting markers */}
-      {map.current && filteredPlantings.map(planting => (
+      {map.current && plantings.map(planting => (
         <PlantingMarker
           key={planting.id}
           planting={planting}
