@@ -3505,7 +3505,6 @@ export function FarmMap({
         lines={lines}
         guilds={guilds}
         phases={farmPhases}
-        farmId={farm.id}
         currentYear={projectionYear}
         onYearChange={setProjectionYear}
         minYear={new Date().getFullYear()}

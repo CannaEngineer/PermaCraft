@@ -1,4 +1,4 @@
-import { groupByType, groupByLayer, groupByPhase } from '@/lib/map/feature-grouping';
+import { groupByType } from '@/lib/map/feature-grouping';
 
 describe('feature-grouping', () => {
   const mockFeatures = {
@@ -37,48 +37,6 @@ describe('feature-grouping', () => {
       const emptyFeatures = { zones: [], plantings: [], lines: [], guilds: [], phases: [] };
       const result = groupByType(emptyFeatures);
       expect(result.Zones).toHaveLength(0);
-    });
-  });
-
-  describe('groupByLayer', () => {
-    it('should group plantings by layer', () => {
-      const result = groupByLayer(mockFeatures);
-      expect(result).toHaveProperty('Canopy');
-      expect(result).toHaveProperty('Herbaceous');
-      expect(result.Canopy).toHaveLength(1);
-      expect(result.Herbaceous).toHaveLength(1);
-    });
-
-    it('should put non-plantings in Other Features group', () => {
-      const result = groupByLayer(mockFeatures);
-      expect(result).toHaveProperty('Other Features');
-      expect(result['Other Features'].length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('groupByPhase', () => {
-    const mockPhases = [
-      { id: 'ph1', name: 'Year 1', start_year: 2024, end_year: 2024 },
-      { id: 'ph2', name: 'Year 2-3', start_year: 2025, end_year: 2026 }
-    ];
-
-    const featuresWithPhases = {
-      ...mockFeatures,
-      plantings: [
-        { id: 'p1', common_name: 'Apple', planted_year: 2024 },
-        { id: 'p2', common_name: 'Pear', planted_year: 2025 }
-      ]
-    };
-
-    it('should group features by phase', () => {
-      const result = groupByPhase(featuresWithPhases, mockPhases);
-      expect(result).toHaveProperty('Year 1');
-      expect(result).toHaveProperty('Year 2-3');
-    });
-
-    it('should put unscheduled features in Unscheduled group', () => {
-      const result = groupByPhase(mockFeatures, mockPhases);
-      expect(result).toHaveProperty('Unscheduled');
     });
   });
 });

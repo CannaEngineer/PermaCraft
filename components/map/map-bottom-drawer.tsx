@@ -17,8 +17,6 @@ interface MapBottomDrawerProps {
   lines?: any[];
   guilds?: any[];
   phases?: any[];
-  farmId?: string;
-
   // Time Machine props
   currentYear?: number;
   onYearChange?: (year: number) => void;
@@ -35,8 +33,6 @@ interface MapBottomDrawerProps {
   // Design + Farm actions (unified)
   onAddPlant?: () => void;
   onDrawZone?: () => void;
-  onDataRefresh?: () => void;
-
   // Feature List props
   onFeatureSelectFromList?: (featureId: string, featureType: 'zone' | 'planting' | 'line' | 'guild' | 'phase') => void;
   mapRef?: React.RefObject<any>;
@@ -50,7 +46,6 @@ export function MapBottomDrawer({
   lines = [],
   guilds = [],
   phases = [],
-  farmId,
   currentYear,
   onYearChange,
   minYear = new Date().getFullYear(),
@@ -60,7 +55,6 @@ export function MapBottomDrawer({
   farmName,
   onAddPlant,
   onDrawZone,
-  onDataRefresh,
   onFeatureSelectFromList,
   mapRef,
 }: MapBottomDrawerProps) {
@@ -222,10 +216,8 @@ export function MapBottomDrawer({
                   lines={lines}
                   guilds={guilds}
                   phases={phases}
-                  farmId={farmId}
                   onFeatureSelect={onFeatureSelectFromList}
                   mapRef={mapRef}
-                  onDataRefresh={onDataRefresh}
                 />
               ) : (
                 <div className="p-4 text-sm text-muted-foreground">
