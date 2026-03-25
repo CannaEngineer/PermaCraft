@@ -20,7 +20,7 @@ import { GuildDesigner } from '@/components/guilds/guild-designer';
 import { PhaseManager } from '@/components/phasing/phase-manager';
 import { ExportPanel } from '@/components/export/export-panel';
 import { SpeciesPickerPanel } from '@/components/map/species-picker-panel';
-import { FeatureListPanel, FilterPillsRow } from '@/components/map/feature-list-panel';
+import { FeatureListPanel } from '@/components/map/feature-list-panel';
 import { ManageTab } from '@/components/map/manage-tab';
 import { StoryTab } from '@/components/map/story-tab';
 import { GoalCaptureWizard } from '@/components/farm/goal-capture-wizard';
@@ -744,7 +744,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
               lines={lines}
               guilds={guilds}
               phases={farmPhases}
-              farmId={farm.id}
               onFeatureSelect={handleFeatureSelect}
               mapRef={mapRef}
             />

@@ -915,7 +915,6 @@ function ImmersiveMapEditorContent({
             lines={lines}
             guilds={guilds}
             phases={farmPhases}
-            farmId={farm.id}
             onFeatureSelect={handleFeatureSelect}
             mapRef={mapRef}
           />
