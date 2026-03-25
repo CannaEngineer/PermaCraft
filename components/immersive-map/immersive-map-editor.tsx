@@ -205,9 +205,7 @@ function ImmersiveMapEditorContent({
   // Map state
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [currentMapLayer, setCurrentMapLayer] = useState<string>("satellite");
-  const [gridUnit, setGridUnit] = useState<'imperial' | 'metric'>("imperial");
-  const [gridDensity, setGridDensity] = useState<string>("auto");
-  const [terrainEnabled, setTerrainEnabled] = useState(false);
+  const [gridUnit] = useState<'imperial' | 'metric'>("imperial");
 
   // Save state
   const [saving, setSaving] = useState(false);

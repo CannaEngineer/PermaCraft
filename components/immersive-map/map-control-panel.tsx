@@ -2,7 +2,7 @@
 
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { Layers, Grid, Minimize2, ChevronRight, Keyboard } from "lucide-react";
+import { Layers, Minimize2, Keyboard } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayerPanel } from "@/components/layers/layer-panel";
@@ -11,48 +11,24 @@ interface MapControlPanelProps {
   farmId: string;
   currentLayer: string;
   onLayerChange: (layer: string) => void;
-  gridUnit: 'imperial' | 'metric';
-  onGridUnitChange: (unit: 'imperial' | 'metric') => void;
-  gridDensity: string;
-  onGridDensityChange: (density: string) => void;
-  terrainEnabled: boolean;
-  onTerrainToggle: () => void;
   onLayerVisibilityChange?: (layerIds: string[]) => void;
 }
 
 /**
- * Simplified Map Control Panel — 2 sections + keyboard shortcut tooltip.
+ * Map Control Panel — simplified to a single Layers panel.
  *
- * Before: 5 accordion sections (Map Layers, Grid Settings, Map Options, Design Layers, Help)
- * After:  2 sections (Layers, Grid & Options) + keyboard shortcut tooltip button
- *
- * Changes:
- *   - Merged "Map Layers" and "Design Layers" into one "Layers" section
- *   - Merged "Map Options" (single 3D toggle) into "Grid & Options"
- *   - Moved "Help" from a full section to a compact tooltip (always accessible, zero clicks)
- *   - Reduced cognitive load: users scan 2 section headers instead of 5
+ * Removed: Grid Density, Units, 3D Terrain controls.
+ * Grid density defaults to "auto" (zoom-adaptive). Units default to imperial.
+ * These are engineering controls that don't help farmers design their land.
  */
-
-type PanelSection = 'layers' | 'grid';
 
 export function MapControlPanel({
   farmId,
   currentLayer,
   onLayerChange,
-  gridUnit,
-  onGridUnitChange,
-  gridDensity,
-  onGridDensityChange,
-  terrainEnabled,
-  onTerrainToggle,
   onLayerVisibilityChange,
 }: MapControlPanelProps) {
-  const { controlPanelMinimized, controlPanelSection, setControlPanelSection, toggleControlPanel } = useImmersiveMapUI();
-
-  const toggleSection = (section: PanelSection) => {
-    setControlPanelSection(controlPanelSection === section ? null : section);
-  };
-
+  const { controlPanelMinimized, toggleControlPanel } = useImmersiveMapUI();
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   if (controlPanelMinimized) {
@@ -85,9 +61,12 @@ export function MapControlPanel({
     >
       {/* Panel Header */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">
-        <h3 className="text-sm font-semibold">Map Controls</h3>
+        <div className="flex items-center gap-2">
+          <Layers className="h-4 w-4" />
+          <h3 className="text-sm font-semibold">Layers</h3>
+        </div>
         <div className="flex items-center gap-1">
-          {/* Keyboard Shortcuts — compact popover instead of full accordion section */}
+          {/* Keyboard Shortcuts — compact popover */}
           <div className="relative">
             <Button
               variant="ghost"
@@ -125,158 +104,41 @@ export function MapControlPanel({
         </div>
       </div>
 
-      {/* Layers Section — combines Map Layers + Design Layers */}
-      <div className="mb-2">
-        <button
-          onClick={() => toggleSection('layers')}
-          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Layers className="h-4 w-4" />
-            <span className="text-sm font-medium">Layers</span>
+      {/* Base Map — directly visible, no accordion */}
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Base Map</label>
+          <div className="space-y-0.5">
+            {[
+              { value: 'satellite', label: 'Satellite' },
+              { value: 'terrain', label: 'Terrain' },
+              { value: 'topo', label: 'OpenTopoMap' },
+              { value: 'usgs', label: 'USGS Topo' },
+              { value: 'street', label: 'Street' },
+            ].map((layer) => (
+              <button
+                key={layer.value}
+                onClick={() => onLayerChange(layer.value)}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                  currentLayer === layer.value
+                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    : 'hover:bg-accent/50'
+                }`}
+              >
+                {layer.label}
+              </button>
+            ))}
           </div>
-          <ChevronRight
-            className={`h-4 w-4 transition-transform ${
-              controlPanelSection === 'layers' ? 'rotate-90' : ''
-            }`}
+        </div>
+
+        {/* Design Layers */}
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Design Layers</label>
+          <LayerPanel
+            farmId={farmId}
+            onLayerVisibilityChange={onLayerVisibilityChange}
           />
-        </button>
-
-        <AnimatePresence>
-          {controlPanelSection === 'layers' && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="pl-4 pr-2 py-2 space-y-3">
-                {/* Base Map */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Base Map</label>
-                  <div className="space-y-0.5">
-                    {[
-                      { value: 'satellite', label: 'Satellite' },
-                      { value: 'terrain', label: 'Terrain' },
-                      { value: 'topo', label: 'OpenTopoMap' },
-                      { value: 'usgs', label: 'USGS Topo' },
-                      { value: 'street', label: 'Street' },
-                    ].map((layer) => (
-                      <button
-                        key={layer.value}
-                        onClick={() => onLayerChange(layer.value)}
-                        className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                          currentLayer === layer.value
-                            ? 'bg-primary/20 text-primary border border-primary/30'
-                            : 'hover:bg-accent/50'
-                        }`}
-                      >
-                        {layer.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Design Layers */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Design Layers</label>
-                  <LayerPanel
-                    farmId={farmId}
-                    onLayerVisibilityChange={onLayerVisibilityChange}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Grid & Options Section — combines Grid Settings + Map Options */}
-      <div className="mb-2">
-        <button
-          onClick={() => toggleSection('grid')}
-          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Grid className="h-4 w-4" />
-            <span className="text-sm font-medium">Grid & Options</span>
-          </div>
-          <ChevronRight
-            className={`h-4 w-4 transition-transform ${
-              controlPanelSection === 'grid' ? 'rotate-90' : ''
-            }`}
-          />
-        </button>
-
-        <AnimatePresence>
-          {controlPanelSection === 'grid' && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="pl-4 pr-2 py-2 space-y-3">
-                {/* Units */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Units</label>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => onGridUnitChange('imperial')}
-                      className={`flex-1 px-2 py-1 text-xs rounded ${
-                        gridUnit === 'imperial'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-accent/50 hover:bg-accent'
-                      }`}
-                    >
-                      Imperial
-                    </button>
-                    <button
-                      onClick={() => onGridUnitChange('metric')}
-                      className={`flex-1 px-2 py-1 text-xs rounded ${
-                        gridUnit === 'metric'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-accent/50 hover:bg-accent'
-                      }`}
-                    >
-                      Metric
-                    </button>
-                  </div>
-                </div>
-
-                {/* Density */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Density</label>
-                  <select
-                    value={gridDensity}
-                    onChange={(e) => onGridDensityChange(e.target.value)}
-                    className="w-full px-2 py-1 text-xs rounded bg-accent/50 border border-border/30"
-                  >
-                    <option value="auto">Auto</option>
-                    <option value="sparse">Sparse</option>
-                    <option value="normal">Normal</option>
-                    <option value="dense">Dense</option>
-                  </select>
-                </div>
-
-                {/* 3D Terrain toggle */}
-                <div>
-                  <label className="flex items-center cursor-pointer px-1 py-1 rounded text-sm hover:bg-accent/50 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={terrainEnabled}
-                      onChange={onTerrainToggle}
-                      className="mr-2"
-                    />
-                    3D Terrain
-                  </label>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );

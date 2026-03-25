@@ -3505,10 +3505,6 @@ export function FarmMap({
         lines={lines}
         guilds={guilds}
         phases={farmPhases}
-        currentYear={projectionYear}
-        onYearChange={setProjectionYear}
-        minYear={new Date().getFullYear()}
-        maxYear={new Date().getFullYear() + 20}
         onGetRecommendations={onGetRecommendations}
         onAddPlant={() => {
           setPlantingMode(true);
@@ -3525,8 +3521,6 @@ export function FarmMap({
         }}
         onFeatureSelectFromList={onFeatureSelect}
         mapRef={map}
-        map={map.current}
-        farmName={farm.name}
       />}
 
       {/* Render planting markers */}
