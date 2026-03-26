@@ -1,12 +1,14 @@
-const FUNCTION_META: Record<string, { label: string; color: string }> = {
-  nitrogen_fixer: { label: 'Nitrogen', color: '#4caf50' },
-  pollinator: { label: 'Pollinators', color: '#ffc107' },
-  dynamic_accumulator: { label: 'Accum.', color: '#9c27b0' },
-  wildlife_habitat: { label: 'Wildlife', color: '#00bcd4' },
-  edible: { label: 'Edibles', color: '#ff9800' },
-  medicinal: { label: 'Medicinal', color: '#f44336' },
-  erosion_control: { label: 'Erosion', color: '#795548' },
-  water_management: { label: 'Water', color: '#2196f3' },
+import { Heart, TrendingUp } from 'lucide-react';
+
+const FUNCTION_META: Record<string, { label: string; color: string; bg: string }> = {
+  nitrogen_fixer: { label: 'Nitrogen', color: 'bg-emerald-500', bg: 'bg-emerald-500/20' },
+  pollinator: { label: 'Pollinators', color: 'bg-amber-500', bg: 'bg-amber-500/20' },
+  dynamic_accumulator: { label: 'Accumulate', color: 'bg-violet-500', bg: 'bg-violet-500/20' },
+  wildlife_habitat: { label: 'Wildlife', color: 'bg-teal-500', bg: 'bg-teal-500/20' },
+  edible: { label: 'Edibles', color: 'bg-orange-500', bg: 'bg-orange-500/20' },
+  medicinal: { label: 'Medicinal', color: 'bg-rose-500', bg: 'bg-rose-500/20' },
+  erosion_control: { label: 'Erosion', color: 'bg-stone-500', bg: 'bg-stone-500/20' },
+  water_management: { label: 'Water', color: 'bg-sky-500', bg: 'bg-sky-500/20' },
 };
 
 interface Props {
@@ -14,50 +16,71 @@ interface Props {
   functions: Record<string, number>;
 }
 
+function getScoreColor(score: number) {
+  if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
+  if (score >= 60) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
+}
+
+function getProgressColor(score: number) {
+  if (score >= 80) return 'from-emerald-600 to-emerald-400';
+  if (score >= 60) return 'from-amber-600 to-amber-400';
+  return 'from-red-600 to-red-400';
+}
+
 export function EcoHealthCard({ score, functions }: Props) {
   const missing = Object.entries(functions).filter(([, v]) => v === 0).length;
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <span>&#127758;</span>
-        <span className="text-xs font-bold text-foreground">Eco Health</span>
+    <div className="rounded-2xl border border-border/50 bg-card p-4 transition-all duration-200 hover:shadow-sm">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-3">
+        <Heart className="h-5 w-5 text-emerald-500" />
+        <h4 className="text-sm font-semibold text-foreground tracking-tight">Eco Health</h4>
       </div>
-      <div className="p-3">
-        <div className="mb-1 text-2xl font-black text-green-400 leading-none">
-          {score}<span className="text-xs font-normal text-muted-foreground">/100</span>
-        </div>
-        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-green-700 to-green-400 transition-all"
-            style={{ width: `${score}%` }}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-          {Object.entries(FUNCTION_META).map(([key, { label, color }]) => {
-            const count = functions[key] ?? 0;
-            return (
-              <div key={key} className="flex items-center gap-1.5">
-                <div
-                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                  style={{ backgroundColor: count > 0 ? color : '#2d3d2a' }}
-                />
-                <span className={`text-[9px] flex-1 truncate ${count > 0 ? 'text-muted-foreground' : 'text-muted-foreground/40'}`}>
-                  {label}
-                </span>
-                <span className={`text-[9px] font-semibold ${count > 0 ? 'text-foreground' : 'text-muted-foreground/30'}`}>
-                  {count}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        {missing > 0 && score < 80 && (
-          <div className="mt-2 rounded-md bg-teal-950/40 border border-teal-800/40 px-2 py-1.5 text-[9px] text-teal-400">
+
+      {/* Score */}
+      <div className="flex items-baseline gap-1 mb-2">
+        <span className={`text-3xl font-bold tabular-nums ${getScoreColor(score)}`}>{score}</span>
+        <span className="text-sm font-medium text-muted-foreground">/100</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted/50">
+        <div
+          className={`h-full rounded-full bg-gradient-to-r ${getProgressColor(score)} transition-all duration-500 ease-out`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+
+      {/* Functions grid */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        {Object.entries(FUNCTION_META).map(([key, { label, color, bg }]) => {
+          const count = functions[key] ?? 0;
+          const active = count > 0;
+          return (
+            <div key={key} className="flex items-center gap-2">
+              <div className={`h-2 w-2 flex-shrink-0 rounded-full transition-all duration-200 ${active ? color : 'bg-border'}`} />
+              <span className={`text-[11px] flex-1 truncate ${active ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+                {label}
+              </span>
+              <span className={`text-[11px] font-semibold tabular-nums ${active ? 'text-foreground' : 'text-muted-foreground/30'}`}>
+                {count}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Suggestion */}
+      {missing > 0 && score < 80 && (
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-sky-500/10 px-3 py-2">
+          <TrendingUp className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 flex-shrink-0" />
+          <span className="text-[11px] font-medium text-sky-700 dark:text-sky-400">
             Add {missing} more function{missing > 1 ? 's' : ''} to improve your score
-          </div>
-        )}
-      </div>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

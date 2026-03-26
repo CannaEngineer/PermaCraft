@@ -6,13 +6,8 @@ interface Props {
 
 export function ProgressPanel({ userId }: Props) {
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="border-b border-border px-4 py-2.5">
-        <h3 className="text-xs font-bold text-foreground">Your Progress</h3>
-      </div>
-      <div className="p-3">
-        <LearningProgress userId={userId} />
-      </div>
+    <div className="rounded-2xl border border-border/50 bg-card transition-all duration-200 hover:shadow-sm">
+      <LearningProgress userId={userId} />
     </div>
   );
 }

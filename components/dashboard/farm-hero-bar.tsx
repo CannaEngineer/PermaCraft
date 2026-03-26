@@ -1,16 +1,57 @@
 import { DashboardFarm } from '@/lib/db/queries/dashboard';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { ArrowRight, Clock } from 'lucide-react';
 
-const FUNCTION_LABELS: Record<string, { label: string; color: string }> = {
-  nitrogen_fixer: { label: 'N-fixers', color: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/60 dark:text-green-300 dark:border-green-800' },
-  pollinator: { label: 'Pollinators', color: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/60 dark:text-yellow-300 dark:border-yellow-800' },
-  dynamic_accumulator: { label: 'Accumulators', color: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/60 dark:text-purple-300 dark:border-purple-800' },
-  wildlife_habitat: { label: 'Wildlife', color: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800' },
-  edible: { label: 'Edibles', color: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/60 dark:text-orange-300 dark:border-orange-800' },
-  medicinal: { label: 'Medicinal', color: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/60 dark:text-red-300 dark:border-red-800' },
-  erosion_control: { label: 'Erosion ctrl', color: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/60 dark:text-amber-300 dark:border-amber-800' },
-  water_management: { label: 'Water mgmt', color: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/60 dark:text-blue-300 dark:border-blue-800' },
+const FUNCTION_LABELS: Record<string, { label: string; icon: string; filled: string; gap: string }> = {
+  nitrogen_fixer: {
+    label: 'N-fixers',
+    icon: '🫘',
+    filled: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
+  pollinator: {
+    label: 'Pollinators',
+    icon: '🐝',
+    filled: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
+  dynamic_accumulator: {
+    label: 'Accumulators',
+    icon: '⛏️',
+    filled: 'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
+  wildlife_habitat: {
+    label: 'Wildlife',
+    icon: '🦎',
+    filled: 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
+  edible: {
+    label: 'Edibles',
+    icon: '🍎',
+    filled: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
+  medicinal: {
+    label: 'Medicinal',
+    icon: '🌿',
+    filled: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
+  erosion_control: {
+    label: 'Erosion',
+    icon: '🏔️',
+    filled: 'bg-stone-500/10 text-stone-700 dark:text-stone-400 border-stone-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
+  water_management: {
+    label: 'Water',
+    icon: '💧',
+    filled: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20',
+    gap: 'bg-muted/50 text-muted-foreground/60 border-border/50',
+  },
 };
 
 interface Props {
@@ -20,41 +61,71 @@ interface Props {
 
 export function FarmHeroBar({ farm, ecoFunctions }: Props) {
   const lastEdited = formatDistanceToNow(new Date(farm.updated_at * 1000), { addSuffix: true });
+  const filledCount = Object.values(ecoFunctions).filter(v => v > 0).length;
+  const totalFunctions = Object.keys(FUNCTION_LABELS).length;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-background/80 px-4 py-3">
-      <div className="min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <h2 className="text-base font-bold text-foreground">{farm.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {farm.acres ? `${farm.acres}ac` : ''}{farm.climate_zone ? ` · ${farm.climate_zone}` : ''} · edited {lastEdited}
-          </span>
-        </div>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {Object.entries(FUNCTION_LABELS).map(([key, { label, color }]) => {
-            const count = ecoFunctions[key] ?? 0;
-            const isGap = count === 0;
-            return (
-              <span
-                key={key}
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
-                  isGap
-                    ? 'border-amber-300 bg-amber-50 text-amber-600 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400/70'
-                    : color
-                }`}
-              >
-                {isGap ? '\u26A0 ' : ''}{label} {count > 0 ? count : '\u2014'}
+    <div className="bg-card/50 backdrop-blur-sm border-b border-border/30">
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          {/* Farm info */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <h2 className="text-xl font-bold text-foreground tracking-tight">{farm.name}</h2>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {lastEdited}
+              </div>
+            </div>
+
+            {/* Meta row */}
+            <div className="flex items-center gap-2 mb-3">
+              {farm.acres && (
+                <span className="inline-flex items-center rounded-lg bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground">
+                  {farm.acres} acres
+                </span>
+              )}
+              {farm.climate_zone && (
+                <span className="inline-flex items-center rounded-lg bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground">
+                  {farm.climate_zone}
+                </span>
+              )}
+              <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                {filledCount}/{totalFunctions} functions
               </span>
-            );
-          })}
+            </div>
+
+            {/* Ecological function pills */}
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(FUNCTION_LABELS).map(([key, meta]) => {
+                const count = ecoFunctions[key] ?? 0;
+                const isGap = count === 0;
+                return (
+                  <span
+                    key={key}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all duration-200 ${
+                      isGap ? meta.gap : meta.filled
+                    }`}
+                  >
+                    <span className="text-xs">{meta.icon}</span>
+                    {meta.label}
+                    <span className="font-semibold tabular-nums">{count > 0 ? count : '—'}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Open editor CTA */}
+          <Link
+            href={`/farm/${farm.id}`}
+            className="inline-flex items-center gap-2 flex-shrink-0 rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90 active:scale-[0.97] transition-all duration-200"
+          >
+            Open Editor
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
-      <Link
-        href={`/farm/${farm.id}`}
-        className="flex-shrink-0 rounded-xl border border-green-700 bg-green-900/60 px-4 py-2 text-xs font-bold text-green-200 hover:bg-green-800/60 transition-colors text-center"
-      >
-        Open Map Editor &rarr;
-      </Link>
     </div>
   );
 }

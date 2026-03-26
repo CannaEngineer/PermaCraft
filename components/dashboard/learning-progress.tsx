@@ -1,23 +1,24 @@
 import { db } from '@/lib/db';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, ArrowRight, BookOpen, Trophy, Target, Sparkles, Play } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowRight, BookOpen, Trophy, Sparkles, Target, Play, GraduationCap } from 'lucide-react';
 
 interface LearningProgressProps {
   userId: string;
 }
 
 function getLevelName(level: number) {
-  const levels = ['Seedling 🌱', 'Sprout 🌿', 'Sapling 🌲', 'Tree 🌳', 'Grove 🌲🌳', 'Forest 🌲🌳🌲'];
+  const levels = ['Seedling', 'Sprout', 'Sapling', 'Tree', 'Grove', 'Forest'];
   return levels[Math.min(level, levels.length - 1)];
+}
+
+function getLevelIcon(level: number) {
+  const icons = ['🌱', '🌿', '🌲', '🌳', '🌲🌳', '🌲🌳🌲'];
+  return icons[Math.min(level, icons.length - 1)];
 }
 
 async function fetchLearningData(userId: string) {
   try {
-    // Get user progress with active learning path info
     const progressResult = await db.execute({
       sql: `
         SELECT
@@ -36,20 +37,14 @@ async function fetchLearningData(userId: string) {
     const userProgress = progressResult.rows.length > 0 ? progressResult.rows[0] : null;
     const activePath = (userProgress as any)?.learning_path_id;
 
-    // Get next lessons from active path if one is set, otherwise general
     let nextLessonsResult;
     if (activePath) {
       nextLessonsResult = await db.execute({
         sql: `
           SELECT
-            l.id,
-            l.title,
-            l.slug,
-            l.description,
-            l.estimated_minutes,
-            l.xp_reward,
-            t.name as topic_name,
-            pl.order_index
+            l.id, l.title, l.slug, l.description,
+            l.estimated_minutes, l.xp_reward,
+            t.name as topic_name, pl.order_index
           FROM path_lessons pl
           JOIN lessons l ON pl.lesson_id = l.id
           JOIN topics t ON l.topic_id = t.id
@@ -64,12 +59,8 @@ async function fetchLearningData(userId: string) {
       nextLessonsResult = await db.execute({
         sql: `
           SELECT
-            l.id,
-            l.title,
-            l.slug,
-            l.description,
-            l.estimated_minutes,
-            l.xp_reward,
+            l.id, l.title, l.slug, l.description,
+            l.estimated_minutes, l.xp_reward,
             t.name as topic_name
           FROM lessons l
           JOIN topics t ON l.topic_id = t.id
@@ -82,7 +73,6 @@ async function fetchLearningData(userId: string) {
       });
     }
 
-    // Get completed lesson count (for active path or overall)
     let completedCountResult;
     let totalLessonsResult;
     if (activePath) {
@@ -110,7 +100,6 @@ async function fetchLearningData(userId: string) {
       });
     }
 
-    // Get recent badges
     const recentBadgesResult = await db.execute({
       sql: `
         SELECT b.*, ub.earned_at
@@ -154,188 +143,183 @@ export async function LearningProgress({ userId }: LearningProgressProps) {
   const data = await fetchLearningData(userId);
   const progress = data.userProgress as any;
 
-  // No learning activity yet — only show "Choose Path" if user has never started
+  // No learning activity — show start CTA
   if (!data.userProgress && !data.hasActivePath && data.nextLessons.length === 0) {
     return (
-      <Card className="bg-gradient-to-br from-green-500/5 via-green-500/3 to-background border-green-500/20">
-        <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3">
-            <BookOpen className="w-6 h-6 text-green-500" />
-          </div>
-          <h3 className="font-semibold mb-2">Start Learning</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Choose a learning path to begin
-          </p>
-          <Button asChild size="sm" className="rounded-xl">
-            <Link href="/learn">
-              Choose Path
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+          <BookOpen className="w-6 h-6 text-primary" />
+        </div>
+        <h3 className="text-sm font-semibold text-foreground mb-1">Start Learning</h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Choose a learning path to begin your permaculture journey
+        </p>
+        <Link
+          href="/learn"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-all active:scale-[0.97]"
+        >
+          Choose Path
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-gradient-to-br from-green-500/5 via-green-500/3 to-background border-green-500/20">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <CardTitle className="text-base">Learning Progress</CardTitle>
-            <CardDescription className="text-xs">
-              {progress?.path_name || (data.hasActivePath ? 'Your Learning Path' : 'Permaculture Foundations')}
-            </CardDescription>
-          </div>
+    <div className="p-4">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-4">
+        <GraduationCap className="h-5 w-5 text-primary" />
+        <div>
+          <h4 className="text-sm font-semibold text-foreground tracking-tight">Learning Progress</h4>
+          <p className="text-xs text-muted-foreground">
+            {progress?.path_name || (data.hasActivePath ? 'Your Learning Path' : 'Permaculture Foundations')}
+          </p>
         </div>
+      </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-2">
-          {/* Level */}
-          <div className="text-center p-2 rounded-lg bg-amber-500/10">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Trophy className="w-3 h-3 text-amber-500" />
-            </div>
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
-              {progress ? getLevelName(progress.current_level) : 'Seedling 🌱'}
-            </p>
-          </div>
-
-          {/* XP */}
-          <div className="text-center p-2 rounded-lg bg-blue-500/10">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Sparkles className="w-3 h-3 text-blue-500" />
-            </div>
-            <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-              {progress?.total_xp || 0}
-            </p>
-            <p className="text-[10px] text-muted-foreground">XP</p>
-          </div>
-
-          {/* Progress */}
-          <div className="text-center p-2 rounded-lg bg-green-500/10">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Target className="w-3 h-3 text-green-500" />
-            </div>
-            <p className="text-lg font-bold text-green-900 dark:text-green-100">
-              {data.completedCount}/{data.totalLessons}
-            </p>
-            <p className="text-[10px] text-muted-foreground">Complete</p>
-          </div>
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="text-center rounded-xl bg-amber-500/10 p-2.5">
+          <Trophy className="w-4 h-4 text-amber-500 mx-auto mb-1" />
+          <p className="text-[11px] font-semibold text-foreground">
+            {progress ? getLevelName(progress.current_level) : 'Seedling'}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {progress ? getLevelIcon(progress.current_level) : '🌱'}
+          </p>
         </div>
-      </CardHeader>
+        <div className="text-center rounded-xl bg-sky-500/10 p-2.5">
+          <Sparkles className="w-4 h-4 text-sky-500 mx-auto mb-1" />
+          <p className="text-lg font-bold text-foreground tabular-nums">
+            {progress?.total_xp || 0}
+          </p>
+          <p className="text-[10px] text-muted-foreground">XP</p>
+        </div>
+        <div className="text-center rounded-xl bg-emerald-500/10 p-2.5">
+          <Target className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
+          <p className="text-lg font-bold text-foreground tabular-nums">
+            {data.completedCount}/{data.totalLessons}
+          </p>
+          <p className="text-[10px] text-muted-foreground">Done</p>
+        </div>
+      </div>
 
-      <CardContent className="space-y-4">
-        {/* Progress Bar */}
-        {(data.hasActivePath || data.completedCount > 0) && (
-          <div>
-            <Progress value={data.percentComplete} className="h-2" />
-            <p className="text-xs text-muted-foreground text-center mt-1">
-              {Math.round(data.percentComplete)}% complete
-            </p>
-          </div>
-        )}
+      {/* Progress bar */}
+      {(data.hasActivePath || data.completedCount > 0) && (
+        <div className="mb-4">
+          <Progress value={data.percentComplete} className="h-2" />
+          <p className="text-[11px] text-muted-foreground text-center mt-1.5">
+            {Math.round(data.percentComplete)}% complete
+          </p>
+        </div>
+      )}
 
-        {/* Next Lessons List */}
-        {data.nextLessons.length > 0 ? (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold flex items-center gap-1">
-                <Play className="w-3 h-3 text-primary" />
-                Next Lessons
-              </h4>
-              {data.hasActivePath && progress?.path_slug && (
-                <Link href={`/learn/paths/${progress.path_slug}`}>
-                  <Button variant="ghost" size="sm" className="h-6 text-xs rounded-lg">
-                    View Path
-                    <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
-                </Link>
-              )}
-            </div>
-
-            {/* Lesson List */}
-            <div className="space-y-2">
-              {data.nextLessons.map((lesson: any, index: number) => (
-                <Link
-                  key={lesson.id}
-                  href={`/learn/lessons/${lesson.slug}`}
-                  className={`block p-3 rounded-lg border transition-all group ${
-                    index === 0
-                      ? 'border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/40'
-                      : 'border-border bg-muted/30 hover:bg-muted/50'
-                  }`}
-                >
-                  <div className="flex items-start gap-2 mb-1">
-                    {index === 0 ? (
-                      <Play className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <Circle className="w-3 h-3 text-muted-foreground flex-shrink-0 mt-1" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-medium text-sm line-clamp-1 ${index === 0 ? 'group-hover:text-primary' : ''} transition-colors`}>
-                        {lesson.title}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                        <span>{lesson.estimated_minutes} min</span>
-                        <span>•</span>
-                        <span className="text-green-600">+{lesson.xp_reward} XP</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            {data.hasActivePath && data.totalLessons > 0 && data.completedCount === data.totalLessons ? (
-              // Actually completed the path
-              <>
-                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
-                </div>
-                <p className="text-sm font-semibold mb-1">Path Complete! 🎉</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  You've mastered all {data.totalLessons} lessons
-                </p>
-                <Button asChild size="sm" variant="outline" className="rounded-xl">
-                  <Link href="/learn">Choose New Path</Link>
-                </Button>
-              </>
-            ) : (
-              // Just started or no lessons found
-              <>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {data.hasActivePath ? 'All caught up! Check back for new lessons.' : 'Choose a path to start'}
-                </p>
-                <Button asChild size="sm" className="rounded-xl">
-                  <Link href="/learn">
-                    {data.hasActivePath ? 'View Path' : 'Browse Paths'}
-                  </Link>
-                </Button>
-              </>
+      {/* Next lessons */}
+      {data.nextLessons.length > 0 ? (
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <h5 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Play className="w-3 h-3" />
+              Next Lessons
+            </h5>
+            {data.hasActivePath && progress?.path_slug && (
+              <Link
+                href={`/learn/paths/${progress.path_slug}`}
+                className="text-[11px] font-medium text-primary hover:underline flex items-center gap-0.5"
+              >
+                View Path
+                <ArrowRight className="w-3 h-3" />
+              </Link>
             )}
           </div>
-        )}
 
-        {/* Recent Badges */}
-        {data.recentBadges.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wider">Recent Achievements</h4>
-            <div className="flex gap-2">
-              {data.recentBadges.map((badge: any) => (
-                <div
-                  key={badge.id}
-                  className="flex-1 p-2 rounded-lg bg-amber-500/10 border border-amber-200 dark:border-amber-900"
-                >
-                  <p className="text-xs font-medium truncate text-amber-900 dark:text-amber-100">{badge.name}</p>
+          <div className="space-y-1.5">
+            {data.nextLessons.map((lesson: any, index: number) => (
+              <Link
+                key={lesson.id}
+                href={`/learn/lessons/${lesson.slug}`}
+                className={`block rounded-xl p-3 border transition-all duration-200 group ${
+                  index === 0
+                    ? 'border-primary/20 bg-primary/5 hover:bg-primary/10'
+                    : 'border-border/30 bg-muted/20 hover:bg-muted/40'
+                }`}
+              >
+                <div className="flex items-start gap-2.5">
+                  {index === 0 ? (
+                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0 mt-0.5">
+                      <Play className="w-3 h-3 text-primary" />
+                    </div>
+                  ) : (
+                    <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-medium line-clamp-1 ${index === 0 ? 'group-hover:text-primary text-foreground' : 'text-foreground/80'} transition-colors`}>
+                      {lesson.title}
+                    </p>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                      <span>{lesson.estimated_minutes} min</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{lesson.xp_reward} XP</span>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </Link>
+            ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : (
+        <div className="text-center py-4">
+          {data.hasActivePath && data.totalLessons > 0 && data.completedCount === data.totalLessons ? (
+            <>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+              </div>
+              <p className="text-sm font-semibold text-foreground mb-1">Path Complete!</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                You've mastered all {data.totalLessons} lessons
+              </p>
+              <Link
+                href="/learn"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                Choose New Path
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground mb-3">
+                {data.hasActivePath ? 'All caught up! Check back for new lessons.' : 'Choose a path to start'}
+              </p>
+              <Link
+                href="/learn"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-all"
+              >
+                {data.hasActivePath ? 'View Path' : 'Browse Paths'}
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Recent badges */}
+      {data.recentBadges.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-border/30">
+          <h5 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            Recent Achievements
+          </h5>
+          <div className="flex gap-2">
+            {data.recentBadges.map((badge: any) => (
+              <div
+                key={badge.id}
+                className="flex-1 rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5"
+              >
+                <p className="text-xs font-medium truncate text-foreground">{badge.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

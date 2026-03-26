@@ -1,7 +1,6 @@
 import { requireAuth } from "@/lib/auth/session";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PlusIcon, Search } from "lucide-react";
 import { UniversalSearch } from "@/components/search/universal-search";
 import { DashboardClientV2 } from "@/components/dashboard/dashboard-client-v2";
 import {
@@ -84,40 +83,56 @@ export default async function DashboardPage() {
   const firstFarmData = farms.length > 0 ? farmData[farms[0].id] : null;
   const seasonLabel = firstFarmData?.seasonal.seasonLabel ?? "";
 
+  // Aggregate stats across all farms
+  const totalPlantings = farms.reduce((sum, f) => sum + (f.planting_count || 0), 0);
+  const totalFarms = farms.length;
+
   return (
-    <div className="min-h-screen">
-      {/* Top greeting bar */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div>
-          <h1 className="text-sm font-bold">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {dateString}
-            {seasonLabel ? ` \u00B7 ${seasonLabel}` : ""}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <UniversalSearch
-            context="my-farms"
-            placeholder="Search..."
-            className="w-48 hidden sm:block"
-          />
-          <Button asChild size="sm" className="rounded-xl">
-            <Link href="/farm/new">
-              <PlusIcon className="h-4 w-4 mr-1" />
-              New Farm
-            </Link>
-          </Button>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border/50 bg-background/80 backdrop-blur-lg sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-foreground tracking-tight">
+                {greeting}, {firstName}
+              </h1>
+              <p className="text-xs font-medium text-muted-foreground">
+                {dateString}
+                {seasonLabel ? ` · ${seasonLabel}` : ""}
+                {totalFarms > 0 && (
+                  <span className="hidden sm:inline">
+                    {" · "}{totalFarms} farm{totalFarms !== 1 ? "s" : ""} · {totalPlantings} planting{totalPlantings !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <UniversalSearch
+                context="my-farms"
+                placeholder="Search farms..."
+                className="w-52 hidden sm:block"
+              />
+              <Link
+                href="/farm/new"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90 transition-all active:scale-[0.97]"
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">New Farm</span>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Farm-first intelligence hub */}
-      <DashboardClientV2
-        farms={farms}
-        farmData={farmData}
-        userId={session.user.id}
-      />
+      {/* Main content */}
+      <div className="max-w-7xl mx-auto">
+        <DashboardClientV2
+          farms={farms}
+          farmData={farmData}
+          userId={session.user.id}
+        />
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import { cn } from '@/lib/utils';
 import { DashboardFarm } from '@/lib/db/queries/dashboard';
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 
 interface Props {
   farms: DashboardFarm[];
@@ -19,43 +20,48 @@ function farmGradient(id: string): string {
 
 export function FarmIconStrip({ farms, activeFarmId, onSelect, urgentFarmIds }: Props) {
   return (
-    <div className="flex items-end gap-4 overflow-x-auto border-b border-border bg-card px-4 py-2 scrollbar-hide">
-      {farms.map((farm) => (
-        <button
-          key={farm.id}
-          onClick={() => onSelect(farm.id)}
-          className="relative flex flex-col items-center gap-1 flex-shrink-0"
-        >
-          {/* Attention dot */}
-          {urgentFarmIds.has(farm.id) && (
-            <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-card z-10" />
-          )}
-          <div className={cn(
-            'h-11 w-11 overflow-hidden rounded-xl border-2 transition-all',
-            activeFarmId === farm.id ? 'border-green-400' : 'border-border'
-          )}>
-            {farm.latest_screenshot ? (
-              <img src={farm.latest_screenshot} alt={farm.name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full" style={{ background: farmGradient(farm.id) }} />
+    <div className="flex items-center gap-3 overflow-x-auto px-4 py-3 scrollbar-hide">
+      {farms.map((farm) => {
+        const isActive = activeFarmId === farm.id;
+        return (
+          <button
+            key={farm.id}
+            onClick={() => onSelect(farm.id)}
+            className="relative flex flex-col items-center gap-1.5 flex-shrink-0"
+          >
+            {/* Attention dot */}
+            {urgentFarmIds.has(farm.id) && (
+              <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-background z-10 animate-pulse" />
             )}
-          </div>
-          <span className={cn(
-            'max-w-[56px] truncate text-[10px] font-semibold',
-            activeFarmId === farm.id ? 'text-foreground' : 'text-muted-foreground'
-          )}>
-            {farm.name}
-          </span>
-          {activeFarmId === farm.id && (
-            <div className="h-0.5 w-full rounded-full bg-green-400" />
-          )}
-        </button>
-      ))}
-      <Link href="/farm/new" className="flex flex-col items-center gap-1 flex-shrink-0">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-dashed border-border text-lg text-muted-foreground">
-          +
+            <div className={cn(
+              'h-12 w-12 overflow-hidden rounded-2xl border-2 transition-all duration-200',
+              isActive
+                ? 'border-primary/50 shadow-sm scale-105'
+                : 'border-border/40 hover:border-border'
+            )}>
+              {farm.latest_screenshot ? (
+                <img src={farm.latest_screenshot} alt={farm.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full" style={{ background: farmGradient(farm.id) }} />
+              )}
+            </div>
+            <span className={cn(
+              'max-w-[60px] truncate text-[11px] font-medium transition-colors',
+              isActive ? 'text-foreground' : 'text-muted-foreground'
+            )}>
+              {farm.name}
+            </span>
+            {isActive && (
+              <div className="h-0.5 w-6 rounded-full bg-primary" />
+            )}
+          </button>
+        );
+      })}
+      <Link href="/farm/new" className="flex flex-col items-center gap-1.5 flex-shrink-0">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-dashed border-border/50 text-muted-foreground hover:border-border hover:text-foreground transition-all duration-200">
+          <Plus className="h-5 w-5" />
         </div>
-        <span className="text-[10px] text-muted-foreground">Add farm</span>
+        <span className="text-[11px] font-medium text-muted-foreground">Add</span>
       </Link>
     </div>
   );

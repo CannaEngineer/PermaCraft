@@ -10,6 +10,8 @@ import { ActivityPanel } from './activity-panel';
 import { ProgressPanel } from './progress-panel';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import { Task } from '@/lib/db/schema';
+import { Plus, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface FarmData {
   farm: DashboardFarm;
@@ -42,24 +44,35 @@ export function DashboardClientV2({ farms, farmData, userId }: Props) {
 
   if (farms.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="text-5xl mb-4">&#127793;</div>
-        <h2 className="text-xl font-bold mb-2">Welcome to Permaculture.Studio</h2>
-        <p className="text-muted-foreground mb-6 max-w-sm">Create your first farm to get started with map-based permaculture design.</p>
-        <a href="/farm/new" className="rounded-xl bg-green-800 hover:bg-green-700 text-green-100 font-bold px-6 py-3 transition-colors">
-          Create your first farm &rarr;
-        </a>
+      <div className="flex flex-col items-center justify-center py-32 text-center px-4">
+        <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6">
+          <span className="text-4xl">🌱</span>
+        </div>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight mb-2">
+          Welcome to Permaculture.Studio
+        </h2>
+        <p className="text-base text-muted-foreground mb-8 max-w-md leading-relaxed">
+          Create your first farm to get started with AI-powered, map-based permaculture design.
+        </p>
+        <Link
+          href="/farm/new"
+          className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:opacity-90 active:scale-[0.97] transition-all duration-200"
+        >
+          <Plus className="h-5 w-5" />
+          Create your first farm
+          <ArrowRight className="h-5 w-5" />
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col">
-      {/* Farm strip — desktop tabs, mobile icons */}
-      <div className="hidden md:block">
+      {/* Farm selector */}
+      <div className="hidden md:block border-b border-border/30">
         <FarmTabStrip farms={farms} activeFarmId={activeFarmId} onSelect={setActiveFarmId} urgentFarmIds={urgentFarmIds} />
       </div>
-      <div className="block md:hidden">
+      <div className="block md:hidden border-b border-border/30">
         <FarmIconStrip farms={farms} activeFarmId={activeFarmId} onSelect={setActiveFarmId} urgentFarmIds={urgentFarmIds} />
       </div>
 
@@ -68,8 +81,8 @@ export function DashboardClientV2({ farms, farmData, userId }: Props) {
           {/* Farm hero */}
           <FarmHeroBar farm={active.farm} ecoFunctions={active.ecoFunctions} />
 
-          {/* Content */}
-          <div className="flex flex-col gap-4 p-4">
+          {/* Content area */}
+          <div className="flex flex-col gap-6 px-4 sm:px-6 lg:px-8 py-6">
             {/* Alerts */}
             <AlertBanner seasonal={active.seasonal} urgentTaskCount={active.urgentCount} />
 
@@ -83,10 +96,15 @@ export function DashboardClientV2({ farms, farmData, userId }: Props) {
               farmId={activeFarmId}
             />
 
-            {/* Lower panels */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <ActivityPanel items={active.activity as any} />
-              <ProgressPanel userId={userId} />
+            {/* Lower section */}
+            <div>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Activity & Progress
+              </h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ActivityPanel items={active.activity as any} />
+                <ProgressPanel userId={userId} />
+              </div>
             </div>
           </div>
         </>
