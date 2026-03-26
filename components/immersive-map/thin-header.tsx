@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, MoreHorizontal, Download, Settings, Trash2 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { ChevronLeft, MoreHorizontal, Download, Settings, Trash2, Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,18 +21,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { TimelinePlaybackBar } from '@/components/time-machine/timeline-playback-bar';
+
+interface Planting {
+  id: string;
+  common_name: string;
+  scientific_name: string;
+  layer: string;
+  planted_year: number;
+  years_to_maturity: number;
+  mature_height_ft: number;
+}
 
 interface ThinHeaderProps {
   farmName: string;
   farmId: string;
   onExport?: () => void;
   onSettings?: () => void;
+  /** Time machine props */
+  plantings?: Planting[];
+  currentYear?: number;
+  onYearChange?: (year: number) => void;
 }
 
-export function ThinHeader({ farmName, farmId, onExport, onSettings }: ThinHeaderProps) {
+export function ThinHeader({ farmName, farmId, onExport, onSettings, plantings, currentYear, onYearChange }: ThinHeaderProps) {
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+
+  const thisYear = new Date().getFullYear();
+  const isProjecting = currentYear !== undefined && currentYear !== thisYear;
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -62,6 +82,26 @@ export function ThinHeader({ farmName, farmId, onExport, onSettings }: ThinHeade
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <span className="text-sm font-medium truncate">{farmName}</span>
+
+          {/* Time Machine play button */}
+          {onYearChange && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-8 gap-1.5 px-2 flex-shrink-0 ${isProjecting ? 'text-primary' : ''}`}
+              onClick={() => setTimelineOpen(!timelineOpen)}
+              aria-label={timelineOpen ? 'Close time machine' : 'Open time machine'}
+            >
+              {timelineOpen ? (
+                <Pause className="h-3.5 w-3.5" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
+              {isProjecting && (
+                <span className="text-xs font-semibold tabular-nums">{currentYear}</span>
+              )}
+            </Button>
+          )}
         </div>
 
         {/* Right: overflow menu */}
@@ -94,6 +134,18 @@ export function ThinHeader({ farmName, farmId, onExport, onSettings }: ThinHeade
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
+
+      {/* Timeline playback bar — slides down from header */}
+      <AnimatePresence>
+        {timelineOpen && plantings && currentYear !== undefined && onYearChange && (
+          <TimelinePlaybackBar
+            plantings={plantings}
+            currentYear={currentYear}
+            onYearChange={onYearChange}
+            onClose={() => setTimelineOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

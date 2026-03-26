@@ -5,15 +5,12 @@ import { useImmersiveMapUI } from '@/contexts/immersive-map-ui-context';
 import { ChevronDown, ChevronRight, Plus, Check, MapPin, Calendar, ListTodo, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RedesignedTimeMachine } from '@/components/time-machine/redesigned-time-machine';
 
 interface ManageTabProps {
   farmId: string;
   zones: any[];
   plantings: any[];
   phases: any[];
-  currentYear: number;
-  onYearChange: (year: number) => void;
   onStoryCountChange?: () => void;
   mapRef: React.RefObject<any>;
 }
@@ -70,8 +67,6 @@ export function ManageTab({
   zones,
   plantings,
   phases,
-  currentYear,
-  onYearChange,
   onStoryCountChange,
   mapRef,
 }: ManageTabProps) {
@@ -614,15 +609,6 @@ export function ManageTab({
         )}
       </section>
 
-      {/* Time Machine */}
-      <section>
-        <h3 className="text-sm font-semibold mb-2">Time Machine</h3>
-        <RedesignedTimeMachine
-          plantings={plantings}
-          currentYear={currentYear}
-          onYearChange={onYearChange}
-        />
-      </section>
     </div>
   );
 }

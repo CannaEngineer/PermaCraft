@@ -73,17 +73,17 @@ export function calculateGrowthMilestones(planting: PlantingInfo): GrowthMilesto
 }
 
 /**
- * Get emoji icon for milestone type
+ * Get short text label for milestone type
  */
 export function getMilestoneIcon(type: GrowthMilestone['type']): string {
-  const icons = {
-    planted: '🌱',
-    established: '🌿',
-    flowering: '🌸',
-    fruiting: '🍎',
-    mature: '🌳'
+  const labels = {
+    planted: 'P',
+    established: 'E',
+    flowering: 'Fl',
+    fruiting: 'Fr',
+    mature: 'M'
   };
-  return icons[type] || '🌱';
+  return labels[type] || 'P';
 }
 
 /**

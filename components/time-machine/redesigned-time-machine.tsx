@@ -215,7 +215,10 @@ export function RedesignedTimeMachine({
             animate={{ opacity: 1, x: 0 }}
           >
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-3xl">{seasonalInfo.icon}</span>
+              <div
+                className="w-8 h-8 rounded-full flex-shrink-0"
+                style={{ backgroundColor: seasonalInfo.color + '20' }}
+              />
               <div>
                 <h3 className="text-sm font-semibold text-foreground">
                   {seasonalInfo.label} {currentYear}

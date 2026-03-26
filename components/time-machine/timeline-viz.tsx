@@ -105,7 +105,7 @@ export function TimelineViz({
               key={index}
               className={cn(
                 'absolute top-1/2 -translate-y-1/2 -translate-x-1/2',
-                'w-10 h-10 rounded-full',
+                'w-6 h-6 rounded-full',
                 'flex items-center justify-center',
                 'border-2 border-background',
                 'cursor-pointer z-10',
@@ -123,8 +123,9 @@ export function TimelineViz({
                 e.stopPropagation();
                 onYearChange(milestone.year);
               }}
+              title={`${milestone.label} (${milestone.year})`}
             >
-              <span className="text-lg">
+              <span className="text-[9px] font-bold">
                 {getMilestoneIcon(milestone.type)}
               </span>
             </motion.div>

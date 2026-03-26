@@ -866,6 +866,8 @@ function ImmersiveMapEditorContent({
           onSpeciesPickerOpened={handleSpeciesPickerOpened}
           onDrawComplete={() => { /* Stay in drawing mode — user clicks Done to exit */ }}
           hideStatusBar
+          externalCurrentYear={projectionYear}
+          externalOnYearChange={setProjectionYear}
         />
       </div>
 
@@ -875,6 +877,9 @@ function ImmersiveMapEditorContent({
           farmName={farm.name}
           farmId={farm.id}
           onExport={handleOpenExport}
+          plantings={plantings}
+          currentYear={projectionYear}
+          onYearChange={setProjectionYear}
         />
       )}
 
@@ -923,8 +928,6 @@ function ImmersiveMapEditorContent({
             zones={zones}
             plantings={plantings}
             phases={farmPhases}
-            currentYear={projectionYear}
-            onYearChange={setProjectionYear}
             mapRef={mapRef}
           />
         }
