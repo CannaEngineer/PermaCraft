@@ -65,7 +65,7 @@ export function GrowthPreviewCard({ planting, className }: GrowthPreviewCardProp
           <div className="mt-3 pt-3 border-t border-border">
             <div className="text-xs text-muted-foreground">Next milestone:</div>
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-lg">
+              <span className="text-xs font-bold text-primary bg-primary/10 w-6 h-6 rounded-full flex items-center justify-center">
                 {getMilestoneIcon(nextMilestone.type)}
               </span>
               <div className="flex-1">

@@ -27,28 +27,28 @@ export function getSeasonalInfo(season: Season): SeasonalInfo {
     spring: {
       season: 'spring',
       label: 'Spring',
-      icon: '🌸',
+      icon: '',
       color: '#22c55e',
       description: 'Planting season, active growth begins'
     },
     summer: {
       season: 'summer',
       label: 'Summer',
-      icon: '☀️',
+      icon: '',
       color: '#f59e0b',
       description: 'Peak growth, flowering, and fruiting'
     },
     fall: {
       season: 'fall',
       label: 'Fall',
-      icon: '🍂',
+      icon: '',
       color: '#ea580c',
       description: 'Harvest time, plants preparing for dormancy'
     },
     winter: {
       season: 'winter',
       label: 'Winter',
-      icon: '❄️',
+      icon: '',
       color: '#60a5fa',
       description: 'Dormant period, planning for spring'
     }

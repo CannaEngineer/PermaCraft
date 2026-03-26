@@ -4,10 +4,21 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useImmersiveMapUI } from "@/contexts/immersive-map-ui-context";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag, Menu, User, LayoutDashboard, X, CheckSquare, CalendarDays, BarChart3, BookOpen, Info } from "lucide-react";
+import { SaveIcon, MessageSquare, Target, ChevronDown, ChevronUp, Download, ShoppingBag, Menu, User, LayoutDashboard, X, CheckSquare, CalendarDays, BarChart3, BookOpen, Info, Play, Pause } from "lucide-react";
 import type { Farm } from "@/lib/db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { FarmSettingsButton } from "@/components/farm/farm-settings-button";
+import { TimelinePlaybackBar } from "@/components/time-machine/timeline-playback-bar";
+
+interface Planting {
+  id: string;
+  common_name: string;
+  scientific_name: string;
+  layer: string;
+  planted_year: number;
+  years_to_maturity: number;
+  mature_height_ft: number;
+}
 
 interface CollapsibleHeaderProps {
   farm: Farm;
@@ -23,6 +34,10 @@ interface CollapsibleHeaderProps {
   onExport: () => void;
   onOpenJournalEntry?: () => void;
   onOpenFarmInfo?: () => void;
+  /** Time machine props */
+  plantings?: Planting[];
+  currentYear?: number;
+  onYearChange?: (year: number) => void;
 }
 
 /**
@@ -50,10 +65,17 @@ export function CollapsibleHeader({
   onExport,
   onOpenJournalEntry,
   onOpenFarmInfo,
+  plantings,
+  currentYear,
+  onYearChange,
 }: CollapsibleHeaderProps) {
   const { headerCollapsed, setHeaderCollapsed } = useImmersiveMapUI();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showMenuHint, setShowMenuHint] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+
+  const thisYear = new Date().getFullYear();
+  const isProjecting = currentYear !== undefined && currentYear !== thisYear;
 
   // Show a brief pulse on the menu button when the header first collapses
   useEffect(() => {
@@ -190,6 +212,26 @@ export function CollapsibleHeader({
               {farm.name}
             </motion.h1>
 
+            {/* Time Machine play button */}
+            {onYearChange && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-8 gap-1.5 px-2 flex-shrink-0 ${isProjecting ? 'text-primary' : ''}`}
+                onClick={() => setTimelineOpen(!timelineOpen)}
+                aria-label={timelineOpen ? 'Close time machine' : 'Open time machine'}
+              >
+                {timelineOpen ? (
+                  <Pause className="h-3.5 w-3.5" />
+                ) : (
+                  <Play className="h-3.5 w-3.5" />
+                )}
+                {isProjecting && (
+                  <span className="text-xs font-semibold tabular-nums">{currentYear}</span>
+                )}
+              </Button>
+            )}
+
             {/* Status Badges */}
             <AnimatePresence>
               {!headerCollapsed && (
@@ -303,6 +345,18 @@ export function CollapsibleHeader({
         </div>
       </div>
     </motion.header>
+
+    {/* Timeline playback bar — slides down from header */}
+    <AnimatePresence>
+      {timelineOpen && plantings && currentYear !== undefined && onYearChange && (
+        <TimelinePlaybackBar
+          plantings={plantings}
+          currentYear={currentYear}
+          onYearChange={onYearChange}
+          onClose={() => setTimelineOpen(false)}
+        />
+      )}
+    </AnimatePresence>
     </>
   );
 }

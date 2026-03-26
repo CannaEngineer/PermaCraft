@@ -652,6 +652,9 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
                 farmName={farm.name}
                 farmId={farm.id}
                 onExport={handleOpenExport}
+                plantings={plantings}
+                currentYear={projectionYear}
+                onYearChange={setProjectionYear}
               />
               <DrawingToolbar
                 onToolSelect={() => {}}
@@ -755,8 +758,6 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             zones={zones}
             plantings={plantings}
             phases={farmPhases}
-            currentYear={projectionYear}
-            onYearChange={handleProjectionYearChange}
             onStoryCountChange={refreshStoryCount}
             mapRef={mapRef}
           />
