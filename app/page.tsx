@@ -547,6 +547,75 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ============ FOR GROWERS - MVS Painkiller Section ============ */}
+      <section className="py-20 md:py-28 landing-section-alt">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="landing-scroll-reveal text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary mb-2">For Growers &amp; Designers</p>
+            <h2 className="font-serif font-bold tracking-tight" style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}>
+              You have land.{" "}
+              <span className="landing-text-shimmer">Now what?</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-muted-foreground" style={{ fontSize: "clamp(0.95rem, 1.3vw, 1.1rem)", lineHeight: 1.7 }}>
+              Hundreds of species, dozens of companion combinations, eight forest layers, six zones.
+              Planning a permaculture design is overwhelming. Our AI does the hard part for you.
+            </p>
+          </div>
+
+          {/* Pain → Solution cards */}
+          <div className="grid gap-5 md:grid-cols-3 mb-12">
+            {[
+              {
+                pain: "Consultations cost $2,000+",
+                solution: "AI-powered design in minutes",
+                desc: "Drop a pin on your land, tell us your goals, and get a permaculture layout with native species recommendations tailored to your climate zone and soil.",
+                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .963L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`,
+              },
+              {
+                pain: "Miss planting season = lose a year",
+                solution: "Seasonal task lists, ready to go",
+                desc: "Every design comes with a planting timeline. Know exactly what to plant, when to plant it, and where it goes on your land. No more analysis paralysis.",
+                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`,
+              },
+              {
+                pain: "Can't picture what it'll look like",
+                solution: "See your food forest in 1, 5, 10 years",
+                desc: "Our growth simulation shows exactly how your design matures over time. Watch canopy spread, understory fill in, and guilds establish — before you put a single plant in the ground.",
+                icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>`,
+              },
+            ].map((card, i) => (
+              <div
+                key={card.pain}
+                className="landing-scroll-reveal group rounded-2xl border border-border/40 p-7 transition-all landing-card-hover"
+                style={{ animationDelay: `${i * 0.08}s`, backgroundColor: "hsl(var(--card))" }}
+              >
+                <div
+                  className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/8 text-primary"
+                  dangerouslySetInnerHTML={{ __html: card.icon }}
+                />
+                <p className="mb-1 text-xs font-medium text-muted-foreground/60 line-through decoration-muted-foreground/30">{card.pain}</p>
+                <h3 className="mb-3 text-lg font-bold text-foreground">{card.solution}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{card.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Grower CTA */}
+          <div className="landing-scroll-reveal text-center">
+            <Link
+              href={isSignedIn ? "/farm/new" : "/register"}
+              className="landing-btn-primary inline-flex items-center gap-2 rounded-full px-8 py-4 text-base font-semibold no-underline transition-all"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+              {isSignedIn ? "Design Your Farm" : "Start Your Design — Free"}
+            </Link>
+            <p className="mt-4 text-xs text-muted-foreground/50">
+              No credit card required. Draw your first zone in under 2 minutes.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ============ FINAL CTA - Magazine style ============ */}
       <section className="relative py-28 md:py-36 overflow-hidden">
         <div className="absolute inset-0 landing-ambient-bg opacity-50" />
@@ -564,30 +633,18 @@ export default async function LandingPage() {
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
-                href="/gallery"
+                href={isSignedIn ? "/farm/new" : "/register"}
                 className="landing-btn-primary inline-flex items-center gap-2 rounded-full px-8 py-4 text-base font-semibold no-underline transition-all"
               >
-                Find Your Farm
+                {isSignedIn ? "Design Your Farm" : "Start Designing — Free"}
               </Link>
               <Link
-                href="/shops"
+                href="/gallery"
                 className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-8 py-4 text-base font-medium no-underline transition-all hover:bg-foreground/5 text-foreground"
               >
-                Browse Farm Shops
+                Explore Community Farms
               </Link>
             </div>
-          </div>
-
-          {/* Subtle farmer CTA */}
-          <div className="landing-scroll-reveal mt-16 pt-8 border-t border-border/20">
-            <p className="text-xs text-muted-foreground/50 mb-3">Are you a grower? List your farm and reach the people who care.</p>
-            <Link
-              href={isSignedIn ? "/canvas" : "/login"}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground/70 no-underline transition-all hover:text-primary"
-            >
-              {isSignedIn ? "Go to your farm dashboard" : "List your farm"}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
-            </Link>
           </div>
         </div>
       </section>
