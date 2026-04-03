@@ -5,7 +5,7 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Farm, Zone } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
-import { Layers, Tag, HelpCircle, Circle, Leaf, MapPin, Square, Minus } from "lucide-react";
+import { Layers, Tag, HelpCircle, Circle, Leaf, MapPin, Square, Minus, Crosshair, X as XIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createCirclePolygon } from "@/lib/map/circle-helper";
 import { CompassRose } from "./compass-rose";
@@ -769,6 +769,15 @@ export function FarmMap({
       // Trigger zones update
       onZonesChange(draw.current.getAll().features);
       updateColoredZonesRef.current?.();
+
+      // Toast confirmation
+      const config = getZoneTypeConfig(type);
+      toast({
+        title: "Zone created",
+        description: name
+          ? `"${name}" (${config.label}) has been added to your farm.`
+          : `${config.label} zone has been added to your farm.`,
+      });
     }
 
     // Close the form
@@ -3578,6 +3587,28 @@ export function FarmMap({
             }
           }}
         />
+      )}
+
+      {/* Planting Mode Indicator Banner */}
+      {plantingMode && selectedSpecies && !showPlantingForm && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[55] animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3 px-4 py-2.5 bg-green-600 text-white rounded-full shadow-lg shadow-green-600/25 border border-green-500/50">
+            <Crosshair className="h-4 w-4 animate-pulse" />
+            <span className="text-sm font-medium">
+              Tap the map to place <strong>{selectedSpecies.common_name}</strong>
+            </span>
+            <button
+              onClick={() => {
+                setPlantingMode(false);
+                setSelectedSpecies(null);
+                setShowSpeciesPicker(false);
+              }}
+              className="ml-1 h-6 w-6 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <XIcon className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Planting Form */}
