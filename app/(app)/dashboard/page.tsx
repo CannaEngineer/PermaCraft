@@ -1,8 +1,6 @@
 import { requireAuth } from "@/lib/auth/session";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { UniversalSearch } from "@/components/search/universal-search";
+import { Plus } from "lucide-react";
 import { DashboardClientV2 } from "@/components/dashboard/dashboard-client-v2";
 import {
   getDashboardFarms,
@@ -16,7 +14,6 @@ import { Task } from "@/lib/db/schema";
 import { SeasonalContext } from "@/lib/dashboard/seasonal";
 import { DashboardFarm } from "@/lib/db/queries/dashboard";
 
-// Get time-based greeting
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -37,12 +34,10 @@ interface FarmData {
 
 export default async function DashboardPage() {
   const session = await requireAuth();
-  if (!session) return null; // requireAuth redirects, but this satisfies TS
+  if (!session) return null;
 
-  // Fetch farms using new query layer
   const farms = await getDashboardFarms(session.user.id);
 
-  // For each farm, fetch eco health, tasks, insights, activity, seasonal context
   const farmData: Record<string, FarmData> = {};
   await Promise.all(
     farms.map(async (farm) => {
@@ -70,7 +65,6 @@ export default async function DashboardPage() {
     })
   );
 
-  // Get first name for personalization
   const firstName = session.user.name?.split(" ")[0] || session.user.name;
   const greeting = getGreeting();
   const now = new Date();
@@ -80,39 +74,34 @@ export default async function DashboardPage() {
     day: "numeric",
   });
 
-  // Get season label from first farm or default
   const firstFarmData = farms.length > 0 ? farmData[farms[0].id] : null;
   const seasonLabel = firstFarmData?.seasonal.seasonLabel ?? "";
 
   return (
-    <div className="min-h-screen">
-      {/* Top greeting bar */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div>
-          <h1 className="text-sm font-bold">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {dateString}
-            {seasonLabel ? ` \u00B7 ${seasonLabel}` : ""}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <UniversalSearch
-            context="my-farms"
-            placeholder="Search..."
-            className="w-48 hidden sm:block"
-          />
-          <Button asChild size="sm" className="rounded-xl">
-            <Link href="/farm/new">
-              <PlusIcon className="h-4 w-4 mr-1" />
-              New Farm
-            </Link>
-          </Button>
+    <div className="min-h-screen bg-background">
+      {/* Header — clean, warm, confident */}
+      <div className="border-b border-border/60 bg-card/50 backdrop-blur-sm sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 md:px-6 py-4">
+          <div>
+            <h1 className="text-lg md:text-xl font-bold tracking-tight">
+              {greeting}, {firstName}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {dateString}
+              {seasonLabel ? ` · ${seasonLabel}` : ""}
+            </p>
+          </div>
+          <Link
+            href="/farm/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Farm</span>
+          </Link>
         </div>
       </div>
 
-      {/* Farm-first intelligence hub */}
+      {/* Content */}
       <DashboardClientV2
         farms={farms}
         farmData={farmData}
