@@ -30,6 +30,9 @@ import { Sparkles, Leaf } from "lucide-react";
 import { JournalEntryForm } from "@/components/farm/journal-entry-form";
 import { GPSFieldMarker } from "@/components/map/gps-field-marker";
 import type { GPSDropPinFormData } from "@/components/map/gps-drop-pin-form";
+import { BoundaryWalker, type BoundaryWalkerResult } from "@/components/map/boundary-walker";
+import { SoilTestForm, type SoilTestData } from "@/components/map/soil-test-form";
+import { GeotaggedPhotoCapture, type GeotaggedPhotoData } from "@/components/map/geotagged-photo-capture";
 import type { Farm, Zone, FarmerGoal, Species } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
@@ -327,6 +330,11 @@ function ImmersiveMapEditorContent({
 
   // GPS field mapping state — coordinates to auto-place a planting at GPS location
   const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{ lat: number; lng: number; notes?: string; seq: number } | null>(null);
+
+  // GPS feature states — boundary walking, soil testing, photo geotagging
+  const [showBoundaryWalker, setShowBoundaryWalker] = useState(false);
+  const [showSoilTestForm, setShowSoilTestForm] = useState(false);
+  const [showGeotaggedPhoto, setShowGeotaggedPhoto] = useState(false);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -829,6 +837,126 @@ function ImmersiveMapEditorContent({
     setGpsPlantingCoords(null);
   }, []);
 
+  // ─── Boundary Walker handler ─────────────────────────────────────────────
+  const handleBoundaryComplete = useCallback(async (result: BoundaryWalkerResult) => {
+    // Convert walked points into a closed polygon and save as a zone
+    const coordinates = result.points.map(p => [p.lng, p.lat]);
+    // Close the polygon by repeating the first point
+    if (coordinates.length > 0) {
+      coordinates.push(coordinates[0]);
+    }
+
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/zones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          zones: [{
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [coordinates],
+            },
+            properties: {
+              name: result.name,
+              user_zone_type: result.zoneType,
+              walked_boundary: true,
+              walk_distance_meters: result.totalDistanceMeters,
+              walk_point_count: result.points.length,
+              walked_at: new Date().toISOString(),
+            },
+          }],
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh zones
+        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
+        if (zonesRes.ok) {
+          const zonesData = await zonesRes.json();
+          handleZonesChange(zonesData.zones || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save walked boundary:', error);
+    }
+    setShowBoundaryWalker(false);
+  }, [farm.id, handleZonesChange]);
+
+  // ─── Soil Test handler ────────────────────────────────────────────────────
+  const handleSoilTestSubmit = useCallback(async (data: SoilTestData) => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/soil-tests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lat: data.lat,
+          lng: data.lng,
+          accuracy: data.accuracy,
+          altitude: data.altitude,
+          ph: data.ph,
+          texture: data.texture,
+          organic_matter: data.organicMatter,
+          drainage: data.drainage,
+          nitrogen: data.nitrogen,
+          phosphorus: data.phosphorus,
+          potassium: data.potassium,
+          depth_inches: data.depthInches,
+          color: data.color,
+          moisture: data.moisture,
+          notes: data.notes,
+          label: data.label,
+          tested_at: data.testedAt,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh zones to show the new soil test marker
+        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
+        if (zonesRes.ok) {
+          const zonesData = await zonesRes.json();
+          handleZonesChange(zonesData.zones || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save soil test:', error);
+    }
+    setShowSoilTestForm(false);
+  }, [farm.id, handleZonesChange]);
+
+  // ─── Geotagged Photo handler ──────────────────────────────────────────────
+  const handleGeotaggedPhotoSubmit = useCallback(async (data: GeotaggedPhotoData) => {
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/geotagged-photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lat: data.lat,
+          lng: data.lng,
+          accuracy: data.accuracy,
+          altitude: data.altitude,
+          heading: data.heading,
+          image_data: data.imageData,
+          caption: data.caption,
+          compass_direction: data.compassDirection,
+          captured_at: data.capturedAt,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh zones to show the new photo marker
+        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
+        if (zonesRes.ok) {
+          const zonesData = await zonesRes.json();
+          handleZonesChange(zonesData.zones || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save geotagged photo:', error);
+    }
+    setShowGeotaggedPhoto(false);
+  }, [farm.id, handleZonesChange]);
+
   const handleSelectSpecies = (species: Species) => {
     // Close the drawer
     closeDrawer();
@@ -965,12 +1093,46 @@ function ImmersiveMapEditorContent({
       )}
 
       {/* GPS Field Marker — "I'm Here" button for in-field planting/marking */}
-      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && (
+      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && !showBoundaryWalker && !showSoilTestForm && !showGeotaggedPhoto && (
         <GPSFieldMarker
           mapRef={mapRef}
           farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
           onPlantingDrop={handleGPSPlantingDrop}
           onMarkerDrop={handleGPSMarkerDrop}
+        />
+      )}
+
+      {/* Walking Zone Boundaries — continuous GPS tracking to record a path as a polygon */}
+      {isOwner && uiMode !== 'chatting' && (
+        <BoundaryWalker
+          mapRef={mapRef}
+          farmId={farm.id}
+          onComplete={handleBoundaryComplete}
+          onCancel={() => setShowBoundaryWalker(false)}
+          visible={showBoundaryWalker || (uiMode !== 'drawing' && !showSoilTestForm && !showGeotaggedPhoto)}
+        />
+      )}
+
+      {/* Soil Test Location Mapping — structured soil data with GPS pin */}
+      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && !showBoundaryWalker && !showGeotaggedPhoto && (
+        <SoilTestForm
+          mapRef={mapRef}
+          farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
+          onSubmit={handleSoilTestSubmit}
+          onCancel={() => setShowSoilTestForm(false)}
+          visible={true}
+        />
+      )}
+
+      {/* Photo Geotagging — capture photo with automatic GPS coordinates */}
+      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && !showBoundaryWalker && !showSoilTestForm && (
+        <GeotaggedPhotoCapture
+          mapRef={mapRef}
+          farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
+          farmId={farm.id}
+          onSubmit={handleGeotaggedPhotoSubmit}
+          onCancel={() => setShowGeotaggedPhoto(false)}
+          visible={true}
         />
       )}
 
