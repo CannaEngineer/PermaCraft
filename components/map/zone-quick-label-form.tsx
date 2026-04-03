@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Check } from 'lucide-react';
 import {
   ZONE_TYPES,
   ZONE_TYPE_CATEGORIES,
@@ -25,21 +25,16 @@ export function ZoneQuickLabelForm({
   onSave,
   onSkip,
 }: ZoneQuickLabelFormProps) {
-  const [zoneType, setZoneType] = useState<string>(preselectedType || 'other');
+  const initialType = preselectedType || 'other';
+  const [zoneType, setZoneType] = useState<string>(initialType);
+  // Auto-populate name from zone type label for convenience
   const [zoneName, setZoneName] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const nameInputRef = useRef<HTMLInputElement>(null);
-
-  // Auto-dismiss after 15 seconds if no interaction
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      handleSkip();
-    }, 15000);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Focus name input on mount (desktop)
   useEffect(() => {
@@ -69,9 +64,15 @@ export function ZoneQuickLabelForm({
 
   const handleSave = () => {
     onSave(zoneType, zoneName.trim() || undefined);
+    // Show brief saved confirmation
+    setSaved(true);
+    setTimeout(() => {
+      onSkip(); // close after confirmation
+    }, 600);
   };
 
   const handleSkip = () => {
+    // Save with current type but no name
     onSave(zoneType !== 'other' ? zoneType : 'other', undefined);
     onSkip();
   };
@@ -98,6 +99,19 @@ export function ZoneQuickLabelForm({
   const formStyle = isMobile
     ? { position: 'fixed' as const, bottom: '4.5rem', left: '0.75rem', right: '0.75rem', zIndex: 65 }
     : { position: 'fixed' as const, left: `${adjustedPosition.x}px`, top: `${adjustedPosition.y}px`, zIndex: 65 };
+
+  // Show saved confirmation state
+  if (saved) {
+    return (
+      <div
+        style={formStyle}
+        className="z-[65] bg-green-600 rounded-2xl shadow-lg p-4 w-[300px] max-md:w-auto animate-in fade-in duration-150 flex items-center justify-center gap-2 text-white"
+      >
+        <Check className="h-5 w-5" />
+        <span className="text-sm font-semibold">Zone saved!</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -213,7 +227,7 @@ export function ZoneQuickLabelForm({
               type="text"
               value={zoneName}
               onChange={(e) => setZoneName(e.target.value)}
-              placeholder='e.g. "Front Pond"'
+              placeholder={`e.g. "Front ${currentConfig.label}"`}
               className="w-full px-3 py-2.5 rounded-xl border border-border/50 bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 placeholder:text-muted-foreground/50"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
