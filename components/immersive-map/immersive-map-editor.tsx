@@ -28,6 +28,8 @@ import { StoryTab } from "@/components/map/story-tab";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, Leaf } from "lucide-react";
 import { JournalEntryForm } from "@/components/farm/journal-entry-form";
+import { GPSFieldMarker } from "@/components/map/gps-field-marker";
+import type { GPSDropPinFormData } from "@/components/map/gps-drop-pin-form";
 import type { Farm, Zone, FarmerGoal, Species } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
@@ -322,6 +324,9 @@ function ImmersiveMapEditorContent({
 
   // Triggers FarmMap's internal species picker (same flow as map submenu "Add Plant")
   const [triggerSpeciesPicker, setTriggerSpeciesPicker] = useState(false);
+
+  // GPS field mapping state — coordinates to auto-place a planting at GPS location
+  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{ lat: number; lng: number; notes?: string; seq: number } | null>(null);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -773,6 +778,57 @@ function ImmersiveMapEditorContent({
     setTriggerSpeciesPicker(false);
   }, []); // empty deps — only calls a state setter
 
+  // GPS field mapping handlers
+  const handleGPSPlantingDrop = useCallback((lat: number, lng: number, notes: string) => {
+    // Store the GPS coordinates, then trigger the species picker.
+    // Once the user selects a species, FarmMap will auto-place it at these coords.
+    setGpsPlantingCoords({ lat, lng, notes, seq: Date.now() });
+    setTriggerSpeciesPicker(true);
+  }, []);
+
+  const handleGPSMarkerDrop = useCallback(async (data: GPSDropPinFormData) => {
+    // For non-planting markers (soil tests, observations, waypoints, etc.),
+    // create a zone point feature on the farm.
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/zones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          zones: [{
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [data.lng, data.lat],
+            },
+            properties: {
+              name: data.notes || `${data.markerType.replace('_', ' ')} marker`,
+              zone_type: 'feature',
+              marker_type: data.markerType,
+              gps_accuracy: data.accuracy,
+              gps_altitude: data.altitude,
+              dropped_at: new Date().toISOString(),
+            },
+          }],
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh zones to show the new marker
+        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
+        if (zonesRes.ok) {
+          const zonesData = await zonesRes.json();
+          handleZonesChange(zonesData.zones || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save GPS marker:', error);
+    }
+  }, [farm.id, handleZonesChange]);
+
+  const handleGPSPlantingHandled = useCallback(() => {
+    setGpsPlantingCoords(null);
+  }, []);
+
   const handleSelectSpecies = (species: Species) => {
     // Close the drawer
     closeDrawer();
@@ -868,6 +924,8 @@ function ImmersiveMapEditorContent({
           hideStatusBar
           externalCurrentYear={projectionYear}
           externalOnYearChange={setProjectionYear}
+          externalGPSPlantingCoords={gpsPlantingCoords}
+          onGPSPlantingHandled={handleGPSPlantingHandled}
         />
       </div>
 
@@ -904,6 +962,16 @@ function ImmersiveMapEditorContent({
             }}
           />
         </div>
+      )}
+
+      {/* GPS Field Marker — "I'm Here" button for in-field planting/marking */}
+      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && (
+        <GPSFieldMarker
+          mapRef={mapRef}
+          farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
+          onPlantingDrop={handleGPSPlantingDrop}
+          onMarkerDrop={handleGPSMarkerDrop}
+        />
       )}
 
       {/* Bottom Drawer (3-tab: Design / Manage / Story) */}

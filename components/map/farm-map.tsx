@@ -150,6 +150,10 @@ interface FarmMapProps {
   /** Optional external year control — if provided, overrides internal projectionYear state. */
   externalCurrentYear?: number;
   externalOnYearChange?: (year: number) => void;
+  /** GPS coordinates for auto-placing a planting (skips map click). Set by GPSFieldMarker. */
+  externalGPSPlantingCoords?: { lat: number; lng: number; notes?: string; seq: number } | null;
+  /** Called after the GPS planting has been processed, so the parent can reset the coords. */
+  onGPSPlantingHandled?: () => void;
 }
 
 type MapLayer = "satellite" | "mapbox-satellite" | "street" | "terrain" | "topo" | "usgs" | "terrain-3d";
@@ -175,6 +179,8 @@ export function FarmMap({
   hideStatusBar,
   externalCurrentYear,
   externalOnYearChange,
+  externalGPSPlantingCoords,
+  onGPSPlantingHandled,
 }: FarmMapProps) {
   const { toast } = useToast();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -235,14 +241,100 @@ export function FarmMap({
   // Guild companion filter state
   const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
 
+  // GPS planting: store coords received from GPSFieldMarker
+  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{ lat: number; lng: number; notes?: string } | null>(null);
+
+  // React to external GPS planting coords
+  useEffect(() => {
+    if (externalGPSPlantingCoords) {
+      setGpsPlantingCoords({
+        lat: externalGPSPlantingCoords.lat,
+        lng: externalGPSPlantingCoords.lng,
+        notes: externalGPSPlantingCoords.notes,
+      });
+      onGPSPlantingHandled?.();
+    }
+  }, [externalGPSPlantingCoords, onGPSPlantingHandled]);
+
+  // When species is selected AND we have GPS coords, auto-place the planting (skip map click)
+  useEffect(() => {
+    if (externalSelectedSpecies && gpsPlantingCoords) {
+      const species = externalSelectedSpecies.species;
+      const { lat, lng, notes } = gpsPlantingCoords;
+
+      // Clear GPS coords so this only fires once
+      setGpsPlantingCoords(null);
+      setPlantingMode(false);
+      setSelectedSpecies(null);
+      setShowSpeciesPicker(false);
+
+      // Directly create the planting at GPS coordinates
+      const optimisticPlanting = {
+        id: `temp-${Date.now()}`,
+        farm_id: farm.id,
+        species_id: species.id,
+        lat,
+        lng,
+        custom_name: null,
+        planted_year: new Date().getFullYear(),
+        zone_id: null,
+        notes: notes || null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        common_name: species.common_name,
+        scientific_name: species.scientific_name,
+        layer: species.layer,
+        mature_height_ft: species.mature_height_ft,
+        mature_width_ft: species.mature_width_ft,
+        years_to_maturity: species.years_to_maturity,
+      };
+
+      setPlantings(prev => [...prev, optimisticPlanting]);
+
+      fetch(`/api/farms/${farm.id}/plantings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          species_id: species.id,
+          lat,
+          lng,
+          planted_year: new Date().getFullYear(),
+          notes: notes || undefined,
+        }),
+      }).then(async (response) => {
+        if (response.ok) {
+          const data = await response.json();
+          setPlantings(prev => prev.map(p =>
+            p.id === optimisticPlanting.id ? data.planting : p
+          ));
+          toast({
+            title: "Plant marked at GPS location",
+            description: `${species.common_name} placed at your current position.`,
+          });
+        } else {
+          throw new Error('Failed to save');
+        }
+      }).catch(() => {
+        setPlantings(prev => prev.filter(p => p.id !== optimisticPlanting.id));
+        toast({
+          title: "Failed to add plant",
+          description: "There was an error saving your planting. Please try again.",
+          variant: "destructive",
+        });
+      });
+
+      return; // Don't fall through to normal species selection
+    }
+  }, [externalSelectedSpecies, gpsPlantingCoords, farm.id, toast, onGPSPlantingHandled]);
+
   // React to externally-selected species (from immersive editor's SpeciesPickerPanel)
   useEffect(() => {
-    if (externalSelectedSpecies) {
+    if (externalSelectedSpecies && !gpsPlantingCoords) {
       setSelectedSpecies(externalSelectedSpecies.species);
       setPlantingMode(true);
       setShowSpeciesPicker(false);
     }
-  }, [externalSelectedSpecies]);
+  }, [externalSelectedSpecies, gpsPlantingCoords]);
 
   // React to external trigger to open the species picker (same flow as map submenu "Add Plant")
   useEffect(() => {
