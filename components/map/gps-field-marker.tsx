@@ -28,6 +28,8 @@ interface GPSFieldMarkerProps {
   visible?: boolean;
   /** Optional className for the FAB positioning */
   className?: string;
+  /** When this value changes (and is > 0), auto-trigger GPS capture without showing FAB */
+  triggerCapture?: number;
 }
 
 /**
@@ -50,6 +52,7 @@ export function GPSFieldMarker({
   onMarkerDrop,
   visible = true,
   className,
+  triggerCapture,
 }: GPSFieldMarkerProps) {
   const {
     position,
@@ -236,7 +239,17 @@ export function GPSFieldMarker({
     removeAccuracyCircle();
   }, [removeAccuracyCircle]);
 
-  if (!visible || !supported) return null;
+  // Auto-trigger capture when triggerCapture changes (from GPS tools menu)
+  const lastTriggerRef = useRef(0);
+  useEffect(() => {
+    if (triggerCapture && triggerCapture > lastTriggerRef.current) {
+      lastTriggerRef.current = triggerCapture;
+      handleDropPin();
+    }
+  }, [triggerCapture, handleDropPin]);
+
+  if (!visible && !showForm) return null;
+  if (!supported) return null;
 
   const accuracyInfo = capturedPosition
     ? classifyAccuracy(capturedPosition.accuracy)

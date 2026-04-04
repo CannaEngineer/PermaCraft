@@ -33,6 +33,7 @@ import type { GPSDropPinFormData } from "@/components/map/gps-drop-pin-form";
 import { BoundaryWalker, type BoundaryWalkerResult } from "@/components/map/boundary-walker";
 import { SoilTestForm, type SoilTestData } from "@/components/map/soil-test-form";
 import { GeotaggedPhotoCapture, type GeotaggedPhotoData } from "@/components/map/geotagged-photo-capture";
+import { GPSToolsMenu, type GPSTool } from "@/components/map/gps-tools-menu";
 import type { Farm, Zone, FarmerGoal, Species } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
@@ -335,6 +336,7 @@ function ImmersiveMapEditorContent({
   const [showBoundaryWalker, setShowBoundaryWalker] = useState(false);
   const [showSoilTestForm, setShowSoilTestForm] = useState(false);
   const [showGeotaggedPhoto, setShowGeotaggedPhoto] = useState(false);
+  const [gpsDropPinTrigger, setGpsDropPinTrigger] = useState(0);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -957,6 +959,38 @@ function ImmersiveMapEditorContent({
     setShowGeotaggedPhoto(false);
   }, [farm.id, handleZonesChange]);
 
+  // ─── GPS Tools Menu handler ────────────────────────────────────────────────
+  const activeGPSTool: GPSTool | null = showBoundaryWalker
+    ? 'walk-boundary'
+    : showSoilTestForm
+    ? 'soil-test'
+    : showGeotaggedPhoto
+    ? 'photo'
+    : null;
+
+  const handleGPSToolSelect = useCallback((tool: GPSTool) => {
+    // Reset all GPS tool states first
+    setShowBoundaryWalker(false);
+    setShowSoilTestForm(false);
+    setShowGeotaggedPhoto(false);
+
+    switch (tool) {
+      case 'drop-pin':
+        // Trigger the GPSFieldMarker capture directly
+        setGpsDropPinTrigger(prev => prev + 1);
+        break;
+      case 'walk-boundary':
+        setShowBoundaryWalker(true);
+        break;
+      case 'soil-test':
+        setShowSoilTestForm(true);
+        break;
+      case 'photo':
+        setShowGeotaggedPhoto(true);
+        break;
+    }
+  }, []);
+
   const handleSelectSpecies = (species: Species) => {
     // Close the drawer
     closeDrawer();
@@ -1092,13 +1126,23 @@ function ImmersiveMapEditorContent({
         </div>
       )}
 
-      {/* GPS Field Marker — "I'm Here" button for in-field planting/marking */}
+      {/* GPS Tools Menu — expandable FAB for all GPS field tools */}
+      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && (
+        <GPSToolsMenu
+          activeTool={activeGPSTool}
+          onSelectTool={handleGPSToolSelect}
+        />
+      )}
+
+      {/* GPS Field Marker — drop pin at GPS location (FAB hidden; triggered via GPS tools menu) */}
       {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && !showBoundaryWalker && !showSoilTestForm && !showGeotaggedPhoto && (
         <GPSFieldMarker
           mapRef={mapRef}
           farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
           onPlantingDrop={handleGPSPlantingDrop}
           onMarkerDrop={handleGPSMarkerDrop}
+          visible={false}
+          triggerCapture={gpsDropPinTrigger}
         />
       )}
 
@@ -1109,30 +1153,30 @@ function ImmersiveMapEditorContent({
           farmId={farm.id}
           onComplete={handleBoundaryComplete}
           onCancel={() => setShowBoundaryWalker(false)}
-          visible={showBoundaryWalker || (uiMode !== 'drawing' && !showSoilTestForm && !showGeotaggedPhoto)}
+          visible={showBoundaryWalker}
         />
       )}
 
       {/* Soil Test Location Mapping — structured soil data with GPS pin */}
-      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && !showBoundaryWalker && !showGeotaggedPhoto && (
+      {isOwner && uiMode !== 'chatting' && (
         <SoilTestForm
           mapRef={mapRef}
           farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
           onSubmit={handleSoilTestSubmit}
           onCancel={() => setShowSoilTestForm(false)}
-          visible={true}
+          visible={showSoilTestForm}
         />
       )}
 
       {/* Photo Geotagging — capture photo with automatic GPS coordinates */}
-      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && !showBoundaryWalker && !showSoilTestForm && (
+      {isOwner && uiMode !== 'chatting' && (
         <GeotaggedPhotoCapture
           mapRef={mapRef}
           farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
           farmId={farm.id}
           onSubmit={handleGeotaggedPhotoSubmit}
           onCancel={() => setShowGeotaggedPhoto(false)}
-          visible={true}
+          visible={showGeotaggedPhoto}
         />
       )}
 
