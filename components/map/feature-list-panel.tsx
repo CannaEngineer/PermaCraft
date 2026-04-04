@@ -288,7 +288,7 @@ export function FeatureListPanel({
         {Object.keys(groupedFeatures).length === 0 && !debouncedQuery && (
           <div className="text-center py-8 text-muted-foreground">
             <p className="text-sm">No features yet.</p>
-            <p className="text-xs mt-2">Use the FAB to add zones, plantings, or lines.</p>
+            <p className="text-xs mt-2">Use the action bar above to add plants, draw zones, or drop pins.</p>
           </div>
         )}
 

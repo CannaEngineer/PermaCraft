@@ -1199,6 +1199,12 @@ function ImmersiveMapEditorContent({
       <BottomDrawer
         onAddPlant={handleAddPlant}
         onDrawZone={() => {/* Drawing handled by enterDrawingMode in the drawer */}}
+        onGPSDropPin={() => handleGPSToolSelect('drop-pin')}
+        onGPSSoilTest={() => handleGPSToolSelect('soil-test')}
+        onGPSPhoto={() => handleGPSToolSelect('photo')}
+        onGPSWalkBoundary={() => handleGPSToolSelect('walk-boundary')}
+        plantingCount={plantings.length}
+        zoneCount={zones.length}
         storyDraftCount={storyDraftCount}
         designContent={
           <FeatureListPanel

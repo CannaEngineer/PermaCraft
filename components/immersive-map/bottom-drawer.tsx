@@ -4,7 +4,10 @@ import { useImmersiveMapUI, type BottomDrawerTab } from "@/contexts/immersive-ma
 import { motion, PanInfo } from "framer-motion";
 import { ReactNode, useRef, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Plus, PenTool, X, Leaf, Map, MapPin, FlaskConical, Camera } from "lucide-react";
+import {
+  X, Leaf, Map, PenTool, MapPin,
+  TestTube2, Camera, Footprints, Sprout, Layers,
+} from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design/design-system";
 
 interface BottomDrawerProps {
@@ -34,6 +37,16 @@ const TAB_CONFIG: { id: BottomDrawerTab; label: string; icon: typeof Leaf }[] = 
   { id: 'manage', label: 'Plan', icon: Leaf },
   { id: 'story', label: 'Story', icon: Leaf },
 ];
+
+/** Quick-action tools for the scrollable strip */
+const QUICK_ACTIONS = [
+  { id: 'plant', label: 'Add Plant', icon: Sprout, color: 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm' },
+  { id: 'draw', label: 'Draw Zone', icon: PenTool, color: 'bg-muted/60 hover:bg-muted text-foreground' },
+  { id: 'drop-pin', label: 'Drop Pin', icon: MapPin, color: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm' },
+  { id: 'soil-test', label: 'Soil Test', icon: TestTube2, color: 'bg-amber-700 hover:bg-amber-800 active:bg-amber-900 text-white shadow-sm' },
+  { id: 'walk', label: 'Walk Boundary', icon: Footprints, color: 'bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white shadow-sm' },
+  { id: 'photo', label: 'Photo', icon: Camera, color: 'bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white shadow-sm' },
+] as const;
 
 export function BottomDrawer({
   designContent,
@@ -96,6 +109,17 @@ export function BottomDrawer({
     setDrawerHeight(preDrawHeightRef.current);
   }, [setZoneLinkMode, setDrawerHeight]);
 
+  const handleAction = useCallback((id: string) => {
+    switch (id) {
+      case 'plant': onAddPlant?.(); break;
+      case 'draw': handleDrawZone(); break;
+      case 'drop-pin': onGPSDropPin?.(); break;
+      case 'soil-test': onGPSSoilTest?.(); break;
+      case 'walk': onGPSWalkBoundary?.(); break;
+      case 'photo': onGPSPhoto?.(); break;
+    }
+  }, [onAddPlant, handleDrawZone, onGPSDropPin, onGPSSoilTest, onGPSWalkBoundary, onGPSPhoto]);
+
   // Determine if we're showing a detail overlay (species picker, annotations, etc.)
   const showDetailOverlay = drawerContent && drawerContent !== 'feature-list';
 
@@ -140,8 +164,8 @@ export function BottomDrawer({
         <div className="w-9 h-[3px] bg-muted-foreground/20 rounded-full" />
       </div>
 
-      {/* Header: tabs + actions — always visible */}
-      <div className="flex items-center gap-2 px-4 pb-2 flex-shrink-0">
+      {/* Header: tabs + summary badges — always visible */}
+      <div className="flex items-center gap-2 px-4 pb-1.5 flex-shrink-0">
         {/* Segmented control tabs */}
         <div className="flex items-center bg-muted/40 rounded-lg p-0.5 flex-1 min-w-0">
           {TAB_CONFIG.map((tab) => {
@@ -172,47 +196,60 @@ export function BottomDrawer({
           })}
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {zoneLinkMode ? (
-            <button
-              onClick={handleCancelZoneLink}
-              className="flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors active:scale-95"
-            >
-              <X className="h-3 w-3" />
-              Cancel
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={onAddPlant}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 transition-colors active:scale-95 shadow-sm"
-                title="Add plant at GPS location"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Plant</span>
-              </button>
-              <button
-                onClick={handleDrawZone}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium bg-muted/60 hover:bg-muted text-foreground transition-colors active:scale-95"
-              >
-                <PenTool className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Draw</span>
-              </button>
-              {onGPSDropPin && (
-                <button
-                  onClick={onGPSDropPin}
-                  className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors active:scale-95 shadow-sm"
-                  title="Drop GPS pin"
-                >
-                  <MapPin className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Pin</span>
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        {/* Summary badges */}
+        {(plantingCount > 0 || zoneCount > 0) && (
+          <div className="flex items-center gap-1.5 flex-shrink-0 text-[10px] font-medium text-muted-foreground">
+            {zoneCount > 0 && (
+              <span className="flex items-center gap-0.5 bg-muted/50 rounded-full px-2 py-0.5">
+                <Layers className="h-3 w-3" />
+                {zoneCount}
+              </span>
+            )}
+            {plantingCount > 0 && (
+              <span className="flex items-center gap-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-full px-2 py-0.5">
+                <Sprout className="h-3 w-3" />
+                {plantingCount}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Cancel zone link button */}
+        {zoneLinkMode && (
+          <button
+            onClick={handleCancelZoneLink}
+            className="flex items-center gap-1 h-8 px-3 rounded-xl text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors active:scale-95 flex-shrink-0"
+          >
+            <X className="h-3 w-3" />
+            Cancel
+          </button>
+        )}
       </div>
+
+      {/* Scrollable quick-action strip */}
+      {!zoneLinkMode && (
+        <div className="flex-shrink-0 px-2 pb-2">
+          <div
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5"
+            style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {QUICK_ACTIONS.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.id}
+                  onClick={() => handleAction(action.id)}
+                  className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 flex-shrink-0 ${action.color}`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {action.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tab content — scrollable area */}
       <div
