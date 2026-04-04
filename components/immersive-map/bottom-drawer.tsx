@@ -4,7 +4,7 @@ import { useImmersiveMapUI, type BottomDrawerTab } from "@/contexts/immersive-ma
 import { motion, PanInfo } from "framer-motion";
 import { ReactNode, useRef, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Plus, PenTool, X, Leaf, Map } from "lucide-react";
+import { Plus, PenTool, X, Leaf, Map, MapPin, FlaskConical, Camera, Route } from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design/design-system";
 
 interface BottomDrawerProps {
@@ -22,6 +22,11 @@ interface BottomDrawerProps {
   /** Callbacks */
   onAddPlant?: () => void;
   onDrawZone?: () => void;
+  /** GPS callbacks */
+  onGPSDropPin?: () => void;
+  onGPSSoilTest?: () => void;
+  onGPSPhoto?: () => void;
+  onGPSWalkBoundary?: () => void;
 }
 
 const TAB_CONFIG: { id: BottomDrawerTab; label: string; icon: typeof Leaf }[] = [
@@ -40,6 +45,10 @@ export function BottomDrawer({
   zoneCount = 0,
   onAddPlant,
   onDrawZone,
+  onGPSDropPin,
+  onGPSSoilTest,
+  onGPSPhoto,
+  onGPSWalkBoundary,
 }: BottomDrawerProps) {
   const {
     drawerContent, drawerHeight, setDrawerHeight,
@@ -164,7 +173,7 @@ export function BottomDrawer({
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
           {zoneLinkMode ? (
             <button
               onClick={handleCancelZoneLink}
@@ -177,18 +186,29 @@ export function BottomDrawer({
             <>
               <button
                 onClick={onAddPlant}
-                className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 transition-colors active:scale-95 shadow-sm"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 transition-colors active:scale-95 shadow-sm"
+                title="Add plant at GPS location"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Plant</span>
               </button>
               <button
                 onClick={handleDrawZone}
-                className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-medium bg-muted/60 hover:bg-muted text-foreground transition-colors active:scale-95"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium bg-muted/60 hover:bg-muted text-foreground transition-colors active:scale-95"
               >
                 <PenTool className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Draw</span>
               </button>
+              {onGPSDropPin && (
+                <button
+                  onClick={onGPSDropPin}
+                  className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors active:scale-95 shadow-sm"
+                  title="Drop GPS pin"
+                >
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Pin</span>
+                </button>
+              )}
             </>
           )}
         </div>
