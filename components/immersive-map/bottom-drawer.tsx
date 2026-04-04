@@ -4,7 +4,7 @@ import { useImmersiveMapUI, type BottomDrawerTab } from "@/contexts/immersive-ma
 import { motion, PanInfo } from "framer-motion";
 import { ReactNode, useRef, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Plus, PenTool, X, Leaf, Map, MapPin, FlaskConical, Camera, Route } from "lucide-react";
+import { Plus, PenTool, X, Leaf, Map, MapPin, FlaskConical, Camera } from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design/design-system";
 
 interface BottomDrawerProps {
