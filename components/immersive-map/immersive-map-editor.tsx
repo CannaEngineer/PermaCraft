@@ -201,6 +201,8 @@ function ImmersiveMapEditorContent({
     openDrawer,
     closeDrawer,
     drawerContent,
+    drawerHeight,
+    setDrawerHeight,
     headerCollapsed,
     setHeaderCollapsed,
     drawingMode,
@@ -337,6 +339,18 @@ function ImmersiveMapEditorContent({
   const [showSoilTestForm, setShowSoilTestForm] = useState(false);
   const [showGeotaggedPhoto, setShowGeotaggedPhoto] = useState(false);
   const [gpsDropPinTrigger, setGpsDropPinTrigger] = useState(0);
+
+  // Track drawer height before GPS form opens so we can restore it
+  const preGpsDrawerHeightRef = useRef<'peek' | 'medium' | 'max'>(drawerHeight);
+
+  const handleGPSFormVisibilityChange = useCallback((visible: boolean) => {
+    if (visible) {
+      preGpsDrawerHeightRef.current = drawerHeight;
+      setDrawerHeight('peek');
+    } else {
+      setDrawerHeight(preGpsDrawerHeightRef.current);
+    }
+  }, [drawerHeight, setDrawerHeight]);
 
   // Load goals, species, plantings on mount
   useEffect(() => {
@@ -1143,6 +1157,7 @@ function ImmersiveMapEditorContent({
           onMarkerDrop={handleGPSMarkerDrop}
           visible={false}
           triggerCapture={gpsDropPinTrigger}
+          onFormVisibilityChange={handleGPSFormVisibilityChange}
         />
       )}
 

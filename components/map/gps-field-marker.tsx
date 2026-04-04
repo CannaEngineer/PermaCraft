@@ -30,6 +30,8 @@ interface GPSFieldMarkerProps {
   className?: string;
   /** When this value changes (and is > 0), auto-trigger GPS capture without showing FAB */
   triggerCapture?: number;
+  /** Called when the drop-pin form visibility changes (true = form shown, false = form dismissed) */
+  onFormVisibilityChange?: (visible: boolean) => void;
 }
 
 /**
@@ -53,6 +55,7 @@ export function GPSFieldMarker({
   visible = true,
   className,
   triggerCapture,
+  onFormVisibilityChange,
 }: GPSFieldMarkerProps) {
   const {
     position,
@@ -239,6 +242,11 @@ export function GPSFieldMarker({
     removeAccuracyCircle();
   }, [removeAccuracyCircle]);
 
+  // Notify parent when form visibility changes (so drawer can collapse)
+  useEffect(() => {
+    onFormVisibilityChange?.(showForm);
+  }, [showForm, onFormVisibilityChange]);
+
   // Auto-trigger capture when triggerCapture changes (from GPS tools menu)
   const lastTriggerRef = useRef(0);
   useEffect(() => {
@@ -302,7 +310,7 @@ export function GPSFieldMarker({
 
       {/* Drop Pin Form — centered at bottom of screen */}
       {showForm && capturedPosition && accuracyInfo && (
-        <div className="fixed inset-x-0 bottom-0 z-[55] flex justify-center p-4 pb-6 md:pb-8">
+        <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center p-4 pb-6 md:pb-8">
           {/* Scrim */}
           <div
             className="fixed inset-0 bg-black/20 backdrop-blur-[2px] -z-10 animate-in fade-in duration-200"
