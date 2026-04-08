@@ -27,6 +27,7 @@ import { ManageTab } from "@/components/map/manage-tab";
 import { StoryTab } from "@/components/map/story-tab";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, Leaf } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { JournalEntryForm } from "@/components/farm/journal-entry-form";
 import { GPSFieldMarker } from "@/components/map/gps-field-marker";
 import type { GPSDropPinFormData } from "@/components/map/gps-drop-pin-form";
@@ -192,6 +193,7 @@ function ImmersiveMapEditorContent({
   isShopEnabled,
 }: ImmersiveMapEditorProps) {
   const router = useRouter();
+  const { toast } = useToast();
 
   // Get UI context
   const {
@@ -215,10 +217,12 @@ function ImmersiveMapEditorContent({
   const [currentMapLayer, setCurrentMapLayer] = useState<string>("satellite");
   const [gridUnit] = useState<'imperial' | 'metric'>("imperial");
 
-  // Save state
+  // Save state: 'idle' | 'saving' | 'saved' | 'error'
   const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const savedResetTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -352,38 +356,44 @@ function ImmersiveMapEditorContent({
     }
   }, [drawerHeight, setDrawerHeight]);
 
-  // Load goals, species, plantings on mount
+  // Load all farm data in parallel on mount
   useEffect(() => {
-    if (farm?.id) {
-      loadGoals();
-      loadNativeSpecies();
-      loadPlantings();
-      loadLines();
-      loadGuilds();
-      loadPhases();
-    }
+    if (!farm?.id) return;
+
+    const loadAllFarmData = async () => {
+      const endpoints = [
+        { url: `/api/farms/${farm.id}/goals`, key: 'goals' },
+        { url: `/api/farms/${farm.id}/native-species`, key: 'native-species' },
+        { url: `/api/farms/${farm.id}/plantings`, key: 'plantings' },
+        { url: `/api/farms/${farm.id}/lines`, key: 'lines' },
+        { url: `/api/farms/${farm.id}/guilds`, key: 'guilds' },
+        { url: `/api/farms/${farm.id}/phases`, key: 'phases' },
+      ];
+
+      const results = await Promise.allSettled(
+        endpoints.map(ep => fetch(ep.url).then(r => r.json()))
+      );
+
+      // Apply results — each settles independently so one failure doesn't block others
+      if (results[0].status === 'fulfilled') setGoals(results[0].value.goals || []);
+      if (results[1].status === 'fulfilled') setNativeSpecies(results[1].value.perfect_match?.slice(0, 10) || []);
+      if (results[2].status === 'fulfilled') setPlantings(results[2].value.plantings || []);
+      if (results[3].status === 'fulfilled') setLines(results[3].value.lines || []);
+      if (results[4].status === 'fulfilled') setGuilds(results[4].value.guilds || []);
+      if (results[5].status === 'fulfilled') setFarmPhases(results[5].value.phases || []);
+
+      // Log any failures
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`Failed to load ${endpoints[i].key}:`, r.reason);
+        }
+      });
+    };
+
+    loadAllFarmData();
   }, [farm?.id]);
 
-  const loadGoals = async () => {
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/goals`);
-      const data = await response.json();
-      setGoals(data.goals || []);
-    } catch (error) {
-      console.error('Failed to load goals:', error);
-    }
-  };
-
-  const loadNativeSpecies = async () => {
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/native-species`);
-      const data = await response.json();
-      setNativeSpecies(data.perfect_match?.slice(0, 10) || []);
-    } catch (error) {
-      console.error('Failed to load native species:', error);
-    }
-  };
-
+  // Individual reload helpers (for refresh after mutations)
   const loadPlantings = async () => {
     try {
       const response = await fetch(`/api/farms/${farm.id}/plantings`);
@@ -404,29 +414,10 @@ function ImmersiveMapEditorContent({
     }
   };
 
-  const loadGuilds = async () => {
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/guilds`);
-      const data = await response.json();
-      setGuilds(data.guilds || []);
-    } catch (error) {
-      console.error('Failed to load guilds:', error);
-    }
-  };
-
-  const loadPhases = async () => {
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/phases`);
-      const data = await response.json();
-      setFarmPhases(data.phases || []);
-    } catch (error) {
-      console.error('Failed to load phases:', error);
-    }
-  };
-
   // Save zones
-  const handleSave = async (showAlert = true) => {
+  const handleSave = async (isAutoSave = false) => {
     setSaving(true);
+    setSaveState('saving');
 
     try {
       const res = await fetch(`/api/farms/${farm.id}/zones`, {
@@ -440,14 +431,23 @@ function ImmersiveMapEditorContent({
       }
 
       setHasUnsavedChanges(false);
-      if (showAlert) {
-        alert("Zones saved successfully!");
+      setSaveState('saved');
+
+      // Reset "saved" indicator after 3 seconds
+      if (savedResetTimer.current) clearTimeout(savedResetTimer.current);
+      savedResetTimer.current = setTimeout(() => setSaveState('idle'), 3000);
+
+      if (!isAutoSave) {
+        toast({ title: "Saved", description: "All changes saved." });
       }
     } catch (error) {
-      if (showAlert) {
-        alert("Failed to save zones");
-      }
+      setSaveState('error');
       console.error(error);
+      toast({
+        title: "Save failed",
+        description: "Changes couldn't be saved. They'll retry automatically.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -461,7 +461,7 @@ function ImmersiveMapEditorContent({
       }
 
       autoSaveTimer.current = setTimeout(() => {
-        handleSave(false);
+        handleSave(true);
       }, 2000);
     }
 
@@ -787,11 +787,48 @@ function ImmersiveMapEditorContent({
       if (e.key === 'h' && !e.metaKey && !e.ctrlKey) {
         setHeaderCollapsed(!headerCollapsed);
       }
+
+      // ? - Show keyboard shortcuts
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        toast({
+          title: "Keyboard shortcuts",
+          description: "C — AI Chat  |  D — Draw mode  |  Esc — Close  |  H — Toggle header  |  S — Snap to grid",
+        });
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed, drawingMode, exitDrawingMode, drawerContent, closeDrawer]);
+  }, [chatOpen, setChatOpen, headerCollapsed, setHeaderCollapsed, drawingMode, exitDrawingMode, drawerContent, closeDrawer, toast]);
+
+  // Keyboard shortcut discovery — show once on first map interaction
+  const shortcutHintShown = useRef(false);
+  useEffect(() => {
+    if (!mapRef.current || shortcutHintShown.current) return;
+
+    const STORAGE_KEY = 'permacraft-shortcut-hint-shown';
+    if (typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY)) return;
+
+    const showHint = () => {
+      if (shortcutHintShown.current) return;
+      shortcutHintShown.current = true;
+
+      toast({
+        title: "Keyboard shortcuts available",
+        description: "Press C for AI chat, Esc to close panels, D to draw. Press ? for all shortcuts.",
+      });
+
+      localStorage.setItem(STORAGE_KEY, '1');
+    };
+
+    // Show after first meaningful map interaction (drag or zoom)
+    const map = mapRef.current;
+    map.once('moveend', showHint);
+
+    return () => {
+      map.off('moveend', showHint);
+    };
+  }, [mapRef.current, toast]);
 
   // MapFAB action handlers
   const handleAddPlant = () => {
@@ -1114,6 +1151,7 @@ function ImmersiveMapEditorContent({
           plantings={plantings}
           currentYear={projectionYear}
           onYearChange={setProjectionYear}
+          saveState={saveState}
         />
       )}
 

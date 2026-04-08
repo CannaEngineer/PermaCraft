@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { ChevronLeft, MoreHorizontal, Download, Settings, Trash2, Play, Pause } from 'lucide-react';
+import { ChevronLeft, MoreHorizontal, Download, Settings, Trash2, Play, Pause, CloudOff, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,9 +42,11 @@ interface ThinHeaderProps {
   plantings?: Planting[];
   currentYear?: number;
   onYearChange?: (year: number) => void;
+  /** Auto-save state indicator */
+  saveState?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
-export function ThinHeader({ farmName, farmId, onExport, onSettings, plantings, currentYear, onYearChange }: ThinHeaderProps) {
+export function ThinHeader({ farmName, farmId, onExport, onSettings, plantings, currentYear, onYearChange, saveState = 'idle' }: ThinHeaderProps) {
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -82,6 +84,26 @@ export function ThinHeader({ farmName, farmId, onExport, onSettings, plantings, 
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <span className="text-sm font-medium truncate">{farmName}</span>
+
+          {/* Save state indicator — Google Maps style */}
+          {saveState === 'saving' && (
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground flex-shrink-0">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="hidden sm:inline">Saving</span>
+            </span>
+          )}
+          {saveState === 'saved' && (
+            <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+              <Check className="h-3 w-3" />
+              <span className="hidden sm:inline">Saved</span>
+            </span>
+          )}
+          {saveState === 'error' && (
+            <span className="flex items-center gap-1 text-[11px] text-destructive flex-shrink-0">
+              <CloudOff className="h-3 w-3" />
+              <span className="hidden sm:inline">Offline</span>
+            </span>
+          )}
 
           {/* Time Machine play button */}
           {onYearChange && (
