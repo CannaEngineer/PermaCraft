@@ -3,8 +3,9 @@ import maplibregl from 'maplibre-gl';
 /**
  * Animate arrow symbols along flow paths to visualize water movement direction
  *
- * This creates a continuous animation where arrows appear to "flow" along the path
- * by incrementally offsetting their position.
+ * Throttled to ~30fps (every other frame) since the 1px-per-frame offset
+ * is visually identical at 30fps vs 60fps, but uses half the GPU cycles.
+ * Automatically stops when the target layer is removed from the map.
  *
  * @param map - MapLibre map instance
  * @param layerId - ID of the symbol layer containing arrows
@@ -12,27 +13,32 @@ import maplibregl from 'maplibre-gl';
 export function animateFlowArrows(map: maplibregl.Map, layerId: string) {
   let offset = 0;
   let animationFrame: number;
+  let cancelled = false;
+  let frameCount = 0;
 
   function animate() {
-    // Increment offset (cycles every 200px to create seamless loop)
-    offset = (offset + 1) % 200;
+    if (cancelled) return;
 
-    // Update icon offset if layer exists
-    if (map.getLayer(layerId)) {
+    // Stop if the layer was removed — no point burning frames
+    if (!map.getLayer(layerId)) {
+      return;
+    }
+
+    frameCount++;
+
+    // Throttle to ~30fps: only update on every other frame
+    if (frameCount % 2 === 0) {
+      offset = (offset + 1) % 200;
       map.setLayoutProperty(layerId, 'icon-offset', [0, -offset]);
     }
 
-    // Continue animation loop
     animationFrame = requestAnimationFrame(animate);
   }
 
-  // Start animation
   animate();
 
-  // Return cleanup function
   return () => {
-    if (animationFrame) {
-      cancelAnimationFrame(animationFrame);
-    }
+    cancelled = true;
+    cancelAnimationFrame(animationFrame);
   };
 }
