@@ -5,8 +5,8 @@ import { motion, PanInfo } from "framer-motion";
 import { ReactNode, useRef, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
-  X, Leaf, Map, PenTool, MapPin,
-  TestTube2, Camera, Footprints, Sprout, Layers,
+  X, Leaf, Map, PenTool,
+  Sprout, Layers,
 } from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design/design-system";
 
@@ -14,54 +14,35 @@ interface BottomDrawerProps {
   /** Content for each tab */
   designContent?: ReactNode;
   manageContent?: ReactNode;
-  storyContent?: ReactNode;
   /** Content for detail overlays (annotations, species picker, etc.) */
   detailContent?: ReactNode;
-  /** Story draft count for badge */
-  storyDraftCount?: number;
   /** Summary counts for peek bar */
   plantingCount?: number;
   zoneCount?: number;
   /** Callbacks */
   onAddPlant?: () => void;
   onDrawZone?: () => void;
-  /** GPS callbacks */
-  onGPSDropPin?: () => void;
-  onGPSSoilTest?: () => void;
-  onGPSPhoto?: () => void;
-  onGPSWalkBoundary?: () => void;
 }
 
 const TAB_CONFIG: { id: BottomDrawerTab; label: string; icon: typeof Leaf }[] = [
   { id: 'design', label: 'Features', icon: Map },
   { id: 'manage', label: 'Plan', icon: Leaf },
-  { id: 'story', label: 'Story', icon: Leaf },
 ];
 
 /** Quick-action tools for the scrollable strip */
 const QUICK_ACTIONS = [
   { id: 'plant', label: 'Add Plant', icon: Sprout, color: 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm' },
   { id: 'draw', label: 'Draw Zone', icon: PenTool, color: 'bg-muted/60 hover:bg-muted text-foreground' },
-  { id: 'drop-pin', label: 'Drop Pin', icon: MapPin, color: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm' },
-  { id: 'soil-test', label: 'Soil Test', icon: TestTube2, color: 'bg-amber-700 hover:bg-amber-800 active:bg-amber-900 text-white shadow-sm' },
-  { id: 'walk', label: 'Walk Boundary', icon: Footprints, color: 'bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white shadow-sm' },
-  { id: 'photo', label: 'Photo', icon: Camera, color: 'bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white shadow-sm' },
 ] as const;
 
 export function BottomDrawer({
   designContent,
   manageContent,
-  storyContent,
   detailContent,
-  storyDraftCount = 0,
   plantingCount = 0,
   zoneCount = 0,
   onAddPlant,
   onDrawZone,
-  onGPSDropPin,
-  onGPSSoilTest,
-  onGPSPhoto,
-  onGPSWalkBoundary,
 }: BottomDrawerProps) {
   const {
     drawerContent, drawerHeight, setDrawerHeight,
@@ -113,12 +94,8 @@ export function BottomDrawer({
     switch (id) {
       case 'plant': onAddPlant?.(); break;
       case 'draw': handleDrawZone(); break;
-      case 'drop-pin': onGPSDropPin?.(); break;
-      case 'soil-test': onGPSSoilTest?.(); break;
-      case 'walk': onGPSWalkBoundary?.(); break;
-      case 'photo': onGPSPhoto?.(); break;
     }
-  }, [onAddPlant, handleDrawZone, onGPSDropPin, onGPSSoilTest, onGPSWalkBoundary, onGPSPhoto]);
+  }, [onAddPlant, handleDrawZone]);
 
   // Determine if we're showing a detail overlay (species picker, annotations, etc.)
   const showDetailOverlay = drawerContent && drawerContent !== 'feature-list';
@@ -134,8 +111,6 @@ export function BottomDrawer({
         return designContent;
       case 'manage':
         return manageContent;
-      case 'story':
-        return storyContent;
       default:
         return null;
     }
@@ -186,11 +161,6 @@ export function BottomDrawer({
                 `}
               >
                 {tab.label}
-                {tab.id === 'story' && storyDraftCount > 0 && (
-                  <span className="absolute -top-1 -right-0.5 h-3.5 min-w-[14px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
-                    {storyDraftCount}
-                  </span>
-                )}
               </button>
             );
           })}

@@ -14,7 +14,6 @@ import { CommentThread } from "@/components/comments/comment-thread";
 import { DeleteFarmDialog } from "@/components/shared/delete-farm-dialog";
 import { GoalCaptureWizard } from "@/components/farm/goal-capture-wizard";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
-import { PhotoUploadDialog } from "./photo-upload-dialog";
 import { WaterSystemPanel } from "@/components/water/water-system-panel";
 import { GuildDesigner } from "@/components/guilds/guild-designer";
 import { PhaseManager } from "@/components/phasing/phase-manager";
@@ -24,17 +23,10 @@ import { FeatureListPanel } from "@/components/map/feature-list-panel";
 import { FeatureTouchModal, type TouchFeature } from "@/components/map/feature-touch-modal";
 import { InteractionLayerFilter, type InteractionFilter } from "@/components/map/interaction-layer-filter";
 import { ManageTab } from "@/components/map/manage-tab";
-import { StoryTab } from "@/components/map/story-tab";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, Leaf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { JournalEntryForm } from "@/components/farm/journal-entry-form";
-import { GPSFieldMarker } from "@/components/map/gps-field-marker";
-import type { GPSDropPinFormData } from "@/components/map/gps-drop-pin-form";
-import { BoundaryWalker, type BoundaryWalkerResult } from "@/components/map/boundary-walker";
-import { SoilTestForm, type SoilTestData } from "@/components/map/soil-test-form";
-import { GeotaggedPhotoCapture, type GeotaggedPhotoData } from "@/components/map/geotagged-photo-capture";
-import { GPSToolsMenu, type GPSTool } from "@/components/map/gps-tools-menu";
 import type { Farm, Zone, FarmerGoal, Species } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { toPng } from "html-to-image";
@@ -228,7 +220,6 @@ function ImmersiveMapEditorContent({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showGoalsWizard, setShowGoalsWizard] = useState(false);
   const [postDialogOpen, setPostDialogOpen] = useState(false);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [journalFormOpen, setJournalFormOpen] = useState(false);
 
   // Goals state
@@ -304,9 +295,8 @@ function ImmersiveMapEditorContent({
   // Zone type for drawing
   const [currentZoneType, setCurrentZoneType] = useState<string>("other");
 
-  // Time Machine / Story state
+  // Time Machine state
   const [projectionYear, setProjectionYear] = useState<number>(new Date().getFullYear());
-  const [storyDraftCount, setStoryDraftCount] = useState(0);
 
   // Selected feature for annotation panel
   const [selectedFeature, setSelectedFeature] = useState<{
@@ -335,26 +325,6 @@ function ImmersiveMapEditorContent({
   // Triggers FarmMap's internal species picker (same flow as map submenu "Add Plant")
   const [triggerSpeciesPicker, setTriggerSpeciesPicker] = useState(false);
 
-  // GPS field mapping state — coordinates to auto-place a planting at GPS location
-  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{ lat: number; lng: number; notes?: string; seq: number } | null>(null);
-
-  // GPS feature states — boundary walking, soil testing, photo geotagging
-  const [showBoundaryWalker, setShowBoundaryWalker] = useState(false);
-  const [showSoilTestForm, setShowSoilTestForm] = useState(false);
-  const [showGeotaggedPhoto, setShowGeotaggedPhoto] = useState(false);
-  const [gpsDropPinTrigger, setGpsDropPinTrigger] = useState(0);
-
-  // Track drawer height before GPS form opens so we can restore it
-  const preGpsDrawerHeightRef = useRef<'peek' | 'medium' | 'max'>(drawerHeight);
-
-  const handleGPSFormVisibilityChange = useCallback((visible: boolean) => {
-    if (visible) {
-      preGpsDrawerHeightRef.current = drawerHeight;
-      setDrawerHeight('peek');
-    } else {
-      setDrawerHeight(preGpsDrawerHeightRef.current);
-    }
-  }, [drawerHeight, setDrawerHeight]);
 
   // Load all farm data in parallel on mount
   useEffect(() => {
@@ -839,209 +809,6 @@ function ImmersiveMapEditorContent({
     setTriggerSpeciesPicker(false);
   }, []); // empty deps — only calls a state setter
 
-  // GPS field mapping handlers
-  const handleGPSPlantingDrop = useCallback((lat: number, lng: number, notes: string) => {
-    // Store the GPS coordinates, then trigger the species picker.
-    // Once the user selects a species, FarmMap will auto-place it at these coords.
-    setGpsPlantingCoords({ lat, lng, notes, seq: Date.now() });
-    setTriggerSpeciesPicker(true);
-  }, []);
-
-  const handleGPSMarkerDrop = useCallback(async (data: GPSDropPinFormData) => {
-    // For non-planting markers (soil tests, observations, waypoints, etc.),
-    // create a zone point feature on the farm.
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/zones`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zones: [{
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [data.lng, data.lat],
-            },
-            properties: {
-              name: data.notes || `${data.markerType.replace('_', ' ')} marker`,
-              zone_type: 'feature',
-              marker_type: data.markerType,
-              gps_accuracy: data.accuracy,
-              gps_altitude: data.altitude,
-              dropped_at: new Date().toISOString(),
-            },
-          }],
-        }),
-      });
-
-      if (response.ok) {
-        // Refresh zones to show the new marker
-        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
-        if (zonesRes.ok) {
-          const zonesData = await zonesRes.json();
-          handleZonesChange(zonesData.zones || []);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save GPS marker:', error);
-    }
-  }, [farm.id, handleZonesChange]);
-
-  const handleGPSPlantingHandled = useCallback(() => {
-    setGpsPlantingCoords(null);
-  }, []);
-
-  // ─── Boundary Walker handler ─────────────────────────────────────────────
-  const handleBoundaryComplete = useCallback(async (result: BoundaryWalkerResult) => {
-    // Convert walked points into a closed polygon and save as a zone
-    const coordinates = result.points.map(p => [p.lng, p.lat]);
-    // Close the polygon by repeating the first point
-    if (coordinates.length > 0) {
-      coordinates.push(coordinates[0]);
-    }
-
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/zones`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zones: [{
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [coordinates],
-            },
-            properties: {
-              name: result.name,
-              user_zone_type: result.zoneType,
-              walked_boundary: true,
-              walk_distance_meters: result.totalDistanceMeters,
-              walk_point_count: result.points.length,
-              walked_at: new Date().toISOString(),
-            },
-          }],
-        }),
-      });
-
-      if (response.ok) {
-        // Refresh zones
-        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
-        if (zonesRes.ok) {
-          const zonesData = await zonesRes.json();
-          handleZonesChange(zonesData.zones || []);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save walked boundary:', error);
-    }
-    setShowBoundaryWalker(false);
-  }, [farm.id, handleZonesChange]);
-
-  // ─── Soil Test handler ────────────────────────────────────────────────────
-  const handleSoilTestSubmit = useCallback(async (data: SoilTestData) => {
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/soil-tests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lat: data.lat,
-          lng: data.lng,
-          accuracy: data.accuracy,
-          altitude: data.altitude,
-          ph: data.ph,
-          texture: data.texture,
-          organic_matter: data.organicMatter,
-          drainage: data.drainage,
-          nitrogen: data.nitrogen,
-          phosphorus: data.phosphorus,
-          potassium: data.potassium,
-          depth_inches: data.depthInches,
-          color: data.color,
-          moisture: data.moisture,
-          notes: data.notes,
-          label: data.label,
-          tested_at: data.testedAt,
-        }),
-      });
-
-      if (response.ok) {
-        // Refresh zones to show the new soil test marker
-        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
-        if (zonesRes.ok) {
-          const zonesData = await zonesRes.json();
-          handleZonesChange(zonesData.zones || []);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save soil test:', error);
-    }
-    setShowSoilTestForm(false);
-  }, [farm.id, handleZonesChange]);
-
-  // ─── Geotagged Photo handler ──────────────────────────────────────────────
-  const handleGeotaggedPhotoSubmit = useCallback(async (data: GeotaggedPhotoData) => {
-    try {
-      const response = await fetch(`/api/farms/${farm.id}/geotagged-photos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lat: data.lat,
-          lng: data.lng,
-          accuracy: data.accuracy,
-          altitude: data.altitude,
-          heading: data.heading,
-          image_data: data.imageData,
-          caption: data.caption,
-          compass_direction: data.compassDirection,
-          captured_at: data.capturedAt,
-        }),
-      });
-
-      if (response.ok) {
-        // Refresh zones to show the new photo marker
-        const zonesRes = await fetch(`/api/farms/${farm.id}/zones`);
-        if (zonesRes.ok) {
-          const zonesData = await zonesRes.json();
-          handleZonesChange(zonesData.zones || []);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save geotagged photo:', error);
-    }
-    setShowGeotaggedPhoto(false);
-  }, [farm.id, handleZonesChange]);
-
-  // ─── GPS Tools Menu handler ────────────────────────────────────────────────
-  const activeGPSTool: GPSTool | null = showBoundaryWalker
-    ? 'walk-boundary'
-    : showSoilTestForm
-    ? 'soil-test'
-    : showGeotaggedPhoto
-    ? 'photo'
-    : null;
-
-  const handleGPSToolSelect = useCallback((tool: GPSTool) => {
-    // Reset all GPS tool states first
-    setShowBoundaryWalker(false);
-    setShowSoilTestForm(false);
-    setShowGeotaggedPhoto(false);
-
-    switch (tool) {
-      case 'drop-pin':
-        // Trigger the GPSFieldMarker capture directly
-        setGpsDropPinTrigger(prev => prev + 1);
-        break;
-      case 'walk-boundary':
-        setShowBoundaryWalker(true);
-        break;
-      case 'soil-test':
-        setShowSoilTestForm(true);
-        break;
-      case 'photo':
-        setShowGeotaggedPhoto(true);
-        break;
-    }
-  }, []);
-
   const handleSelectSpecies = (species: Species) => {
     // Close the drawer
     closeDrawer();
@@ -1137,8 +904,6 @@ function ImmersiveMapEditorContent({
           hideStatusBar
           externalCurrentYear={projectionYear}
           externalOnYearChange={setProjectionYear}
-          externalGPSPlantingCoords={gpsPlantingCoords}
-          onGPSPlantingHandled={handleGPSPlantingHandled}
         />
       </div>
 
@@ -1178,72 +943,12 @@ function ImmersiveMapEditorContent({
         </div>
       )}
 
-      {/* GPS Tools Menu — expandable FAB for all GPS field tools */}
-      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && (
-        <GPSToolsMenu
-          activeTool={activeGPSTool}
-          onSelectTool={handleGPSToolSelect}
-        />
-      )}
-
-      {/* GPS Field Marker — drop pin at GPS location (FAB hidden; triggered via GPS tools menu) */}
-      {isOwner && uiMode !== 'drawing' && uiMode !== 'chatting' && !showBoundaryWalker && !showSoilTestForm && !showGeotaggedPhoto && (
-        <GPSFieldMarker
-          mapRef={mapRef}
-          farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
-          onPlantingDrop={handleGPSPlantingDrop}
-          onMarkerDrop={handleGPSMarkerDrop}
-          visible={false}
-          triggerCapture={gpsDropPinTrigger}
-          onFormVisibilityChange={handleGPSFormVisibilityChange}
-        />
-      )}
-
-      {/* Walking Zone Boundaries — continuous GPS tracking to record a path as a polygon */}
-      {isOwner && uiMode !== 'chatting' && (
-        <BoundaryWalker
-          mapRef={mapRef}
-          farmId={farm.id}
-          onComplete={handleBoundaryComplete}
-          onCancel={() => setShowBoundaryWalker(false)}
-          visible={showBoundaryWalker}
-        />
-      )}
-
-      {/* Soil Test Location Mapping — structured soil data with GPS pin */}
-      {isOwner && uiMode !== 'chatting' && (
-        <SoilTestForm
-          mapRef={mapRef}
-          farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
-          onSubmit={handleSoilTestSubmit}
-          onCancel={() => setShowSoilTestForm(false)}
-          visible={showSoilTestForm}
-        />
-      )}
-
-      {/* Photo Geotagging — capture photo with automatic GPS coordinates */}
-      {isOwner && uiMode !== 'chatting' && (
-        <GeotaggedPhotoCapture
-          mapRef={mapRef}
-          farmCenter={{ lat: farm.center_lat, lng: farm.center_lng }}
-          farmId={farm.id}
-          onSubmit={handleGeotaggedPhotoSubmit}
-          onCancel={() => setShowGeotaggedPhoto(false)}
-          visible={showGeotaggedPhoto}
-        />
-      )}
-
-      {/* Bottom Drawer (3-tab: Design / Manage / Story) */}
+      {/* Bottom Drawer (2-tab: Design / Manage) */}
       <BottomDrawer
         onAddPlant={handleAddPlant}
         onDrawZone={() => {/* Drawing handled by enterDrawingMode in the drawer */}}
-        onGPSDropPin={() => handleGPSToolSelect('drop-pin')}
-        onGPSSoilTest={() => handleGPSToolSelect('soil-test')}
-        onGPSPhoto={() => handleGPSToolSelect('photo')}
-        onGPSWalkBoundary={() => handleGPSToolSelect('walk-boundary')}
         plantingCount={plantings.length}
         zoneCount={zones.length}
-        storyDraftCount={storyDraftCount}
         designContent={
           <FeatureListPanel
             zones={zones}
@@ -1262,12 +967,6 @@ function ImmersiveMapEditorContent({
             plantings={plantings}
             phases={farmPhases}
             mapRef={mapRef}
-          />
-        }
-        storyContent={
-          <StoryTab
-            farmId={farm.id}
-            onDraftCountChange={setStoryDraftCount}
           />
         }
         detailContent={
@@ -1408,17 +1107,6 @@ function ImmersiveMapEditorContent({
         farmId={farm.id}
         onPostCreated={() => {
           setPostDialogOpen(false);
-          fetchPosts();
-        }}
-      />
-
-      {/* Photo Upload Dialog */}
-      <PhotoUploadDialog
-        open={uploadDialogOpen}
-        onOpenChange={setUploadDialogOpen}
-        farmId={farm.id}
-        onPhotoUploaded={() => {
-          setUploadDialogOpen(false);
           fetchPosts();
         }}
       />

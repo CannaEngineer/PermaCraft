@@ -19,7 +19,7 @@ export type DrawerContentType =
  */
 export type UIMode = 'idle' | 'drawing' | 'viewing' | 'chatting';
 
-export type BottomDrawerTab = 'design' | 'manage' | 'story';
+export type BottomDrawerTab = 'design' | 'manage';
 
 interface ImmersiveMapUIState {
   // UI Mode (contextual visibility)
