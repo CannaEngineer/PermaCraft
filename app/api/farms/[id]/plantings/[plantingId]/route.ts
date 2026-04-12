@@ -45,6 +45,30 @@ export async function PATCH(
       updates.push('zone_id = ?');
       args.push(body.zone_id);
     }
+    // Position updates (used by "Move to my location" and "Move precisely").
+    // Both coordinates must be provided together and must be valid numbers
+    // inside the standard lat/lng ranges.
+    if (body.lat !== undefined || body.lng !== undefined) {
+      const lat = Number(body.lat);
+      const lng = Number(body.lng);
+      if (
+        body.lat === undefined ||
+        body.lng === undefined ||
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180
+      ) {
+        return Response.json(
+          { error: 'Invalid lat/lng: both must be provided as numbers within valid ranges' },
+          { status: 400 }
+        );
+      }
+      updates.push('lat = ?');
+      args.push(lat);
+      updates.push('lng = ?');
+      args.push(lng);
+    }
 
     if (updates.length === 0) {
       return Response.json({ error: 'No fields to update' }, { status: 400 });

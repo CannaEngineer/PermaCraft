@@ -17,6 +17,7 @@ import { SpeciesPickerCompact } from "./species-picker-compact";
 import { ZoneQuickLabelForm } from "./zone-quick-label-form";
 import { PlantingForm } from "./planting-form";
 import { PlantingDetailPopup } from "./planting-detail-popup";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { CreatePostDialog } from "@/components/farm/create-post-dialog";
 import { generateGridLines, generateViewportLabels, generateDimensionLabels, type GridUnit, type GridDensity } from "@/lib/map/measurement-grid";
 import {
@@ -186,6 +187,12 @@ export function FarmMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
+  // GPS hook used for "Move to my location" on existing plantings.
+  const { getCurrentPosition: getGpsPosition } = useGeolocation({
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 20000,
+  });
   // navigationControl removed — custom DrawingToolbar/MapFAB replaces built-in controls
   const [mapLayer, setMapLayer] = useState<MapLayer>("satellite");
   const [gridUnit, setGridUnit] = useState<"imperial" | "metric">("imperial");
@@ -237,6 +244,15 @@ export function FarmMap({
 
   // Planting detail state
   const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
+
+  // Reposition-planting state: when set, the next map tap relocates this
+  // planting instead of placing a new one or selecting a feature. Ref mirror
+  // is used inside the map click handler to avoid stale closures.
+  const [movePlantingId, setMovePlantingId] = useState<string | null>(null);
+  const movePlantingIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    movePlantingIdRef.current = movePlantingId;
+  }, [movePlantingId]);
 
   // Guild companion filter state
   const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
@@ -711,6 +727,92 @@ export function FarmMap({
       });
     }
   }, [farm.id, plantings, toast]);
+
+  // Move an existing planting to the given coordinates. Updates local state
+  // optimistically, flies the map to the new position, and reverts on failure.
+  const handleMovePlantingToPosition = useCallback(async (
+    plantingId: string,
+    lat: number,
+    lng: number,
+  ) => {
+    const previous = plantings.find(p => p.id === plantingId);
+    if (!previous) return;
+
+    // Optimistic update
+    setPlantings(prev => prev.map(p =>
+      p.id === plantingId ? { ...p, lat, lng } : p
+    ));
+    setSelectedPlanting((cur: any) =>
+      cur && cur.id === plantingId ? { ...cur, lat, lng } : cur
+    );
+
+    if (map.current) {
+      map.current.easeTo({ center: [lng, lat], duration: 600 });
+    }
+
+    try {
+      const response = await fetch(`/api/farms/${farm.id}/plantings/${plantingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng }),
+      });
+      if (!response.ok) throw new Error('Failed to update planting position');
+
+      toast({
+        title: "Plant moved",
+        description: `${previous.custom_name || previous.common_name} is now at ${lat.toFixed(6)}, ${lng.toFixed(6)}.`,
+      });
+    } catch (error) {
+      console.error('Failed to move planting:', error);
+      // Revert
+      setPlantings(prev => prev.map(p =>
+        p.id === plantingId ? { ...p, lat: previous.lat, lng: previous.lng } : p
+      ));
+      setSelectedPlanting((cur: any) =>
+        cur && cur.id === plantingId
+          ? { ...cur, lat: previous.lat, lng: previous.lng }
+          : cur
+      );
+      toast({
+        title: "Failed to move plant",
+        description: "There was an error updating the planting. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [farm.id, plantings, toast]);
+
+  // Called from the map-click handler when the user is in "move planting"
+  // mode: relocates the currently-moving planting to the tapped coordinate.
+  const handleMovePlantingToClick = useCallback((e: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent) => {
+    const id = movePlantingIdRef.current;
+    if (!id) return;
+    const { lng, lat } = e.lngLat;
+    setMovePlantingId(null);
+    handleMovePlantingToPosition(id, lat, lng);
+  }, [handleMovePlantingToPosition]);
+
+  // "Move to my location": capture a GPS fix and relocate the planting there.
+  const handleMovePlantingToMyLocation = useCallback(async (plantingId: string) => {
+    try {
+      const pos = await getGpsPosition();
+      await handleMovePlantingToPosition(plantingId, pos.lat, pos.lng);
+    } catch (err: any) {
+      toast({
+        title: "Couldn't get your location",
+        description: err?.message || 'Check location permissions and try again.',
+        variant: "destructive",
+      });
+    }
+  }, [getGpsPosition, handleMovePlantingToPosition, toast]);
+
+  // Enter "move precisely" mode — next map tap relocates the planting.
+  const handleStartMovePrecise = useCallback((plantingId: string) => {
+    setMovePlantingId(plantingId);
+    toast({
+      title: "Tap a new location",
+      description: "Tap anywhere on the map to move this planting. Tap the X to cancel.",
+    });
+  }, [toast]);
 
   /**
    * Place a guild on the map at the specified center point
@@ -2161,7 +2263,88 @@ export function FarmMap({
   useEffect(() => {
     if (!map.current) return;
 
+    // Track touch state so we can reject placements that are actually pans or
+    // pinch-zooms. Without this, users would accidentally drop a plant every
+    // time they two-finger-zoomed or dragged around the map while in
+    // "Add a Plant" mode (see bug report).
+    //
+    // Rules for what counts as a "valid tap":
+    //   - Exactly one finger touched the screen during the gesture.
+    //   - The finger moved less than TAP_MOVE_THRESHOLD_PX (a bit of wiggle
+    //     is OK; a drag is not).
+    //
+    // On desktop this state stays untouched (maxFingers stays 0) so mouse
+    // clicks continue to work normally.
+    const touchState = {
+      startX: 0,
+      startY: 0,
+      maxFingers: 0,
+      isValidTap: false,
+    };
+    const TAP_MOVE_THRESHOLD_PX = 10;
+
+    const handleTouchStart = (e: maplibregl.MapTouchEvent) => {
+      const touches = e.originalEvent.touches;
+      touchState.maxFingers = touches.length;
+      if (touches.length === 1) {
+        touchState.startX = touches[0].clientX;
+        touchState.startY = touches[0].clientY;
+        touchState.isValidTap = true;
+      } else {
+        // Multi-finger gesture (pinch-zoom, two-finger pan) — not a tap.
+        touchState.isValidTap = false;
+      }
+    };
+
+    const handleTouchMove = (e: maplibregl.MapTouchEvent) => {
+      const touches = e.originalEvent.touches;
+      if (touches.length > touchState.maxFingers) {
+        touchState.maxFingers = touches.length;
+      }
+      if (touches.length > 1) {
+        touchState.isValidTap = false;
+        return;
+      }
+      if (touchState.isValidTap) {
+        const dx = touches[0].clientX - touchState.startX;
+        const dy = touches[0].clientY - touchState.startY;
+        if (dx * dx + dy * dy > TAP_MOVE_THRESHOLD_PX * TAP_MOVE_THRESHOLD_PX) {
+          touchState.isValidTap = false;
+        }
+      }
+    };
+
     const handleMapClick = (e: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent) => {
+      // Reject clicks that fire while the map is actively panning, zooming,
+      // or rotating. Belt-and-suspenders guard on top of the touch-state
+      // check below.
+      if (
+        map.current?.isMoving() ||
+        map.current?.isZooming() ||
+        map.current?.isRotating()
+      ) {
+        return;
+      }
+
+      // If a touch gesture just finished and it wasn't a clean single-finger
+      // tap, reject this click. This catches multi-finger pinches and
+      // drags that the browser might still follow up with a synthetic click.
+      if (touchState.maxFingers > 0 && !touchState.isValidTap) {
+        touchState.maxFingers = 0;
+        touchState.isValidTap = false;
+        return;
+      }
+      // Consume the touch state now that we're processing the click.
+      touchState.maxFingers = 0;
+      touchState.isValidTap = false;
+
+      // Handle move-planting mode: user previously tapped "Move more precisely"
+      // on an existing planting; the next click places it at that spot.
+      if (movePlantingIdRef.current) {
+        handleMovePlantingToClick(e);
+        return;
+      }
+
       // Handle planting mode first
       if (plantingMode) {
         handlePlantingClick(e);
@@ -2357,18 +2540,22 @@ export function FarmMap({
       }
     };
 
-    // Listen to both click (desktop) and touchend (mobile) events
-    // This ensures planting works on both touch screens and mouse-based devices
+    // Track touch gestures so we can distinguish a real tap from a pan or
+    // pinch-zoom. MapLibre's own `click` event fires after a valid tap on
+    // mobile, so we do NOT register a separate `touchend` listener (doing
+    // so was the original bug — it placed a plant after every pinch/pan).
+    map.current.on("touchstart", handleTouchStart);
+    map.current.on("touchmove", handleTouchMove);
     map.current.on("click", handleMapClick);
-    map.current.on("touchend", handleMapClick);
 
     return () => {
       if (map.current) {
+        map.current.off("touchstart", handleTouchStart);
+        map.current.off("touchmove", handleTouchMove);
         map.current.off("click", handleMapClick);
-        map.current.off("touchend", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, plantings]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, handleMovePlantingToClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, plantings]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {
@@ -3324,7 +3511,7 @@ export function FarmMap({
       <div
         ref={mapContainer}
         className="h-full w-full"
-        style={{ cursor: plantingMode && selectedSpecies ? 'crosshair' : 'default' }}
+        style={{ cursor: (plantingMode && selectedSpecies) || movePlantingId ? 'crosshair' : 'default' }}
       />
 
       {/* Measurement Overlay - shown at zoom 19+ for precision mode */}
@@ -3738,7 +3925,34 @@ export function FarmMap({
             setCompanionFilterFor(plantCommonName);
             setShowSpeciesPicker(true);
           }}
+          onMoveToMyLocation={handleMovePlantingToMyLocation}
+          onStartMovePrecise={handleStartMovePrecise}
         />
+      )}
+
+      {/* Move-planting mode banner: shown while the user is relocating a planting */}
+      {movePlantingId && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[62] pointer-events-auto">
+          <div className="bg-card border border-border rounded-full shadow-lg px-4 py-2 flex items-center gap-3">
+            <Crosshair className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium">
+              Tap the map to move {
+                plantings.find(p => p.id === movePlantingId)?.custom_name ||
+                plantings.find(p => p.id === movePlantingId)?.common_name ||
+                'this planting'
+              }
+            </span>
+            <Button
+              onClick={() => setMovePlantingId(null)}
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              title="Cancel move"
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
 

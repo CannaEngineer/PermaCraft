@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Trash2, Calendar, MapPin, Users, BookOpen } from 'lucide-react';
+import { X, Trash2, Calendar, MapPin, Users, BookOpen, Navigation, Crosshair, Loader2 } from 'lucide-react';
 
 interface PlantingDetailPopupProps {
   planting: {
@@ -26,9 +27,21 @@ interface PlantingDetailPopupProps {
   onClose: () => void;
   onDelete?: (plantingId: string) => void;
   onShowCompanions?: (plantingCommonName: string) => void;
+  /** Move this planting to the device's current GPS coordinates. */
+  onMoveToMyLocation?: (plantingId: string) => Promise<void> | void;
+  /** Enter "move precisely" mode — the next map tap will relocate this planting. */
+  onStartMovePrecise?: (plantingId: string) => void;
 }
 
-export function PlantingDetailPopup({ planting, onClose, onDelete, onShowCompanions }: PlantingDetailPopupProps) {
+export function PlantingDetailPopup({
+  planting,
+  onClose,
+  onDelete,
+  onShowCompanions,
+  onMoveToMyLocation,
+  onStartMovePrecise,
+}: PlantingDetailPopupProps) {
+  const [locating, setLocating] = useState(false);
   const router = useRouter();
   const currentYear = new Date().getFullYear();
   const plantAge = currentYear - planting.planted_year;
@@ -173,6 +186,53 @@ export function PlantingDetailPopup({ planting, onClose, onDelete, onShowCompani
               <Users className="h-4 w-4 mr-2" />
               Show Guild Companions for {planting.common_name}
             </Button>
+          )}
+
+          {/* Move actions: relocate the existing planting */}
+          {(onMoveToMyLocation || onStartMovePrecise) && (
+            <div className="flex gap-2">
+              {onMoveToMyLocation && (
+                <Button
+                  onClick={async () => {
+                    if (locating) return;
+                    setLocating(true);
+                    try {
+                      await onMoveToMyLocation(planting.id);
+                      onClose();
+                    } finally {
+                      setLocating(false);
+                    }
+                  }}
+                  disabled={locating}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  title="Move this planting to your current GPS location"
+                >
+                  {locating ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Navigation className="h-4 w-4 mr-1" />
+                  )}
+                  Move to my location
+                </Button>
+              )}
+              {onStartMovePrecise && (
+                <Button
+                  onClick={() => {
+                    onStartMovePrecise(planting.id);
+                    onClose();
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  title="Tap a new spot on the map to relocate this planting"
+                >
+                  <Crosshair className="h-4 w-4 mr-1" />
+                  Move precisely
+                </Button>
+              )}
+            </div>
           )}
 
           {/* Close/Delete Actions */}
