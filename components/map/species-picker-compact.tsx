@@ -22,7 +22,8 @@ export function SpeciesPickerCompact({
   const [nativeSpecies, setNativeSpecies] = useState<{
     perfect_match: Species[];
     good_match: Species[];
-  }>({ perfect_match: [], good_match: [] });
+    possible: Species[];
+  }>({ perfect_match: [], good_match: [], possible: [] });
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -47,7 +48,8 @@ export function SpeciesPickerCompact({
       const data = await response.json();
       setNativeSpecies({
         perfect_match: data.perfect_match || [],
-        good_match: data.good_match || []
+        good_match: data.good_match || [],
+        possible: data.possible || [],
       });
     } catch (error) {
       console.error('Failed to load native species:', error);
@@ -60,7 +62,7 @@ export function SpeciesPickerCompact({
   const searchResults = useMemo(() => {
     if (!debouncedQuery.trim()) return [];
 
-    const allSpecies = [...nativeSpecies.perfect_match, ...nativeSpecies.good_match];
+    const allSpecies = [...nativeSpecies.perfect_match, ...nativeSpecies.good_match, ...nativeSpecies.possible];
     const query = debouncedQuery.toLowerCase();
 
     return allSpecies
@@ -225,7 +227,7 @@ export function SpeciesPickerCompact({
                   size="sm"
                   className="w-full justify-between text-xs"
                 >
-                  <span>Browse all {nativeSpecies.perfect_match.length + nativeSpecies.good_match.length} species</span>
+                  <span>Browse all {nativeSpecies.perfect_match.length + nativeSpecies.good_match.length + nativeSpecies.possible.length} species</span>
                   <ArrowRight className="h-3 w-3" />
                 </Button>
               </div>

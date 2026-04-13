@@ -60,7 +60,8 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
   const [nativeSpecies, setNativeSpecies] = useState<{
     perfect_match: Species[];
     good_match: Species[];
-  }>({ perfect_match: [], good_match: [] });
+    possible: Species[];
+  }>({ perfect_match: [], good_match: [], possible: [] });
   const [farmInfo, setFarmInfo] = useState<{
     climate_zone: string | null;
     region: string;
@@ -81,7 +82,8 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
       const data = await response.json();
       setNativeSpecies({
         perfect_match: data.perfect_match || [],
-        good_match: data.good_match || []
+        good_match: data.good_match || [],
+        possible: data.possible || [],
       });
       if (data.farm_info) {
         setFarmInfo(data.farm_info);
@@ -101,7 +103,7 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
     } else if (activeTab === 'good') {
       species = nativeSpecies.good_match;
     } else {
-      species = [...nativeSpecies.perfect_match, ...nativeSpecies.good_match];
+      species = [...nativeSpecies.perfect_match, ...nativeSpecies.good_match, ...nativeSpecies.possible];
     }
 
     // Filter by companion plants if requested (bidirectional)

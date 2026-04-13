@@ -1,0 +1,54 @@
+import { createClient } from '@libsql/client';
+
+async function main() {
+  const db = createClient({
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
+
+  const result = await db.execute({
+    sql: `INSERT OR IGNORE INTO species (
+      id, common_name, scientific_name, layer, is_native,
+      years_to_maturity, mature_height_ft, mature_width_ft,
+      sun_requirements, water_requirements, description,
+      permaculture_functions, companion_plants, zone_placement_notes,
+      edible_parts, sourcing_notes, broad_regions,
+      min_hardiness_zone, max_hardiness_zone,
+      min_rainfall_inches, max_rainfall_inches, ai_generated
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      'fru-juglans-ailantifolia-000',
+      'Heartnut',
+      'Juglans ailantifolia var. cordiformis',
+      'canopy',
+      0,
+      5,
+      40,
+      40,
+      'Full sun',
+      'Medium',
+      'Heartnut is a Japanese walnut variety producing heart-shaped nuts that split open easily, making them far simpler to crack than black walnuts. It is a vigorous, wide-spreading canopy tree with less allelopathic effect than black walnut, making it easier to integrate into food forest systems. It provides excellent shade, supports wildlife, and contributes to soil health through deep leaf mulch.',
+      '["edible_nut","wildlife_habitat","shade_provider","soil_builder","dynamic_accumulator"]',
+      '["Comfrey","Yarrow","Elderberry","Spicebush","Pawpaw"]',
+      'Zone 3 for nut production and shade. Less allelopathic than Black Walnut but still give ample space for its wide canopy. Avoid planting directly over vegetable gardens.',
+      '{"nut":"fall"}',
+      'Available from specialty nut tree nurseries; look for grafted varieties for earlier and more reliable production.',
+      '["Northeast","Mid_Atlantic","Midwest","Pacific_Northwest"]',
+      '5',
+      '8',
+      null,
+      null,
+      0,
+    ],
+  });
+
+  console.log('Rows affected:', result.rowsAffected);
+  if (result.rowsAffected === 0) {
+    console.log('Record already existed (OR IGNORE skipped insert).');
+  } else {
+    console.log('Heartnut added successfully.');
+  }
+  process.exit(0);
+}
+
+main().catch((err) => { console.error(err); process.exit(1); });
