@@ -36,10 +36,21 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
   return result.rows.map((row) => {
     let latest_screenshot: string | null = null;
     if (row.latest_screenshot_json) {
+      const raw = row.latest_screenshot_json as string;
       try {
-        const parsed = JSON.parse(row.latest_screenshot_json as string);
-        latest_screenshot = Array.isArray(parsed) ? parsed[0] : parsed;
-      } catch {}
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          latest_screenshot = typeof parsed[0] === 'string' ? parsed[0] : null;
+        } else if (typeof parsed === 'string') {
+          latest_screenshot = parsed;
+        }
+      } catch {
+        // Legacy rows may have stored the URL / data-URL directly without JSON-encoding.
+        // Accept the raw value if it looks like a usable image reference.
+        if (/^(https?:|data:image\/|\/)/.test(raw)) {
+          latest_screenshot = raw;
+        }
+      }
     }
     return {
       id: row.id as string,

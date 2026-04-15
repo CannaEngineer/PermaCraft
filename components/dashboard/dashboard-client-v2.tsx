@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardFarm } from '@/lib/db/queries/dashboard';
 import { FarmHeroCard } from './farm-hero-card';
 import { AlertBanner } from './alert-banner';
@@ -31,8 +31,33 @@ interface Props {
   userId: string;
 }
 
+const ACTIVE_FARM_STORAGE_KEY = 'dashboard:activeFarmId';
+
 export function DashboardClientV2({ farms, farmData, userId }: Props) {
+  // SSR-safe: initialize to the first farm; rehydrate from localStorage on mount.
   const [activeFarmId, setActiveFarmId] = useState(farms[0]?.id ?? '');
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || farms.length === 0) return;
+    try {
+      const stored = window.localStorage.getItem(ACTIVE_FARM_STORAGE_KEY);
+      if (stored && farms.some((f) => f.id === stored)) {
+        setActiveFarmId(stored);
+      }
+    } catch {
+      // localStorage may be unavailable (private mode, SSR quirks) — ignore silently.
+    }
+  }, [farms]);
+
+  const selectFarm = (farmId: string) => {
+    setActiveFarmId(farmId);
+    try {
+      window.localStorage.setItem(ACTIVE_FARM_STORAGE_KEY, farmId);
+    } catch {
+      // ignore
+    }
+  };
+
   const active = farmData[activeFarmId];
 
   const urgentFarmIds = new Set<string>();
@@ -75,7 +100,7 @@ export function DashboardClientV2({ farms, farmData, userId }: Props) {
           {farms.map((farm) => (
             <button
               key={farm.id}
-              onClick={() => setActiveFarmId(farm.id)}
+              onClick={() => selectFarm(farm.id)}
               className={`relative flex-shrink-0 rounded-2xl border-2 p-3 pr-5 transition-all min-w-[180px] text-left ${
                 activeFarmId === farm.id
                   ? 'border-primary bg-primary/5 shadow-sm'

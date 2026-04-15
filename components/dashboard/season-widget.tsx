@@ -1,19 +1,16 @@
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
+import type { Season } from '@/lib/dashboard/seasonal';
 import { Snowflake, Sun, Leaf, Sprout } from 'lucide-react';
 
-const SEASON_ICONS: Record<string, { icon: React.ReactNode; accent: string }> = {
+// Keys must match the Season union in lib/dashboard/seasonal.ts
+const SEASON_ICONS: Record<Season, { icon: React.ReactNode; accent: string }> = {
   early_spring: { icon: <Sprout className="h-5 w-5" />, accent: 'text-lime-600 dark:text-lime-400' },
   spring: { icon: <Sprout className="h-5 w-5" />, accent: 'text-green-600 dark:text-green-400' },
-  late_spring: { icon: <Sprout className="h-5 w-5" />, accent: 'text-emerald-600 dark:text-emerald-400' },
   early_summer: { icon: <Sun className="h-5 w-5" />, accent: 'text-yellow-600 dark:text-yellow-400' },
   summer: { icon: <Sun className="h-5 w-5" />, accent: 'text-amber-600 dark:text-amber-400' },
   late_summer: { icon: <Sun className="h-5 w-5" />, accent: 'text-orange-600 dark:text-orange-400' },
-  early_fall: { icon: <Leaf className="h-5 w-5" />, accent: 'text-orange-600 dark:text-orange-400' },
-  fall: { icon: <Leaf className="h-5 w-5" />, accent: 'text-amber-600 dark:text-amber-400' },
-  late_fall: { icon: <Leaf className="h-5 w-5" />, accent: 'text-stone-600 dark:text-stone-400' },
-  early_winter: { icon: <Snowflake className="h-5 w-5" />, accent: 'text-blue-600 dark:text-blue-400' },
+  autumn: { icon: <Leaf className="h-5 w-5" />, accent: 'text-amber-600 dark:text-amber-400' },
   winter: { icon: <Snowflake className="h-5 w-5" />, accent: 'text-indigo-600 dark:text-indigo-400' },
-  late_winter: { icon: <Snowflake className="h-5 w-5" />, accent: 'text-slate-600 dark:text-slate-400' },
 };
 
 interface Props {
@@ -22,7 +19,7 @@ interface Props {
 
 export function SeasonWidget({ seasonal }: Props) {
   const { seasonLabel, daysToLastFrost, daysToFirstFrost, frostRisk, season } = seasonal;
-  const seasonMeta = SEASON_ICONS[season] || SEASON_ICONS.spring;
+  const seasonMeta = SEASON_ICONS[season] ?? SEASON_ICONS.spring;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
