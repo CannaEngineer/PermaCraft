@@ -1,23 +1,20 @@
 'use client';
 import { DashboardFarm } from '@/lib/db/queries/dashboard';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
+import type { Season } from '@/lib/dashboard/seasonal';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints } from 'lucide-react';
 
-const SEASON_COLORS: Record<string, string> = {
+// Keys must match the Season union in lib/dashboard/seasonal.ts
+const SEASON_COLORS: Record<Season, string> = {
   early_spring: 'from-lime-500/10 to-green-500/10',
   spring: 'from-green-500/10 to-emerald-500/10',
-  late_spring: 'from-emerald-500/10 to-teal-500/10',
   early_summer: 'from-yellow-500/10 to-amber-500/10',
   summer: 'from-amber-500/10 to-orange-500/10',
   late_summer: 'from-orange-500/10 to-red-500/10',
-  early_fall: 'from-orange-500/10 to-amber-500/10',
-  fall: 'from-amber-500/10 to-yellow-500/10',
-  late_fall: 'from-yellow-500/10 to-stone-500/10',
-  early_winter: 'from-blue-500/10 to-indigo-500/10',
+  autumn: 'from-amber-500/10 to-yellow-500/10',
   winter: 'from-indigo-500/10 to-slate-500/10',
-  late_winter: 'from-slate-500/10 to-blue-500/10',
 };
 
 interface Props {
@@ -31,7 +28,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal }: Props) 
   const lastEdited = formatDistanceToNow(new Date(farm.updated_at * 1000), { addSuffix: true });
   const coveredFunctions = Object.values(ecoFunctions).filter((v) => v > 0).length;
   const totalFunctions = Object.keys(ecoFunctions).length;
-  const seasonGradient = SEASON_COLORS[seasonal.season] || 'from-green-500/10 to-emerald-500/10';
+  const seasonGradient = SEASON_COLORS[seasonal.season] ?? 'from-green-500/10 to-emerald-500/10';
 
   return (
     <div className={`relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br ${seasonGradient}`}>

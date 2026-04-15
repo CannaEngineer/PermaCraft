@@ -23,11 +23,21 @@ export function TasksWidget({ tasks, farmId }: Props) {
   const dayEnd = now + 86400;
   const weekEnd = now + 7 * 86400;
 
-  const filtered = localTasks.filter((t) => {
-    if (activeTab === 'today') return !t.due_date || t.due_date <= dayEnd || t.priority >= 3;
-    if (activeTab === 'week') return !t.due_date || t.due_date <= weekEnd;
-    return true;
-  }).slice(0, 6);
+  // Tab semantics (each tab is a strict superset of the previous):
+  //  - today: due today/overdue OR urgent (priority 4)
+  //  - week:  due within 7 days OR urgent OR undated (so loose tasks surface here)
+  //  - all:   everything
+  const filtered = localTasks
+    .filter((t) => {
+      if (activeTab === 'today') {
+        return (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4;
+      }
+      if (activeTab === 'week') {
+        return t.due_date === null || t.due_date <= weekEnd || t.priority === 4;
+      }
+      return true;
+    })
+    .slice(0, 6);
 
   const urgentCount = localTasks.filter((t) => t.priority === 4 && t.status === 'pending').length;
 
@@ -144,8 +154,27 @@ export function TasksWidget({ tasks, farmId }: Props) {
       <div className="px-3 pb-3">
         {filtered.length === 0 && (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">All clear for now</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Enjoy the day 🌿</p>
+            {localTasks.length > 0 ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === 'today'
+                    ? 'Nothing due today'
+                    : activeTab === 'week'
+                    ? 'Nothing due this week'
+                    : 'No open tasks'}
+                </p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  {activeTab === 'today' && localTasks.length > 0
+                    ? `${localTasks.length} task${localTasks.length !== 1 ? 's' : ''} in "all"`
+                    : 'Enjoy the day 🌿'}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">All clear for now</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Enjoy the day 🌿</p>
+              </>
+            )}
           </div>
         )}
         {filtered.map((task) => {
