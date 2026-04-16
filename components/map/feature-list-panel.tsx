@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { searchFeatures } from '@/lib/map/feature-search';
 import { groupByType } from '@/lib/map/feature-grouping';
 import { center } from '@turf/center';
+import { bbox } from '@turf/bbox';
 import { getZoneTypeConfig } from '@/lib/map/zone-types';
 
 interface FeatureListPanelProps {
@@ -54,6 +55,22 @@ function getFeatureCoordinates(feature: any, featureType: string): [number, numb
   }
 
   return null;
+}
+
+/**
+ * Get a [west, south, east, north] bounding box for a zone or line so the map
+ * can fit the whole feature instead of centering on its midpoint.
+ */
+function getFeatureBbox(feature: any): [number, number, number, number] | null {
+  if (!feature?.geometry) return null;
+  try {
+    const geojson = typeof feature.geometry === 'string' ? JSON.parse(feature.geometry) : feature.geometry;
+    const box = bbox(geojson) as number[];
+    if (box.length < 4 || box.some((n) => !Number.isFinite(n))) return null;
+    return [box[0], box[1], box[2], box[3]];
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -146,14 +163,41 @@ export function FeatureListPanel({
     const featureType = getFeatureType(feature, allFeatures);
     if (!featureType) return;
 
-    // Pan map to feature
-    const coords = getFeatureCoordinates(feature, featureType);
-    if (coords && mapRef.current) {
-      mapRef.current.flyTo({
-        center: coords,
-        zoom: 18,
-        duration: 500
-      });
+    const map = mapRef.current;
+    if (map) {
+      // For zones and lines, fit the whole feature into view rather than
+      // centering on its centroid at a fixed zoom — a long swale or wide
+      // food-forest polygon would otherwise disappear offscreen.
+      const featureBbox = (featureType === 'zone' || featureType === 'line')
+        ? getFeatureBbox(feature)
+        : null;
+
+      if (featureBbox) {
+        // Clamp max zoom so we don't flatten the map to zoom 22 for a tiny
+        // 1 m line. Preserve the user's current zoom if they're already
+        // deeper than that (precision work at z20+ stays at that level).
+        const currentZoom = typeof map.getZoom === 'function' ? map.getZoom() : 18;
+        const maxZoom = Math.max(18, currentZoom);
+        try {
+          map.fitBounds(
+            [[featureBbox[0], featureBbox[1]], [featureBbox[2], featureBbox[3]]],
+            { padding: 80, duration: 500, maxZoom }
+          );
+        } catch {
+          // Fall back to centering if fitBounds fails on a degenerate geometry.
+          const coords = getFeatureCoordinates(feature, featureType);
+          if (coords) {
+            map.flyTo({ center: coords, zoom: Math.max(18, currentZoom), duration: 500 });
+          }
+        }
+      } else {
+        // Point-like features: pan but don't zoom OUT from precision mode.
+        const coords = getFeatureCoordinates(feature, featureType);
+        if (coords) {
+          const currentZoom = typeof map.getZoom === 'function' ? map.getZoom() : 18;
+          map.flyTo({ center: coords, zoom: Math.max(18, currentZoom), duration: 500 });
+        }
+      }
     }
 
     // Open details drawer

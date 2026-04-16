@@ -999,7 +999,23 @@ export function FarmMap({
     };
   }, [circleCenter, circleMode]);
 
-  // Keyboard shortcuts for snap-to-grid
+  // Keyboard shortcuts for snap-to-grid.
+  //
+  // Shift semantics: while Shift is held, snap is force-disabled so the user
+  // can nudge a vertex off a grid intersection. On release, snap is restored
+  // to whatever the user had set via the `S` toggle or the UI — NOT blindly
+  // set to `true`. The prior implementation re-enabled snap on every Shift
+  // release, which silently reversed an intentional `S` toggle (e.g. typing
+  // a capital letter in a nearby field would clobber the preference).
+  const snapPreShiftRef = useRef<boolean>(snapToGridEnabled);
+  const shiftHeldRef = useRef<boolean>(false);
+  // Keep the "saved" snap preference in sync with user toggles outside Shift.
+  useEffect(() => {
+    if (!shiftHeldRef.current) {
+      snapPreShiftRef.current = snapToGridEnabled;
+    }
+  }, [snapToGridEnabled]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // S key - toggle snap-to-grid
@@ -1017,27 +1033,44 @@ export function FarmMap({
         });
       }
 
-      // Shift key - temporarily disable snap while held
-      if (e.key === 'Shift') {
-        setSnapToGridEnabled(false);
+      // Shift key - temporarily disable snap while held. Remember the pre-held
+      // state exactly once so auto-repeat key events don't clobber it.
+      if (e.key === 'Shift' && !shiftHeldRef.current) {
+        shiftHeldRef.current = true;
+        snapPreShiftRef.current = snapToGridEnabled;
+        if (snapToGridEnabled) {
+          setSnapToGridEnabled(false);
+        }
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Re-enable snap when Shift is released (if it was enabled before)
-      if (e.key === 'Shift') {
-        setSnapToGridEnabled(true);
+      // Restore snap to the pre-Shift preference (which may be on OR off).
+      if (e.key === 'Shift' && shiftHeldRef.current) {
+        shiftHeldRef.current = false;
+        setSnapToGridEnabled(snapPreShiftRef.current);
+      }
+    };
+
+    // If focus leaves the window while Shift is held, release without
+    // reading a future keyup event (which may never arrive).
+    const handleBlur = () => {
+      if (shiftHeldRef.current) {
+        shiftHeldRef.current = false;
+        setSnapToGridEnabled(snapPreShiftRef.current);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
     };
-  }, [toast]);
+  }, [toast, snapToGridEnabled]);
 
   // Sync zones prop into MapboxDraw when zones arrive after map has already loaded.
   // In the Canvas flow, zones are fetched client-side and arrive after the map's
@@ -1867,6 +1900,60 @@ export function FarmMap({
         }
       };
 
+      // Snap every vertex of the given features to the nearest grid intersection
+      // when the user is zoomed in far enough for snap to apply. Mutates each
+      // feature in place and re-adds it to the draw layer if anything changed.
+      // Used for both draw.create and draw.update so newly drawn features get
+      // the same precision treatment as edits.
+      const snapFeatures = (features: any[]) => {
+        if (!map.current || !snapToGridEnabled || !draw.current) return;
+        const zoom = map.current.getZoom();
+        if (zoom < 20) return;
+
+        const gridSpacing = getGridSpacingDegrees(gridUnit, gridSubdivision, farm.center_lat);
+        const isTouch = isTouchDevice();
+
+        features.forEach((feature: any) => {
+          if (!feature?.geometry) return;
+          // Never displace the farm boundary via snap — it's canonical.
+          if (feature.properties?.user_zone_type === "farm_boundary") return;
+
+          let modified = false;
+          if (feature.geometry.type === 'Point') {
+            const [lng, lat] = feature.geometry.coordinates;
+            const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
+            if (snapped.snapped) {
+              feature.geometry.coordinates = [snapped.lng, snapped.lat];
+              modified = true;
+            }
+          } else if (feature.geometry.type === 'Polygon') {
+            feature.geometry.coordinates[0] = feature.geometry.coordinates[0].map((coord: number[]) => {
+              const [lng, lat] = coord;
+              const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
+              if (snapped.snapped) {
+                modified = true;
+                return [snapped.lng, snapped.lat];
+              }
+              return coord;
+            });
+          } else if (feature.geometry.type === 'LineString') {
+            feature.geometry.coordinates = feature.geometry.coordinates.map((coord: number[]) => {
+              const [lng, lat] = coord;
+              const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
+              if (snapped.snapped) {
+                modified = true;
+                return [snapped.lng, snapped.lat];
+              }
+              return coord;
+            });
+          }
+
+          if (modified && draw.current) {
+            draw.current.add(feature);
+          }
+        });
+      };
+
       const handleDrawCreate = (e: any) => {
         // Apply the current zone type to the newly created feature immediately
         if (e.features && e.features.length > 0 && draw.current) {
@@ -1882,6 +1969,14 @@ export function FarmMap({
               draw.current!.add(existing);
             }
           });
+        }
+
+        // Snap vertices of newly drawn features at zoom 20+. Previously snap
+        // only ran on draw.update, so freshly drawn polygons/points/lines
+        // landed wherever the pointer was — directly contradicting the
+        // "Snap to Grid Enabled" toast the user just saw.
+        if (e.features && e.features.length > 0) {
+          snapFeatures(e.features);
         }
 
         // Do the regular draw change handling
@@ -1950,55 +2045,9 @@ export function FarmMap({
             });
           }
 
-          // Snap vertices to grid at zoom 20+ if snap is enabled
-          if (map.current && snapToGridEnabled) {
-            const zoom = map.current.getZoom();
-            if (zoom >= 20) {
-              const centerLat = farm.center_lat;
-              const gridSpacing = getGridSpacingDegrees(gridUnit, gridSubdivision, centerLat);
-              const isTouch = isTouchDevice();
-
-              e.features.forEach((feature: any) => {
-                let modified = false;
-
-                if (feature.geometry.type === 'Point') {
-                  const [lng, lat] = feature.geometry.coordinates;
-                  const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
-
-                  if (snapped.snapped) {
-                    feature.geometry.coordinates = [snapped.lng, snapped.lat];
-                    modified = true;
-                  }
-                } else if (feature.geometry.type === 'Polygon') {
-                  feature.geometry.coordinates[0] = feature.geometry.coordinates[0].map((coord: number[]) => {
-                    const [lng, lat] = coord;
-                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
-
-                    if (snapped.snapped) {
-                      modified = true;
-                      return [snapped.lng, snapped.lat];
-                    }
-                    return coord;
-                  });
-                } else if (feature.geometry.type === 'LineString') {
-                  feature.geometry.coordinates = feature.geometry.coordinates.map((coord: number[]) => {
-                    const [lng, lat] = coord;
-                    const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
-
-                    if (snapped.snapped) {
-                      modified = true;
-                      return [snapped.lng, snapped.lat];
-                    }
-                    return coord;
-                  });
-                }
-
-                if (modified && draw.current) {
-                  draw.current.add(feature);
-                }
-              });
-            }
-          }
+          // Snap vertices to grid at zoom 20+ if snap is enabled.
+          // snapFeatures also guards against displacing the farm_boundary.
+          snapFeatures(e.features);
         }
 
         handleDrawChange(e);
