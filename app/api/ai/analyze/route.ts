@@ -206,6 +206,109 @@ export async function POST(request: NextRequest) {
     // Get goals context for AI prompt
     const goalsContext = await getGoalsForAIContext(farmId);
 
+    // STEP 5.1: Server-side farm data enrichment
+    // When client sends empty farmContext arrays, fetch real data from DB
+    const needsEnrichment = !farmContext ||
+      (farmContext.zones.length === 0 && farmContext.plantings.length === 0);
+
+    let enrichedFarmContext = farmContext;
+    let enrichedZones = zones;
+    let enrichedNativeSpeciesContext = nativeSpeciesContext;
+    let enrichedPlantingsContext = plantingsContext;
+
+    if (needsEnrichment) {
+      const [zonesResult, plantingsResult, linesResult] = await Promise.all([
+        db.execute({
+          sql: `SELECT id, name, zone_type, geometry FROM zones WHERE farm_id = ?`,
+          args: [farmId],
+        }),
+        db.execute({
+          sql: `SELECT p.id, p.name, p.lat, p.lng, p.planted_year, p.notes,
+                       s.common_name, s.scientific_name, s.layer, s.is_native,
+                       s.mature_height_ft, s.sun_requirements, s.water_requirements
+                FROM plantings p
+                JOIN species s ON p.species_id = s.id
+                WHERE p.farm_id = ?`,
+          args: [farmId],
+        }),
+        db.execute({
+          sql: `SELECT id, line_type, label, geometry FROM lines WHERE farm_id = ?`,
+          args: [farmId],
+        }),
+      ]);
+
+      // Build zones context for prompt (with names and types)
+      if (!enrichedZones || enrichedZones.length === 0) {
+        enrichedZones = zonesResult.rows.map(z => ({
+          type: z.zone_type as string,
+          name: (z.name as string) || 'Unnamed zone',
+          geometryType: 'Polygon',
+        }));
+      }
+
+      // Build plantings context string
+      if (!enrichedPlantingsContext && plantingsResult.rows.length > 0) {
+        const byLayer = new Map<string, any[]>();
+        for (const p of plantingsResult.rows) {
+          const layer = p.layer as string;
+          if (!byLayer.has(layer)) byLayer.set(layer, []);
+          byLayer.get(layer)!.push(p);
+        }
+
+        const parts: string[] = [`CURRENT PLANTINGS (${plantingsResult.rows.length} total):`];
+        for (const [layer, plants] of byLayer) {
+          parts.push(`  ${layer.toUpperCase()} LAYER:`);
+          for (const p of plants) {
+            const native = (p.is_native as number) ? '[NATIVE]' : '[NON-NATIVE]';
+            const year = p.planted_year ? `, planted ${p.planted_year}` : '';
+            parts.push(`    - ${p.common_name} (${p.scientific_name}) ${native}${year}`);
+          }
+        }
+        enrichedPlantingsContext = parts.join('\n');
+      }
+
+      // Build native species context if not provided
+      if (!enrichedNativeSpeciesContext && farm.climate_zone) {
+        const nativeResult = await db.execute({
+          sql: `SELECT common_name, scientific_name, layer, mature_height_ft,
+                       sun_requirements, water_requirements
+                FROM species
+                WHERE is_native = 1 AND hardiness_zones LIKE ?
+                LIMIT 15`,
+          args: [`%${farm.climate_zone}%`],
+        });
+
+        if (nativeResult.rows.length > 0) {
+          const parts: string[] = ['NATIVE SPECIES FOR THIS REGION:'];
+          for (const s of nativeResult.rows) {
+            parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height`);
+          }
+          enrichedNativeSpeciesContext = parts.join('\n');
+        }
+      }
+
+      // Build enriched farmContext for the compressor
+      enrichedFarmContext = {
+        zones: zonesResult.rows.map(z => ({
+          name: z.name,
+          zone_type: z.zone_type,
+        })),
+        plantings: plantingsResult.rows.map(p => ({
+          common_name: p.common_name,
+          scientific_name: p.scientific_name,
+          layer: p.layer,
+          planted_year: p.planted_year,
+          is_native: p.is_native,
+        })),
+        lines: linesResult.rows.map(l => ({
+          line_type: l.line_type,
+          label: l.label,
+        })),
+        goals: [],
+        nativeSpecies: [],
+      };
+    }
+
     /**
      * STEP 5.2: Apply optimizations if enabled
      *
@@ -229,7 +332,7 @@ export async function POST(request: NextRequest) {
     let compressed: any;
     let optimizedScreenshots: typeof screenshots | undefined;
 
-    if (enableOptimizations && farmContext && screenshots.length > 0) {
+    if (enableOptimizations && enrichedFarmContext && screenshots.length > 0) {
       if (DEBUG) console.log('Optimizations enabled');
 
       // Dynamic import to keep server-side only
@@ -243,7 +346,7 @@ export async function POST(request: NextRequest) {
 
       // 2. Compress context
       const verbosity = detailLevel === 'high' ? 'detailed' : detailLevel === 'low' ? 'minimal' : 'standard';
-      compressed = compressFarmContext(farmContext, verbosity);
+      compressed = compressFarmContext(enrichedFarmContext, verbosity);
       optimizedContextText = buildOptimizedContext(compressed, query);
       if (DEBUG) console.log(`Context compressed: ${compressed.tokenEstimate} tokens`);
 
@@ -344,10 +447,9 @@ export async function POST(request: NextRequest) {
           {
             layer: mapLayer,
             screenshots: optimizedScreenshots || screenshots,
-            zones: zones,
-            // Replace individual context sections with compressed context
+            zones: enrichedZones,
             optimizedContext: optimizedContextText,
-            ragContext: ragContext, // Keep RAG context
+            ragContext: ragContext,
           }
         )
       : createAnalysisPrompt(
@@ -364,10 +466,10 @@ export async function POST(request: NextRequest) {
           {
             layer: mapLayer,
             screenshots: screenshots,
-            zones: zones,
+            zones: enrichedZones,
             legendContext: legendContext,
-            nativeSpeciesContext: nativeSpeciesContext,
-            plantingsContext: plantingsContext,
+            nativeSpeciesContext: enrichedNativeSpeciesContext,
+            plantingsContext: enrichedPlantingsContext,
             goalsContext: goalsContext,
             ragContext: ragContext,
           }
@@ -737,7 +839,7 @@ export async function POST(request: NextRequest) {
      * Store the AI response in the cache for future identical queries.
      * This prevents redundant API calls and reduces token costs.
      */
-    if (enableOptimizations && farmContext) {
+    if (enableOptimizations && enrichedFarmContext) {
       const { generateCacheKey, hashContext, hashScreenshot, cacheResponse } = await import('@/lib/ai/response-cache');
 
       const contextHash = hashContext({
@@ -871,7 +973,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare zones context as JSON
-    const zonesContext = zones ? JSON.stringify(zones) : null;
+    const zonesContext = enrichedZones ? JSON.stringify(enrichedZones) : null;
 
     // Save analysis to database with R2 URLs as JSON array
     const analysisId = crypto.randomUUID();

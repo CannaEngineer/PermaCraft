@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
     let farm: Farm | null = null;
     let zoneCount = 0;
     let plantingCount = 0;
+    let zonesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
+    let plantingsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
 
     if (farmId) {
       const farmResult = await db.execute({
@@ -82,13 +84,21 @@ export async function POST(request: NextRequest) {
 
       farm = farmResult.rows[0] as unknown as Farm;
 
-      // Fetch counts for context
-      const [zonesResult, plantingsResult] = await Promise.all([
-        db.execute({ sql: "SELECT COUNT(*) as cnt FROM zones WHERE farm_id = ?", args: [farmId] }),
-        db.execute({ sql: "SELECT COUNT(*) as cnt FROM plantings WHERE farm_id = ?", args: [farmId] }),
+      // Fetch actual composition for richer AI context
+      [zonesResult, plantingsResult] = await Promise.all([
+        db.execute({
+          sql: "SELECT name, zone_type FROM zones WHERE farm_id = ?",
+          args: [farmId],
+        }),
+        db.execute({
+          sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native
+                FROM plantings p JOIN species s ON p.species_id = s.id
+                WHERE p.farm_id = ?`,
+          args: [farmId],
+        }),
       ]);
-      zoneCount = (zonesResult.rows[0] as any).cnt || 0;
-      plantingCount = (plantingsResult.rows[0] as any).cnt || 0;
+      zoneCount = zonesResult.rows.length;
+      plantingCount = plantingsResult.rows.length;
     }
 
     // Get or create conversation
@@ -112,7 +122,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build prompt
+    // Build prompt with actual farm composition data
     const userPrompt = createGeneralChatPrompt(query, farm ? {
       name: farm.name,
       acres: farm.acres,
@@ -121,6 +131,16 @@ export async function POST(request: NextRequest) {
       rainfallInches: farm.rainfall_inches,
       zoneCount,
       plantingCount,
+      zones: zonesResult?.rows.map((z: any) => ({
+        name: z.name as string | null,
+        zone_type: z.zone_type as string,
+      })),
+      plantings: plantingsResult?.rows.map((p: any) => ({
+        common_name: p.common_name as string,
+        scientific_name: p.scientific_name as string,
+        layer: p.layer as string,
+        is_native: p.is_native as number,
+      })),
     } : undefined);
 
     // Load conversation history

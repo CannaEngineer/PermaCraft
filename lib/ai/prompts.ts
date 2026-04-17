@@ -417,6 +417,8 @@ export function createGeneralChatPrompt(
     rainfallInches?: number | null;
     zoneCount?: number;
     plantingCount?: number;
+    zones?: Array<{ name: string | null; zone_type: string }>;
+    plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number }>;
   }
 ): string {
   let context = '';
@@ -427,8 +429,34 @@ export function createGeneralChatPrompt(
     if (farmSummary.climateZone) parts.push(`CLIMATE: ${farmSummary.climateZone}`);
     if (farmSummary.soilType) parts.push(`SOIL: ${farmSummary.soilType}`);
     if (farmSummary.rainfallInches) parts.push(`RAINFALL: ${farmSummary.rainfallInches} inches/year`);
-    if (farmSummary.zoneCount != null) parts.push(`ZONES: ${farmSummary.zoneCount}`);
-    if (farmSummary.plantingCount != null) parts.push(`PLANTINGS: ${farmSummary.plantingCount}`);
+
+    if (farmSummary.zones && farmSummary.zones.length > 0) {
+      parts.push(`\nZONES (${farmSummary.zones.length}):`);
+      farmSummary.zones.forEach(z => {
+        parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})`);
+      });
+    } else if (farmSummary.zoneCount != null) {
+      parts.push(`ZONES: ${farmSummary.zoneCount}`);
+    }
+
+    if (farmSummary.plantings && farmSummary.plantings.length > 0) {
+      const byLayer = new Map<string, typeof farmSummary.plantings>();
+      farmSummary.plantings.forEach(p => {
+        if (!byLayer.has(p.layer)) byLayer.set(p.layer, []);
+        byLayer.get(p.layer)!.push(p);
+      });
+      parts.push(`\nPLANTINGS (${farmSummary.plantings.length}):`);
+      for (const [layer, species] of byLayer) {
+        parts.push(`  ${layer.toUpperCase()} LAYER:`);
+        species.forEach(s => {
+          const native = s.is_native ? '[NATIVE]' : '[NON-NATIVE]';
+          parts.push(`    - ${s.common_name} (${s.scientific_name}) ${native}`);
+        });
+      }
+    } else if (farmSummary.plantingCount != null) {
+      parts.push(`PLANTINGS: ${farmSummary.plantingCount}`);
+    }
+
     context = parts.join('\n') + '\n\n';
   }
 

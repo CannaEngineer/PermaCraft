@@ -126,32 +126,35 @@ export function compressFarmContext(
 
 /**
  * Build optimized context string for LLM
+ *
+ * Always includes summary and key facts. Conditionally includes detailed
+ * sections based on broad keyword matching against the user's query.
  */
 export function buildOptimizedContext(
   compressed: CompressedContext,
   userQuery: string
 ): string {
-  // Analyze query to determine what context to include
-  const needsPlantings = /plant|tree|species|guild/i.test(userQuery);
-  const needsNatives = /native|recommend|suggest|add/i.test(userQuery);
-  const needsGoals = /goal|objective|plan|timeline/i.test(userQuery);
+  const q = userQuery.toLowerCase();
+  const needsPlantings = /plant|tree|species|guild|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(q);
+  const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for/i.test(q);
+  const needsGoals = /goal|objective|plan|timeline|priority|phase|year|budget|schedule|strategy|vision/i.test(q);
 
   const parts: string[] = [compressed.summary];
 
   if (compressed.keyFacts.length > 0) {
-    parts.push('\nKey facts:\n- ' + compressed.keyFacts.join('\n- '));
+    parts.push('Key facts:\n- ' + compressed.keyFacts.join('\n- '));
   }
 
   if (needsPlantings && compressed.plantingsList) {
-    parts.push('\nCurrent plantings:\n' + compressed.plantingsList);
+    parts.push('Current plantings:\n' + compressed.plantingsList);
   }
 
   if (needsNatives && compressed.nativeSpeciesList) {
-    parts.push('\nNative species available:\n' + compressed.nativeSpeciesList);
+    parts.push('Native species available:\n' + compressed.nativeSpeciesList);
   }
 
-  if (needsGoals && compressed.goals) {
-    parts.push('\nFarmer goals: ' + compressed.goals);
+  if (needsGoals && compressed.goals !== 'No goals set') {
+    parts.push('Farmer goals: ' + compressed.goals);
   }
 
   return parts.join('\n\n');
