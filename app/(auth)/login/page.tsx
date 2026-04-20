@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +56,8 @@ function DebugPanel({ logs, visible }: { logs: DebugLogEntry[]; visible: boolean
     </div>
   );
 }
+
+const IS_DEV = process.env.NODE_ENV === "development";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -193,18 +196,20 @@ export default function LoginPage() {
               className="bg-input"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              id="debug-toggle"
-              type="checkbox"
-              checked={showDebug}
-              onChange={(e) => setShowDebug(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-border"
-            />
-            <label htmlFor="debug-toggle" className="text-xs text-muted-foreground cursor-pointer select-none">
-              Show login diagnostics
-            </label>
-          </div>
+          {IS_DEV && (
+            <div className="flex items-center gap-2">
+              <input
+                id="debug-toggle"
+                type="checkbox"
+                checked={showDebug}
+                onChange={(e) => setShowDebug(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border"
+              />
+              <label htmlFor="debug-toggle" className="text-xs text-muted-foreground cursor-pointer select-none">
+                Show login diagnostics
+              </label>
+            </div>
+          )}
           <DebugPanel logs={debugLogs} visible={showDebug} />
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
@@ -218,7 +223,13 @@ export default function LoginPage() {
           </Button>
 
           <p className="text-sm text-muted-foreground text-center">
-            New here? Contact us to get started.
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="text-primary hover:underline font-medium"
+            >
+              Create one
+            </Link>
           </p>
         </CardFooter>
       </form>

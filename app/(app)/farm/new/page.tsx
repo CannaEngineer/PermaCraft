@@ -7,6 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import type { Feature, Polygon } from "geojson";
 
 const BoundaryDrawer = dynamic(
@@ -21,29 +32,17 @@ export default function NewFarmPage() {
   const [boundary, setBoundary] = useState<{ feature: Feature<Polygon>; areaAcres: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleBoundaryComplete = useCallback((feature: Feature<Polygon>, areaAcres: number) => {
     setBoundary({ feature, areaAcres });
-    // Auto-fill acres if not entered
     setAcres((currentAcres) => currentAcres || areaAcres.toFixed(1));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!boundary) {
-      setError("Please draw your farm boundary on the map");
-      return;
-    }
-
-    // Validate area mismatch
-    if (acres && Math.abs(parseFloat(acres) - boundary.areaAcres) / boundary.areaAcres > 0.2) {
-      const confirmed = confirm(
-        `The drawn boundary (${boundary.areaAcres.toFixed(1)} acres) differs from the entered size (${acres} acres) by more than 20%. Continue anyway?`
-      );
-      if (!confirmed) return;
-    }
+  const submitFarm = async () => {
+    if (!boundary) return;
 
     setLoading(true);
     setError("");
@@ -65,12 +64,32 @@ export default function NewFarmPage() {
       }
 
       const data = await res.json();
+      toast({
+        title: "Farm created",
+        description: `"${name}" is ready for design. Opening the map editor\u2026`,
+      });
       router.push(`/canvas?farm=${data.id}&section=farm`);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!boundary) {
+      setError("Please draw your farm boundary on the map");
+      return;
+    }
+
+    if (acres && Math.abs(parseFloat(acres) - boundary.areaAcres) / boundary.areaAcres > 0.2) {
+      setShowMismatchDialog(true);
+      return;
+    }
+
+    await submitFarm();
   };
 
   return (
@@ -164,6 +183,30 @@ export default function NewFarmPage() {
         </div>
         </div>
       </form>
+
+      <AlertDialog open={showMismatchDialog} onOpenChange={setShowMismatchDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Boundary size mismatch</AlertDialogTitle>
+            <AlertDialogDescription>
+              The drawn boundary ({boundary?.areaAcres.toFixed(1)} acres) differs
+              from the entered size ({acres} acres) by more than 20%. Would you
+              like to continue with the drawn boundary?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowMismatchDialog(false);
+                submitFarm();
+              }}
+            >
+              Continue Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
