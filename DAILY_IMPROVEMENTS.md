@@ -1,22 +1,27 @@
-# PermaCraft — 2026-04-17
-## Focus: Map Intelligence (AI context quality)
+# PermaCraft — 2026-04-19
+## Focus: UI/UX Polish
 
-### 1. Server-side farm data enrichment for AI analysis
-File: `app/api/ai/analyze/route.ts`
-What changed: When the client sends empty farmContext arrays (which is the current default), the server now independently fetches zones, plantings+species, lines, and native species from the database before building the AI prompt.
-Map/dashboard impact: The AI now receives structured data about every drawn zone (name, type), every planting (species, layer, native status, year planted), and available native species for the region. Previously it only had the screenshot image with zero structured data about what was drawn.
+### 1. Clean up login page: remove debug panel, add register link
+File: `app/(auth)/login/page.tsx`
+What changed: Removed the production-exposed "Show login diagnostics" debug panel (checkbox, debug log viewer, /api/auth/debug calls) and replaced the dead-end "Contact us to get started" text with a working link to the register page.
+Map/dashboard impact: First-time users arriving at /login can now discover registration without guessing the URL. No debug artifacts distract from the core sign-in flow.
 
-### 2. Broadened keyword matching in context compressor
-File: `lib/ai/context-compressor.ts`
-What changed: The `buildOptimizedContext` function now matches far more common query patterns — "grow", "harvest", "food", "crop", "improve", "best", "suitable", "what should", "good for", "phase", "year", "budget", etc. Previously queries like "What should I grow here?" would skip plantings and native species context entirely because "grow" didn't match `plant|tree|species|guild`.
-Map/dashboard impact: AI responses are now informed by the farm's actual composition for a much wider range of natural-language questions, not just ones that happen to use the word "plant" or "species".
+### 2. Fix RegisterCTA: "Sign In" → "Sign Up" with correct link
+File: `components/shared/register-cta.tsx`
+What changed: Changed the CTA button text from "Sign In to Get Started" to "Sign Up to Get Started" and updated the link target from /login to /register, matching the action the user actually wants to take.
+Map/dashboard impact: Unauthenticated users seeing plant/blog/shop CTAs are now routed to account creation, not the login form — reducing friction for new user conversion.
 
-### 3. Real farm composition data in text chat endpoint
-File: `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
-What changed: The text-only chat endpoint now queries actual zone types and planting species (with layer and native status) instead of just sending "ZONES: 5, PLANTINGS: 12". The `createGeneralChatPrompt` function accepts and formats this composition data grouped by layer.
-Map/dashboard impact: Text-only chat conversations about a farm now have full awareness of what's actually planted and zoned. The AI can reference specific species, identify missing layers, and give contextual recommendations without requiring a screenshot.
+### 3. Replace browser confirm() with shadcn AlertDialog on farm creation
+File: `app/(app)/farm/new/page.tsx`
+What changed: Replaced the native `confirm()` dialog for area mismatch warnings with a shadcn AlertDialog component. Also improved the boundary-missing error message to be more actionable ("draw your farm boundary on the map below, then try again").
+Map/dashboard impact: The farm creation flow now uses the same design language as the rest of the app instead of a jarring browser dialog. Users get clearer labels ("Go Back" / "Continue Anyway") instead of generic OK/Cancel.
+
+### 4. Improve empty states for new farms
+Files: `components/map/feature-list-panel.tsx`, `components/map/map-bottom-drawer.tsx`
+What changed: Enhanced the FeatureListPanel empty state with visual icons (plant/zone/line) and welcoming copy ("Your design starts here"). Updated the MapBottomDrawer peek bar to show guidance text ("Tap Plant or Zone to start designing") instead of "0 plants | 0 zones" when a farm has no features. Improved the no-search-results state with a search icon and better hint text.
+Map/dashboard impact: New farm owners see encouraging, actionable prompts instead of bare zeros — helping them understand exactly what to do next after creating their farm.
 
 ## Watch for
-- The native species query uses `LIKE %climate_zone%` against `hardiness_zones` — if climate_zone values don't match the format stored in the species table, this query may return empty results. Monitor and adjust the matching logic if needed.
-- The enrichment adds 3 parallel DB queries per analysis request. For farms with hundreds of plantings, the plantings context string could get long. The context compressor handles this when optimizations are enabled, but the non-optimized path sends the full string. May want to cap at ~50 plantings in the enriched context.
-- Conversation history compression (`context-manager.ts`) still only captures the first sentence of user messages when summarizing. A future improvement would capture key AI recommendations too.
+- The login page no longer has any debug tooling. If auth debugging is needed in development, consider adding it behind a `NODE_ENV === 'development'` check or a separate /debug route.
+- The farm creation AlertDialog references `boundary?.areaAcres` — verify the optional chaining doesn't show "undefined acres" if somehow triggered without a boundary (shouldn't be reachable in normal flow since the dialog only opens when boundary exists).
+- The peek bar empty state text assumes both `onAddPlant` and `onDrawZone` callbacks are provided to show the Plant/Zone buttons. If those are absent, the guidance text references buttons that aren't visible.

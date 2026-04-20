@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Feature, Polygon } from "geojson";
 
 const BoundaryDrawer = dynamic(
@@ -21,29 +31,16 @@ export default function NewFarmPage() {
   const [boundary, setBoundary] = useState<{ feature: Feature<Polygon>; areaAcres: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const router = useRouter();
 
   const handleBoundaryComplete = useCallback((feature: Feature<Polygon>, areaAcres: number) => {
     setBoundary({ feature, areaAcres });
-    // Auto-fill acres if not entered
     setAcres((currentAcres) => currentAcres || areaAcres.toFixed(1));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!boundary) {
-      setError("Please draw your farm boundary on the map");
-      return;
-    }
-
-    // Validate area mismatch
-    if (acres && Math.abs(parseFloat(acres) - boundary.areaAcres) / boundary.areaAcres > 0.2) {
-      const confirmed = confirm(
-        `The drawn boundary (${boundary.areaAcres.toFixed(1)} acres) differs from the entered size (${acres} acres) by more than 20%. Continue anyway?`
-      );
-      if (!confirmed) return;
-    }
+  const createFarm = async () => {
+    if (!boundary) return;
 
     setLoading(true);
     setError("");
@@ -71,6 +68,22 @@ export default function NewFarmPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!boundary) {
+      setError("Please draw your farm boundary on the map below, then try again");
+      return;
+    }
+
+    if (acres && Math.abs(parseFloat(acres) - boundary.areaAcres) / boundary.areaAcres > 0.2) {
+      setShowMismatchDialog(true);
+      return;
+    }
+
+    await createFarm();
   };
 
   return (
@@ -151,19 +164,38 @@ export default function NewFarmPage() {
           )}
 
           <div className="flex gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading || !boundary}>
-            {loading ? "Creating..." : "Create Farm"}
-          </Button>
-        </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading || !boundary}>
+              {loading ? "Creating..." : "Create Farm"}
+            </Button>
+          </div>
         </div>
       </form>
+
+      <AlertDialog open={showMismatchDialog} onOpenChange={setShowMismatchDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Area mismatch</AlertDialogTitle>
+            <AlertDialogDescription>
+              The drawn boundary ({boundary?.areaAcres.toFixed(1)} acres) differs
+              from the size you entered ({acres} acres) by more than 20%.
+              Would you like to continue with the entered size, or go back and adjust?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction onClick={createFarm}>
+              Continue Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

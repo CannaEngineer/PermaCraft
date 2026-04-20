@@ -330,17 +330,31 @@ export function FeatureListPanel({
 
         {/* Empty State */}
         {Object.keys(groupedFeatures).length === 0 && !debouncedQuery && (
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No features yet.</p>
-            <p className="text-xs mt-2">Use the action bar above to add plants, draw zones, or drop pins.</p>
+          <div className="text-center py-8 px-4">
+            <div className="flex justify-center gap-2 mb-3">
+              <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Sprout className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Square className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Minus className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-foreground">Your design starts here</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto leading-relaxed">
+              Add a plant, draw a zone, or trace a path to begin shaping your land.
+            </p>
           </div>
         )}
 
         {/* No Search Results */}
         {debouncedQuery && resultCount === 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No features match "{debouncedQuery}"</p>
-            <p className="text-xs mt-2">Try different keywords.</p>
+            <Search className="h-5 w-5 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No features match &ldquo;{debouncedQuery}&rdquo;</p>
+            <p className="text-xs mt-1">Try a different name, species, or zone type.</p>
           </div>
         )}
       </div>
