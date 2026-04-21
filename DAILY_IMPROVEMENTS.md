@@ -1,27 +1,21 @@
-# PermaCraft — 2026-04-19
+# PermaCraft — 2026-04-20
 ## Focus: UI/UX Polish
 
-### 1. Clean up login page: remove debug panel, add register link
+### 1. Login page: Add register link, hide debug panel
 File: `app/(auth)/login/page.tsx`
-What changed: Removed the production-exposed "Show login diagnostics" debug panel (checkbox, debug log viewer, /api/auth/debug calls) and replaced the dead-end "Contact us to get started" text with a working link to the register page.
-Map/dashboard impact: First-time users arriving at /login can now discover registration without guessing the URL. No debug artifacts distract from the core sign-in flow.
+What changed: Replaced the dead-end "Contact us to get started" text with a proper link to `/register`. Hid the "Show login diagnostics" debug panel behind a `NODE_ENV === 'development'` check so it only appears during local development.
+Map/dashboard impact: New users can now actually find the registration page from the login screen. Production users no longer see a confusing debug toggle that serves no purpose for them.
 
-### 2. Fix RegisterCTA: "Sign In" → "Sign Up" with correct link
-File: `components/shared/register-cta.tsx`
-What changed: Changed the CTA button text from "Sign In to Get Started" to "Sign Up to Get Started" and updated the link target from /login to /register, matching the action the user actually wants to take.
-Map/dashboard impact: Unauthenticated users seeing plant/blog/shop CTAs are now routed to account creation, not the login form — reducing friction for new user conversion.
-
-### 3. Replace browser confirm() with shadcn AlertDialog on farm creation
+### 2. Farm creation: Replace native confirm() with AlertDialog
 File: `app/(app)/farm/new/page.tsx`
-What changed: Replaced the native `confirm()` dialog for area mismatch warnings with a shadcn AlertDialog component. Also improved the boundary-missing error message to be more actionable ("draw your farm boundary on the map below, then try again").
-Map/dashboard impact: The farm creation flow now uses the same design language as the rest of the app instead of a jarring browser dialog. Users get clearer labels ("Go Back" / "Continue Anyway") instead of generic OK/Cancel.
+What changed: Replaced the browser-native `confirm()` dialog for boundary size mismatch with a proper shadcn/ui `AlertDialog`. The dialog shows the same information (drawn boundary vs entered acreage) but with styled "Go Back" and "Continue Anyway" buttons that match the app's visual language.
+Map/dashboard impact: Designers no longer see a jarring, unstyled browser popup when their drawn boundary differs from the entered acreage. The interaction feels consistent with the rest of the app.
 
-### 4. Improve empty states for new farms
-Files: `components/map/feature-list-panel.tsx`, `components/map/map-bottom-drawer.tsx`
-What changed: Enhanced the FeatureListPanel empty state with visual icons (plant/zone/line) and welcoming copy ("Your design starts here"). Updated the MapBottomDrawer peek bar to show guidance text ("Tap Plant or Zone to start designing") instead of "0 plants | 0 zones" when a farm has no features. Improved the no-search-results state with a search icon and better hint text.
-Map/dashboard impact: New farm owners see encouraging, actionable prompts instead of bare zeros — helping them understand exactly what to do next after creating their farm.
+### 3. Farm creation: Add success toast
+File: `app/(app)/farm/new/page.tsx`
+What changed: After a farm is successfully created, a toast notification confirms the action with the farm name before redirecting to the map editor. Previously the page silently redirected with no feedback.
+Map/dashboard impact: Designers get clear confirmation that their farm was created, especially useful on slower connections where the redirect may take a moment.
 
 ## Watch for
-- The login page no longer has any debug tooling. If auth debugging is needed in development, consider adding it behind a `NODE_ENV === 'development'` check or a separate /debug route.
-- The farm creation AlertDialog references `boundary?.areaAcres` — verify the optional chaining doesn't show "undefined acres" if somehow triggered without a boundary (shouldn't be reachable in normal flow since the dialog only opens when boundary exists).
-- The peek bar empty state text assumes both `onAddPlant` and `onDrawZone` callbacks are provided to show the Plant/Zone buttons. If those are absent, the guidance text references buttons that aren't visible.
+- The debug panel is still rendered in the DOM when `IS_DEV` is false (the `DebugPanel` component returns null if `visible` is false), so no debug logs will ever accumulate in production — but the state variables remain. This is harmless but could be cleaned up if login page is refactored.
+- The AlertDialog `onOpenChange` handler closes the dialog on backdrop click or Escape, which is good UX. The `submitFarm()` function is called directly from the "Continue Anyway" action — verify that the dialog fully closes before navigation occurs (Radix handles this correctly).

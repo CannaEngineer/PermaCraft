@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import type { Feature, Polygon } from "geojson";
 
 const BoundaryDrawer = dynamic(
@@ -33,6 +34,7 @@ export default function NewFarmPage() {
   const [error, setError] = useState("");
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleBoundaryComplete = useCallback((feature: Feature<Polygon>, areaAcres: number) => {
     setBoundary({ feature, areaAcres });
@@ -62,6 +64,10 @@ export default function NewFarmPage() {
       }
 
       const data = await res.json();
+      toast({
+        title: "Farm created",
+        description: `"${name}" is ready for design. Opening the map editor…`,
+      });
       router.push(`/canvas?farm=${data.id}&section=farm`);
     } catch (err: any) {
       setError(err.message);
