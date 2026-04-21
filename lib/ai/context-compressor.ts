@@ -24,6 +24,7 @@ export interface CompressedContext {
   summary: string;
   keyFacts: string[];
   plantingsList: string;
+  linesList: string;
   nativeSpeciesList: string;
   goals: string;
   tokenEstimate: number;
@@ -39,8 +40,18 @@ export function compressFarmContext(
 ): CompressedContext {
   const { zones, plantings, lines, goals, nativeSpecies } = context;
 
+  // Categorize lines by type for meaningful summary
+  const lineTypeCounts: Record<string, number> = {};
+  lines.forEach(l => {
+    const t = l.line_type || 'other';
+    lineTypeCounts[t] = (lineTypeCounts[t] || 0) + 1;
+  });
+  const linesSummary = lines.length > 0
+    ? Object.entries(lineTypeCounts).map(([t, c]) => `${c} ${t}${c > 1 ? 's' : ''}`).join(', ')
+    : 'no line features';
+
   // Summary statistics
-  const summary = `Farm: ${zones.length} zones, ${plantings.length} plantings, ${lines.length} water features`;
+  const summary = `Farm: ${zones.length} zones, ${plantings.length} plantings, ${linesSummary}`;
 
   // Key facts (most important info first)
   const keyFacts: string[] = [];
@@ -99,6 +110,21 @@ export function compressFarmContext(
     ).join('\n');
   }
 
+  // Lines/water features context
+  let linesList: string;
+  if (lines.length === 0) {
+    linesList = '';
+  } else if (verbosity === 'minimal') {
+    linesList = Object.entries(lineTypeCounts)
+      .map(([t, c]) => `${c} ${t}${c > 1 ? 's' : ''}`)
+      .join(', ');
+  } else {
+    linesList = lines.map(l => {
+      const label = l.label ? `"${l.label}"` : 'unlabeled';
+      return `${l.line_type}: ${label}`;
+    }).join('\n');
+  }
+
   // Native species (top 10 by relevance)
   const topNatives = nativeSpecies.slice(0, 10);
   const nativeSpeciesList = topNatives.map(s =>
@@ -111,13 +137,14 @@ export function compressFarmContext(
     : 'No goals set';
 
   // Estimate tokens (rough)
-  const text = `${summary}\n${keyFacts.join('\n')}\n${plantingsList}\n${nativeSpeciesList}\n${goalsText}`;
+  const text = `${summary}\n${keyFacts.join('\n')}\n${plantingsList}\n${linesList}\n${nativeSpeciesList}\n${goalsText}`;
   const tokenEstimate = Math.ceil(text.length / 4); // ~4 chars per token
 
   return {
     summary,
     keyFacts,
     plantingsList,
+    linesList,
     nativeSpeciesList,
     goals: goalsText,
     tokenEstimate
@@ -136,6 +163,7 @@ export function buildOptimizedContext(
 ): string {
   const q = userQuery.toLowerCase();
   const needsPlantings = /plant|tree|species|guild|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(q);
+  const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace/i.test(q);
   const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for/i.test(q);
   const needsGoals = /goal|objective|plan|timeline|priority|phase|year|budget|schedule|strategy|vision/i.test(q);
 
@@ -147,6 +175,10 @@ export function buildOptimizedContext(
 
   if (needsPlantings && compressed.plantingsList) {
     parts.push('Current plantings:\n' + compressed.plantingsList);
+  }
+
+  if (needsLines && compressed.linesList) {
+    parts.push('Lines & water features:\n' + compressed.linesList);
   }
 
   if (needsNatives && compressed.nativeSpeciesList) {

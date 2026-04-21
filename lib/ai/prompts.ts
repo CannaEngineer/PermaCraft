@@ -275,6 +275,7 @@ export function createAnalysisPrompt(
     legendContext?: string;
     nativeSpeciesContext?: string;
     plantingsContext?: string;
+    linesContext?: string;
     goalsContext?: string;
     ragContext?: string;
     optimizedContext?: string; // Compressed context from context-compressor
@@ -315,7 +316,7 @@ ${farmContext.soilType ? `SOIL: ${farmContext.soilType}` : ""}
 
 MAP VIEW: ${mapContext?.layer ? layerDescriptions[mapContext.layer] || mapContext.layer : "satellite imagery"}
 ${zonesInfo}
-${mapContext?.optimizedContext ? `\n${mapContext.optimizedContext}\n` : `${mapContext?.nativeSpeciesContext ? `\n${mapContext.nativeSpeciesContext}\n` : ""}${mapContext?.plantingsContext ? `\n${mapContext.plantingsContext}\n` : ""}${mapContext?.goalsContext ? `\n${mapContext.goalsContext}\n` : ""}`}
+${mapContext?.optimizedContext ? `\n${mapContext.optimizedContext}\n` : `${mapContext?.nativeSpeciesContext ? `\n${mapContext.nativeSpeciesContext}\n` : ""}${mapContext?.plantingsContext ? `\n${mapContext.plantingsContext}\n` : ""}${mapContext?.linesContext ? `\n${mapContext.linesContext}\n` : ""}${mapContext?.goalsContext ? `\n${mapContext.goalsContext}\n` : ""}`}
 ${mapContext?.ragContext ? `\n${mapContext.ragContext}\n` : ""}
 GRID: Yellow grid lines visible in screenshot. 50ft spacing (imperial). Columns = A,B,C... (west to east), Rows = 1,2,3... (south to north)
 
@@ -419,6 +420,7 @@ export function createGeneralChatPrompt(
     plantingCount?: number;
     zones?: Array<{ name: string | null; zone_type: string }>;
     plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number }>;
+    lines?: Array<{ line_type: string; label: string | null }>;
   }
 ): string {
   let context = '';
@@ -455,6 +457,21 @@ export function createGeneralChatPrompt(
       }
     } else if (farmSummary.plantingCount != null) {
       parts.push(`PLANTINGS: ${farmSummary.plantingCount}`);
+    }
+
+    if (farmSummary.lines && farmSummary.lines.length > 0) {
+      const byType = new Map<string, typeof farmSummary.lines>();
+      farmSummary.lines.forEach(l => {
+        if (!byType.has(l.line_type)) byType.set(l.line_type, []);
+        byType.get(l.line_type)!.push(l);
+      });
+      parts.push(`\nLINES & WATER FEATURES (${farmSummary.lines.length}):`);
+      for (const [lineType, items] of byType) {
+        parts.push(`  ${lineType.toUpperCase()}:`);
+        items.forEach(l => {
+          parts.push(`    - ${l.label || 'Unlabeled'}`);
+        });
+      }
     }
 
     context = parts.join('\n') + '\n\n';

@@ -215,6 +215,7 @@ export async function POST(request: NextRequest) {
     let enrichedZones = zones;
     let enrichedNativeSpeciesContext = nativeSpeciesContext;
     let enrichedPlantingsContext = plantingsContext;
+    let enrichedLinesContext: string | undefined;
 
     if (needsEnrichment) {
       const [zonesResult, plantingsResult, linesResult] = await Promise.all([
@@ -225,14 +226,15 @@ export async function POST(request: NextRequest) {
         db.execute({
           sql: `SELECT p.id, p.name, p.lat, p.lng, p.planted_year, p.notes,
                        s.common_name, s.scientific_name, s.layer, s.is_native,
-                       s.mature_height_ft, s.sun_requirements, s.water_requirements
+                       s.mature_height_ft, s.sun_requirements, s.water_requirements,
+                       s.permaculture_functions
                 FROM plantings p
                 JOIN species s ON p.species_id = s.id
                 WHERE p.farm_id = ?`,
           args: [farmId],
         }),
         db.execute({
-          sql: `SELECT id, line_type, label, geometry FROM lines WHERE farm_id = ?`,
+          sql: `SELECT id, line_type, label, geometry, water_properties FROM lines WHERE farm_id = ?`,
           args: [farmId],
         }),
       ]);
@@ -246,7 +248,7 @@ export async function POST(request: NextRequest) {
         }));
       }
 
-      // Build plantings context string
+      // Build plantings context string (with permaculture functions)
       if (!enrichedPlantingsContext && plantingsResult.rows.length > 0) {
         const byLayer = new Map<string, any[]>();
         for (const p of plantingsResult.rows) {
@@ -261,21 +263,78 @@ export async function POST(request: NextRequest) {
           for (const p of plants) {
             const native = (p.is_native as number) ? '[NATIVE]' : '[NON-NATIVE]';
             const year = p.planted_year ? `, planted ${p.planted_year}` : '';
-            parts.push(`    - ${p.common_name} (${p.scientific_name}) ${native}${year}`);
+            let functions = '';
+            if (p.permaculture_functions) {
+              try {
+                const fns = JSON.parse(p.permaculture_functions as string);
+                if (Array.isArray(fns) && fns.length > 0) {
+                  functions = ` — functions: ${fns.join(', ')}`;
+                }
+              } catch {}
+            }
+            parts.push(`    - ${p.common_name} (${p.scientific_name}) ${native}${year}${functions}`);
           }
         }
         enrichedPlantingsContext = parts.join('\n');
       }
 
+      // Build lines/water features context string
+      if (linesResult.rows.length > 0) {
+        const byType = new Map<string, any[]>();
+        for (const l of linesResult.rows) {
+          const lineType = l.line_type as string;
+          if (!byType.has(lineType)) byType.set(lineType, []);
+          byType.get(lineType)!.push(l);
+        }
+
+        const lineTypeLabels: Record<string, string> = {
+          swale: 'Swales',
+          flow_path: 'Water Flow Paths',
+          fence: 'Fences',
+          hedge: 'Hedgerows',
+          contour: 'Contour Lines',
+          custom: 'Custom Lines',
+        };
+
+        const parts: string[] = [`LINES & WATER FEATURES (${linesResult.rows.length} total):`];
+        for (const [lineType, items] of byType) {
+          const typeLabel = lineTypeLabels[lineType] || lineType.toUpperCase();
+          parts.push(`  ${typeLabel}:`);
+          for (const l of items) {
+            const label = l.label ? `"${l.label}"` : 'Unlabeled';
+            let waterInfo = '';
+            if (l.water_properties) {
+              try {
+                const wp = JSON.parse(l.water_properties as string);
+                const details: string[] = [];
+                if (wp.flow_type) details.push(wp.flow_type);
+                if (wp.flow_rate_estimate) details.push(wp.flow_rate_estimate);
+                if (details.length > 0) waterInfo = ` — ${details.join(', ')}`;
+              } catch {}
+            }
+            parts.push(`    - ${label}${waterInfo}`);
+          }
+        }
+        parts.push('\nWhen recommending water management, account for existing swales, flow paths, and drainage features.');
+        enrichedLinesContext = parts.join('\n');
+      }
+
       // Build native species context if not provided
       if (!enrichedNativeSpeciesContext && farm.climate_zone) {
+        const zoneNum = farm.climate_zone.replace(/[ab]/i, '');
         const nativeResult = await db.execute({
           sql: `SELECT common_name, scientific_name, layer, mature_height_ft,
                        sun_requirements, water_requirements
                 FROM species
-                WHERE is_native = 1 AND hardiness_zones LIKE ?
+                WHERE is_native = 1
+                  AND (
+                    (min_hardiness_zone IS NOT NULL AND max_hardiness_zone IS NOT NULL
+                     AND CAST(REPLACE(REPLACE(min_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) <= ?
+                     AND CAST(REPLACE(REPLACE(max_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) >= ?)
+                    OR hardiness_zones LIKE ?
+                  )
                 LIMIT 15`,
-          args: [`%${farm.climate_zone}%`],
+          args: [parseInt(zoneNum) || 0, parseInt(zoneNum) || 0, `%${farm.climate_zone}%`],
         });
 
         if (nativeResult.rows.length > 0) {
@@ -299,6 +358,7 @@ export async function POST(request: NextRequest) {
           layer: p.layer,
           planted_year: p.planted_year,
           is_native: p.is_native,
+          permaculture_functions: p.permaculture_functions,
         })),
         lines: linesResult.rows.map(l => ({
           line_type: l.line_type,
@@ -470,6 +530,7 @@ export async function POST(request: NextRequest) {
             legendContext: legendContext,
             nativeSpeciesContext: enrichedNativeSpeciesContext,
             plantingsContext: enrichedPlantingsContext,
+            linesContext: enrichedLinesContext,
             goalsContext: goalsContext,
             ragContext: ragContext,
           }

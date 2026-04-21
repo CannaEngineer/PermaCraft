@@ -1,21 +1,27 @@
-# PermaCraft — 2026-04-20
-## Focus: UI/UX Polish
+# PermaCraft — 2026-04-21
+## Focus: Map Intelligence (AI Context Quality)
 
-### 1. Login page: Add register link, hide debug panel
-File: `app/(auth)/login/page.tsx`
-What changed: Replaced the dead-end "Contact us to get started" text with a proper link to `/register`. Hid the "Show login diagnostics" debug panel behind a `NODE_ENV === 'development'` check so it only appears during local development.
-Map/dashboard impact: New users can now actually find the registration page from the login screen. Production users no longer see a confusing debug toggle that serves no purpose for them.
+### 1. Lines & Water Features Now Included in AI Context
+Files: `app/api/ai/analyze/route.ts`, `lib/ai/prompts.ts`, `app/api/ai/chat/route.ts`
+What changed: The AI previously had zero awareness of drawn lines (swales, water flow paths, fences, hedgerows, contour lines). Now all line features with their types, labels, and water properties (flow type, flow rate) are included in both the vision analysis and text chat prompts.
+Map/dashboard impact: When a designer asks "where should I put a swale?" or "how should I manage water on this site?", the AI now sees existing swales, drainage paths, and fences — preventing contradictory suggestions and enabling recommendations that build on the existing water management infrastructure.
 
-### 2. Farm creation: Replace native confirm() with AlertDialog
-File: `app/(app)/farm/new/page.tsx`
-What changed: Replaced the browser-native `confirm()` dialog for boundary size mismatch with a proper shadcn/ui `AlertDialog`. The dialog shows the same information (drawn boundary vs entered acreage) but with styled "Go Back" and "Continue Anyway" buttons that match the app's visual language.
-Map/dashboard impact: Designers no longer see a jarring, unstyled browser popup when their drawn boundary differs from the entered acreage. The interaction feels consistent with the rest of the app.
+### 2. Permaculture Functions Added to Plantings Context
+Files: `app/api/ai/analyze/route.ts`, `app/(app)/farm/[id]/farm-editor-client.tsx`
+What changed: The plantings context sent to the AI now includes each species' permaculture functions (nitrogen fixer, pollinator support, edible fruit, etc.). Previously only name, layer, and planting year were sent.
+Map/dashboard impact: The AI can now identify functional gaps in a design ("you have no nitrogen fixers in this guild") and recommend companion plants based on actual ecological roles rather than just species names. This is foundational for guild design recommendations.
 
-### 3. Farm creation: Add success toast
-File: `app/(app)/farm/new/page.tsx`
-What changed: After a farm is successfully created, a toast notification confirms the action with the farm name before redirecting to the map editor. Previously the page silently redirected with no feedback.
-Map/dashboard impact: Designers get clear confirmation that their farm was created, especially useful on slower connections where the redirect may take a moment.
+### 3. Native Species Query Fixed to Use Correct Schema Fields
+File: `app/api/ai/analyze/route.ts`
+What changed: Server-side native species lookup was querying the deprecated `hardiness_zones` text field. Now queries `min_hardiness_zone`/`max_hardiness_zone` numeric range fields (with fallback to the old field for backwards compatibility).
+Map/dashboard impact: Native species recommendations should now return correct matches for the farm's hardiness zone instead of potentially empty or incorrect results from pattern-matching a deprecated text field.
+
+### 4. Context Compressor Now Preserves Line Feature Details
+Files: `lib/ai/context-compressor.ts`, `lib/ai/context-compressor.test.ts`
+What changed: The optimization pipeline's context compressor previously reduced all lines to a count ("X water features"). Now it categorizes by type ("2 swales, 1 fence") in summaries and includes individual labels at standard/detailed verbosity. Also added water-related query detection to conditionally include line details in compressed context.
+Map/dashboard impact: Even when context optimizations are enabled (immersive editor), the AI retains meaningful awareness of the farm's water management and boundary features.
 
 ## Watch for
-- The debug panel is still rendered in the DOM when `IS_DEV` is false (the `DebugPanel` component returns null if `visible` is false), so no debug logs will ever accumulate in production — but the state variables remain. This is harmless but could be cleaned up if login page is refactored.
-- The AlertDialog `onOpenChange` handler closes the dialog on backdrop click or Escape, which is good UX. The `submitFarm()` function is called directly from the "Continue Anyway" action — verify that the dialog fully closes before navigation occurs (Radix handles this correctly).
+- The native species query now does integer comparison on hardiness zone strings (e.g., "9b" -> 9). Sub-zones (a/b) are stripped for comparison, which means zone 9a and 9b are treated equivalently. This is acceptable for species recommendations but worth noting.
+- Lines context is built server-side during enrichment (when farmContext arrays are empty). The classic editor doesn't send lines in the client request, so it always goes through server enrichment. The immersive editor sends lines in farmContext but those only feed the compressor — the enrichedLinesContext is only built during server enrichment. If the immersive editor sends non-empty farmContext, lines won't appear in the standard (non-compressed) prompt path. This is acceptable because the immersive editor always uses enableOptimizations=true.
+- The test file was updated to match new summary format and CompressedContext interface.
