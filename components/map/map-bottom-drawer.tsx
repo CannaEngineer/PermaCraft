@@ -87,22 +87,30 @@ export function MapBottomDrawer({
               className="flex items-center gap-2 text-sm hover:text-primary transition-colors min-w-0 flex-1"
               aria-label="Expand map info drawer"
             >
-              <span className="text-muted-foreground text-xs">
-                <Leaf className="inline h-3.5 w-3.5 mr-1" />
-                {plantings.length} {plantings.length === 1 ? 'plant' : 'plants'}
-              </span>
-              <span className="text-muted-foreground/30">|</span>
-              <span className="text-muted-foreground text-xs">
-                {nonBoundaryZoneCount} {nonBoundaryZoneCount === 1 ? 'zone' : 'zones'}
-              </span>
-              {lowVitalCount > 0 && plantings.length > 0 && (
-                <Badge
-                  onClick={(e) => { e.stopPropagation(); setIsCollapsed(false); setShowVitals(true); }}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-accent text-[10px] shrink-0 border-amber-400 text-amber-700 dark:text-amber-300"
-                >
-                  Diversify
-                </Badge>
+              {plantings.length === 0 && nonBoundaryZoneCount === 0 && lines.length === 0 ? (
+                <span className="text-muted-foreground text-xs">
+                  Tap <span className="font-medium text-foreground">Plant</span> or <span className="font-medium text-foreground">Zone</span> to start designing
+                </span>
+              ) : (
+                <>
+                  <span className="text-muted-foreground text-xs">
+                    <Leaf className="inline h-3.5 w-3.5 mr-1" />
+                    {plantings.length} {plantings.length === 1 ? 'plant' : 'plants'}
+                  </span>
+                  <span className="text-muted-foreground/30">|</span>
+                  <span className="text-muted-foreground text-xs">
+                    {nonBoundaryZoneCount} {nonBoundaryZoneCount === 1 ? 'zone' : 'zones'}
+                  </span>
+                  {lowVitalCount > 0 && plantings.length > 0 && (
+                    <Badge
+                      onClick={(e) => { e.stopPropagation(); setIsCollapsed(false); setShowVitals(true); }}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-accent text-[10px] shrink-0 border-amber-400 text-amber-700 dark:text-amber-300"
+                    >
+                      Diversify
+                    </Badge>
+                  )}
+                </>
               )}
             </button>
 

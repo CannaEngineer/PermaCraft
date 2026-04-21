@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Feature, Polygon } from "geojson";
@@ -41,7 +41,7 @@ export default function NewFarmPage() {
     setAcres((currentAcres) => currentAcres || areaAcres.toFixed(1));
   }, []);
 
-  const submitFarm = async () => {
+  const createFarm = async () => {
     if (!boundary) return;
 
     setLoading(true);
@@ -66,7 +66,7 @@ export default function NewFarmPage() {
       const data = await res.json();
       toast({
         title: "Farm created",
-        description: `"${name}" is ready for design. Opening the map editor\u2026`,
+        description: `"${name}" is ready for design. Opening the map editor…`,
       });
       router.push(`/canvas?farm=${data.id}&section=farm`);
     } catch (err: any) {
@@ -80,7 +80,7 @@ export default function NewFarmPage() {
     e.preventDefault();
 
     if (!boundary) {
-      setError("Please draw your farm boundary on the map");
+      setError("Please draw your farm boundary on the map below, then try again");
       return;
     }
 
@@ -89,7 +89,7 @@ export default function NewFarmPage() {
       return;
     }
 
-    await submitFarm();
+    await createFarm();
   };
 
   return (
@@ -170,38 +170,33 @@ export default function NewFarmPage() {
           )}
 
           <div className="flex gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading || !boundary}>
-            {loading ? "Creating..." : "Create Farm"}
-          </Button>
-        </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading || !boundary}>
+              {loading ? "Creating..." : "Create Farm"}
+            </Button>
+          </div>
         </div>
       </form>
 
       <AlertDialog open={showMismatchDialog} onOpenChange={setShowMismatchDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Boundary size mismatch</AlertDialogTitle>
+            <AlertDialogTitle>Area mismatch</AlertDialogTitle>
             <AlertDialogDescription>
               The drawn boundary ({boundary?.areaAcres.toFixed(1)} acres) differs
-              from the entered size ({acres} acres) by more than 20%. Would you
-              like to continue with the drawn boundary?
+              from the size you entered ({acres} acres) by more than 20%.
+              Would you like to continue with the entered size, or go back and adjust?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Go Back</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowMismatchDialog(false);
-                submitFarm();
-              }}
-            >
+            <AlertDialogAction onClick={createFarm}>
               Continue Anyway
             </AlertDialogAction>
           </AlertDialogFooter>
