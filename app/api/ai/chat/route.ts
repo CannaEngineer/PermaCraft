@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
     let plantingCount = 0;
     let zonesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let plantingsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
+    let linesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
 
     if (farmId) {
       const farmResult = await db.execute({
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
       farm = farmResult.rows[0] as unknown as Farm;
 
       // Fetch actual composition for richer AI context
-      [zonesResult, plantingsResult] = await Promise.all([
+      [zonesResult, plantingsResult, linesResult] = await Promise.all([
         db.execute({
           sql: "SELECT name, zone_type FROM zones WHERE farm_id = ?",
           args: [farmId],
@@ -94,6 +95,10 @@ export async function POST(request: NextRequest) {
           sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native
                 FROM plantings p JOIN species s ON p.species_id = s.id
                 WHERE p.farm_id = ?`,
+          args: [farmId],
+        }),
+        db.execute({
+          sql: `SELECT line_type, label FROM lines WHERE farm_id = ?`,
           args: [farmId],
         }),
       ]);
@@ -140,6 +145,10 @@ export async function POST(request: NextRequest) {
         scientific_name: p.scientific_name as string,
         layer: p.layer as string,
         is_native: p.is_native as number,
+      })),
+      lines: linesResult?.rows.map((l: any) => ({
+        line_type: l.line_type as string,
+        label: l.label as string | null,
       })),
     } : undefined);
 

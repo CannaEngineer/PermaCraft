@@ -183,8 +183,19 @@ timeline horizons (short, medium, or long-term).
       const commonName = p.common_name || 'Unknown plant';
       const scientificName = p.scientific_name || 'Unknown species';
       const layer = p.layer || 'unknown';
+      let functions = '';
+      if (p.permaculture_functions) {
+        try {
+          const fns = typeof p.permaculture_functions === 'string'
+            ? JSON.parse(p.permaculture_functions)
+            : p.permaculture_functions;
+          if (Array.isArray(fns) && fns.length > 0) {
+            functions = ` - functions: ${fns.join(', ')}`;
+          }
+        } catch {}
+      }
 
-      return `  - ${commonName}${customName} (${scientificName}): ${layer} layer, planted ${p.planted_year || currentYear} (${age} years old)${size}, at ${(p.lat || 0).toFixed(6)}, ${(p.lng || 0).toFixed(6)}${notes}`;
+      return `  - ${commonName}${customName} (${scientificName}): ${layer} layer, planted ${p.planted_year || currentYear} (${age} years old)${size}, at ${(p.lat || 0).toFixed(6)}, ${(p.lng || 0).toFixed(6)}${functions}${notes}`;
     }).join('\n');
 
     return `

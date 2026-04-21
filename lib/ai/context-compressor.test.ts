@@ -50,7 +50,7 @@ describe('compressFarmContext', () => {
 
   test('generates summary statistics', () => {
     const result = compressFarmContext(mockContext, 'standard');
-    expect(result.summary).toBe('Farm: 2 zones, 3 plantings, 1 water features');
+    expect(result.summary).toBe('Farm: 2 zones, 3 plantings, 1 swale');
   });
 
   test('counts plantings by layer', () => {
@@ -139,9 +139,10 @@ describe('compressFarmContext', () => {
 
 describe('buildOptimizedContext', () => {
   const compressed = {
-    summary: 'Farm: 2 zones, 3 plantings, 1 water features',
+    summary: 'Farm: 2 zones, 3 plantings, 1 swale',
     keyFacts: ['2 canopy layer plants', '1 herbaceous layer plants'],
     plantingsList: 'Apple: canopy, year 2020\nComfrey: herbaceous, year 2021',
+    linesList: 'swale: unlabeled',
     nativeSpeciesList: 'Oak (canopy, 80ft), Serviceberry (understory, 20ft)',
     goals: 'Food Production: Produce 50% of household food',
     tokenEstimate: 150
@@ -174,7 +175,7 @@ describe('buildOptimizedContext', () => {
 
   test('always includes summary and key facts', () => {
     const result = buildOptimizedContext(compressed, 'random query');
-    expect(result).toContain('Farm: 2 zones, 3 plantings, 1 water features');
+    expect(result).toContain('Farm: 2 zones, 3 plantings, 1 swale');
     expect(result).toContain('Key facts:');
     expect(result).toContain('2 canopy layer plants');
   });
