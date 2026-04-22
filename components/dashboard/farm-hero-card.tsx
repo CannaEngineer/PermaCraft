@@ -1,10 +1,11 @@
 'use client';
+import { useState, useRef } from 'react';
 import { DashboardFarm } from '@/lib/db/queries/dashboard';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import type { Season } from '@/lib/dashboard/seasonal';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints } from 'lucide-react';
+import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints, Pencil, Check, X } from 'lucide-react';
 
 // Keys must match the Season union in lib/dashboard/seasonal.ts
 const SEASON_COLORS: Record<Season, string> = {
@@ -22,13 +23,49 @@ interface Props {
   ecoScore: number;
   ecoFunctions: Record<string, number>;
   seasonal: SeasonalContext;
+  onFarmUpdate?: (farmId: string, updates: { name?: string; acres?: number | null }) => void;
 }
 
-export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal }: Props) {
+export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpdate }: Props) {
   const lastEdited = formatDistanceToNow(new Date(farm.updated_at * 1000), { addSuffix: true });
   const coveredFunctions = Object.values(ecoFunctions).filter((v) => v > 0).length;
   const totalFunctions = Object.keys(ecoFunctions).length;
   const seasonGradient = SEASON_COLORS[seasonal.season] ?? 'from-green-500/10 to-emerald-500/10';
+
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(farm.name);
+  const [editAcres, setEditAcres] = useState(farm.acres?.toString() ?? '');
+  const [saving, setSaving] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  async function handleSave() {
+    const trimmed = editName.trim();
+    if (!trimmed || saving) return;
+    setSaving(true);
+    const acresNum = editAcres.trim() ? parseFloat(editAcres) : null;
+    try {
+      const res = await fetch(`/api/farms/${farm.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmed,
+          acres: acresNum && acresNum > 0 ? acresNum : null,
+        }),
+      });
+      if (res.ok) {
+        onFarmUpdate?.(farm.id, { name: trimmed, acres: acresNum && acresNum > 0 ? acresNum : null });
+        setEditing(false);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleCancel() {
+    setEditName(farm.name);
+    setEditAcres(farm.acres?.toString() ?? '');
+    setEditing(false);
+  }
 
   return (
     <div className={`relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br ${seasonGradient}`}>
@@ -64,18 +101,60 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal }: Props) 
           {/* Top: Farm name + meta */}
           <div>
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold tracking-tight">{farm.name}</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {[
-                    farm.acres && `${farm.acres} acres`,
-                    farm.climate_zone,
-                    `Updated ${lastEdited}`,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-              </div>
+              {editing ? (
+                <div className="flex-1 space-y-2">
+                  <input
+                    ref={nameRef}
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
+                    className="w-full text-xl md:text-2xl font-bold tracking-tight bg-transparent border-b-2 border-primary outline-none"
+                    disabled={saving}
+                    autoFocus
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={editAcres}
+                      onChange={(e) => setEditAcres(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
+                      placeholder="Acres"
+                      className="w-24 text-sm bg-transparent border-b border-border outline-none placeholder:text-muted-foreground/50"
+                      step="0.1"
+                      min="0"
+                      disabled={saving}
+                    />
+                    <span className="text-sm text-muted-foreground">acres</span>
+                    <div className="flex gap-1 ml-auto">
+                      <button onClick={handleSave} disabled={!editName.trim() || saving} className="rounded-lg bg-primary p-1.5 text-primary-foreground disabled:opacity-40" title="Save"><Check className="h-3.5 w-3.5" /></button>
+                      <button onClick={handleCancel} className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground" title="Cancel"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 group">
+                    <h2 className="text-xl md:text-2xl font-bold tracking-tight">{farm.name}</h2>
+                    <button
+                      onClick={() => { setEditing(true); setTimeout(() => nameRef.current?.focus(), 50); }}
+                      className="opacity-0 group-hover:opacity-100 rounded-lg p-1 hover:bg-muted/50 transition-all"
+                      title="Edit farm details"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {[
+                      farm.acres && `${farm.acres} acres`,
+                      farm.climate_zone,
+                      `Updated ${lastEdited}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Key metrics row */}

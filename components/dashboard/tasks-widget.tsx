@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import { Task } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, Plus, ListChecks } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, ListChecks, Trash2 } from 'lucide-react';
 
 interface Props {
   tasks: Task[];
@@ -72,6 +72,11 @@ export function TasksWidget({ tasks, farmId }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     });
+  }
+
+  async function handleDelete(taskId: string) {
+    setLocalTasks((prev) => prev.filter((t) => t.id !== taskId));
+    await fetch(`/api/farms/${farmId}/tasks/${taskId}`, { method: 'DELETE' });
   }
 
   return (
@@ -180,35 +185,43 @@ export function TasksWidget({ tasks, farmId }: Props) {
         {filtered.map((task) => {
           const done = task.status === 'completed';
           return (
-            <button
-              key={task.id}
-              onClick={() => handleToggle(task)}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-muted/40 transition-colors group"
-            >
-              {done ? (
-                <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-500" />
-              ) : (
-                <Circle className="h-5 w-5 flex-shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-              )}
-              <span
-                className={cn(
-                  'flex-1 text-sm',
-                  done ? 'line-through text-muted-foreground/50' : 'text-foreground'
-                )}
+            <div key={task.id} className="flex items-center gap-0 group/row">
+              <button
+                onClick={() => handleToggle(task)}
+                className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-muted/40 transition-colors group min-w-0"
               >
-                {task.title}
-              </span>
-              {!done && task.priority === 4 && (
-                <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                  Urgent
+                {done ? (
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-500" />
+                ) : (
+                  <Circle className="h-5 w-5 flex-shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
+                )}
+                <span
+                  className={cn(
+                    'flex-1 text-sm truncate',
+                    done ? 'line-through text-muted-foreground/50' : 'text-foreground'
+                  )}
+                >
+                  {task.title}
                 </span>
-              )}
-              {!done && task.priority === 3 && (
-                <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-                  Today
-                </span>
-              )}
-            </button>
+                {!done && task.priority === 4 && (
+                  <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex-shrink-0">
+                    Urgent
+                  </span>
+                )}
+                {!done && task.priority === 3 && (
+                  <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">
+                    Today
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => handleDelete(task.id)}
+                className="flex-shrink-0 opacity-0 group-hover/row:opacity-100 rounded-lg p-2 hover:bg-red-500/10 transition-all"
+                title="Delete task"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-red-500 transition-colors" />
+              </button>
+            </div>
           );
         })}
       </div>

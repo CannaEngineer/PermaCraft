@@ -153,10 +153,16 @@ export async function getRecentActivity(farmId: string) {
       UNION ALL
       SELECT 'zone' as type, z.id, COALESCE(z.name, z.zone_type, 'New zone') as title, z.created_at
       FROM zones z WHERE z.farm_id = ?
+      UNION ALL
+      SELECT 'task' as type, t.id,
+        CASE WHEN t.status = 'completed' THEN 'Completed: ' || t.title ELSE t.title END as title,
+        COALESCE(t.completed_at, t.created_at) as created_at
+      FROM tasks t WHERE t.farm_id = ?
+        AND (t.status = 'completed' OR t.created_at > unixepoch() - 604800)
       ORDER BY created_at DESC
       LIMIT 10
     `,
-    args: [farmId, farmId, farmId],
+    args: [farmId, farmId, farmId, farmId],
   });
   return result.rows;
 }
