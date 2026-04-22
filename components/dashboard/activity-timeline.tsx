@@ -1,6 +1,6 @@
 'use client';
 import { formatDistanceToNow } from 'date-fns';
-import { Bot, Sprout, MapPin, FileText } from 'lucide-react';
+import { Bot, Sprout, MapPin, FileText, CheckSquare } from 'lucide-react';
 
 interface ActivityItem {
   type: string;
@@ -21,6 +21,10 @@ const TYPE_META: Record<string, { icon: React.ReactNode; bg: string }> = {
   zone: {
     icon: <MapPin className="h-3.5 w-3.5" />,
     bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  },
+  task: {
+    icon: <CheckSquare className="h-3.5 w-3.5" />,
+    bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   },
 };
 

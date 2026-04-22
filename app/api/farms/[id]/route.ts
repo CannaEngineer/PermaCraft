@@ -35,7 +35,12 @@ export async function GET(
 }
 
 const updateFarmSchema = z.object({
-  is_public: z.union([z.literal(0), z.literal(1)]),
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  acres: z.number().positive().max(100000).nullable().optional(),
+  climate_zone: z.string().max(10).nullable().optional(),
+  soil_type: z.string().max(100).nullable().optional(),
+  is_public: z.union([z.literal(0), z.literal(1)]).optional(),
 });
 
 export async function PATCH(
@@ -46,7 +51,6 @@ export async function PATCH(
     const session = await requireAuth();
     const { id: farmId } = await context.params;
 
-    // Verify ownership
     const farmResult = await db.execute({
       sql: "SELECT * FROM farms WHERE id = ? AND user_id = ?",
       args: [farmId, session.user.id],
@@ -61,7 +65,6 @@ export async function PATCH(
 
     const body = await request.json();
 
-    // Validate input
     const validationResult = updateFarmSchema.safeParse(body);
     if (!validationResult.success) {
       return Response.json(
@@ -70,11 +73,27 @@ export async function PATCH(
       );
     }
 
-    const { is_public } = validationResult.data;
+    const data = validationResult.data;
+    const setClauses: string[] = [];
+    const args: (string | number | null)[] = [];
+
+    if (data.name !== undefined) { setClauses.push("name = ?"); args.push(data.name); }
+    if (data.description !== undefined) { setClauses.push("description = ?"); args.push(data.description); }
+    if (data.acres !== undefined) { setClauses.push("acres = ?"); args.push(data.acres); }
+    if (data.climate_zone !== undefined) { setClauses.push("climate_zone = ?"); args.push(data.climate_zone); }
+    if (data.soil_type !== undefined) { setClauses.push("soil_type = ?"); args.push(data.soil_type); }
+    if (data.is_public !== undefined) { setClauses.push("is_public = ?"); args.push(data.is_public); }
+
+    if (setClauses.length === 0) {
+      return Response.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    setClauses.push("updated_at = unixepoch()");
+    args.push(farmId);
 
     await db.execute({
-      sql: "UPDATE farms SET is_public = ?, updated_at = unixepoch() WHERE id = ?",
-      args: [is_public, farmId],
+      sql: `UPDATE farms SET ${setClauses.join(", ")} WHERE id = ?`,
+      args,
     });
 
     return Response.json({ success: true });

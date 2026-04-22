@@ -1,27 +1,33 @@
-# PermaCraft — 2026-04-21
-## Focus: Map Intelligence (AI Context Quality)
+# PermaCraft — 2026-04-22
+## Focus: Dashboard (Design Management & Data Clarity)
 
-### 1. Lines & Water Features Now Included in AI Context
-Files: `app/api/ai/analyze/route.ts`, `lib/ai/prompts.ts`, `app/api/ai/chat/route.ts`
-What changed: The AI previously had zero awareness of drawn lines (swales, water flow paths, fences, hedgerows, contour lines). Now all line features with their types, labels, and water properties (flow type, flow rate) are included in both the vision analysis and text chat prompts.
-Map/dashboard impact: When a designer asks "where should I put a swale?" or "how should I manage water on this site?", the AI now sees existing swales, drainage paths, and fences — preventing contradictory suggestions and enabling recommendations that build on the existing water management infrastructure.
+### 1. Farm Edit API — Rename, Update Acres, Description from Dashboard
+File: `app/api/farms/[id]/route.ts`
+What changed: The PATCH endpoint previously only supported toggling `is_public`. Now accepts `name`, `description`, `acres`, `climate_zone`, and `soil_type` with full Zod validation. Builds dynamic UPDATE query from provided fields only.
+Map/dashboard impact: Designers can now rename farms and correct acreage directly from the dashboard hero card via an inline edit UI (pencil icon on hover → editable name + acres fields → save/cancel). Previously required deleting and recreating a farm to fix a typo in the name.
 
-### 2. Permaculture Functions Added to Plantings Context
-Files: `app/api/ai/analyze/route.ts`, `app/(app)/farm/[id]/farm-editor-client.tsx`
-What changed: The plantings context sent to the AI now includes each species' permaculture functions (nitrogen fixer, pollinator support, edible fruit, etc.). Previously only name, layer, and planting year were sent.
-Map/dashboard impact: The AI can now identify functional gaps in a design ("you have no nitrogen fixers in this guild") and recommend companion plants based on actual ecological roles rather than just species names. This is foundational for guild design recommendations.
+### 2. Inline Farm Edit UI on Hero Card
+File: `components/dashboard/farm-hero-card.tsx`
+What changed: Added hover-reveal pencil icon next to farm name that opens inline edit mode with name input and acres input. Save persists via the expanded PATCH API and propagates changes to the dashboard client state via `onFarmUpdate` callback. Escape/Cancel reverts.
+Map/dashboard impact: Zero-friction farm metadata editing. A designer with 5+ farms can quickly correct names or acreage without leaving the dashboard.
 
-### 3. Native Species Query Fixed to Use Correct Schema Fields
-File: `app/api/ai/analyze/route.ts`
-What changed: Server-side native species lookup was querying the deprecated `hardiness_zones` text field. Now queries `min_hardiness_zone`/`max_hardiness_zone` numeric range fields (with fallback to the old field for backwards compatibility).
-Map/dashboard impact: Native species recommendations should now return correct matches for the farm's hardiness zone instead of potentially empty or incorrect results from pattern-matching a deprecated text field.
+### 3. Task Delete Button in Dashboard Widget
+File: `components/dashboard/tasks-widget.tsx`
+What changed: Each task row now shows a trash icon on hover (via `group-hover/row` pattern). Clicking it optimistically removes the task from local state and fires a DELETE request to the existing `/api/farms/[id]/tasks/[taskId]` endpoint.
+Map/dashboard impact: Designers can remove accidental or stale tasks directly from the dashboard. Previously tasks could only be marked complete or toggled — never deleted from the UI despite the API supporting it.
 
-### 4. Context Compressor Now Preserves Line Feature Details
-Files: `lib/ai/context-compressor.ts`, `lib/ai/context-compressor.test.ts`
-What changed: The optimization pipeline's context compressor previously reduced all lines to a count ("X water features"). Now it categorizes by type ("2 swales, 1 fence") in summaries and includes individual labels at standard/detailed verbosity. Also added water-related query detection to conditionally include line details in compressed context.
-Map/dashboard impact: Even when context optimizations are enabled (immersive editor), the AI retains meaningful awareness of the farm's water management and boundary features.
+### 4. Eco Health Score in Farm Selector Cards
+File: `components/dashboard/dashboard-client-v2.tsx`
+What changed: The multi-farm selector strip now shows each farm's ecosystem health percentage with color coding (green ≥75%, amber ≥50%, red <50%) alongside the existing plant count and acreage.
+Map/dashboard impact: When a designer has multiple farms, they can instantly see which needs ecological attention without clicking through each one. The score was already computed server-side but wasn't surfaced in the selector.
+
+### 5. Task Events in Activity Timeline
+Files: `lib/db/queries/dashboard.ts`, `components/dashboard/activity-timeline.tsx`
+What changed: The `getRecentActivity` UNION query now includes a fourth branch for tasks — showing completed tasks (with "Completed: " prefix) and recently created tasks (within 7 days). Added `task` type to the timeline component's icon/color mapping (amber CheckSquare icon).
+Map/dashboard impact: Task completions are now visible in the activity feed alongside AI analyses, new plantings, and zone changes. This gives a complete picture of farm design activity, not just feature additions.
 
 ## Watch for
-- The native species query now does integer comparison on hardiness zone strings (e.g., "9b" -> 9). Sub-zones (a/b) are stripped for comparison, which means zone 9a and 9b are treated equivalently. This is acceptable for species recommendations but worth noting.
-- Lines context is built server-side during enrichment (when farmContext arrays are empty). The classic editor doesn't send lines in the client request, so it always goes through server enrichment. The immersive editor sends lines in farmContext but those only feed the compressor — the enrichedLinesContext is only built during server enrichment. If the immersive editor sends non-empty farmContext, lines won't appear in the standard (non-compressed) prompt path. This is acceptable because the immersive editor always uses enableOptimizations=true.
-- The test file was updated to match new summary format and CompressedContext interface.
+- The inline farm edit uses optimistic local state updates via `onFarmUpdate` callback. If the PATCH request fails silently (network issue), the dashboard will show the new name until page refresh. A toast notification on failure would improve this.
+- Task delete is also optimistic — if the DELETE fails, the task disappears from UI but persists in DB. Same toast improvement applies.
+- The activity timeline task query uses `unixepoch() - 604800` (7 days) for recent tasks. This is computed server-side at render time. If the dashboard is cached aggressively, the cutoff could drift.
+- Farm selector eco scores are from server-side initial render. If a user adds plantings in another tab and returns to dashboard, scores won't update until full page reload.
