@@ -1,33 +1,27 @@
-# PermaCraft — 2026-04-22
-## Focus: Dashboard (Design Management & Data Clarity)
+# PermaCraft — 2026-04-23
+## Focus: Map Core (Thursday)
 
-### 1. Farm Edit API — Rename, Update Acres, Description from Dashboard
-File: `app/api/farms/[id]/route.ts`
-What changed: The PATCH endpoint previously only supported toggling `is_public`. Now accepts `name`, `description`, `acres`, `climate_zone`, and `soil_type` with full Zod validation. Builds dynamic UPDATE query from provided fields only.
-Map/dashboard impact: Designers can now rename farms and correct acreage directly from the dashboard hero card via an inline edit UI (pencil icon on hover → editable name + acres fields → save/cancel). Previously required deleting and recreating a farm to fix a typo in the name.
+### 1. Fix maxZoom capped at 18 after base map layer change
+File: `components/map/farm-map.tsx` (line 2596)
+What changed: `setMaxZoom(18)` → `setMaxZoom(21)` after `setStyle()` in `changeMapLayer`
+Map/dashboard impact: Designers can now zoom to z19-21 after switching base map layers. Previously, switching from satellite to topo and back permanently locked the user out of precision mode — snap-to-grid, fine grid subdivision, and dimension labels all became inaccessible.
 
-### 2. Inline Farm Edit UI on Hero Card
-File: `components/dashboard/farm-hero-card.tsx`
-What changed: Added hover-reveal pencil icon next to farm name that opens inline edit mode with name input and acres input. Save persists via the expanded PATCH API and propagates changes to the dashboard client state via `onFarmUpdate` callback. Escape/Cancel reverts.
-Map/dashboard impact: Zero-friction farm metadata editing. A designer with 5+ farms can quickly correct names or acreage without leaving the dashboard.
+### 2. Restore lines after base map layer change
+File: `components/map/farm-map.tsx` (lines 2643-2697)
+What changed: `changeMapLayer` now re-creates `lines-source`, `design-lines`, and `line-arrows` layers after `setStyle()` destroys them, then calls `loadLines()` to repopulate the data. Also reloads the arrow icon for directional flow lines.
+Map/dashboard impact: Lines (swales, fences, hedges, contours, flow paths) no longer disappear when switching base maps. Previously, all drawn lines vanished permanently after any layer switch with no way to recover except reloading the page.
 
-### 3. Task Delete Button in Dashboard Widget
-File: `components/dashboard/tasks-widget.tsx`
-What changed: Each task row now shows a trash icon on hover (via `group-hover/row` pattern). Clicking it optimistically removes the task from local state and fires a DELETE request to the existing `/api/farms/[id]/tasks/[taskId]` endpoint.
-Map/dashboard impact: Designers can remove accidental or stale tasks directly from the dashboard. Previously tasks could only be marked complete or toggled — never deleted from the UI despite the API supporting it.
+### 3. Extract shared MapboxDraw styles constant
+File: `components/map/farm-map.tsx` (lines 105-274)
+What changed: Extracted the 12-element MapboxDraw styles array and draw options into `MAPBOX_DRAW_STYLES` and `MAPBOX_DRAW_OPTIONS` constants shared between initial map setup and post-layer-change re-initialization. Removed ~180 lines of duplicate code.
+Map/dashboard impact: No visual change. Eliminates the risk of drawing style divergence — previously a style fix in one copy wouldn't reach the other, causing inconsistent vertex/boundary/polygon rendering after layer switches.
 
-### 4. Eco Health Score in Farm Selector Cards
-File: `components/dashboard/dashboard-client-v2.tsx`
-What changed: The multi-farm selector strip now shows each farm's ecosystem health percentage with color coding (green ≥75%, amber ≥50%, red <50%) alongside the existing plant count and acreage.
-Map/dashboard impact: When a designer has multiple farms, they can instantly see which needs ecological attention without clicking through each one. The score was already computed server-side but wasn't surfaced in the selector.
-
-### 5. Task Events in Activity Timeline
-Files: `lib/db/queries/dashboard.ts`, `components/dashboard/activity-timeline.tsx`
-What changed: The `getRecentActivity` UNION query now includes a fourth branch for tasks — showing completed tasks (with "Completed: " prefix) and recently created tasks (within 7 days). Added `task` type to the timeline component's icon/color mapping (amber CheckSquare icon).
-Map/dashboard impact: Task completions are now visible in the activity feed alongside AI analyses, new plantings, and zone changes. This gives a complete picture of farm design activity, not just feature additions.
+### 4. Extract addColoredZoneLayers via ref for reuse
+File: `components/map/farm-map.tsx`
+What changed: The `addColoredZoneLayers` function (adds draw-zones source, farm boundary layers, colored zone fill/stroke, colored lines, and colored points) is now stored in `addColoredZoneLayersRef` and called from both initial load and `changeMapLayer`, replacing a second ~120-line duplicate block.
+Map/dashboard impact: No visual change. Same deduplication benefit as #3 — zone coloring logic is now single-source-of-truth.
 
 ## Watch for
-- The inline farm edit uses optimistic local state updates via `onFarmUpdate` callback. If the PATCH request fails silently (network issue), the dashboard will show the new name until page refresh. A toast notification on failure would improve this.
-- Task delete is also optimistic — if the DELETE fails, the task disappears from UI but persists in DB. Same toast improvement applies.
-- The activity timeline task query uses `unixepoch() - 604800` (7 days) for recent tasks. This is computed server-side at render time. If the dashboard is cached aggressively, the cutoff could drift.
-- Farm selector eco scores are from server-side initial render. If a user adds plantings in another tab and returns to dashboard, scores won't update until full page reload.
+- After layer change, the 200ms setTimeout for `addColoredZoneLayersRef` still exists. If a future change makes draw initialization slower, zone colors could flash briefly. Consider replacing with an event-based approach.
+- The arrow icon (`/icons/arrow.svg`) load is async — if the icon fails to load after layer change, directional flow arrows won't render. This is the same graceful degradation as the initial load, but worth monitoring.
+- Lines source uses `{ type: 'FeatureCollection', features: [] }` as initial empty data, then `loadLines()` fetches from API. Brief flash of no lines is possible during the fetch.
