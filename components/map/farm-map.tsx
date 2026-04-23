@@ -102,6 +102,179 @@ const createFillOpacityExpression = () => {
   return expression;
 };
 
+const MAPBOX_DRAW_STYLES = [
+  {
+    id: "gl-draw-polygon-fill-boundary",
+    type: "fill",
+    filter: [
+      "all",
+      ["==", "$type", "Polygon"],
+      ["==", "user_zone_type", "farm_boundary"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "fill-color": "#9333ea",
+      "fill-opacity": 0,
+    },
+  },
+  {
+    id: "gl-draw-polygon-stroke-boundary-outline",
+    type: "line",
+    filter: [
+      "all",
+      ["==", "$type", "Polygon"],
+      ["==", "user_zone_type", "farm_boundary"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 5,
+      "line-dasharray": [2, 2],
+    },
+  },
+  {
+    id: "gl-draw-polygon-stroke-boundary",
+    type: "line",
+    filter: [
+      "all",
+      ["==", "$type", "Polygon"],
+      ["==", "user_zone_type", "farm_boundary"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "line-color": "#9333ea",
+      "line-width": 3,
+      "line-dasharray": [2, 2],
+    },
+  },
+  {
+    id: "gl-draw-polygon-fill",
+    type: "fill",
+    filter: [
+      "all",
+      ["==", "$type", "Polygon"],
+      ["!=", "user_zone_type", "farm_boundary"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "fill-color": "#ffffff",
+      "fill-opacity": 0,
+    },
+  },
+  {
+    id: "gl-draw-polygon-stroke-outline",
+    type: "line",
+    filter: [
+      "all",
+      ["==", "$type", "Polygon"],
+      ["!=", "user_zone_type", "farm_boundary"],
+      ["==", "mode", "direct_select"],
+    ],
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 5,
+    },
+  },
+  {
+    id: "gl-draw-polygon-stroke",
+    type: "line",
+    filter: [
+      "all",
+      ["==", "$type", "Polygon"],
+      ["!=", "user_zone_type", "farm_boundary"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 0,
+    },
+  },
+  {
+    id: "gl-draw-line-outline",
+    type: "line",
+    filter: [
+      "all",
+      ["==", "$type", "LineString"],
+      ["==", "mode", "direct_select"],
+    ],
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 5,
+    },
+  },
+  {
+    id: "gl-draw-line",
+    type: "line",
+    filter: [
+      "all",
+      ["==", "$type", "LineString"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 0,
+    },
+  },
+  {
+    id: "gl-draw-point-outline",
+    type: "circle",
+    filter: [
+      "all",
+      ["==", "$type", "Point"],
+      ["==", "mode", "direct_select"],
+    ],
+    paint: {
+      "circle-radius": 8,
+      "circle-color": "#ffffff",
+    },
+  },
+  {
+    id: "gl-draw-point",
+    type: "circle",
+    filter: [
+      "all",
+      ["==", "$type", "Point"],
+      ["!=", "mode", "static"],
+    ],
+    paint: {
+      "circle-radius": 0,
+      "circle-color": "#ffffff",
+    },
+  },
+  {
+    id: "gl-draw-polygon-and-line-vertex-outline",
+    type: "circle",
+    filter: ["all", ["==", "meta", "vertex"], ["!=", "mode", "static"]],
+    paint: {
+      "circle-radius": 7,
+      "circle-color": "#000000",
+    },
+  },
+  {
+    id: "gl-draw-polygon-and-line-vertex",
+    type: "circle",
+    filter: ["all", ["==", "meta", "vertex"], ["!=", "mode", "static"]],
+    paint: {
+      "circle-radius": 5,
+      "circle-color": "#fff",
+      "circle-stroke-color": "#16a34a",
+      "circle-stroke-width": 2,
+    },
+  },
+];
+
+const MAPBOX_DRAW_OPTIONS = {
+  displayControlsDefault: false,
+  controls: {
+    point: false,
+    line_string: false,
+    polygon: false,
+    trash: false,
+  },
+  defaultMode: "simple_select" as const,
+  styles: MAPBOX_DRAW_STYLES,
+};
+
 interface FarmMapProps {
   farm: Farm;
   zones: Zone[];
@@ -211,6 +384,7 @@ export function FarmMap({
   const [terrainEnabled, setTerrainEnabled] = useState(false);
   const circleCenterMarker = useRef<maplibregl.Marker | null>(null);
   const updateColoredZonesRef = useRef<(() => void) | null>(null);
+  const addColoredZoneLayersRef = useRef<(() => void) | null>(null);
   const updateGridRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
   const updateGridDebouncedRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
   const initialZonesLoadedRef = useRef(false);
@@ -1386,213 +1560,7 @@ export function FarmMap({
         preserveDrawingBuffer: true, // Attempts to preserve canvas for screenshots (unreliable)
       });
 
-      /**
-       * Initialize MapboxDraw
-       *
-       * MapboxDraw is a drawing plugin that adds interactive tools for creating
-       * and editing GeoJSON features. It provides:
-       * - Drawing tools UI (point, line, polygon buttons)
-       * - Modes for creating, editing, and selecting features
-       * - Customizable styles for features
-       *
-       * Why customize styles?
-       * - Default MapboxDraw styles are bright blue - conflicts with our zone colors
-       * - We want farm boundaries to look distinct (purple with dashed outline)
-       * - We use CUSTOM LAYERS for zone colors (see below), so we make MapboxDraw
-       *   layers transparent (opacity: 0) to avoid double-rendering
-       *
-       * Custom Layer Strategy:
-       * - MapboxDraw handles EDITING (vertices, selection)
-       * - Custom GeoJSON layers handle COLORS (based on zone type)
-       * - This separation allows dynamic colors without modifying MapboxDraw internals
-       */
-      draw.current = new MapboxDraw({
-        displayControlsDefault: false, // Don't show default control panel (we customize it)
-        controls: {
-          point: false,
-          line_string: false,
-          polygon: false,
-          trash: false,
-        },
-        defaultMode: "simple_select", // Start in selection mode, not drawing mode
-        styles: [
-          /**
-           * Farm Boundary Styles
-           *
-           * Farm boundaries are rendered with a distinct purple color (#9333ea)
-           * and dashed white outline. This makes them easily distinguishable from
-           * other zones and indicates they're immutable (can't be edited/deleted).
-           */
-          // Farm boundary - distinct purple color with white outline
-          {
-            id: "gl-draw-polygon-fill-boundary",
-            type: "fill",
-            filter: [
-              "all",
-              ["==", "$type", "Polygon"],
-              ["==", "user_zone_type", "farm_boundary"],
-              ["!=", "mode", "static"],
-            ],
-            paint: {
-              "fill-color": "#9333ea",
-              "fill-opacity": 0,
-            },
-          },
-          {
-            id: "gl-draw-polygon-stroke-boundary-outline",
-            type: "line",
-            filter: [
-              "all",
-              ["==", "$type", "Polygon"],
-              ["==", "user_zone_type", "farm_boundary"],
-              ["!=", "mode", "static"],
-            ],
-            paint: {
-              "line-color": "#ffffff",
-              "line-width": 5,
-              "line-dasharray": [2, 2],
-            },
-          },
-          {
-            id: "gl-draw-polygon-stroke-boundary",
-            type: "line",
-            filter: [
-              "all",
-              ["==", "$type", "Polygon"],
-              ["==", "user_zone_type", "farm_boundary"],
-              ["!=", "mode", "static"],
-            ],
-            paint: {
-              "line-color": "#9333ea",
-              "line-width": 3,
-              "line-dasharray": [2, 2],
-            },
-          },
-          // Regular polygon fill - DISABLED (using custom layer instead)
-          {
-            id: "gl-draw-polygon-fill",
-            type: "fill",
-            filter: [
-              "all",
-              ["==", "$type", "Polygon"],
-              ["!=", "user_zone_type", "farm_boundary"],
-              ["!=", "mode", "static"],
-            ],
-            paint: {
-              "fill-color": "#ffffff",
-              "fill-opacity": 0, // Transparent - custom layer handles colors
-            },
-          },
-          // Regular polygon outline - white background (only during editing)
-          {
-            id: "gl-draw-polygon-stroke-outline",
-            type: "line",
-            filter: [
-              "all",
-              ["==", "$type", "Polygon"],
-              ["!=", "user_zone_type", "farm_boundary"],
-              ["==", "mode", "direct_select"], // Only show during editing
-            ],
-            paint: {
-              "line-color": "#ffffff",
-              "line-width": 5,
-            },
-          },
-          // Regular polygon outline - DISABLED (using custom layer instead)
-          {
-            id: "gl-draw-polygon-stroke",
-            type: "line",
-            filter: [
-              "all",
-              ["==", "$type", "Polygon"],
-              ["!=", "user_zone_type", "farm_boundary"],
-              ["!=", "mode", "static"],
-            ],
-            paint: {
-              "line-color": "#ffffff",
-              "line-width": 0, // Transparent - custom layer handles colors
-            },
-          },
-          // Line strings - DISABLED (using custom layer instead)
-          {
-            id: "gl-draw-line-outline",
-            type: "line",
-            filter: [
-              "all",
-              ["==", "$type", "LineString"],
-              ["==", "mode", "direct_select"], // Only during editing
-            ],
-            paint: {
-              "line-color": "#ffffff",
-              "line-width": 5,
-            },
-          },
-          // Line strings - DISABLED (using custom layer instead)
-          {
-            id: "gl-draw-line",
-            type: "line",
-            filter: [
-              "all",
-              ["==", "$type", "LineString"],
-              ["!=", "mode", "static"],
-            ],
-            paint: {
-              "line-color": "#ffffff",
-              "line-width": 0, // Transparent - custom layer handles colors
-            },
-          },
-          // Points - DISABLED (using custom layer instead)
-          {
-            id: "gl-draw-point-outline",
-            type: "circle",
-            filter: [
-              "all",
-              ["==", "$type", "Point"],
-              ["==", "mode", "direct_select"], // Only during editing
-            ],
-            paint: {
-              "circle-radius": 8,
-              "circle-color": "#ffffff",
-            },
-          },
-          // Points - DISABLED (using custom layer instead)
-          {
-            id: "gl-draw-point",
-            type: "circle",
-            filter: [
-              "all",
-              ["==", "$type", "Point"],
-              ["!=", "mode", "static"],
-            ],
-            paint: {
-              "circle-radius": 0, // Transparent - custom layer handles colors
-              "circle-color": "#ffffff",
-            },
-          },
-          // Vertex points - white outline
-          {
-            id: "gl-draw-polygon-and-line-vertex-outline",
-            type: "circle",
-            filter: ["all", ["==", "meta", "vertex"], ["!=", "mode", "static"]],
-            paint: {
-              "circle-radius": 7,
-              "circle-color": "#000000",
-            },
-          },
-          // Vertex points - white with green stroke
-          {
-            id: "gl-draw-polygon-and-line-vertex",
-            type: "circle",
-            filter: ["all", ["==", "meta", "vertex"], ["!=", "mode", "static"]],
-            paint: {
-              "circle-radius": 5,
-              "circle-color": "#fff",
-              "circle-stroke-color": "#16a34a",
-              "circle-stroke-width": 2,
-            },
-          },
-        ],
-      });
+      draw.current = new MapboxDraw(MAPBOX_DRAW_OPTIONS);
 
       // Add draw control to initialize its internal store (required for getAll/set to work).
       // displayControlsDefault: false keeps the UI hidden; only the store is needed.
@@ -1729,8 +1697,9 @@ export function FarmMap({
         ensureCustomLayersOnTop();
       };
 
-      // Store the function in ref so it can be called from other handlers
+      // Store functions in refs so they can be called from changeMapLayer and other handlers
       updateColoredZonesRef.current = updateColoredZones;
+      addColoredZoneLayersRef.current = addColoredZoneLayers;
 
       map.current.on("load", () => {
         if (!map.current) return;
@@ -2623,8 +2592,8 @@ export function FarmMap({
 
     map.current.setStyle(style);
 
-    // setStyle resets map options, so re-enforce maxZoom to prevent "map data not available" errors
-    map.current.setMaxZoom(18);
+    // setStyle resets map options — restore maxZoom to allow precision mode (z19-21)
+    map.current.setMaxZoom(21);
 
     setMapLayer(layer);
     setShowLayerMenu(false);
@@ -2661,336 +2630,75 @@ export function FarmMap({
         }
 
         // Re-initialize MapboxDraw after style load
-        draw.current = new MapboxDraw({
-          displayControlsDefault: false,
-          controls: {
-            point: false,
-            line_string: false,
-            polygon: false,
-            trash: false,
-          },
-          defaultMode: "simple_select",
-          styles: [
-            // Farm boundary - distinct purple color with white outline
-            {
-              id: "gl-draw-polygon-fill-boundary",
-              type: "fill",
-              filter: [
-                "all",
-                ["==", "$type", "Polygon"],
-                ["==", "user_zone_type", "farm_boundary"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "fill-color": "#9333ea",
-                "fill-opacity": 0,
-              },
-            },
-            {
-              id: "gl-draw-polygon-stroke-boundary-outline",
-              type: "line",
-              filter: [
-                "all",
-                ["==", "$type", "Polygon"],
-                ["==", "user_zone_type", "farm_boundary"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "line-color": "#ffffff",
-                "line-width": 5,
-                "line-dasharray": [2, 2],
-              },
-            },
-            {
-              id: "gl-draw-polygon-stroke-boundary",
-              type: "line",
-              filter: [
-                "all",
-                ["==", "$type", "Polygon"],
-                ["==", "user_zone_type", "farm_boundary"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "line-color": "#9333ea",
-                "line-width": 3,
-                "line-dasharray": [2, 2],
-              },
-            },
-            // Regular polygon fill - DISABLED (using custom layer instead)
-            {
-              id: "gl-draw-polygon-fill",
-              type: "fill",
-              filter: [
-                "all",
-                ["==", "$type", "Polygon"],
-                ["!=", "user_zone_type", "farm_boundary"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "fill-color": "#ffffff",
-                "fill-opacity": 0, // Transparent - custom layer handles colors
-              },
-            },
-            // Regular polygon outline - white background (only during editing)
-            {
-              id: "gl-draw-polygon-stroke-outline",
-              type: "line",
-              filter: [
-                "all",
-                ["==", "$type", "Polygon"],
-                ["!=", "user_zone_type", "farm_boundary"],
-                ["==", "mode", "direct_select"], // Only show during editing
-              ],
-              paint: {
-                "line-color": "#ffffff",
-                "line-width": 5,
-              },
-            },
-            // Regular polygon outline - DISABLED (using custom layer instead)
-            {
-              id: "gl-draw-polygon-stroke",
-              type: "line",
-              filter: [
-                "all",
-                ["==", "$type", "Polygon"],
-                ["!=", "user_zone_type", "farm_boundary"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "line-color": "#ffffff",
-                "line-width": 0, // Transparent - custom layer handles colors
-              },
-            },
-            // Line strings - DISABLED (using custom layer instead)
-            {
-              id: "gl-draw-line-outline",
-              type: "line",
-              filter: [
-                "all",
-                ["==", "$type", "LineString"],
-                ["==", "mode", "direct_select"], // Only during editing
-              ],
-              paint: {
-                "line-color": "#ffffff",
-                "line-width": 5,
-              },
-            },
-            // Line strings - DISABLED (using custom layer instead)
-            {
-              id: "gl-draw-line",
-              type: "line",
-              filter: [
-                "all",
-                ["==", "$type", "LineString"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "line-color": "#ffffff",
-                "line-width": 0, // Transparent - custom layer handles colors
-              },
-            },
-            // Points - DISABLED (using custom layer instead)
-            {
-              id: "gl-draw-point-outline",
-              type: "circle",
-              filter: [
-                "all",
-                ["==", "$type", "Point"],
-                ["==", "mode", "direct_select"], // Only during editing
-              ],
-              paint: {
-                "circle-radius": 8,
-                "circle-color": "#ffffff",
-              },
-            },
-            // Points - DISABLED (using custom layer instead)
-            {
-              id: "gl-draw-point",
-              type: "circle",
-              filter: [
-                "all",
-                ["==", "$type", "Point"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "circle-radius": 0, // Transparent - custom layer handles colors
-                "circle-color": "#ffffff",
-              },
-            },
-            // Vertex points - black outline
-            {
-              id: "gl-draw-polygon-and-line-vertex-outline",
-              type: "circle",
-              filter: [
-                "all",
-                ["==", "meta", "vertex"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "circle-radius": 7,
-                "circle-color": "#000000",
-              },
-            },
-            // Vertex points - white with green stroke
-            {
-              id: "gl-draw-polygon-and-line-vertex",
-              type: "circle",
-              filter: [
-                "all",
-                ["==", "meta", "vertex"],
-                ["!=", "mode", "static"],
-              ],
-              paint: {
-                "circle-radius": 5,
-                "circle-color": "#fff",
-                "circle-stroke-color": "#16a34a",
-                "circle-stroke-width": 2,
-              },
-            },
-          ],
-        });
-
-        // Re-add draw control to re-initialize its internal store after style change
+        draw.current = new MapboxDraw(MAPBOX_DRAW_OPTIONS);
         map.current.addControl(draw.current as any);
 
-        // Re-add grid layers after style change
-        console.log("Re-adding grid layers after style change...");
         setupGridLayers();
         updateGrid();
 
-        // Add features back
-        console.log("Adding features back to draw, count:", features?.features?.length || 0);
         if (features) {
           draw.current.set(features);
         }
 
+        // Re-add lines source and layers (destroyed by setStyle)
+        if (!map.current.getSource('lines-source')) {
+          map.current.addSource('lines-source', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+          });
+        }
+        if (!map.current.getLayer('design-lines')) {
+          map.current.addLayer({
+            id: 'design-lines',
+            type: 'line',
+            source: 'lines-source',
+            paint: {
+              'line-color': ['get', 'color'],
+              'line-width': ['get', 'width'],
+              'line-dasharray': ['coalesce', ['get', 'dashArray'], ['literal', [1, 0]]],
+              'line-opacity': ['get', 'opacity']
+            }
+          });
+        }
+        if (!map.current.getLayer('line-arrows')) {
+          map.current.addLayer({
+            id: 'line-arrows',
+            type: 'symbol',
+            source: 'lines-source',
+            filter: ['!=', ['get', 'arrowDirection'], 'none'],
+            layout: {
+              'symbol-placement': 'line',
+              'symbol-spacing': 100,
+              'icon-image': 'arrow-icon',
+              'icon-size': 0.5,
+              'icon-rotation-alignment': 'map',
+              'icon-rotate': [
+                'case',
+                ['==', ['get', 'arrowDirection'], 'reverse'], 180,
+                0
+              ]
+            }
+          });
+        }
+
+        // Reload arrow icon (destroyed by setStyle)
+        map.current.loadImage('/icons/arrow.svg').then((response) => {
+          try {
+            if (response?.data && map.current && !map.current.hasImage('arrow-icon')) {
+              map.current.addImage('arrow-icon', response.data);
+            }
+          } catch {
+            // Map may have been destroyed before async load resolved
+          }
+        }).catch(() => {});
+
+        // Reload lines data into the restored source
+        loadLines();
+
         // Re-add colored zone layers after style change
-        console.log("Scheduling colored zone layers re-addition...");
         setTimeout(() => {
-          if (!map.current || !draw.current) return;
-
-          console.log("Adding colored zone layers...");
-
-          // Add the draw-zones source
-          if (!map.current.getSource("draw-zones")) {
-            console.log("Adding draw-zones source");
-            map.current.addSource("draw-zones", {
-              type: "geojson",
-              data: draw.current.getAll(),
-            });
-          } else {
-            console.log("draw-zones source already exists");
-          }
-
-          // Add farm boundary layers FIRST
-          if (!map.current.getLayer("farm-boundary-outline")) {
-            map.current.addLayer({
-              id: "farm-boundary-outline",
-              type: "line",
-              source: "draw-zones",
-              filter: ["all",
-                ["==", ["geometry-type"], "Polygon"],
-                ["==", ["get", "user_zone_type"], "farm_boundary"]
-              ],
-              paint: {
-                "line-color": "#ffffff",
-                "line-width": 5,
-                "line-dasharray": [2, 2],
-              },
-            });
-          }
-
-          if (!map.current.getLayer("farm-boundary-stroke")) {
-            map.current.addLayer({
-              id: "farm-boundary-stroke",
-              type: "line",
-              source: "draw-zones",
-              filter: ["all",
-                ["==", ["geometry-type"], "Polygon"],
-                ["==", ["get", "user_zone_type"], "farm_boundary"]
-              ],
-              paint: {
-                "line-color": "#9333ea",
-                "line-width": 3,
-                "line-dasharray": [2, 2],
-              },
-            });
-          }
-
-          // Add fill layer with dynamic colors (excluding farm boundary)
-          if (!map.current.getLayer("colored-zones-fill")) {
-            map.current.addLayer({
-              id: "colored-zones-fill",
-              type: "fill",
-              source: "draw-zones",
-              filter: ["all",
-                ["==", ["geometry-type"], "Polygon"],
-                ["!=", ["get", "user_zone_type"], "farm_boundary"]
-              ],
-              paint: {
-                "fill-color": createFillColorExpression(),
-                "fill-opacity": createFillOpacityExpression(),
-              },
-            });
-          }
-
-          // Add stroke layer with dynamic colors (excluding farm boundary)
-          if (!map.current.getLayer("colored-zones-stroke")) {
-            map.current.addLayer({
-              id: "colored-zones-stroke",
-              type: "line",
-              source: "draw-zones",
-              filter: ["all",
-                ["==", ["geometry-type"], "Polygon"],
-                ["!=", ["get", "user_zone_type"], "farm_boundary"]
-              ],
-              paint: {
-                "line-color": createStrokeColorExpression(),
-                "line-width": 3,
-              },
-            });
-          }
-
-          // Add line layer for LineString features
-          if (!map.current.getLayer("colored-lines")) {
-            map.current.addLayer({
-              id: "colored-lines",
-              type: "line",
-              source: "draw-zones",
-              filter: ["all",
-                ["==", ["geometry-type"], "LineString"]
-              ],
-              paint: {
-                "line-color": createStrokeColorExpression(),
-                "line-width": 3,
-              },
-            });
-          }
-
-          // Add point layer for Point features
-          if (!map.current.getLayer("colored-points")) {
-            map.current.addLayer({
-              id: "colored-points",
-              type: "circle",
-              source: "draw-zones",
-              filter: ["all",
-                ["==", ["geometry-type"], "Point"]
-              ],
-              paint: {
-                "circle-color": createFillColorExpression(),
-                "circle-radius": 6,
-                "circle-stroke-color": createStrokeColorExpression(),
-                "circle-stroke-width": 2,
-              },
-            });
-          }
-
-          // CRITICAL: Ensure layer ordering after style change
-          console.log("Ensuring custom layers on top...");
-          ensureCustomLayersOnTop();
-
-          console.log("Custom layers re-added successfully");
-        }, 200); // Increased timeout to ensure draw is fully initialized
+          addColoredZoneLayersRef.current?.();
+        }, 200);
       }); // End of idle callback
     }); // End of styledata callback
   };
