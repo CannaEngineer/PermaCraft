@@ -39,11 +39,22 @@ export async function GET(
   }
 }
 
+const coordinateSchema = z.tuple([z.number(), z.number()]).or(z.tuple([z.number(), z.number(), z.number()]));
+const linearRingSchema = z.array(coordinateSchema).min(4);
+const geometrySchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("Point"), coordinates: coordinateSchema }),
+  z.object({ type: z.literal("LineString"), coordinates: z.array(coordinateSchema).min(2) }),
+  z.object({ type: z.literal("Polygon"), coordinates: z.array(linearRingSchema).min(1) }),
+  z.object({ type: z.literal("MultiPoint"), coordinates: z.array(coordinateSchema) }),
+  z.object({ type: z.literal("MultiLineString"), coordinates: z.array(z.array(coordinateSchema).min(2)) }),
+  z.object({ type: z.literal("MultiPolygon"), coordinates: z.array(z.array(linearRingSchema).min(1)) }),
+]);
+
 const saveZonesSchema = z.object({
   zones: z.array(z.object({
     id: z.string().optional(),
     type: z.literal("Feature"),
-    geometry: z.any(),
+    geometry: geometrySchema,
     properties: z.record(z.any()).optional(),
   })),
 });
@@ -85,7 +96,25 @@ export async function POST(
     if (zones.length > 0) {
       const statements = zones.map((zone) => {
         const zoneId = zone.id || crypto.randomUUID();
-        const geometry = JSON.stringify(zone.geometry);
+
+        // Ensure polygon rings are closed (first coord === last coord)
+        const geom = zone.geometry;
+        if (geom.type === "Polygon" || geom.type === "MultiPolygon") {
+          const allRings = geom.type === "MultiPolygon"
+            ? geom.coordinates.flatMap((poly: number[][][]) => poly)
+            : geom.coordinates;
+          for (const ring of allRings) {
+            if (ring.length >= 2) {
+              const first = ring[0];
+              const last = ring[ring.length - 1];
+              if (first[0] !== last[0] || first[1] !== last[1]) {
+                ring[ring.length - 1] = [...first];
+              }
+            }
+          }
+        }
+
+        const geometry = JSON.stringify(geom);
         const properties = JSON.stringify(zone.properties || {});
 
         // Preserve farm_boundary zone_type - if this zone ID was a farm_boundary, keep it as farm_boundary
