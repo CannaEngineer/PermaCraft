@@ -1856,6 +1856,29 @@ export function FarmMap({
         }
       };
 
+      // Debounced version for draw.update — vertex dragging fires many
+      // times per second; we only need to propagate state and recalculate
+      // the grid once the user pauses.
+      let drawUpdateTimer: NodeJS.Timeout | null = null;
+      const handleDrawChangeDragging = () => {
+        if (!draw.current) return;
+        // Immediate: visual zone coloring must track the vertex drag
+        updateColoredZones();
+        // Deferred: parent state + grid recalculation
+        if (drawUpdateTimer) clearTimeout(drawUpdateTimer);
+        drawUpdateTimer = setTimeout(() => {
+          if (draw.current) {
+            draw.current.getAll().features.forEach((feature: any) => {
+              if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCache.has(feature.id)) {
+                farmBoundaryCache.set(feature.id, JSON.parse(JSON.stringify(feature)));
+              }
+            });
+            onZonesChange(draw.current.getAll().features);
+            updateGrid();
+          }
+        }, 200);
+      };
+
       const handleLineCreate = async (feature: any) => {
         // Store the feature for the line form
         setLineFeature(feature);
@@ -1895,15 +1918,28 @@ export function FarmMap({
               feature.geometry.coordinates = [snapped.lng, snapped.lat];
               modified = true;
             }
-          } else if (feature.geometry.type === 'Polygon') {
-            feature.geometry.coordinates[0] = feature.geometry.coordinates[0].map((coord: number[]) => {
-              const [lng, lat] = coord;
-              const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
-              if (snapped.snapped) {
-                modified = true;
-                return [snapped.lng, snapped.lat];
+          } else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+            const rings = feature.geometry.type === 'MultiPolygon'
+              ? feature.geometry.coordinates.flatMap((poly: number[][][]) => poly)
+              : feature.geometry.coordinates;
+            rings.forEach((ring: number[][]) => {
+              for (let i = 0; i < ring.length; i++) {
+                const [lng, lat] = ring[i];
+                const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
+                if (snapped.snapped) {
+                  ring[i] = [snapped.lng, snapped.lat];
+                  modified = true;
+                }
               }
-              return coord;
+              // GeoJSON requires first === last coordinate in a ring
+              if (ring.length >= 2) {
+                const first = ring[0];
+                const last = ring[ring.length - 1];
+                if (first[0] !== last[0] || first[1] !== last[1]) {
+                  ring[ring.length - 1] = [...first];
+                  modified = true;
+                }
+              }
             });
           } else if (feature.geometry.type === 'LineString') {
             feature.geometry.coordinates = feature.geometry.coordinates.map((coord: number[]) => {
@@ -2019,7 +2055,8 @@ export function FarmMap({
           snapFeatures(e.features);
         }
 
-        handleDrawChange(e);
+        // Use debounced version — vertex dragging fires continuously
+        handleDrawChangeDragging();
       };
 
       // Prevent farm boundary from being deleted
