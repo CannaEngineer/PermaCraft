@@ -86,101 +86,86 @@ export async function POST(
     });
     const farmBoundaryIds = new Set(farmBoundaryResult.rows.map(row => row.id as string));
 
-    // Delete all existing zones for this farm first
-    await db.execute({
-      sql: "DELETE FROM zones WHERE farm_id = ?",
-      args: [farmId],
-    });
+    // Build all statements for a single atomic batch (DELETE + INSERTs + timestamp update)
+    const statements: { sql: string; args: any[] }[] = [
+      { sql: "DELETE FROM zones WHERE farm_id = ?", args: [farmId] },
+    ];
 
-    // Insert new zones using batch transaction
-    if (zones.length > 0) {
-      const statements = zones.map((zone) => {
-        const zoneId = zone.id || crypto.randomUUID();
+    for (const zone of zones) {
+      const zoneId = zone.id || crypto.randomUUID();
 
-        // Ensure polygon rings are closed (first coord === last coord)
-        const geom = zone.geometry;
-        if (geom.type === "Polygon" || geom.type === "MultiPolygon") {
-          const allRings = geom.type === "MultiPolygon"
-            ? geom.coordinates.flatMap((poly: number[][][]) => poly)
-            : geom.coordinates;
-          for (const ring of allRings) {
-            if (ring.length >= 2) {
-              const first = ring[0];
-              const last = ring[ring.length - 1];
-              if (first[0] !== last[0] || first[1] !== last[1]) {
-                ring[ring.length - 1] = [...first];
-              }
+      const geom = zone.geometry;
+      if (geom.type === "Polygon" || geom.type === "MultiPolygon") {
+        const allRings = geom.type === "MultiPolygon"
+          ? geom.coordinates.flatMap((poly: number[][][]) => poly)
+          : geom.coordinates;
+        for (const ring of allRings) {
+          if (ring.length >= 2) {
+            const first = ring[0];
+            const last = ring[ring.length - 1];
+            if (first[0] !== last[0] || first[1] !== last[1]) {
+              ring[ring.length - 1] = [...first];
             }
           }
         }
+      }
 
-        const geometry = JSON.stringify(geom);
-        const properties = JSON.stringify(zone.properties || {});
+      const geometry = JSON.stringify(geom);
+      const properties = JSON.stringify(zone.properties || {});
 
-        // Preserve farm_boundary zone_type - if this zone ID was a farm_boundary, keep it as farm_boundary
-        // Otherwise, extract zone_type from properties
-        const isFarmBoundary = farmBoundaryIds.has(zoneId);
-        const zoneType = isFarmBoundary ? "farm_boundary" : (zone.properties?.user_zone_type || "other");
+      const isFarmBoundary = farmBoundaryIds.has(zoneId);
+      const zoneType = isFarmBoundary ? "farm_boundary" : (zone.properties?.user_zone_type || "other");
 
-        console.log(`Saving zone ${zoneId}:`, {
-          zoneType,
-          properties: zone.properties,
-          hasUserZoneType: !!zone.properties?.user_zone_type,
-          isFarmBoundary
+      const props = zone.properties || {};
+      const waterZoneTypes = ['pond', 'swale', 'water_body', 'water_flow'];
+      let catchmentPropertiesJson: string | null = null;
+      let swalePropertiesJson: string | null = null;
+
+      if (waterZoneTypes.includes(zoneType) && props.water_rainfall_inches) {
+        let areaSqFt = 0;
+        try {
+          areaSqFt = calculateAreaFromGeometry(zone.geometry);
+        } catch { /* ignore */ }
+        const capture = areaSqFt > 0
+          ? calculateCatchmentCapture({ catchmentAreaSqFt: areaSqFt, annualRainfallInches: props.water_rainfall_inches })
+          : 0;
+        catchmentPropertiesJson = JSON.stringify({
+          is_catchment: true,
+          rainfall_inches_per_year: props.water_rainfall_inches,
+          estimated_capture_gallons: capture,
         });
+      }
 
-        // Compute water properties from embedded zone props
-        const props = zone.properties || {};
-        const waterZoneTypes = ['pond', 'swale', 'water_body', 'water_flow'];
-        let catchmentPropertiesJson: string | null = null;
-        let swalePropertiesJson: string | null = null;
+      if (zoneType === 'swale' && props.water_swale_depth_feet) {
+        let lengthFt = 0;
+        try {
+          lengthFt = calculateLengthFromGeometry(zone.geometry);
+        } catch { /* ignore */ }
+        const capacity = lengthFt > 0
+          ? calculateSwaleCapacity({ lengthFeet: lengthFt, widthFeet: 3, depthFeet: props.water_swale_depth_feet })
+          : 0;
+        swalePropertiesJson = JSON.stringify({
+          is_swale: true,
+          length_feet: lengthFt,
+          cross_section_depth_feet: props.water_swale_depth_feet,
+          estimated_volume_gallons: capacity,
+        });
+      }
 
-        if (waterZoneTypes.includes(zoneType) && props.water_rainfall_inches) {
-          let areaSqFt = 0;
-          try {
-            areaSqFt = calculateAreaFromGeometry(zone.geometry);
-          } catch { /* ignore */ }
-          const capture = areaSqFt > 0
-            ? calculateCatchmentCapture({ catchmentAreaSqFt: areaSqFt, annualRainfallInches: props.water_rainfall_inches })
-            : 0;
-          catchmentPropertiesJson = JSON.stringify({
-            is_catchment: true,
-            rainfall_inches_per_year: props.water_rainfall_inches,
-            estimated_capture_gallons: capture,
-          });
-        }
-
-        if (zoneType === 'swale' && props.water_swale_depth_feet) {
-          let lengthFt = 0;
-          try {
-            lengthFt = calculateLengthFromGeometry(zone.geometry);
-          } catch { /* ignore */ }
-          const capacity = lengthFt > 0
-            ? calculateSwaleCapacity({ lengthFeet: lengthFt, widthFeet: 3, depthFeet: props.water_swale_depth_feet })
-            : 0;
-          swalePropertiesJson = JSON.stringify({
-            is_swale: true,
-            length_feet: lengthFt,
-            cross_section_depth_feet: props.water_swale_depth_feet,
-            estimated_volume_gallons: capacity,
-          });
-        }
-
-        return {
-          sql: `INSERT INTO zones (id, farm_id, zone_type, geometry, properties, catchment_properties, swale_properties)
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          args: [zoneId, farmId, zoneType, geometry, properties, catchmentPropertiesJson, swalePropertiesJson],
-        };
+      statements.push({
+        sql: `INSERT INTO zones (id, farm_id, zone_type, geometry, properties, catchment_properties, swale_properties)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [zoneId, farmId, zoneType, geometry, properties, catchmentPropertiesJson, swalePropertiesJson],
       });
-
-      await db.batch(statements);
     }
 
-    // Update farm timestamp
-    await db.execute({
+    statements.push({
       sql: "UPDATE farms SET updated_at = unixepoch() WHERE id = ?",
       args: [farmId],
     });
+
+    // Execute DELETE + all INSERTs + timestamp update as a single atomic transaction
+    await db.batch(statements);
 
     return Response.json({ success: true });
   } catch (error) {
