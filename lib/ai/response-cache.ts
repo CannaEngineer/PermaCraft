@@ -8,11 +8,12 @@ interface CachedResponse {
   model: string;
 }
 
-// Cache up to 100 responses, 1 hour TTL
 const responseCache = new LRUCache<string, CachedResponse>({
-  max: 100,
+  max: 500,
+  maxSize: 50 * 1024 * 1024, // 50 MB total
+  sizeCalculation: (entry) => entry.response.length + 100, // response bytes + overhead
   ttl: 1000 * 60 * 60, // 1 hour
-  updateAgeOnGet: true
+  updateAgeOnGet: true,
 });
 
 /**

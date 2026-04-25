@@ -4,10 +4,10 @@ import { Plus } from "lucide-react";
 import { DashboardClientV2 } from "@/components/dashboard/dashboard-client-v2";
 import {
   getDashboardFarms,
-  getEcoHealthScore,
+  getBatchEcoHealthScores,
   getFarmTasks,
   getRecentAiInsights,
-  getRecentActivity,
+  getBatchRecentActivity,
 } from "@/lib/db/queries/dashboard";
 import { getSeasonalContext } from "@/lib/dashboard/seasonal";
 import { Task } from "@/lib/db/schema";
@@ -37,33 +37,40 @@ export default async function DashboardPage() {
   if (!session) return null;
 
   const farms = await getDashboardFarms(session.user.id);
+  const farmIds = farms.map((f) => f.id);
+
+  const [ecoScores, activityByFarm, ...perFarmResults] = await Promise.all([
+    getBatchEcoHealthScores(farmIds),
+    getBatchRecentActivity(farmIds),
+    ...farms.flatMap((farm) => [
+      getFarmTasks(farm.id),
+      getRecentAiInsights(farm.id),
+    ]),
+  ]);
 
   const farmData: Record<string, FarmData> = {};
-  await Promise.all(
-    farms.map(async (farm) => {
-      const [ecoResult, tasks, insights, activity] = await Promise.all([
-        getEcoHealthScore(farm.id),
-        getFarmTasks(farm.id),
-        getRecentAiInsights(farm.id),
-        getRecentActivity(farm.id),
-      ]);
-      const seasonal = getSeasonalContext(farm.climate_zone, farm.center_lat);
-      const urgentCount = tasks.filter(
-        (t) => t.priority === 4 && t.status === "pending"
-      ).length;
+  for (let i = 0; i < farms.length; i++) {
+    const farm = farms[i];
+    const tasks = perFarmResults[i * 2] as Task[];
+    const insights = perFarmResults[i * 2 + 1] as any[];
+    const ecoResult = ecoScores[farm.id] ?? { score: 0, functions: {} };
+    const activity = activityByFarm[farm.id] ?? [];
+    const seasonal = getSeasonalContext(farm.climate_zone, farm.center_lat);
+    const urgentCount = tasks.filter(
+      (t) => t.priority === 4 && t.status === "pending"
+    ).length;
 
-      farmData[farm.id] = {
-        farm: { ...farm, eco_health_score: ecoResult.score },
-        ecoScore: ecoResult.score,
-        ecoFunctions: ecoResult.functions,
-        tasks,
-        insights: insights as any[],
-        activity: activity as any[],
-        seasonal,
-        urgentCount,
-      };
-    })
-  );
+    farmData[farm.id] = {
+      farm: { ...farm, eco_health_score: ecoResult.score },
+      ecoScore: ecoResult.score,
+      ecoFunctions: ecoResult.functions,
+      tasks,
+      insights,
+      activity,
+      seasonal,
+      urgentCount,
+    };
+  }
 
   const firstName = session.user.name?.split(" ")[0] || session.user.name;
   const greeting = getGreeting();

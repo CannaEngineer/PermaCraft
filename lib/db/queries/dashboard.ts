@@ -45,8 +45,6 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
           latest_screenshot = parsed;
         }
       } catch {
-        // Legacy rows may have stored the URL / data-URL directly without JSON-encoding.
-        // Accept the raw value if it looks like a usable image reference.
         if (/^(https?:|data:image\/|\/)/.test(raw)) {
           latest_screenshot = raw;
         }
@@ -62,44 +60,63 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
       center_lng: row.center_lng as number | null,
       updated_at: row.updated_at as number,
       planting_count: row.planting_count as number,
-      eco_health_score: 0, // computed separately
+      eco_health_score: 0,
       latest_screenshot,
     };
   });
 }
 
 export async function getEcoHealthScore(farmId: string): Promise<{ score: number; functions: Record<string, number> }> {
-  const FUNCTIONS = [
-    'nitrogen_fixer', 'pollinator', 'dynamic_accumulator',
-    'wildlife_habitat', 'edible', 'medicinal', 'erosion_control', 'water_management',
-  ];
+  return (await getBatchEcoHealthScores([farmId]))[farmId] ?? { score: 0, functions: {} };
+}
 
+const ECO_FUNCTIONS = [
+  'nitrogen_fixer', 'pollinator', 'dynamic_accumulator',
+  'wildlife_habitat', 'edible', 'medicinal', 'erosion_control', 'water_management',
+] as const;
+
+export async function getBatchEcoHealthScores(
+  farmIds: string[]
+): Promise<Record<string, { score: number; functions: Record<string, number> }>> {
+  if (farmIds.length === 0) return {};
+
+  const placeholders = farmIds.map(() => '?').join(',');
   const result = await db.execute({
     sql: `
-      SELECT s.permaculture_functions
+      SELECT p.farm_id, s.permaculture_functions
       FROM plantings p
       JOIN species s ON s.id = p.species_id
-      WHERE p.farm_id = ?
+      WHERE p.farm_id IN (${placeholders})
         AND s.permaculture_functions IS NOT NULL
     `,
-    args: [farmId],
+    args: farmIds,
   });
 
-  const counts: Record<string, number> = {};
-  FUNCTIONS.forEach((f) => (counts[f] = 0));
+  const byFarm = new Map<string, Record<string, number>>();
+  for (const id of farmIds) {
+    const counts: Record<string, number> = {};
+    ECO_FUNCTIONS.forEach((f) => (counts[f] = 0));
+    byFarm.set(id, counts);
+  }
 
   for (const row of result.rows) {
+    const fid = row.farm_id as string;
+    const counts = byFarm.get(fid);
+    if (!counts) continue;
     try {
       const fns: string[] = JSON.parse(row.permaculture_functions as string);
-      fns.forEach((fn) => {
+      for (const fn of fns) {
         if (fn in counts) counts[fn]++;
-      });
+      }
     } catch {}
   }
 
-  const covered = FUNCTIONS.filter((f) => counts[f] > 0).length;
-  const score = Math.round((covered / FUNCTIONS.length) * 100);
-  return { score, functions: counts };
+  const out: Record<string, { score: number; functions: Record<string, number> }> = {};
+  for (const [fid, counts] of byFarm) {
+    const covered = ECO_FUNCTIONS.filter((f) => counts[f] > 0).length;
+    out[fid] = { score: Math.round((covered / ECO_FUNCTIONS.length) * 100), functions: counts };
+  }
+  return out;
 }
 
 export async function getFarmTasks(farmId: string): Promise<Task[]> {
@@ -139,30 +156,50 @@ export async function getRecentAiInsights(farmId: string) {
 }
 
 export async function getRecentActivity(farmId: string) {
+  return (await getBatchRecentActivity([farmId]))[farmId] ?? [];
+}
+
+export async function getBatchRecentActivity(
+  farmIds: string[]
+): Promise<Record<string, any[]>> {
+  if (farmIds.length === 0) return {};
+
+  const placeholders = farmIds.map(() => '?').join(',');
   const result = await db.execute({
     sql: `
-      SELECT 'ai' as type, a.id, COALESCE(a.user_query, 'AI Analysis') as title, a.created_at
-      FROM ai_analyses a WHERE a.farm_id = ?
-      UNION ALL
-      SELECT 'planting' as type, p.id,
-        COALESCE(p.name, s.common_name, 'New planting') as title,
-        p.created_at
-      FROM plantings p
-      LEFT JOIN species s ON s.id = p.species_id
-      WHERE p.farm_id = ?
-      UNION ALL
-      SELECT 'zone' as type, z.id, COALESCE(z.name, z.zone_type, 'New zone') as title, z.created_at
-      FROM zones z WHERE z.farm_id = ?
-      UNION ALL
-      SELECT 'task' as type, t.id,
-        CASE WHEN t.status = 'completed' THEN 'Completed: ' || t.title ELSE t.title END as title,
-        COALESCE(t.completed_at, t.created_at) as created_at
-      FROM tasks t WHERE t.farm_id = ?
-        AND (t.status = 'completed' OR t.created_at > unixepoch() - 604800)
+      SELECT * FROM (
+        SELECT 'ai' as type, a.id, a.farm_id, COALESCE(a.user_query, 'AI Analysis') as title, a.created_at
+        FROM ai_analyses a WHERE a.farm_id IN (${placeholders})
+        UNION ALL
+        SELECT 'planting' as type, p.id, p.farm_id,
+          COALESCE(p.name, s.common_name, 'New planting') as title,
+          p.created_at
+        FROM plantings p
+        LEFT JOIN species s ON s.id = p.species_id
+        WHERE p.farm_id IN (${placeholders})
+        UNION ALL
+        SELECT 'zone' as type, z.id, z.farm_id, COALESCE(z.name, z.zone_type, 'New zone') as title, z.created_at
+        FROM zones z WHERE z.farm_id IN (${placeholders})
+        UNION ALL
+        SELECT 'task' as type, t.id, t.farm_id,
+          CASE WHEN t.status = 'completed' THEN 'Completed: ' || t.title ELSE t.title END as title,
+          COALESCE(t.completed_at, t.created_at) as created_at
+        FROM tasks t WHERE t.farm_id IN (${placeholders})
+          AND (t.status = 'completed' OR t.created_at > unixepoch() - 604800)
+      )
       ORDER BY created_at DESC
-      LIMIT 10
     `,
-    args: [farmId, farmId, farmId, farmId],
+    args: [...farmIds, ...farmIds, ...farmIds, ...farmIds],
   });
-  return result.rows;
+
+  const out: Record<string, any[]> = {};
+  for (const id of farmIds) out[id] = [];
+
+  for (const row of result.rows) {
+    const fid = row.farm_id as string;
+    if (out[fid] && out[fid].length < 10) {
+      out[fid].push(row);
+    }
+  }
+  return out;
 }

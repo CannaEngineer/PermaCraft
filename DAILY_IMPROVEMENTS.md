@@ -1,3 +1,33 @@
+# PermaCraft — 2026-04-25
+## Focus: Performance + Reliability (Saturday)
+
+### 1. Dashboard N+1 query elimination
+File: `lib/db/queries/dashboard.ts`, `app/(app)/dashboard/page.tsx`
+What changed: Replaced per-farm `getEcoHealthScore` and `getRecentActivity` calls with batch functions (`getBatchEcoHealthScores`, `getBatchRecentActivity`) that execute a single SQL query across all farms, then partition results in JS.
+Map/dashboard impact: Dashboard load for a user with N farms drops from N×4 + 1 DB queries to N×2 + 3 (eco health and activity are now 1 query each regardless of farm count). A user with 10 farms goes from ~41 queries to ~23.
+
+### 2. Zone save atomic transaction
+File: `app/api/farms/[id]/zones/route.ts`
+What changed: Moved the DELETE, all INSERTs, and the farm timestamp UPDATE into a single `db.batch()` call, which libSQL executes as an atomic transaction. Previously the DELETE ran separately, so a concurrent save request could interleave and cause duplicate farm boundaries or lost zones. (Resolves the "Watch for" item from 2026-04-24.)
+Map/dashboard impact: Zone saves are now atomic — if any INSERT fails, the DELETE is rolled back and existing zones are preserved. Eliminates a data corruption risk under concurrent edits.
+
+### 3. Sync engine exponential backoff
+File: `lib/offline/sync-engine.ts`
+What changed: Replaced fixed 30-second retry delay with exponential backoff (5s → 10s → 20s → 40s → 80s → 120s cap). Tracks `consecutiveFailures` and resets on success.
+Map/dashboard impact: On flaky connections, the sync engine no longer hammers the server every 30s indefinitely. Reduces battery drain on mobile devices and avoids overwhelming the server during outages.
+
+### 4. AI response cache scaling
+File: `lib/ai/response-cache.ts`
+What changed: Increased LRU cache from 100 entries to 500, and added size-aware eviction (`maxSize: 50MB`, `sizeCalculation` based on response length). Prevents a few large responses from evicting the entire cache.
+Map/dashboard impact: AI analysis responses are cached more effectively for multi-farm users. Repeated similar queries hit cache instead of re-calling OpenRouter, reducing latency and API costs.
+
+## Watch for
+- `getBatchRecentActivity` returns all matching rows sorted globally then caps at 10 per farm in JS. For users with many farms and heavy activity, the SQL result set could be large. Consider adding a per-subquery LIMIT if this becomes an issue.
+- `getFarmTasks` and `getRecentAiInsights` are still per-farm queries. They're lightweight (indexed, limited), but could be batched in a future pass if dashboard latency is still a concern.
+- The sync engine backoff resets to 0 on any successful sync. If the server is intermittently failing, this could still cause bursty retries. Consider a slow-decay approach if monitoring shows issues.
+
+---
+
 # PermaCraft — 2026-04-24
 ## Focus: Map Core (Thursday)
 

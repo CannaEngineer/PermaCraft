@@ -106,7 +106,9 @@ class SyncEngine {
   private listeners = new Set<SyncEventListener>();
   private syncInProgress = false;
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
-  private conflictResolution: ConflictResolution = 'local'; // Default: last-write-wins (local)
+  private conflictResolution: ConflictResolution = 'local';
+  private consecutiveFailures = 0;
+  private static readonly MAX_BACKOFF_MS = 120_000; // 2 minutes
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -200,16 +202,22 @@ class SyncEngine {
       await this.refreshCounts();
 
       this.state.lastSyncedAt = Date.now();
+      this.consecutiveFailures = 0;
       this.updateStatus(this.state.conflicts > 0 ? 'conflict' : 'idle');
       this.emit({ type: 'sync:complete', data: this.getState() });
     } catch (error: any) {
       console.error('[SyncEngine] Sync failed:', error);
+      this.consecutiveFailures++;
       this.state.error = error.message;
       this.updateStatus('error', error.message);
       this.emit({ type: 'sync:error', data: { error: error.message } });
 
-      // Retry in 30s on failure
-      this.scheduleSync(30000);
+      // Exponential backoff: 5s → 10s → 20s → 40s → 80s → 120s (cap)
+      const backoffMs = Math.min(
+        5000 * Math.pow(2, this.consecutiveFailures - 1),
+        SyncEngine.MAX_BACKOFF_MS
+      );
+      this.scheduleSync(backoffMs);
     } finally {
       this.syncInProgress = false;
     }
