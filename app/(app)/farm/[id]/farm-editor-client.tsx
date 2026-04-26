@@ -1019,12 +1019,19 @@ IMPORTANT: When suggesting new plantings:
             onGetRecommendations={handleVitalRecommendations}
           />
         </div>
+        {/* Mobile backdrop */}
+        {isChatOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-[2px] z-[34] animate-in fade-in duration-200"
+            onClick={() => setIsChatOpen(false)}
+          />
+        )}
         <div
-          className={`w-full md:w-96 border-t md:border-t-0 md:border-l border-border max-h-[400px] md:max-h-none overflow-y-auto transition-transform duration-300 ease-in-out ${
+          className={`w-full md:w-96 border-t md:border-t-0 md:border-l border-border overflow-y-auto transition-transform duration-300 ease-in-out fixed top-0 right-0 h-full bg-card z-[35] shadow-2xl md:shadow-none ${
             isChatOpen
               ? "translate-x-0"
               : "translate-x-full"
-          } fixed top-0 right-0 h-full bg-card z-[35]`}
+          }`}
         >
           <EnhancedChatPanel
             farmId={farm.id}

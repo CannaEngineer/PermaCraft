@@ -74,7 +74,14 @@ export function InsightsWidget({ insights, farmId }: Props) {
           <div className="py-6 text-center">
             <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">No analyses yet</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Open the map and ask AI for insights</p>
+            <p className="text-xs text-muted-foreground/60 mt-1 mb-3">Ask AI to analyze your farm design</p>
+            <Link
+              href={`/farm/${farmId}?chat=open`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+            >
+              <Sparkles className="h-3 w-3" />
+              Start AI Analysis
+            </Link>
           </div>
         )}
         {parsed.map((item) => {
