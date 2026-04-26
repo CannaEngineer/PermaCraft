@@ -1,3 +1,33 @@
+# PermaCraft — 2026-04-26
+## Focus: UI/UX Polish (Sunday)
+
+### 1. Mobile farm name edit button now discoverable
+File: `components/dashboard/farm-hero-card.tsx`
+What changed: Edit button shows at 60% opacity on mobile (was hidden behind hover-only), with larger touch target and `touch-manipulation` for snappy response.
+Map/dashboard impact: Mobile users can now rename farms directly from the dashboard hero card, instead of the edit affordance being desktop-hover-only.
+
+### 2. Removed double-card nesting in progress panel
+File: `components/dashboard/progress-panel.tsx`
+What changed: Removed wrapping Card/border/header from ProgressPanel — LearningProgress already renders its own Card with gradient styling. Eliminates visual double-border.
+Map/dashboard impact: Dashboard looks cleaner — the learning progress widget now matches the visual weight of neighboring cards instead of appearing double-bordered.
+
+### 3. Insights empty state now links to AI analysis
+File: `components/dashboard/insights-widget.tsx`
+What changed: Empty state now includes a "Start AI Analysis" button linking to the farm editor with chat open, instead of passive text saying "Open the map and ask AI."
+Map/dashboard impact: First-time users hitting the empty insights widget get a clear path forward — one tap takes them into the AI chat on their farm.
+
+### 4. Chat panel mobile backdrop and transition polish
+File: `app/(app)/farm/[id]/farm-editor-client.tsx`
+What changed: Added translucent backdrop overlay on mobile when AI chat is open (tap to dismiss). Removed the 400px max-height constraint that was truncating the chat on mobile. Added depth shadow on mobile panel.
+Map/dashboard impact: AI chat on mobile now feels like a proper overlay sheet instead of a jarring side-slide. Users can dismiss by tapping outside, and the full chat history is visible without scrolling a cramped 400px box.
+
+## Watch for
+- The chat panel backdrop uses `animate-in fade-in` from tailwind-animate — verify this utility class is present in the project's Tailwind config if transitions don't animate
+- The ProgressPanel now directly returns LearningProgress (a server component) — verify this works correctly when rendered inside the client DashboardClientV2 (it should, since Next.js supports async server components as children of client components)
+- InsightsWidget links to `/farm/${farmId}?chat=open` — the farm-editor-client already handles this query param, so this should work out of the box
+
+---
+
 # PermaCraft — 2026-04-25
 ## Focus: Performance + Reliability (Saturday)
 

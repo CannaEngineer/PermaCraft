@@ -138,7 +138,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                     <h2 className="text-xl md:text-2xl font-bold tracking-tight">{farm.name}</h2>
                     <button
                       onClick={() => { setEditing(true); setTimeout(() => nameRef.current?.focus(), 50); }}
-                      className="opacity-0 group-hover:opacity-100 rounded-lg p-1 hover:bg-muted/50 transition-all"
+                      className="opacity-60 md:opacity-0 group-hover:opacity-100 rounded-lg p-1.5 hover:bg-muted/50 active:bg-muted/70 transition-all touch-manipulation"
                       title="Edit farm details"
                     >
                       <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
