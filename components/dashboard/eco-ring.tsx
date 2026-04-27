@@ -26,10 +26,10 @@ export function EcoRing({ score, functions }: Props) {
     <div className="rounded-2xl border border-border bg-card p-5">
       <h3 className="text-sm font-semibold mb-4">Ecosystem Health</h3>
 
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
         {/* SVG Ring */}
         <div className="relative flex-shrink-0">
-          <svg width="128" height="128" viewBox="0 0 128 128">
+          <svg width="112" height="112" viewBox="0 0 128 128">
             {/* Background ring */}
             <circle
               cx="64"
@@ -65,7 +65,7 @@ export function EcoRing({ score, functions }: Props) {
         </div>
 
         {/* Functions grid */}
-        <div className="flex-1 grid grid-cols-2 gap-2">
+        <div className="flex-1 w-full grid grid-cols-2 gap-2">
           {Object.entries(FUNCTION_META).map(([key, meta]) => {
             const count = functions[key] ?? 0;
             const active = count > 0;
