@@ -1,6 +1,7 @@
 'use client';
 import { formatDistanceToNow } from 'date-fns';
-import { Bot, Sprout, MapPin, FileText, CheckSquare } from 'lucide-react';
+import { Bot, Sprout, MapPin, FileText, CheckSquare, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface ActivityItem {
   type: string;
@@ -35,12 +36,24 @@ const DEFAULT_META = {
 
 interface Props {
   items: ActivityItem[];
+  farmId?: string;
 }
 
-export function ActivityTimeline({ items }: Props) {
+export function ActivityTimeline({ items, farmId }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      <h3 className="text-sm font-semibold mb-4">Recent Activity</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold">Recent Activity</h3>
+        {farmId && items.length > 0 && (
+          <Link
+            href={`/farm/${farmId}`}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Open farm
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
 
       {items.length === 0 && (
         <div className="py-8 text-center">

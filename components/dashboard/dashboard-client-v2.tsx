@@ -190,7 +190,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
 
           {/* Bottom section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ActivityTimeline items={active.activity as any} />
+            <ActivityTimeline items={active.activity as any} farmId={activeFarmId} />
             <ProgressPanel userId={userId} />
           </div>
         </>

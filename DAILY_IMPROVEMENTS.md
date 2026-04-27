@@ -1,3 +1,32 @@
+# PermaCraft — 2026-04-27
+## Focus: UI/UX Polish (Sunday)
+
+### 1. Auth error states now readable in both light and dark mode
+Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
+What changed: Replaced `bg-destructive/20 text-destructive-foreground` (which relies on theme tokens that can render white-on-white or dark-on-dark) with explicit `bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300` and a visible border.
+Map/dashboard impact: Users who mistype credentials or hit a server error see a clearly readable message instead of text that blends into the background on certain themes.
+
+### 2. Farm creation page shows boundary status and clearer CTA
+File: `app/(app)/farm/new/page.tsx`
+What changed: Added a green confirmation banner when the boundary is drawn ("Boundary drawn — X.X acres"). The submit button now reads "Draw boundary first" when disabled (instead of grayed-out "Create Farm"), and uses a larger, rounded style to stand out as the primary action.
+Map/dashboard impact: First-time users no longer wonder why "Create Farm" is grayed out — the button text tells them what to do, and drawing confirmation gives immediate visual feedback.
+
+### 3. EcoRing widget responsive layout for narrow screens
+File: `components/dashboard/eco-ring.tsx`
+What changed: Changed the ring + functions grid from a fixed horizontal layout (`flex items-center gap-6`) to `flex-col sm:flex-row` with tighter gap. Ring SVG reduced from 128px to 112px rendered size. Functions grid now takes full width on mobile.
+Map/dashboard impact: Dashboard no longer overflows horizontally on screens narrower than 375px (iPhone SE, small Androids). The eco health ring and function pills stack vertically instead of getting clipped.
+
+### 4. Activity Timeline now links to the farm editor
+Files: `components/dashboard/activity-timeline.tsx`, `components/dashboard/dashboard-client-v2.tsx`
+What changed: Added an "Open farm" link in the Activity Timeline header (consistent with Tasks and Insights widgets). The component now accepts an optional `farmId` prop, passed from DashboardClientV2.
+Map/dashboard impact: Designers can navigate directly from a recent activity item's context to the map editor — previously the Activity Timeline was a visual dead-end with no path to action.
+
+## Watch for
+- The inline SVG checkmark in the boundary confirmation banner uses a `path` element with `fillRule="evenodd"`. Verify it renders on Safari (it should — standard SVG).
+- EcoRing stacking at `sm:` breakpoint (640px) may feel early on tablets in portrait. Monitor if users on 600-640px screens prefer the horizontal layout.
+
+---
+
 # PermaCraft — 2026-04-26
 ## Focus: UI/UX Polish (Sunday)
 

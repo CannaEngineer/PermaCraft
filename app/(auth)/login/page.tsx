@@ -68,7 +68,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {error && (
-            <div className="bg-destructive/20 border border-destructive/50 text-destructive-foreground p-3 rounded-md">
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-sm p-3 rounded-lg">
               {error}
             </div>
           )}

@@ -164,8 +164,15 @@ export default function NewFarmPage() {
         {/* Error and Actions */}
         <div className="container mx-auto px-4 md:px-6 space-y-4">
           {error && (
-            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-sm p-3 rounded-lg">
               {error}
+            </div>
+          )}
+
+          {boundary && (
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-300 text-sm p-3 rounded-lg flex items-center gap-2">
+              <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 15A7 7 0 108 1a7 7 0 000 14zm3.44-8.56a.75.75 0 00-1.06-1.06L7 8.76 5.28 7.04a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.06 0l3.91-3.91z" clipRule="evenodd"/></svg>
+              Boundary drawn — {boundary.areaAcres.toFixed(1)} acres
             </div>
           )}
 
@@ -177,8 +184,13 @@ export default function NewFarmPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !boundary}>
-              {loading ? "Creating..." : "Create Farm"}
+            <Button
+              type="submit"
+              disabled={loading || !boundary}
+              size="lg"
+              className="rounded-xl px-8 shadow-sm"
+            >
+              {loading ? "Creating..." : !boundary ? "Draw boundary first" : "Create Farm"}
             </Button>
           </div>
         </div>
