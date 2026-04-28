@@ -49,25 +49,10 @@ import {
   getSketchInstructionModel,
   getFarmPlanningModel,
 } from "@/lib/ai/model-settings";
+import { isComplexPlanningQuery } from "@/lib/ai/planning-detection";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
-
-/**
- * Detect complex planning queries that benefit from MiniMax M2.5's
- * planning optimization strengths (structured output, task sequencing).
- */
-function isComplexPlanningQuery(query: string): boolean {
-  const planningPatterns = [
-    /\b(implementation|action)\s*plan\b/i,
-    /\b(year[- ]by[- ]year|phase[- ]by[- ]phase|week[- ]by[- ]week|step[- ]by[- ]step)\b/i,
-    /\b(budget|cost\s+estimat|material\s+list|shopping\s+list)\b/i,
-    /\b(planting\s+schedule|planting\s+calendar|seasonal\s+plan)\b/i,
-    /\b(plan\s+my\s+(whole|entire)|design\s+my\s+(whole|entire))\b/i,
-    /\b(timeline|gantt|project\s+plan|roadmap)\b/i,
-  ];
-  return planningPatterns.some(pattern => pattern.test(query));
-}
 
 export const dynamic = 'force-dynamic';
 
@@ -116,6 +101,7 @@ const analyzeSchema = z.object({
     lines: z.array(z.record(z.unknown())).max(200),
     goals: z.array(z.record(z.unknown())).max(50),
     nativeSpecies: z.array(z.record(z.unknown())).max(500),
+    guilds: z.array(z.record(z.unknown())).max(100).optional(),
   }).optional(),
   farmInfo: z.object({
     id: z.string().max(100),
@@ -216,6 +202,7 @@ export async function POST(request: NextRequest) {
     let enrichedNativeSpeciesContext = nativeSpeciesContext;
     let enrichedPlantingsContext = plantingsContext;
     let enrichedLinesContext: string | undefined;
+    let enrichedGuildsContext: string | undefined;
 
     if (needsEnrichment) {
       const [zonesResult, plantingsResult, linesResult] = await Promise.all([
@@ -369,21 +356,29 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // Build guild context from client-provided data
+    const clientGuilds = farmContext?.guilds;
+    if (clientGuilds && clientGuilds.length > 0) {
+      const parts: string[] = [`PLANT GUILDS (${clientGuilds.length} designed):`];
+      for (const g of clientGuilds) {
+        const focal = g.focal_common_name
+          ? `${g.focal_common_name} (${g.focal_scientific_name || 'unknown'})`
+          : 'No focal species';
+        let companions = '';
+        if (g.companion_species && Array.isArray(g.companion_species)) {
+          companions = g.companion_species
+            .map((c: any) => c.common_name || c.name || 'unknown')
+            .join(', ');
+        }
+        const benefits = g.benefits && Array.isArray(g.benefits) ? g.benefits.join(', ') : '';
+        parts.push(`  - "${g.name || 'Unnamed guild'}": focal=${focal}${companions ? `, companions: ${companions}` : ''}${benefits ? ` — benefits: ${benefits}` : ''}`);
+      }
+      parts.push('\nConsider existing guilds when recommending new plantings — suggest companions that complement these designs.');
+      enrichedGuildsContext = parts.join('\n');
+    }
+
     /**
      * STEP 5.2: Apply optimizations if enabled
-     *
-     * When enableOptimizations is true, this pipeline activates:
-     * 1. Infer detail level from query (low/medium/high)
-     * 2. Compress farm context to < 2000 tokens
-     * 3. Optimize screenshots to < 200KB
-     * 4. Check response cache for duplicate queries
-     * 5. Return cached response if found, otherwise proceed
-     *
-     * Benefits:
-     * - Reduces token costs by 60-80%
-     * - Faster responses via caching
-     * - Better image quality with WebP compression
-     * - Query-aware context building
      */
     let optimizedContextText: string | undefined;
     let totalScreenshotTokens = 0;
@@ -531,6 +526,7 @@ export async function POST(request: NextRequest) {
             nativeSpeciesContext: enrichedNativeSpeciesContext,
             plantingsContext: enrichedPlantingsContext,
             linesContext: enrichedLinesContext,
+            guildsContext: enrichedGuildsContext,
             goalsContext: goalsContext,
             ragContext: ragContext,
           }

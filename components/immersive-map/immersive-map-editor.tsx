@@ -652,7 +652,8 @@ function ImmersiveMapEditorContent({
             plantings,
             lines,
             goals,
-            nativeSpecies
+            nativeSpecies,
+            guilds
           },
           farmInfo: {
             id: farm.id,
@@ -684,7 +685,7 @@ function ImmersiveMapEditorContent({
         throw error;
       }
     },
-    [farm.id, farm.climate_zone, farm.rainfall_inches, farm.soil_type, zones, plantings, lines, goals, nativeSpecies, captureMapScreenshot]
+    [farm.id, farm.climate_zone, farm.rainfall_inches, farm.soil_type, zones, plantings, lines, goals, nativeSpecies, guilds, captureMapScreenshot]
   );
 
   // Farm context for GuildDesigner
