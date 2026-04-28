@@ -21,6 +21,7 @@ export interface AnalyzeRequest {
     lines: any[];
     goals: any[];
     nativeSpecies: any[];
+    guilds?: any[];
   };
   farmInfo: {
     id: string;

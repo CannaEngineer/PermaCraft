@@ -1,3 +1,33 @@
+# PermaCraft — 2026-04-28
+## Focus: Map Intelligence (AI Context Quality)
+
+### 1. Enriched chat endpoint with full farm context
+File: `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
+What changed: Added permaculture_functions to plantings query, farmer goals, native species for the region, and RAG knowledge base context to the text-only chat endpoint — matching the information depth of the vision analysis endpoint.
+Map/dashboard impact: When designers ask questions via text chat without triggering a screenshot analysis, the AI now knows what ecological functions each planting serves, what the farmer's goals are, which native species suit their climate zone, and has access to permaculture literature. Previously, the chat AI gave generic advice; now it gives farm-specific, goal-aligned recommendations.
+
+### 2. Adaptive screenshot instructions in system prompt
+File: `lib/ai/prompts.ts`
+What changed: The system prompt and user prompt now adapt based on how many screenshots are actually provided. Previously, the prompt always described a dual-view (satellite + topographic) workflow even though the client typically sends only one screenshot. The prompt now correctly describes single-screenshot analysis when one is sent, and dual-view analysis when two are available.
+Map/dashboard impact: Eliminates ~300 wasted prompt tokens per request and removes confusing instructions that told the AI to "analyze BOTH screenshots" when only one existed. The AI no longer fabricates analysis of a nonexistent topographic view.
+
+### 3. Guild context in AI analysis
+Files: `lib/ai/optimized-analyze.ts`, `app/api/ai/analyze/route.ts`, `lib/ai/prompts.ts`, `components/immersive-map/immersive-map-editor.tsx`
+What changed: Plant guild data (designed combinations of focal + companion species with their benefits) is now included in the AI analysis context. Guilds were already loaded client-side but never passed to the AI.
+Map/dashboard impact: When recommending new plantings, the AI now knows about existing guild designs and can suggest companions that complement them rather than duplicating or conflicting with established polycultures.
+
+### 4. Extracted shared planning detection
+Files: `lib/ai/planning-detection.ts`, `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`
+What changed: The duplicated `isComplexPlanningQuery` function was extracted to a shared module. The chat route's version had 2 additional planning patterns (cost estimation, plan creation) that the analyze route was missing — now both routes use the same comprehensive set.
+Map/dashboard impact: The analyze route now correctly detects cost estimation and plan creation queries for MiniMax M2.5 routing, which it was previously missing.
+
+## Watch for
+- The chat endpoint now makes 2 additional DB queries (goals + native species) and 1 RAG query per request when a farmId is provided. Monitor latency — if it becomes noticeable, these queries could be parallelized with Promise.all alongside the existing zone/planting/line queries.
+- The `createGeneralChatPrompt` function now accepts `ragContext` which is appended before the user question. For very large knowledge bases, this could push token counts high — the chat endpoint limits RAG to 3 chunks (vs 5 for analysis) to keep context reasonable.
+- Guild context is built from client-provided data only. If guilds are modified in another tab, the AI won't see the update until the page refreshes.
+
+---
+
 # PermaCraft — 2026-04-27
 ## Focus: UI/UX Polish (Sunday)
 

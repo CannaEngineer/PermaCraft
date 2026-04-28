@@ -5,34 +5,12 @@ import { GENERAL_PERMACULTURE_SYSTEM_PROMPT, createGeneralChatPrompt } from "@/l
 import { manageConversationContext } from "@/lib/ai/context-manager";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/ai/rate-limit";
 import { getFarmPlanningModel } from "@/lib/ai/model-settings";
+import { getGoalsForAIContext } from "@/lib/ai/goals-context";
+import { getRAGContext } from "@/lib/ai/rag-context";
+import { isComplexPlanningQuery } from "@/lib/ai/planning-detection";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import type { Farm } from "@/lib/db/schema";
-
-/**
- * Detect whether a query is a complex planning request that benefits from
- * MiniMax M2.5's planning optimization and structured output strengths.
- *
- * M2.5 is routed for queries involving:
- * - Multi-step implementation plans
- * - Budget/cost estimation
- * - Seasonal scheduling and timelines
- * - Phased design strategies
- * - Material lists and procurement
- */
-function isComplexPlanningQuery(query: string): boolean {
-  const planningPatterns = [
-    /\b(implementation|action)\s*plan\b/i,
-    /\b(year[- ]by[- ]year|phase[- ]by[- ]phase|week[- ]by[- ]week|step[- ]by[- ]step)\b/i,
-    /\b(budget|cost\s+estimat|material\s+list|shopping\s+list)\b/i,
-    /\b(planting\s+schedule|planting\s+calendar|seasonal\s+plan)\b/i,
-    /\b(plan\s+my\s+(whole|entire)|design\s+my\s+(whole|entire))\b/i,
-    /\b(timeline|gantt|project\s+plan|roadmap)\b/i,
-    /\b(how\s+much\s+will\s+it\s+cost|total\s+cost|estimate\s+the\s+cost)\b/i,
-    /\b(create\s+a\s+plan|make\s+a\s+plan|build\s+a\s+plan|develop\s+a\s+plan)\b/i,
-  ];
-  return planningPatterns.some(pattern => pattern.test(query));
-}
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +50,9 @@ export async function POST(request: NextRequest) {
     let zonesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let plantingsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let linesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
+    let goalsContext = '';
+    let nativeSpeciesData: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }> = [];
+    let ragContext = '';
 
     if (farmId) {
       const farmResult = await db.execute({
@@ -92,7 +73,8 @@ export async function POST(request: NextRequest) {
           args: [farmId],
         }),
         db.execute({
-          sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native
+          sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native,
+                       s.permaculture_functions
                 FROM plantings p JOIN species s ON p.species_id = s.id
                 WHERE p.farm_id = ?`,
           args: [farmId],
@@ -104,6 +86,37 @@ export async function POST(request: NextRequest) {
       ]);
       zoneCount = zonesResult.rows.length;
       plantingCount = plantingsResult.rows.length;
+
+      // Fetch goals and native species for richer recommendations
+      goalsContext = await getGoalsForAIContext(farmId);
+
+      if (farm.climate_zone) {
+        const zoneNum = farm.climate_zone.replace(/[ab]/i, '');
+        const nativeResult = await db.execute({
+          sql: `SELECT common_name, scientific_name, layer, mature_height_ft
+                FROM species
+                WHERE is_native = 1
+                  AND (
+                    (min_hardiness_zone IS NOT NULL AND max_hardiness_zone IS NOT NULL
+                     AND CAST(REPLACE(REPLACE(min_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) <= ?
+                     AND CAST(REPLACE(REPLACE(max_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) >= ?)
+                    OR hardiness_zones LIKE ?
+                  )
+                LIMIT 10`,
+          args: [parseInt(zoneNum) || 0, parseInt(zoneNum) || 0, `%${farm.climate_zone}%`],
+        });
+        if (nativeResult.rows.length > 0) {
+          nativeSpeciesData = nativeResult.rows.map((s: any) => ({
+            common_name: s.common_name as string,
+            scientific_name: s.scientific_name as string,
+            layer: s.layer as string,
+            mature_height_ft: s.mature_height_ft as number,
+          }));
+        }
+      }
+
+      // Fetch RAG context
+      ragContext = await getRAGContext(query, 3);
     }
 
     // Get or create conversation
@@ -145,11 +158,15 @@ export async function POST(request: NextRequest) {
         scientific_name: p.scientific_name as string,
         layer: p.layer as string,
         is_native: p.is_native as number,
+        permaculture_functions: p.permaculture_functions as string | null,
       })),
       lines: linesResult?.rows.map((l: any) => ({
         line_type: l.line_type as string,
         label: l.label as string | null,
       })),
+      goalsContext,
+      nativeSpecies: nativeSpeciesData.length > 0 ? nativeSpeciesData : undefined,
+      ragContext: ragContext || undefined,
     } : undefined);
 
     // Load conversation history
