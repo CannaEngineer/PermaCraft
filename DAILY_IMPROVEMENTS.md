@@ -1,3 +1,33 @@
+# PermaCraft — 2026-04-29
+## Focus: Dashboard
+
+### 1. Fix server component rendered inside client boundary
+File: `components/dashboard/dashboard-client-v2.tsx`, `app/(app)/dashboard/page.tsx`
+What changed: `ProgressPanel` (async server component with DB queries) was imported directly into the `'use client'` DashboardClientV2, causing it to be bundled as a client component where `await` would fail. Moved it to a `progressSlot` ReactNode prop passed from the server page.
+Dashboard impact: Learning progress panel now renders correctly instead of silently failing or throwing a runtime error.
+
+### 2. Add SQL-level LIMIT to activity timeline query
+File: `lib/db/queries/dashboard.ts`
+What changed: `getBatchRecentActivity` did a UNION ALL across ai_analyses, plantings, zones, and tasks with no per-subquery LIMIT — fetching potentially thousands of rows before trimming to 10 per farm in JS. Added `LIMIT (farmCount * 15)` to each sub-select with ORDER BY within each.
+Dashboard impact: Activity timeline loads faster for farms with significant history. Prevents Turso query timeouts on large datasets. (Resolves the "Watch for" item from 2026-04-25.)
+
+### 3. Fix insights snippet truncation
+File: `components/dashboard/insights-widget.tsx`
+What changed: `slice(0, 140)` cut mid-word and always appended "..." even for short responses. Now breaks at word boundaries (last space before 140 chars) and only shows ellipsis when the response was actually truncated.
+Dashboard impact: AI insight snippets read naturally instead of breaking mid-word with spurious "..." on short responses.
+
+### 4. Fix eco-ring suggestion text safety
+File: `components/dashboard/eco-ring.tsx`
+What changed: The "Tip: Add X and Y" suggestion filtered for functions with count 0, then looked up labels via `FUNCTION_META[k]`. If a function key from the DB wasn't in the hardcoded map, `undefined` would appear in the text. Added `.filter(Boolean)` after label lookup and moved `.slice(0, 2)` after the filter.
+Dashboard impact: Suggestion text no longer shows "undefined" if the species DB has function keys not in the UI's hardcoded list.
+
+## Watch for
+- If new permaculture function types are added to the species DB, the eco-ring `FUNCTION_META` map needs updating to display them (currently they'd be silently filtered out of both the grid and suggestion text).
+- The `getBatchRecentActivity` per-subquery limit of `farmCount * 15` assumes ≤15 recent items per farm per type is sufficient. If a designer has many farms, this could still be large; monitor Turso query times.
+- `ProgressPanel` / `LearningProgress` makes 5 sequential DB queries inside `fetchLearningData`. These should be parallelized with `Promise.all` in a future pass.
+
+---
+
 # PermaCraft — 2026-04-28
 ## Focus: Map Intelligence (AI Context Quality)
 

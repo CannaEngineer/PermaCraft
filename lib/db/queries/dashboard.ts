@@ -165,27 +165,38 @@ export async function getBatchRecentActivity(
   if (farmIds.length === 0) return {};
 
   const placeholders = farmIds.map(() => '?').join(',');
+  const perSubqueryLimit = farmIds.length * 15;
   const result = await db.execute({
     sql: `
       SELECT * FROM (
         SELECT 'ai' as type, a.id, a.farm_id, COALESCE(a.user_query, 'AI Analysis') as title, a.created_at
         FROM ai_analyses a WHERE a.farm_id IN (${placeholders})
-        UNION ALL
+        ORDER BY a.created_at DESC LIMIT ${perSubqueryLimit}
+      )
+      UNION ALL
+      SELECT * FROM (
         SELECT 'planting' as type, p.id, p.farm_id,
           COALESCE(p.name, s.common_name, 'New planting') as title,
           p.created_at
         FROM plantings p
         LEFT JOIN species s ON s.id = p.species_id
         WHERE p.farm_id IN (${placeholders})
-        UNION ALL
+        ORDER BY p.created_at DESC LIMIT ${perSubqueryLimit}
+      )
+      UNION ALL
+      SELECT * FROM (
         SELECT 'zone' as type, z.id, z.farm_id, COALESCE(z.name, z.zone_type, 'New zone') as title, z.created_at
         FROM zones z WHERE z.farm_id IN (${placeholders})
-        UNION ALL
+        ORDER BY z.created_at DESC LIMIT ${perSubqueryLimit}
+      )
+      UNION ALL
+      SELECT * FROM (
         SELECT 'task' as type, t.id, t.farm_id,
           CASE WHEN t.status = 'completed' THEN 'Completed: ' || t.title ELSE t.title END as title,
           COALESCE(t.completed_at, t.created_at) as created_at
         FROM tasks t WHERE t.farm_id IN (${placeholders})
           AND (t.status = 'completed' OR t.created_at > unixepoch() - 604800)
+        ORDER BY created_at DESC LIMIT ${perSubqueryLimit}
       )
       ORDER BY created_at DESC
     `,

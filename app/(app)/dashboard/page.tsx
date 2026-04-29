@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth/session";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { DashboardClientV2 } from "@/components/dashboard/dashboard-client-v2";
+import { ProgressPanel } from "@/components/dashboard/progress-panel";
 import {
   getDashboardFarms,
   getBatchEcoHealthScores,
@@ -113,6 +114,7 @@ export default async function DashboardPage() {
         farms={farms}
         farmData={farmData}
         userId={session.user.id}
+        progressSlot={<ProgressPanel userId={session.user.id} />}
       />
     </div>
   );
