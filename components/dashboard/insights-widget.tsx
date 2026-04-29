@@ -43,11 +43,17 @@ const CATEGORY_STYLE = {
 };
 
 export function InsightsWidget({ insights, farmId }: Props) {
-  const parsed = insights.slice(0, 3).map((i) => ({
-    ...i,
-    snippet: i.ai_response.slice(0, 140).replace(/\n/g, ' '),
-    category: categorize(i.ai_response),
-  }));
+  const parsed = insights.slice(0, 3).map((i) => {
+    const flat = i.ai_response.replace(/\n/g, ' ').trim();
+    let snippet = flat;
+    let truncated = false;
+    if (flat.length > 140) {
+      const cut = flat.lastIndexOf(' ', 140);
+      snippet = flat.slice(0, cut > 80 ? cut : 140);
+      truncated = true;
+    }
+    return { ...i, snippet, truncated, category: categorize(i.ai_response) };
+  });
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
@@ -100,7 +106,7 @@ export function InsightsWidget({ insights, farmId }: Props) {
                 </p>
               )}
               <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2">
-                {item.snippet}...
+                {item.snippet}{item.truncated ? '...' : ''}
               </p>
             </div>
           );

@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { DashboardFarm } from '@/lib/db/queries/dashboard';
 import { FarmHeroCard } from './farm-hero-card';
 import { AlertBanner } from './alert-banner';
@@ -8,7 +8,6 @@ import { SeasonWidget } from './season-widget';
 import { TasksWidget } from './tasks-widget';
 import { InsightsWidget } from './insights-widget';
 import { ActivityTimeline } from './activity-timeline';
-import { ProgressPanel } from './progress-panel';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import { Task } from '@/lib/db/schema';
 import Link from 'next/link';
@@ -29,11 +28,12 @@ interface Props {
   farms: DashboardFarm[];
   farmData: Record<string, FarmData>;
   userId: string;
+  progressSlot?: ReactNode;
 }
 
 const ACTIVE_FARM_STORAGE_KEY = 'dashboard:activeFarmId';
 
-export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmData, userId }: Props) {
+export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmData, userId, progressSlot }: Props) {
   const [localFarmData, setLocalFarmData] = useState(initialFarmData);
   const [localFarms, setLocalFarms] = useState(initialFarms);
   // SSR-safe: initialize to the first farm; rehydrate from localStorage on mount.
@@ -191,7 +191,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
           {/* Bottom section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ActivityTimeline items={active.activity as any} farmId={activeFarmId} />
-            <ProgressPanel userId={userId} />
+            {progressSlot}
           </div>
         </>
       )}

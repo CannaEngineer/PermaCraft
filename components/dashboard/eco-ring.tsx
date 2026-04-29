@@ -99,8 +99,9 @@ export function EcoRing({ score, functions }: Props) {
             Add{' '}
             {Object.entries(functions)
               .filter(([, v]) => v === 0)
-              .slice(0, 2)
               .map(([k]) => FUNCTION_META[k]?.label.toLowerCase())
+              .filter(Boolean)
+              .slice(0, 2)
               .join(' and ')}{' '}
             to strengthen your ecosystem diversity.
           </p>
