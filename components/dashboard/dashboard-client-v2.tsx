@@ -139,6 +139,8 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{farm.name}</div>
                     <div className="text-xs text-muted-foreground">
+                      {farm.zone_count} zone{farm.zone_count !== 1 ? 's' : ''}
+                      {' · '}
                       {farm.planting_count} plant{farm.planting_count !== 1 ? 's' : ''}
                       {farm.acres ? ` · ${farm.acres}ac` : ''}
                       {' · '}

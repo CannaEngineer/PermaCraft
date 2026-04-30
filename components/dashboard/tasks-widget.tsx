@@ -20,8 +20,10 @@ export function TasksWidget({ tasks, farmId }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const now = Math.floor(Date.now() / 1000);
-  const dayEnd = now + 86400;
-  const weekEnd = now + 7 * 86400;
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  const dayEnd = Math.floor(today.getTime() / 1000);
+  const weekEnd = dayEnd + 7 * 86400;
 
   // Tab semantics (each tab is a strict superset of the previous):
   //  - today: due today/overdue OR urgent (priority 4)

@@ -48,7 +48,7 @@ export function FarmTabStrip({ farms, activeFarmId, onSelect, urgentFarmIds }: P
               {farm.name}
             </div>
             <div className="text-[10px] text-muted-foreground">
-              {farm.acres ? `${farm.acres}ac · ` : ''}{farm.planting_count} plants
+              {farm.acres ? `${farm.acres}ac · ` : ''}{farm.zone_count}z · {farm.planting_count}p
             </div>
           </div>
           {activeFarmId === farm.id && (
