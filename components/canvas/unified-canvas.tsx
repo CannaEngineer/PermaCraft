@@ -33,7 +33,7 @@ import { TasksDrawer } from '@/components/farm/tasks-drawer';
 import { CropPlanDrawer } from '@/components/farm/crop-plan-drawer';
 import { ReportsDrawer } from '@/components/farm/reports-drawer';
 import { GPSLocationDot } from '@/components/map/gps-location-dot';
-import { GPSFieldMarker } from '@/components/map/gps-field-marker';
+import { GPSFieldMarker, type GPSPlantingDropPayload } from '@/components/map/gps-field-marker';
 import type { GPSDropPinFormData } from '@/components/map/gps-drop-pin-form';
 import { BoundaryWalker, type BoundaryWalkerResult } from '@/components/map/boundary-walker';
 import { SoilTestForm, type SoilTestData } from '@/components/map/soil-test-form';
@@ -273,7 +273,14 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const [showSoilTestForm, setShowSoilTestForm] = useState(false);
   const [showGeotaggedPhoto, setShowGeotaggedPhoto] = useState(false);
   const [gpsDropPinTrigger, setGpsDropPinTrigger] = useState(0);
-  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{ lat: number; lng: number; notes?: string; seq: number } | null>(null);
+  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{
+    lat: number;
+    lng: number;
+    notes?: string;
+    accuracy?: number;
+    altitude?: number | null;
+    seq: number;
+  } | null>(null);
 
   // Refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -526,6 +533,8 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
             notes: '',
+            accuracy: pos.coords.accuracy,
+            altitude: pos.coords.altitude,
             seq: Date.now(),
           });
           // Fly the map to user's location
@@ -577,8 +586,15 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
   const handleOpenJournalEntry = useCallback(() => setJournalFormOpen(true), []);
 
   // ─── GPS field mapping handlers ──────────────────────────────────────────
-  const handleGPSPlantingDrop = useCallback((lat: number, lng: number, notes: string) => {
-    setGpsPlantingCoords({ lat, lng, notes, seq: Date.now() });
+  const handleGPSPlantingDrop = useCallback((payload: GPSPlantingDropPayload) => {
+    setGpsPlantingCoords({
+      lat: payload.lat,
+      lng: payload.lng,
+      notes: payload.notes,
+      accuracy: payload.accuracy,
+      altitude: payload.altitude,
+      seq: Date.now(),
+    });
     setTriggerSpeciesPicker(true);
   }, []);
 
