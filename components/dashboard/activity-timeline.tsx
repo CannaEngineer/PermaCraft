@@ -1,6 +1,6 @@
 'use client';
 import { formatDistanceToNow } from 'date-fns';
-import { Bot, Sprout, MapPin, FileText, CheckSquare, ArrowRight, Route } from 'lucide-react';
+import { Bot, Sprout, MapPin, FileText, CheckSquare, ArrowRight, Spline } from 'lucide-react';
 import Link from 'next/link';
 
 interface ActivityItem {
@@ -24,7 +24,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; bg: string }> = {
     bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   },
   line: {
-    icon: <Route className="h-3.5 w-3.5" />,
+    icon: <Spline className="h-3.5 w-3.5" />,
     bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
   },
   task: {
