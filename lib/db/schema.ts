@@ -76,6 +76,14 @@ export interface Species {
   min_rainfall_inches: number | null;
   max_rainfall_inches: number | null;
   ai_generated: number;
+
+  // User-contributed custom species (added in migration 106)
+  // is_custom = 1 marks plants users added themselves; created_by_user_id and
+  // farm_id scope the entry so customs only appear in the picker for the
+  // owning user / farm.
+  created_by_user_id: string | null;
+  farm_id: string | null;
+  is_custom: number;
 }
 
 export interface Planting {
@@ -83,9 +91,20 @@ export interface Planting {
   farm_id: string;
   zone_id: string | null;
   species_id: string;
+  // Optional cultivar/variety pinned to this planting (added in migration 106).
+  // Lets users record "Chestnut → Colossal" instead of just "Chestnut".
+  variety_id: string | null;
   name: string | null;
   lat: number;
   lng: number;
+  // GPS provenance for placement (added in migration 106). placement_method
+  // distinguishes pins dropped via on-device GPS from those set by clicking
+  // the map; accuracy_meters and altitude_meters come from the GeolocationAPI
+  // and are useful for auditing how trustworthy a coordinate is.
+  placement_accuracy_meters: number | null;
+  placement_altitude_meters: number | null;
+  placement_method: 'gps' | 'map_click' | 'manual' | 'imported' | null;
+  placement_recorded_at: number | null;
   planted_year: number | null;
   current_year: number;
   notes: string | null;
@@ -640,6 +659,14 @@ export interface PlantVariety {
   created_at: number;
   updated_at: number;
   created_by: string | null;
+
+  // Hierarchy & ownership (added in migration 106)
+  // parent_variety_id lets varieties nest — e.g., a species "Chestnut" has a
+  // variety "Colossal", and "Colossal" can have its own sub-varieties.
+  // is_custom + farm_id let users add private varieties scoped to one farm.
+  parent_variety_id: string | null;
+  is_custom: number;
+  farm_id: string | null;
 }
 
 // Expanded interface with species info joined

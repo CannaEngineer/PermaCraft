@@ -33,9 +33,26 @@ export async function getAllSpecies(filters?: {
   hardinessZone?: string;
   region?: string;
   permacultureOnly?: boolean;
+  // When provided, also include custom (user-contributed) species owned by
+  // this user OR scoped to this farm. Customs are excluded by default so
+  // they don't leak between users on the global /api/species endpoint.
+  includeCustomFor?: { userId: string; farmId?: string };
 }): Promise<Species[]> {
   let sql = 'SELECT * FROM species WHERE 1=1';
   const args: (string | number)[] = [];
+
+  if (filters?.includeCustomFor) {
+    const { userId, farmId } = filters.includeCustomFor;
+    if (farmId) {
+      sql += ' AND (is_custom = 0 OR created_by_user_id = ? OR farm_id = ?)';
+      args.push(userId, farmId);
+    } else {
+      sql += ' AND (is_custom = 0 OR created_by_user_id = ?)';
+      args.push(userId);
+    }
+  } else {
+    sql += ' AND is_custom = 0';
+  }
 
   if (filters?.native !== undefined) {
     sql += ' AND is_native = ?';

@@ -311,7 +311,15 @@ interface FarmMapProps {
   externalDrawTool?: 'polygon' | 'circle' | 'point' | 'edit' | 'delete' | 'line' | null;
   /** Zone type selected in the external drawing toolbar */
   externalZoneType?: string;
-  externalSelectedSpecies?: { species: Species; seq: number } | null;
+  externalSelectedSpecies?: {
+    species: Species;
+    /**
+     * Optional cultivar selected for this planting. Carried via the picker
+     * flow so it gets persisted on the planting (and shown on the marker).
+     */
+    variety?: { id: string; variety_name: string };
+    seq: number;
+  } | null;
   /** When set to true, opens the internal species picker (same as map submenu Add Plant). Reset to false after acknowledging. */
   externalShowSpeciesPicker?: boolean;
   /** Called by FarmMap after it has acknowledged an externalShowSpeciesPicker=true trigger, so the parent can reset the flag. */
@@ -323,8 +331,20 @@ interface FarmMapProps {
   /** Optional external year control — if provided, overrides internal projectionYear state. */
   externalCurrentYear?: number;
   externalOnYearChange?: (year: number) => void;
-  /** GPS coordinates for auto-placing a planting (skips map click). Set by GPSFieldMarker. */
-  externalGPSPlantingCoords?: { lat: number; lng: number; notes?: string; seq: number } | null;
+  /**
+   * GPS coordinates for auto-placing a planting (skips map click). Set by
+   * GPSFieldMarker. `accuracy` and `altitude` come from the GeolocationAPI at
+   * capture time and are persisted with the planting so users can audit how
+   * precise each pin actually was.
+   */
+  externalGPSPlantingCoords?: {
+    lat: number;
+    lng: number;
+    notes?: string;
+    accuracy?: number;
+    altitude?: number | null;
+    seq: number;
+  } | null;
   /** Called after the GPS planting has been processed, so the parent can reset the coords. */
   onGPSPlantingHandled?: () => void;
 }
@@ -415,8 +435,14 @@ export function FarmMap({
   // Guild companion filter state
   const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
 
-  // GPS planting: store coords received from GPSFieldMarker
-  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{ lat: number; lng: number; notes?: string } | null>(null);
+  // GPS planting: store coords + capture metadata received from GPSFieldMarker
+  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{
+    lat: number;
+    lng: number;
+    notes?: string;
+    accuracy?: number;
+    altitude?: number | null;
+  } | null>(null);
 
   // React to external GPS planting coords
   useEffect(() => {
@@ -425,6 +451,8 @@ export function FarmMap({
         lat: externalGPSPlantingCoords.lat,
         lng: externalGPSPlantingCoords.lng,
         notes: externalGPSPlantingCoords.notes,
+        accuracy: externalGPSPlantingCoords.accuracy,
+        altitude: externalGPSPlantingCoords.altitude,
       });
       onGPSPlantingHandled?.();
     }
@@ -434,7 +462,8 @@ export function FarmMap({
   useEffect(() => {
     if (externalSelectedSpecies && gpsPlantingCoords) {
       const species = externalSelectedSpecies.species;
-      const { lat, lng, notes } = gpsPlantingCoords;
+      const variety = externalSelectedSpecies.variety;
+      const { lat, lng, notes, accuracy, altitude } = gpsPlantingCoords;
 
       // Clear GPS coords so this only fires once
       setGpsPlantingCoords(null);
@@ -447,12 +476,17 @@ export function FarmMap({
         id: `temp-${Date.now()}`,
         farm_id: farm.id,
         species_id: species.id,
+        variety_id: variety?.id || null,
+        variety_name: variety?.variety_name || null,
         lat,
         lng,
         custom_name: null,
         planted_year: new Date().getFullYear(),
         zone_id: null,
         notes: notes || null,
+        placement_accuracy_meters: typeof accuracy === 'number' ? accuracy : null,
+        placement_altitude_meters: typeof altitude === 'number' ? altitude : null,
+        placement_method: 'gps',
         created_at: Date.now(),
         updated_at: Date.now(),
         common_name: species.common_name,
@@ -470,10 +504,14 @@ export function FarmMap({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           species_id: species.id,
+          variety_id: variety?.id,
           lat,
           lng,
           planted_year: new Date().getFullYear(),
           notes: notes || undefined,
+          placement_accuracy_meters: accuracy,
+          placement_altitude_meters: altitude,
+          placement_method: 'gps',
         }),
       }).then(async (response) => {
         if (response.ok) {
@@ -481,9 +519,13 @@ export function FarmMap({
           setPlantings(prev => prev.map(p =>
             p.id === optimisticPlanting.id ? data.planting : p
           ));
+          const accuracyNote = typeof accuracy === 'number'
+            ? ` (±${accuracy < 1 ? `${(accuracy * 100).toFixed(0)}cm` : `${accuracy.toFixed(1)}m`})`
+            : '';
+          const varietyNote = variety ? ` '${variety.variety_name}'` : '';
           toast({
-            title: "Plant marked at GPS location",
-            description: `${species.common_name} placed at your current position.`,
+            title: 'Plant marked at GPS location',
+            description: `${species.common_name}${varietyNote} placed at your current position${accuracyNote}.`,
           });
         } else {
           throw new Error('Failed to save');
@@ -781,17 +823,23 @@ export function FarmMap({
   }) => {
     if (!selectedSpecies || !plantingClickPos) return;
 
+    // Carry the variety chosen in the picker (if any) into the placement.
+    const externalVariety = externalSelectedSpecies?.variety;
+
     // Create optimistic planting with temporary ID
     const optimisticPlanting = {
       id: `temp-${Date.now()}`,
       farm_id: farm.id,
       species_id: selectedSpecies.id,
+      variety_id: externalVariety?.id || null,
+      variety_name: externalVariety?.variety_name || null,
       lat: plantingClickPos.lat,
       lng: plantingClickPos.lng,
       custom_name: formData.custom_name || null,
       planted_year: formData.planted_year,
       zone_id: formData.zone_id || null,
       notes: formData.notes || null,
+      placement_method: 'map_click',
       created_at: Date.now(),
       updated_at: Date.now(),
       // Include species data for rendering
@@ -816,9 +864,11 @@ export function FarmMap({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           species_id: selectedSpecies.id,
+          variety_id: externalVariety?.id,
           lat: plantingClickPos.lat,
           lng: plantingClickPos.lng,
-          ...formData
+          placement_method: 'map_click',
+          ...formData,
         })
       });
 

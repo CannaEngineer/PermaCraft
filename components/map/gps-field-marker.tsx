@@ -15,13 +15,23 @@ import {
 import { GPSDropPinForm, type GPSDropPinFormData } from './gps-drop-pin-form';
 import type maplibregl from 'maplibre-gl';
 
+export interface GPSPlantingDropPayload {
+  lat: number;
+  lng: number;
+  notes: string;
+  /** Browser-reported accuracy in meters at capture time. */
+  accuracy: number;
+  /** Browser-reported altitude in meters, when available. */
+  altitude: number | null;
+}
+
 interface GPSFieldMarkerProps {
   /** Reference to the MapLibre map instance */
   mapRef: React.RefObject<maplibregl.Map | null>;
   /** Farm center coordinates for proximity check */
   farmCenter: { lat: number; lng: number };
   /** Callback when a planting-type pin is dropped (triggers species picker flow) */
-  onPlantingDrop: (lat: number, lng: number, notes: string) => void;
+  onPlantingDrop: (payload: GPSPlantingDropPayload) => void;
   /** Callback when a non-planting pin is dropped (observation, soil test, etc.) */
   onMarkerDrop: (data: GPSDropPinFormData) => void;
   /** Whether the component should be visible */
@@ -223,7 +233,13 @@ export function GPSFieldMarker({
 
     try {
       if (data.markerType === 'planting') {
-        onPlantingDrop(data.lat, data.lng, data.notes);
+        onPlantingDrop({
+          lat: data.lat,
+          lng: data.lng,
+          notes: data.notes,
+          accuracy: data.accuracy,
+          altitude: data.altitude,
+        });
       } else {
         onMarkerDrop(data);
       }

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getAllSpecies } from '@/lib/species/species-queries';
 import { matchNativeSpecies } from '@/lib/species/native-matcher';
 import { getFarmRegion, getRegionName } from '@/lib/species/region-mapper';
-import type { Farm } from '@/lib/db/schema';
+import type { Farm, Species } from '@/lib/db/schema';
 
 export async function GET(
   request: Request,
@@ -28,13 +28,23 @@ export async function GET(
       );
     }
 
-    // Get all species
-    const allSpecies = await getAllSpecies();
+    // Pull global + this user's custom species. Custom species bypass the
+    // climate matcher and are always pinned to the top of perfect_match —
+    // the user explicitly added them, so they belong on the picker.
+    const allSpecies = await getAllSpecies({
+      includeCustomFor: { userId: session.user.id, farmId },
+    });
 
-    // Match species to farm
-    const matched = matchNativeSpecies(farm, allSpecies);
+    const customSpecies: Species[] = [];
+    const standardSpecies: Species[] = [];
+    for (const s of allSpecies) {
+      if (s.is_custom === 1) customSpecies.push(s);
+      else standardSpecies.push(s);
+    }
 
-    // Include farm context so frontend can display zone/region info
+    const matched = matchNativeSpecies(farm, standardSpecies);
+    matched.perfect_match = [...customSpecies, ...matched.perfect_match];
+
     const region = getFarmRegion(farm.center_lat, farm.center_lng);
     const farm_info = {
       climate_zone: farm.climate_zone || null,
