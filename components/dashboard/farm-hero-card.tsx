@@ -161,6 +161,13 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
             <div className="flex flex-wrap gap-4 md:gap-6 mt-4">
               <div>
                 <div className="text-2xl md:text-3xl font-bold text-foreground">
+                  {farm.zone_count}
+                </div>
+                <div className="text-xs text-muted-foreground font-medium">Zones</div>
+              </div>
+              <div className="w-px bg-border self-stretch" />
+              <div>
+                <div className="text-2xl md:text-3xl font-bold text-foreground">
                   {farm.planting_count}
                 </div>
                 <div className="text-xs text-muted-foreground font-medium">Plants</div>

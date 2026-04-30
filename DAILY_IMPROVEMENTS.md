@@ -1,3 +1,33 @@
+# PermaCraft — 2026-04-30
+## Focus: Dashboard
+
+### 1. Add zone count to dashboard farms query and display
+File: `lib/db/queries/dashboard.ts`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/dashboard-client-v2.tsx`, `components/dashboard/farm-tab-strip.tsx`
+What changed: Added `COUNT(DISTINCT z.id) as zone_count` via LEFT JOIN on zones table to the dashboard farms query; surfaced zone count in the farm hero card metrics, farm selector strip, and farm tab strip.
+Map/dashboard impact: Designers now see how many zones their farm has at a glance — zones are a core design element that was previously invisible on the dashboard. A farm with 12 zones and 3 plants tells a very different story than 0 zones and 3 plants.
+
+### 2. Fix task "today" filter to use calendar day boundary
+File: `components/dashboard/tasks-widget.tsx`
+What changed: Replaced `now + 86400` (rolling 24h window) with actual end-of-day calculation using `setHours(23, 59, 59, 999)`. The "today" tab now shows tasks due by end of today, not tasks due within the next 24 hours.
+Map/dashboard impact: Designers planning their day no longer see tomorrow's early-morning tasks in the "today" tab. The filter now matches the mental model of "what do I need to do today."
+
+### 3. Add line features to activity timeline
+File: `lib/db/queries/dashboard.ts`, `components/dashboard/activity-timeline.tsx`
+What changed: Added a `lines` subquery to `getBatchRecentActivity` (using `label` and `line_type` columns) and a Route icon entry in the activity timeline's type metadata map.
+Map/dashboard impact: Creating swales, fences, paths, hedges, and contour lines now appears in the activity feed. Previously these core map features were invisible in the timeline.
+
+### 4. Fix eco tip empty state when farm has no plantings
+File: `components/dashboard/eco-ring.tsx`
+What changed: When no eco functions have any plantings (all counts are 0), the tip now shows "Add plants with diverse permaculture functions to build a resilient ecosystem" instead of a broken sentence "Add to strengthen your ecosystem diversity."
+Map/dashboard impact: New farms with zero plantings get actionable guidance instead of a grammatically broken suggestion.
+
+## Watch for
+- The `getDashboardFarms` query now does a three-way JOIN (farms + plantings + zones). For users with many farms this is still performant due to the GROUP BY on `f.id`, but monitor if anyone reports slow dashboard loads.
+- The `getBatchRecentActivity` query now has 5 UNION ALL subqueries instead of 4, with 5x `farmIds` in the args array. This is safe but increases the query payload slightly.
+- The `lines` table uses `label` (nullable) not `name` — confirmed against schema. If the column is renamed in a future migration, the activity query will need updating.
+
+---
+
 # PermaCraft — 2026-04-29
 ## Focus: Dashboard
 

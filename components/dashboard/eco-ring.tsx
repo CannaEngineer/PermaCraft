@@ -92,21 +92,23 @@ export function EcoRing({ score, functions }: Props) {
       </div>
 
       {/* Suggestion */}
-      {score < 75 && (
-        <div className="mt-4 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
-          <p className="text-xs text-foreground/80 leading-relaxed">
-            <span className="font-semibold">Tip:</span>{' '}
-            Add{' '}
-            {Object.entries(functions)
-              .filter(([, v]) => v === 0)
-              .map(([k]) => FUNCTION_META[k]?.label.toLowerCase())
-              .filter(Boolean)
-              .slice(0, 2)
-              .join(' and ')}{' '}
-            to strengthen your ecosystem diversity.
-          </p>
-        </div>
-      )}
+      {score < 75 && (() => {
+        const missing = Object.entries(functions)
+          .filter(([, v]) => v === 0)
+          .map(([k]) => FUNCTION_META[k]?.label.toLowerCase())
+          .filter(Boolean)
+          .slice(0, 2);
+        return (
+          <div className="mt-4 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
+            <p className="text-xs text-foreground/80 leading-relaxed">
+              <span className="font-semibold">Tip:</span>{' '}
+              {missing.length > 0
+                ? `Add ${missing.join(' and ')} to strengthen your ecosystem diversity.`
+                : 'Add plants with diverse permaculture functions to build a resilient ecosystem.'}
+            </p>
+          </div>
+        );
+      })()}
     </div>
   );
 }

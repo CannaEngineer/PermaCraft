@@ -11,6 +11,7 @@ export interface DashboardFarm {
   center_lng: number | null;
   updated_at: number;
   planting_count: number;
+  zone_count: number;
   eco_health_score: number;
   latest_screenshot: string | null;
 }
@@ -22,10 +23,12 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
         f.id, f.name, f.description, f.acres, f.climate_zone,
         f.center_lat, f.center_lng, f.updated_at,
         COUNT(DISTINCT p.id) as planting_count,
+        COUNT(DISTINCT z.id) as zone_count,
         (SELECT screenshot_data FROM ai_analyses
          WHERE farm_id = f.id ORDER BY created_at DESC LIMIT 1) as latest_screenshot_json
       FROM farms f
       LEFT JOIN plantings p ON p.farm_id = f.id
+      LEFT JOIN zones z ON z.farm_id = f.id
       WHERE f.user_id = ?
       GROUP BY f.id
       ORDER BY f.updated_at DESC
@@ -60,6 +63,7 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
       center_lng: row.center_lng as number | null,
       updated_at: row.updated_at as number,
       planting_count: row.planting_count as number,
+      zone_count: row.zone_count as number,
       eco_health_score: 0,
       latest_screenshot,
     };
@@ -191,6 +195,12 @@ export async function getBatchRecentActivity(
       )
       UNION ALL
       SELECT * FROM (
+        SELECT 'line' as type, l.id, l.farm_id, COALESCE(l.label, l.line_type, 'New line') as title, l.created_at
+        FROM lines l WHERE l.farm_id IN (${placeholders})
+        ORDER BY l.created_at DESC LIMIT ${perSubqueryLimit}
+      )
+      UNION ALL
+      SELECT * FROM (
         SELECT 'task' as type, t.id, t.farm_id,
           CASE WHEN t.status = 'completed' THEN 'Completed: ' || t.title ELSE t.title END as title,
           COALESCE(t.completed_at, t.created_at) as created_at
@@ -200,7 +210,7 @@ export async function getBatchRecentActivity(
       )
       ORDER BY created_at DESC
     `,
-    args: [...farmIds, ...farmIds, ...farmIds, ...farmIds],
+    args: [...farmIds, ...farmIds, ...farmIds, ...farmIds, ...farmIds],
   });
 
   const out: Record<string, any[]> = {};
