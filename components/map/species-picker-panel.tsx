@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Search, Leaf, MapPin } from 'lucide-react';
+import { X, Search, Leaf, MapPin, Plus } from 'lucide-react';
 import type { Species } from '@/lib/db/schema';
 import { getGuildCompanions, groupSpeciesByLayer, LAYER_ORDER } from '@/lib/species/species-utils';
 
@@ -54,9 +54,15 @@ interface SpeciesPickerPanelProps {
   onSelectSpecies: (species: Species) => void;
   onClose: () => void;
   companionFilterFor?: string; // Common name of plant to show companions for
+  /**
+   * Triggers the "couldn't find my plant — add custom" flow. When provided,
+   * the picker shows a button (and an empty-state CTA) that calls this. The
+   * parent owns the modal/form so the picker stays a pure list.
+   */
+  onAddCustomSpecies?: () => void;
 }
 
-export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companionFilterFor }: SpeciesPickerPanelProps) {
+export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companionFilterFor, onAddCustomSpecies }: SpeciesPickerPanelProps) {
   const [nativeSpecies, setNativeSpecies] = useState<{
     perfect_match: Species[];
     good_match: Species[];
@@ -246,12 +252,23 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
               </Button>
             </div>
           ) : (
-            <div className="p-8 text-center text-muted-foreground space-y-2">
+            <div className="p-8 text-center text-muted-foreground space-y-3">
               <p>{searchQuery ? 'No plants found matching your search.' : 'No plants available.'}</p>
               {!searchQuery && !farmInfo?.climate_zone && (
                 <p className="text-xs">
                   Your farm&apos;s hardiness zone hasn&apos;t been detected yet. Try creating a new farm or ask for zone detection in the Plants panel.
                 </p>
+              )}
+              {onAddCustomSpecies && (
+                <Button
+                  onClick={onAddCustomSpecies}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add &ldquo;{searchQuery || 'custom plant'}&rdquo;
+                </Button>
               )}
             </div>
           )
@@ -341,7 +358,16 @@ export function SpeciesPickerPanel({ farmId, onSelectSpecies, onClose, companion
       </div>
 
       {/* Footer Hint */}
-      <div className="p-3 border-t border-border bg-muted/30">
+      <div className="p-3 border-t border-border bg-muted/30 space-y-2">
+        {onAddCustomSpecies && !companionFilterFor && (
+          <button
+            onClick={onAddCustomSpecies}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Can&apos;t find your plant? Add a custom one
+          </button>
+        )}
         <p className="text-xs text-muted-foreground text-center">
           Click a plant to select it, then click on the map to place it
         </p>

@@ -29,8 +29,11 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Sparkles, Leaf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { JournalEntryForm } from "@/components/farm/journal-entry-form";
-import { GPSFieldMarker } from "@/components/map/gps-field-marker";
+import { GPSFieldMarker, type GPSPlantingDropPayload } from "@/components/map/gps-field-marker";
 import type { GPSDropPinFormData } from "@/components/map/gps-drop-pin-form";
+import { VarietySelector } from "@/components/varieties/variety-selector";
+import { CustomSpeciesForm } from "@/components/map/custom-species-form";
+import type { PlantVarietyWithSpecies } from "@/lib/db/schema";
 import { BoundaryWalker, type BoundaryWalkerResult } from "@/components/map/boundary-walker";
 import { SoilTestForm, type SoilTestData } from "@/components/map/soil-test-form";
 import { GeotaggedPhotoCapture, type GeotaggedPhotoData } from "@/components/map/geotagged-photo-capture";
@@ -330,13 +333,34 @@ function ImmersiveMapEditorContent({
   } | null>(null);
 
   // Species selected from the picker, passed to FarmMap to enter planting mode
-  const [pendingPlantSpecies, setPendingPlantSpecies] = useState<{ species: Species; seq: number } | null>(null);
+  const [pendingPlantSpecies, setPendingPlantSpecies] = useState<{
+    species: Species;
+    variety?: PlantVarietyWithSpecies;
+    seq: number;
+  } | null>(null);
 
   // Triggers FarmMap's internal species picker (same flow as map submenu "Add Plant")
   const [triggerSpeciesPicker, setTriggerSpeciesPicker] = useState(false);
 
-  // GPS field mapping state — coordinates to auto-place a planting at GPS location
-  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{ lat: number; lng: number; notes?: string; seq: number } | null>(null);
+  // GPS field mapping state — coordinates to auto-place a planting at GPS location.
+  // Also carries accuracy / altitude so they can be persisted with the planting.
+  const [gpsPlantingCoords, setGpsPlantingCoords] = useState<{
+    lat: number;
+    lng: number;
+    notes?: string;
+    accuracy?: number;
+    altitude?: number | null;
+    seq: number;
+  } | null>(null);
+
+  // Variety selection state — after a species is picked, if the species has
+  // varieties (cultivars), show the variety selector before placing the
+  // planting. The pendingPlantSpeciesForVariety holds the species we're
+  // currently picking a variety for.
+  const [pendingPlantSpeciesForVariety, setPendingPlantSpeciesForVariety] =
+    useState<{ species: Species } | null>(null);
+  // Show the custom species form (for plants not in the catalog).
+  const [showCustomSpeciesForm, setShowCustomSpeciesForm] = useState(false);
 
   // GPS feature states — boundary walking, soil testing, photo geotagging
   const [showBoundaryWalker, setShowBoundaryWalker] = useState(false);
@@ -841,10 +865,18 @@ function ImmersiveMapEditorContent({
   }, []); // empty deps — only calls a state setter
 
   // GPS field mapping handlers
-  const handleGPSPlantingDrop = useCallback((lat: number, lng: number, notes: string) => {
-    // Store the GPS coordinates, then trigger the species picker.
-    // Once the user selects a species, FarmMap will auto-place it at these coords.
-    setGpsPlantingCoords({ lat, lng, notes, seq: Date.now() });
+  const handleGPSPlantingDrop = useCallback((payload: GPSPlantingDropPayload) => {
+    // Store the GPS coordinates + capture metadata, then trigger the species
+    // picker. Once the user selects a species (and optionally a variety),
+    // FarmMap auto-places the planting at these coords.
+    setGpsPlantingCoords({
+      lat: payload.lat,
+      lng: payload.lng,
+      notes: payload.notes,
+      accuracy: payload.accuracy,
+      altitude: payload.altitude,
+      seq: Date.now(),
+    });
     setTriggerSpeciesPicker(true);
   }, []);
 
@@ -1047,10 +1079,26 @@ function ImmersiveMapEditorContent({
     // Close the drawer
     closeDrawer();
 
-    // Store the selected species so FarmMap can enter planting mode.
-    // Increment seq so re-selecting the same species still triggers the useEffect.
-    setPendingPlantSpecies(prev => ({ species, seq: (prev?.seq ?? 0) + 1 }));
+    // Before handing off to FarmMap, give the user a chance to pick a specific
+    // variety / cultivar. The VarietySelector auto-skips if there are no
+    // varieties for this species, so this is a no-op for unmatched species.
+    setPendingPlantSpeciesForVariety({ species });
   };
+
+  // Called from VarietySelector once the user either picks a variety or skips.
+  // Variety can be either a top-level cultivar or a sub-variety; both are
+  // persisted as the variety_id on the planting.
+  const handleVarietyResolved = useCallback(
+    (species: Species, variety: PlantVarietyWithSpecies | null) => {
+      setPendingPlantSpeciesForVariety(null);
+      setPendingPlantSpecies(prev => ({
+        species,
+        variety: variety || undefined,
+        seq: (prev?.seq ?? 0) + 1,
+      }));
+    },
+    []
+  );
 
   const handleOpenWaterSystem = useCallback(() => {
     openDrawer('water-system', 'max');
@@ -1197,6 +1245,52 @@ function ImmersiveMapEditorContent({
           visible={false}
           triggerCapture={gpsDropPinTrigger}
           onFormVisibilityChange={handleGPSFormVisibilityChange}
+        />
+      )}
+
+      {/* Variety / cultivar selector — shown after a species is chosen, before
+          placement. Auto-skips species that have no varieties on file. */}
+      {pendingPlantSpeciesForVariety && (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPendingPlantSpeciesForVariety(null);
+          }}
+        >
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+            <DialogTitle className="sr-only">
+              Choose a {pendingPlantSpeciesForVariety.species.common_name} variety
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Pick a specific cultivar / variety, drill into sub-varieties, or skip
+              to use the general species.
+            </DialogDescription>
+            <VarietySelector
+              speciesId={pendingPlantSpeciesForVariety.species.id}
+              speciesName={pendingPlantSpeciesForVariety.species.common_name}
+              farmId={farm.id}
+              onSelectVariety={(variety) => {
+                handleVarietyResolved(pendingPlantSpeciesForVariety.species, variety);
+              }}
+              onSkip={() => {
+                handleVarietyResolved(pendingPlantSpeciesForVariety.species, null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Custom species form — entered when the user can't find their plant
+          in the catalog. Once created, the species is auto-passed into the
+          variety/placement flow exactly like a catalog plant. */}
+      {showCustomSpeciesForm && (
+        <CustomSpeciesForm
+          farmId={farm.id}
+          onCreated={(species) => {
+            setShowCustomSpeciesForm(false);
+            handleSelectSpecies(species);
+          }}
+          onCancel={() => setShowCustomSpeciesForm(false)}
         />
       )}
 
@@ -1359,6 +1453,10 @@ function ImmersiveMapEditorContent({
               farmId={farm.id}
               onSelectSpecies={handleSelectSpecies}
               onClose={closeDrawer}
+              onAddCustomSpecies={() => {
+                closeDrawer();
+                setShowCustomSpeciesForm(true);
+              }}
             />
           ) : null
         }
