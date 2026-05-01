@@ -432,6 +432,7 @@ export function createGeneralChatPrompt(
     zones?: Array<{ name: string | null; zone_type: string }>;
     plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null }>;
     lines?: Array<{ line_type: string; label: string | null }>;
+    guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
     goalsContext?: string;
     nativeSpecies?: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }>;
     ragContext?: string;
@@ -495,6 +496,32 @@ export function createGeneralChatPrompt(
           parts.push(`    - ${l.label || 'Unlabeled'}`);
         });
       }
+    }
+
+    if (farmSummary.guilds && farmSummary.guilds.length > 0) {
+      parts.push(`\nPLANT GUILDS (${farmSummary.guilds.length} designed):`);
+      farmSummary.guilds.forEach(g => {
+        const focal = g.focal_common_name
+          ? `${g.focal_common_name} (${g.focal_scientific_name || 'unknown'})`
+          : 'No focal species';
+        let companions = '';
+        if (g.companion_species) {
+          try {
+            const parsed = JSON.parse(g.companion_species);
+            if (Array.isArray(parsed)) {
+              companions = parsed.map((c: any) => c.common_name || c.name || 'unknown').join(', ');
+            }
+          } catch {}
+        }
+        let benefits = '';
+        if (g.benefits) {
+          try {
+            const parsed = JSON.parse(g.benefits);
+            if (Array.isArray(parsed)) benefits = parsed.join(', ');
+          } catch {}
+        }
+        parts.push(`  - "${g.name}": focal=${focal}${companions ? `, companions: ${companions}` : ''}${benefits ? ` — benefits: ${benefits}` : ''}`);
+      });
     }
 
     if (farmSummary.goalsContext) {

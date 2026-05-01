@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     let zonesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let plantingsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let linesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
+    let guildsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let goalsContext = '';
     let nativeSpeciesData: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }> = [];
     let ragContext = '';
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       farm = farmResult.rows[0] as unknown as Farm;
 
       // Fetch actual composition for richer AI context
-      [zonesResult, plantingsResult, linesResult] = await Promise.all([
+      [zonesResult, plantingsResult, linesResult, guildsResult] = await Promise.all([
         db.execute({
           sql: "SELECT name, zone_type FROM zones WHERE farm_id = ?",
           args: [farmId],
@@ -82,6 +83,14 @@ export async function POST(request: NextRequest) {
         db.execute({
           sql: `SELECT line_type, label FROM lines WHERE farm_id = ?`,
           args: [farmId],
+        }),
+        db.execute({
+          sql: `SELECT g.name, g.benefits, g.companion_species,
+                       s.common_name as focal_common_name, s.scientific_name as focal_scientific_name
+                FROM guild_templates g
+                LEFT JOIN species s ON g.focal_species_id = s.id
+                WHERE g.created_by = ?`,
+          args: [session.user.id],
         }),
       ]);
       zoneCount = zonesResult.rows.length;
@@ -164,6 +173,15 @@ export async function POST(request: NextRequest) {
         line_type: l.line_type as string,
         label: l.label as string | null,
       })),
+      guilds: guildsResult?.rows && guildsResult.rows.length > 0
+        ? guildsResult.rows.map((g: any) => ({
+            name: g.name as string,
+            focal_common_name: g.focal_common_name as string | undefined,
+            focal_scientific_name: g.focal_scientific_name as string | undefined,
+            companion_species: g.companion_species as string | undefined,
+            benefits: g.benefits as string | undefined,
+          }))
+        : undefined,
       goalsContext,
       nativeSpecies: nativeSpeciesData.length > 0 ? nativeSpeciesData : undefined,
       ragContext: ragContext || undefined,

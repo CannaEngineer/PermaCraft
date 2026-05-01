@@ -175,6 +175,30 @@ timeline horizons (short, medium, or long-term).
 
     const currentYear = new Date().getFullYear();
 
+    // Build farm bounds from all zones + plantings for grid coordinate mapping
+    const allCoords: number[][] = [];
+    zones.forEach((zone) => {
+      const geom = typeof zone.geometry === 'string' ? JSON.parse(zone.geometry) : zone.geometry;
+      if (geom?.type === 'Point') allCoords.push(geom.coordinates);
+      else if (geom?.type === 'LineString') allCoords.push(...geom.coordinates);
+      else if (geom?.type === 'Polygon') allCoords.push(...geom.coordinates[0]);
+    });
+    plantings.forEach(p => {
+      if (p.lat && p.lng) allCoords.push([p.lng, p.lat]);
+    });
+
+    const farmBounds = allCoords.length > 0 ? {
+      north: Math.max(...allCoords.map(c => c[1])),
+      south: Math.min(...allCoords.map(c => c[1])),
+      east: Math.max(...allCoords.map(c => c[0])),
+      west: Math.min(...allCoords.map(c => c[0])),
+    } : {
+      north: farm.center_lat + 0.001,
+      south: farm.center_lat - 0.001,
+      east: farm.center_lng + 0.001,
+      west: farm.center_lng - 0.001,
+    };
+
     const plantingsList = plantings.map(p => {
       const age = currentYear - (p.planted_year || currentYear);
       const customName = p.name ? ` "${p.name}"` : '';
@@ -190,12 +214,22 @@ timeline horizons (short, medium, or long-term).
             ? JSON.parse(p.permaculture_functions)
             : p.permaculture_functions;
           if (Array.isArray(fns) && fns.length > 0) {
-            functions = ` - functions: ${fns.join(', ')}`;
+            functions = ` — functions: ${fns.join(', ')}`;
           }
         } catch {}
       }
 
-      return `  - ${commonName}${customName} (${scientificName}): ${layer} layer, planted ${p.planted_year || currentYear} (${age} years old)${size}, at ${(p.lat || 0).toFixed(6)}, ${(p.lng || 0).toFixed(6)}${functions}${notes}`;
+      let gridRef = '';
+      if (p.lat && p.lng) {
+        const gridCells = calculateGridCoordinates(
+          { type: 'Point', coordinates: [p.lng, p.lat] },
+          farmBounds,
+          'imperial'
+        );
+        gridRef = gridCells.length > 0 ? ` at grid ${gridCells[0]}` : '';
+      }
+
+      return `  - ${commonName}${customName} (${scientificName}): ${layer} layer, planted ${p.planted_year || currentYear} (${age} years old)${size}${gridRef}${functions}${notes}`;
     }).join('\n');
 
     return `
@@ -209,7 +243,7 @@ IMPORTANT: When suggesting new plantings:
 - Consider the mature size and spacing of existing plants
 - Recommend guild arrangements around established plantings
     `.trim();
-  }, [plantings]);
+  }, [plantings, zones, farm.center_lat, farm.center_lng]);
 
   // Load native species for AI context
   useEffect(() => {

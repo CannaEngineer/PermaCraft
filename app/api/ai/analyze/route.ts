@@ -203,9 +203,10 @@ export async function POST(request: NextRequest) {
     let enrichedPlantingsContext = plantingsContext;
     let enrichedLinesContext: string | undefined;
     let enrichedGuildsContext: string | undefined;
+    let guildsResult: Awaited<ReturnType<typeof db.execute>> | undefined;
 
     if (needsEnrichment) {
-      const [zonesResult, plantingsResult, linesResult] = await Promise.all([
+      const [zonesResult, plantingsResult, linesResult, guildsRes] = await Promise.all([
         db.execute({
           sql: `SELECT id, name, zone_type, geometry FROM zones WHERE farm_id = ?`,
           args: [farmId],
@@ -224,7 +225,16 @@ export async function POST(request: NextRequest) {
           sql: `SELECT id, line_type, label, geometry, water_properties FROM lines WHERE farm_id = ?`,
           args: [farmId],
         }),
+        db.execute({
+          sql: `SELECT g.id, g.name, g.description, g.benefits, g.companion_species,
+                       s.common_name as focal_common_name, s.scientific_name as focal_scientific_name
+                FROM guild_templates g
+                LEFT JOIN species s ON g.focal_species_id = s.id
+                WHERE g.created_by = ?`,
+          args: [session.user.id],
+        }),
       ]);
+      guildsResult = guildsRes;
 
       // Build zones context for prompt (with names and types)
       if (!enrichedZones || enrichedZones.length === 0) {
@@ -235,8 +245,33 @@ export async function POST(request: NextRequest) {
         }));
       }
 
-      // Build plantings context string (with permaculture functions)
+      // Build plantings context string (with permaculture functions and grid coordinates)
       if (!enrichedPlantingsContext && plantingsResult.rows.length > 0) {
+        // Compute farm bounds for grid coordinates
+        const plantingCoords: number[][] = [];
+        const zoneCoords: number[][] = [];
+        for (const z of zonesResult.rows) {
+          if (z.geometry) {
+            try {
+              const geom = JSON.parse(z.geometry as string);
+              if (geom.type === 'Polygon' && geom.coordinates?.[0]) zoneCoords.push(...geom.coordinates[0]);
+              else if (geom.type === 'Point' && geom.coordinates) zoneCoords.push(geom.coordinates);
+            } catch {}
+          }
+        }
+        for (const p of plantingsResult.rows) {
+          if (p.lat && p.lng) plantingCoords.push([p.lng as number, p.lat as number]);
+        }
+        const allCoords = [...zoneCoords, ...plantingCoords];
+        const plantingBounds = allCoords.length > 0 ? {
+          north: Math.max(...allCoords.map(c => c[1])),
+          south: Math.min(...allCoords.map(c => c[1])),
+          east: Math.max(...allCoords.map(c => c[0])),
+          west: Math.min(...allCoords.map(c => c[0])),
+        } : null;
+
+        const { calculateGridCoordinates } = await import('@/lib/map/zone-grid-calculator');
+
         const byLayer = new Map<string, any[]>();
         for (const p of plantingsResult.rows) {
           const layer = p.layer as string;
@@ -259,13 +294,22 @@ export async function POST(request: NextRequest) {
                 }
               } catch {}
             }
-            parts.push(`    - ${p.common_name} (${p.scientific_name}) ${native}${year}${functions}`);
+            let gridRef = '';
+            if (p.lat && p.lng && plantingBounds) {
+              const cells = calculateGridCoordinates(
+                { type: 'Point', coordinates: [p.lng as number, p.lat as number] },
+                plantingBounds,
+                'imperial'
+              );
+              if (cells.length > 0) gridRef = ` at grid ${cells[0]}`;
+            }
+            parts.push(`    - ${p.common_name} (${p.scientific_name}) ${native}${year}${gridRef}${functions}`);
           }
         }
         enrichedPlantingsContext = parts.join('\n');
       }
 
-      // Build lines/water features context string
+      // Build lines/water features context string with spatial info
       if (linesResult.rows.length > 0) {
         const byType = new Map<string, any[]>();
         for (const l of linesResult.rows) {
@@ -274,14 +318,50 @@ export async function POST(request: NextRequest) {
           byType.get(lineType)!.push(l);
         }
 
+        // Compute farm bounds for line grid references
+        const allLineCoords: number[][] = [];
+        const allZoneCoords: number[][] = [];
+        for (const z of zonesResult.rows) {
+          if (z.geometry) {
+            try {
+              const geom = JSON.parse(z.geometry as string);
+              if (geom.type === 'Polygon' && geom.coordinates?.[0]) allZoneCoords.push(...geom.coordinates[0]);
+              else if (geom.type === 'Point' && geom.coordinates) allZoneCoords.push(geom.coordinates);
+            } catch {}
+          }
+        }
+        for (const l of linesResult.rows) {
+          if (l.geometry) {
+            try {
+              const geom = JSON.parse(l.geometry as string);
+              if (geom.type === 'LineString' && geom.coordinates) allLineCoords.push(...geom.coordinates);
+            } catch {}
+          }
+        }
+        const allSpatialCoords = [...allZoneCoords, ...allLineCoords];
+        const lineFarmBounds = allSpatialCoords.length > 0 ? {
+          north: Math.max(...allSpatialCoords.map(c => c[1])),
+          south: Math.min(...allSpatialCoords.map(c => c[1])),
+          east: Math.max(...allSpatialCoords.map(c => c[0])),
+          west: Math.min(...allSpatialCoords.map(c => c[0])),
+        } : null;
+
         const lineTypeLabels: Record<string, string> = {
           swale: 'Swales',
           flow_path: 'Water Flow Paths',
+          irrigation: 'Irrigation Lines',
+          drainage: 'Drainage Lines',
           fence: 'Fences',
           hedge: 'Hedgerows',
           contour: 'Contour Lines',
+          terrace: 'Terraces',
+          access_path: 'Access Paths',
+          garden_edge: 'Garden Edges',
+          wildlife_corridor: 'Wildlife Corridors',
           custom: 'Custom Lines',
         };
+
+        const { calculateGridCoordinates: calcLineGrid, formatGridRange: fmtLineRange } = await import('@/lib/map/zone-grid-calculator');
 
         const parts: string[] = [`LINES & WATER FEATURES (${linesResult.rows.length} total):`];
         for (const [lineType, items] of byType) {
@@ -299,7 +379,17 @@ export async function POST(request: NextRequest) {
                 if (details.length > 0) waterInfo = ` — ${details.join(', ')}`;
               } catch {}
             }
-            parts.push(`    - ${label}${waterInfo}`);
+            let locationInfo = '';
+            if (l.geometry && lineFarmBounds) {
+              try {
+                const geom = JSON.parse(l.geometry as string);
+                if (geom.type === 'LineString' && geom.coordinates?.length > 0) {
+                  const gridCells = calcLineGrid(geom, lineFarmBounds, 'imperial');
+                  if (gridCells.length > 0) locationInfo = ` at grid ${fmtLineRange(gridCells)}`;
+                }
+              } catch {}
+            }
+            parts.push(`    - ${label}${locationInfo}${waterInfo}`);
           }
         }
         parts.push('\nWhen recommending water management, account for existing swales, flow paths, and drainage features.');
@@ -356,21 +446,27 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Build guild context from client-provided data
-    const clientGuilds = farmContext?.guilds;
-    if (clientGuilds && clientGuilds.length > 0) {
-      const parts: string[] = [`PLANT GUILDS (${clientGuilds.length} designed):`];
-      for (const g of clientGuilds) {
+    // Build guild context from client-provided data OR server-enriched data
+    const guildRows = farmContext?.guilds || (needsEnrichment && guildsResult ? guildsResult.rows : []);
+    if (guildRows && guildRows.length > 0) {
+      const parts: string[] = [`PLANT GUILDS (${guildRows.length} designed):`];
+      for (const g of guildRows) {
         const focal = g.focal_common_name
           ? `${g.focal_common_name} (${g.focal_scientific_name || 'unknown'})`
           : 'No focal species';
         let companions = '';
-        if (g.companion_species && Array.isArray(g.companion_species)) {
-          companions = g.companion_species
+        const companionData = g.companion_species
+          ? (typeof g.companion_species === 'string' ? (() => { try { return JSON.parse(g.companion_species); } catch { return []; } })() : g.companion_species)
+          : [];
+        if (Array.isArray(companionData) && companionData.length > 0) {
+          companions = companionData
             .map((c: any) => c.common_name || c.name || 'unknown')
             .join(', ');
         }
-        const benefits = g.benefits && Array.isArray(g.benefits) ? g.benefits.join(', ') : '';
+        const benefitsData = g.benefits
+          ? (typeof g.benefits === 'string' ? (() => { try { return JSON.parse(g.benefits); } catch { return []; } })() : g.benefits)
+          : [];
+        const benefits = Array.isArray(benefitsData) ? benefitsData.join(', ') : '';
         parts.push(`  - "${g.name || 'Unnamed guild'}": focal=${focal}${companions ? `, companions: ${companions}` : ''}${benefits ? ` — benefits: ${benefits}` : ''}`);
       }
       parts.push('\nConsider existing guilds when recommending new plantings — suggest companions that complement these designs.');

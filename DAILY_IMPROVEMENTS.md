@@ -1,3 +1,28 @@
+# PermaCraft — 2026-05-01
+## Focus: Map Intelligence (AI context quality)
+
+### 1. Planting positions now use grid coordinates in AI context
+Files: `app/(app)/farm/[id]/farm-editor-client.tsx`, `app/api/ai/analyze/route.ts`
+What changed: Converted raw lat/lng coordinates to alphanumeric grid references (e.g., "at grid B3") for every planting sent to the AI, matching the grid system already used for zones.
+Map/dashboard impact: The AI can now correlate planting locations with zones spatially — "your comfrey at grid C4 is right next to the food forest zone at C3-D5" — instead of receiving opaque GPS decimals it can't cross-reference with the map.
+
+### 2. Guild context now reaches the AI in both analysis and chat paths
+Files: `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
+What changed: Added server-side guild fetching from `guild_templates` table during data enrichment. Previously, guild context was only included when the client sent `farmContext.guilds` (immersive editor only), leaving the classic editor and text chat paths with no guild awareness. Also added guild rendering to `createGeneralChatPrompt`.
+Map/dashboard impact: The AI now knows about designed guilds (focal species, companions, benefits) in all conversation modes, preventing it from suggesting companions that conflict with existing guild designs.
+
+### 3. Line features now include grid coordinates in AI context
+File: `app/api/ai/analyze/route.ts`
+What changed: Server-side enriched lines context now computes grid coordinates from stored GeoJSON geometry and includes location references (e.g., `"Main Swale" at grid A3-D3`). Also expanded the line type label map to cover all 12 defined line types (irrigation, drainage, terrace, access_path, garden_edge, wildlife_corridor).
+Map/dashboard impact: The AI can now reference where swales, fences, and water features are on the map grid, enabling spatial recommendations like "plant nitrogen fixers downslope of your swale at grid D3."
+
+## Watch for
+- The grid coordinate computation for plantings uses the same `calculateGridCoordinates` utility as zones, but since it computes farm bounds from all features each time, adding a large number of plantings could shift grid references slightly between calls. This is cosmetic, not functional.
+- The guild fetch in the analyze route uses `created_by = session.user.id` which means it fetches ALL user guilds, not just those associated with the current farm. This matches the existing behavior but could surface irrelevant guilds for multi-farm users.
+- The `zone-grid-calculator` dynamic import is hoisted before the lines loop, so it only runs once per enrichment. If this module is ever needed statically elsewhere in the route, consider switching to a top-level import.
+
+---
+
 # PermaCraft — 2026-04-30
 ## Focus: Dashboard
 
