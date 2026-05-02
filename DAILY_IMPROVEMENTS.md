@@ -1,231 +1,27 @@
-# PermaCraft — 2026-05-01
-## Focus: Map Intelligence (AI context quality)
+# PermaCraft — 2026-05-02
+## Focus: Performance + Reliability
 
-### 1. Planting positions now use grid coordinates in AI context
-Files: `app/(app)/farm/[id]/farm-editor-client.tsx`, `app/api/ai/analyze/route.ts`
-What changed: Converted raw lat/lng coordinates to alphanumeric grid references (e.g., "at grid B3") for every planting sent to the AI, matching the grid system already used for zones.
-Map/dashboard impact: The AI can now correlate planting locations with zones spatially — "your comfrey at grid C4 is right next to the food forest zone at C3-D5" — instead of receiving opaque GPS decimals it can't cross-reference with the map.
+### 1. Eliminate per-marker zoom listeners in PlantingMarker
+File: `components/map/planting-marker.tsx`, `components/map/farm-map.tsx`
+What changed: Removed per-instance `map.on('zoom', ...)` listener from PlantingMarker. Zoom is now passed as a prop from the parent component which already tracks `currentZoom`.
+Map/dashboard impact: With 100 plantings, this eliminates 100 redundant event listeners and 100 independent React state updates on every zoom tick. Zoom/pan feels smoother on farms with many plantings.
 
-### 2. Guild context now reaches the AI in both analysis and chat paths
-Files: `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
-What changed: Added server-side guild fetching from `guild_templates` table during data enrichment. Previously, guild context was only included when the client sent `farmContext.guilds` (immersive editor only), leaving the classic editor and text chat paths with no guild awareness. Also added guild rendering to `createGeneralChatPrompt`.
-Map/dashboard impact: The AI now knows about designed guilds (focal species, companions, benefits) in all conversation modes, preventing it from suggesting companions that conflict with existing guild designs.
+### 2. Viewport-clip dimension labels in generateDimensionLabels
+File: `lib/map/measurement-grid.ts`, `components/map/farm-map.tsx`
+What changed: Added optional `viewport` parameter to `generateDimensionLabels()`. When provided, labels are only generated within the visible viewport instead of across the entire farm bounds.
+Map/dashboard impact: At zoom 20+ on large farms, dimension label generation now processes only the visible area instead of the full property. Reduces wasted Feature objects and GeoJSON source updates.
 
-### 3. Line features now include grid coordinates in AI context
-File: `app/api/ai/analyze/route.ts`
-What changed: Server-side enriched lines context now computes grid coordinates from stored GeoJSON geometry and includes location references (e.g., `"Main Swale" at grid A3-D3`). Also expanded the line type label map to cover all 12 defined line types (irrigation, drainage, terrace, access_path, garden_edge, wildlife_corridor).
-Map/dashboard impact: The AI can now reference where swales, fences, and water features are on the map grid, enabling spatial recommendations like "plant nitrogen fixers downslope of your swale at grid D3."
+### 3. Cache farm bounds computation across pan/zoom events
+File: `components/map/farm-map.tsx`
+What changed: Added `cachedFarmBoundsRef` that stores computed farm bounds and an `invalidateFarmBoundsCache()` function called only on draw.create/update/delete events. `getFarmBounds()` returns the cached value on moveend/zoomend instead of calling `draw.getAll()` and iterating every coordinate of every feature.
+Map/dashboard impact: Pan and zoom no longer trigger full feature iteration to compute bounds. On farms with complex polygons (hundreds of vertices), this eliminates redundant coordinate scanning on every map movement.
 
-## Watch for
-- The grid coordinate computation for plantings uses the same `calculateGridCoordinates` utility as zones, but since it computes farm bounds from all features each time, adding a large number of plantings could shift grid references slightly between calls. This is cosmetic, not functional.
-- The guild fetch in the analyze route uses `created_by = session.user.id` which means it fetches ALL user guilds, not just those associated with the current farm. This matches the existing behavior but could surface irrelevant guilds for multi-farm users.
-- The `zone-grid-calculator` dynamic import is hoisted before the lines loop, so it only runs once per enrichment. If this module is ever needed statically elsewhere in the route, consider switching to a top-level import.
-
----
-
-# PermaCraft — 2026-04-30
-## Focus: Dashboard
-
-### 1. Add zone count to dashboard farms query and display
-File: `lib/db/queries/dashboard.ts`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/dashboard-client-v2.tsx`, `components/dashboard/farm-tab-strip.tsx`
-What changed: Added `COUNT(DISTINCT z.id) as zone_count` via LEFT JOIN on zones table to the dashboard farms query; surfaced zone count in the farm hero card metrics, farm selector strip, and farm tab strip.
-Map/dashboard impact: Designers now see how many zones their farm has at a glance — zones are a core design element that was previously invisible on the dashboard. A farm with 12 zones and 3 plants tells a very different story than 0 zones and 3 plants.
-
-### 2. Fix task "today" filter to use calendar day boundary
-File: `components/dashboard/tasks-widget.tsx`
-What changed: Replaced `now + 86400` (rolling 24h window) with actual end-of-day calculation using `setHours(23, 59, 59, 999)`. The "today" tab now shows tasks due by end of today, not tasks due within the next 24 hours.
-Map/dashboard impact: Designers planning their day no longer see tomorrow's early-morning tasks in the "today" tab. The filter now matches the mental model of "what do I need to do today."
-
-### 3. Add line features to activity timeline
-File: `lib/db/queries/dashboard.ts`, `components/dashboard/activity-timeline.tsx`
-What changed: Added a `lines` subquery to `getBatchRecentActivity` (using `label` and `line_type` columns) and a Route icon entry in the activity timeline's type metadata map.
-Map/dashboard impact: Creating swales, fences, paths, hedges, and contour lines now appears in the activity feed. Previously these core map features were invisible in the timeline.
-
-### 4. Fix eco tip empty state when farm has no plantings
-File: `components/dashboard/eco-ring.tsx`
-What changed: When no eco functions have any plantings (all counts are 0), the tip now shows "Add plants with diverse permaculture functions to build a resilient ecosystem" instead of a broken sentence "Add to strengthen your ecosystem diversity."
-Map/dashboard impact: New farms with zero plantings get actionable guidance instead of a grammatically broken suggestion.
+### 4. Cache raster layer IDs for zoom-based opacity updates
+File: `components/map/farm-map.tsx`
+What changed: Added `rasterLayerIdsRef` populated on map load and style change. `handleZoomChange` now iterates the cached ID list directly instead of calling `map.getStyle()` (which deep-copies the entire style object) and scanning all sources/layers on every continuous zoom tick.
+Map/dashboard impact: Zoom gestures no longer trigger a full style deep-copy and source/layer iteration. The zoom handler is now O(k) where k = number of raster layers (typically 1) instead of O(n) where n = total layers + sources.
 
 ## Watch for
-- The `getDashboardFarms` query now does a three-way JOIN (farms + plantings + zones). For users with many farms this is still performant due to the GROUP BY on `f.id`, but monitor if anyone reports slow dashboard loads.
-- The `getBatchRecentActivity` query now has 5 UNION ALL subqueries instead of 4, with 5x `farmIds` in the args array. This is safe but increases the query payload slightly.
-- The `lines` table uses `label` (nullable) not `name` — confirmed against schema. If the column is renamed in a future migration, the activity query will need updating.
-
----
-
-# PermaCraft — 2026-04-29
-## Focus: Dashboard
-
-### 1. Fix server component rendered inside client boundary
-File: `components/dashboard/dashboard-client-v2.tsx`, `app/(app)/dashboard/page.tsx`
-What changed: `ProgressPanel` (async server component with DB queries) was imported directly into the `'use client'` DashboardClientV2, causing it to be bundled as a client component where `await` would fail. Moved it to a `progressSlot` ReactNode prop passed from the server page.
-Dashboard impact: Learning progress panel now renders correctly instead of silently failing or throwing a runtime error.
-
-### 2. Add SQL-level LIMIT to activity timeline query
-File: `lib/db/queries/dashboard.ts`
-What changed: `getBatchRecentActivity` did a UNION ALL across ai_analyses, plantings, zones, and tasks with no per-subquery LIMIT — fetching potentially thousands of rows before trimming to 10 per farm in JS. Added `LIMIT (farmCount * 15)` to each sub-select with ORDER BY within each.
-Dashboard impact: Activity timeline loads faster for farms with significant history. Prevents Turso query timeouts on large datasets. (Resolves the "Watch for" item from 2026-04-25.)
-
-### 3. Fix insights snippet truncation
-File: `components/dashboard/insights-widget.tsx`
-What changed: `slice(0, 140)` cut mid-word and always appended "..." even for short responses. Now breaks at word boundaries (last space before 140 chars) and only shows ellipsis when the response was actually truncated.
-Dashboard impact: AI insight snippets read naturally instead of breaking mid-word with spurious "..." on short responses.
-
-### 4. Fix eco-ring suggestion text safety
-File: `components/dashboard/eco-ring.tsx`
-What changed: The "Tip: Add X and Y" suggestion filtered for functions with count 0, then looked up labels via `FUNCTION_META[k]`. If a function key from the DB wasn't in the hardcoded map, `undefined` would appear in the text. Added `.filter(Boolean)` after label lookup and moved `.slice(0, 2)` after the filter.
-Dashboard impact: Suggestion text no longer shows "undefined" if the species DB has function keys not in the UI's hardcoded list.
-
-## Watch for
-- If new permaculture function types are added to the species DB, the eco-ring `FUNCTION_META` map needs updating to display them (currently they'd be silently filtered out of both the grid and suggestion text).
-- The `getBatchRecentActivity` per-subquery limit of `farmCount * 15` assumes ≤15 recent items per farm per type is sufficient. If a designer has many farms, this could still be large; monitor Turso query times.
-- `ProgressPanel` / `LearningProgress` makes 5 sequential DB queries inside `fetchLearningData`. These should be parallelized with `Promise.all` in a future pass.
-
----
-
-# PermaCraft — 2026-04-28
-## Focus: Map Intelligence (AI Context Quality)
-
-### 1. Enriched chat endpoint with full farm context
-File: `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
-What changed: Added permaculture_functions to plantings query, farmer goals, native species for the region, and RAG knowledge base context to the text-only chat endpoint — matching the information depth of the vision analysis endpoint.
-Map/dashboard impact: When designers ask questions via text chat without triggering a screenshot analysis, the AI now knows what ecological functions each planting serves, what the farmer's goals are, which native species suit their climate zone, and has access to permaculture literature. Previously, the chat AI gave generic advice; now it gives farm-specific, goal-aligned recommendations.
-
-### 2. Adaptive screenshot instructions in system prompt
-File: `lib/ai/prompts.ts`
-What changed: The system prompt and user prompt now adapt based on how many screenshots are actually provided. Previously, the prompt always described a dual-view (satellite + topographic) workflow even though the client typically sends only one screenshot. The prompt now correctly describes single-screenshot analysis when one is sent, and dual-view analysis when two are available.
-Map/dashboard impact: Eliminates ~300 wasted prompt tokens per request and removes confusing instructions that told the AI to "analyze BOTH screenshots" when only one existed. The AI no longer fabricates analysis of a nonexistent topographic view.
-
-### 3. Guild context in AI analysis
-Files: `lib/ai/optimized-analyze.ts`, `app/api/ai/analyze/route.ts`, `lib/ai/prompts.ts`, `components/immersive-map/immersive-map-editor.tsx`
-What changed: Plant guild data (designed combinations of focal + companion species with their benefits) is now included in the AI analysis context. Guilds were already loaded client-side but never passed to the AI.
-Map/dashboard impact: When recommending new plantings, the AI now knows about existing guild designs and can suggest companions that complement them rather than duplicating or conflicting with established polycultures.
-
-### 4. Extracted shared planning detection
-Files: `lib/ai/planning-detection.ts`, `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`
-What changed: The duplicated `isComplexPlanningQuery` function was extracted to a shared module. The chat route's version had 2 additional planning patterns (cost estimation, plan creation) that the analyze route was missing — now both routes use the same comprehensive set.
-Map/dashboard impact: The analyze route now correctly detects cost estimation and plan creation queries for MiniMax M2.5 routing, which it was previously missing.
-
-## Watch for
-- The chat endpoint now makes 2 additional DB queries (goals + native species) and 1 RAG query per request when a farmId is provided. Monitor latency — if it becomes noticeable, these queries could be parallelized with Promise.all alongside the existing zone/planting/line queries.
-- The `createGeneralChatPrompt` function now accepts `ragContext` which is appended before the user question. For very large knowledge bases, this could push token counts high — the chat endpoint limits RAG to 3 chunks (vs 5 for analysis) to keep context reasonable.
-- Guild context is built from client-provided data only. If guilds are modified in another tab, the AI won't see the update until the page refreshes.
-
----
-
-# PermaCraft — 2026-04-27
-## Focus: UI/UX Polish (Sunday)
-
-### 1. Auth error states now readable in both light and dark mode
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Replaced `bg-destructive/20 text-destructive-foreground` (which relies on theme tokens that can render white-on-white or dark-on-dark) with explicit `bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300` and a visible border.
-Map/dashboard impact: Users who mistype credentials or hit a server error see a clearly readable message instead of text that blends into the background on certain themes.
-
-### 2. Farm creation page shows boundary status and clearer CTA
-File: `app/(app)/farm/new/page.tsx`
-What changed: Added a green confirmation banner when the boundary is drawn ("Boundary drawn — X.X acres"). The submit button now reads "Draw boundary first" when disabled (instead of grayed-out "Create Farm"), and uses a larger, rounded style to stand out as the primary action.
-Map/dashboard impact: First-time users no longer wonder why "Create Farm" is grayed out — the button text tells them what to do, and drawing confirmation gives immediate visual feedback.
-
-### 3. EcoRing widget responsive layout for narrow screens
-File: `components/dashboard/eco-ring.tsx`
-What changed: Changed the ring + functions grid from a fixed horizontal layout (`flex items-center gap-6`) to `flex-col sm:flex-row` with tighter gap. Ring SVG reduced from 128px to 112px rendered size. Functions grid now takes full width on mobile.
-Map/dashboard impact: Dashboard no longer overflows horizontally on screens narrower than 375px (iPhone SE, small Androids). The eco health ring and function pills stack vertically instead of getting clipped.
-
-### 4. Activity Timeline now links to the farm editor
-Files: `components/dashboard/activity-timeline.tsx`, `components/dashboard/dashboard-client-v2.tsx`
-What changed: Added an "Open farm" link in the Activity Timeline header (consistent with Tasks and Insights widgets). The component now accepts an optional `farmId` prop, passed from DashboardClientV2.
-Map/dashboard impact: Designers can navigate directly from a recent activity item's context to the map editor — previously the Activity Timeline was a visual dead-end with no path to action.
-
-## Watch for
-- The inline SVG checkmark in the boundary confirmation banner uses a `path` element with `fillRule="evenodd"`. Verify it renders on Safari (it should — standard SVG).
-- EcoRing stacking at `sm:` breakpoint (640px) may feel early on tablets in portrait. Monitor if users on 600-640px screens prefer the horizontal layout.
-
----
-
-# PermaCraft — 2026-04-26
-## Focus: UI/UX Polish (Sunday)
-
-### 1. Mobile farm name edit button now discoverable
-File: `components/dashboard/farm-hero-card.tsx`
-What changed: Edit button shows at 60% opacity on mobile (was hidden behind hover-only), with larger touch target and `touch-manipulation` for snappy response.
-Map/dashboard impact: Mobile users can now rename farms directly from the dashboard hero card, instead of the edit affordance being desktop-hover-only.
-
-### 2. Removed double-card nesting in progress panel
-File: `components/dashboard/progress-panel.tsx`
-What changed: Removed wrapping Card/border/header from ProgressPanel — LearningProgress already renders its own Card with gradient styling. Eliminates visual double-border.
-Map/dashboard impact: Dashboard looks cleaner — the learning progress widget now matches the visual weight of neighboring cards instead of appearing double-bordered.
-
-### 3. Insights empty state now links to AI analysis
-File: `components/dashboard/insights-widget.tsx`
-What changed: Empty state now includes a "Start AI Analysis" button linking to the farm editor with chat open, instead of passive text saying "Open the map and ask AI."
-Map/dashboard impact: First-time users hitting the empty insights widget get a clear path forward — one tap takes them into the AI chat on their farm.
-
-### 4. Chat panel mobile backdrop and transition polish
-File: `app/(app)/farm/[id]/farm-editor-client.tsx`
-What changed: Added translucent backdrop overlay on mobile when AI chat is open (tap to dismiss). Removed the 400px max-height constraint that was truncating the chat on mobile. Added depth shadow on mobile panel.
-Map/dashboard impact: AI chat on mobile now feels like a proper overlay sheet instead of a jarring side-slide. Users can dismiss by tapping outside, and the full chat history is visible without scrolling a cramped 400px box.
-
-## Watch for
-- The chat panel backdrop uses `animate-in fade-in` from tailwind-animate — verify this utility class is present in the project's Tailwind config if transitions don't animate
-- The ProgressPanel now directly returns LearningProgress (a server component) — verify this works correctly when rendered inside the client DashboardClientV2 (it should, since Next.js supports async server components as children of client components)
-- InsightsWidget links to `/farm/${farmId}?chat=open` — the farm-editor-client already handles this query param, so this should work out of the box
-
----
-
-# PermaCraft — 2026-04-25
-## Focus: Performance + Reliability (Saturday)
-
-### 1. Dashboard N+1 query elimination
-File: `lib/db/queries/dashboard.ts`, `app/(app)/dashboard/page.tsx`
-What changed: Replaced per-farm `getEcoHealthScore` and `getRecentActivity` calls with batch functions (`getBatchEcoHealthScores`, `getBatchRecentActivity`) that execute a single SQL query across all farms, then partition results in JS.
-Map/dashboard impact: Dashboard load for a user with N farms drops from N×4 + 1 DB queries to N×2 + 3 (eco health and activity are now 1 query each regardless of farm count). A user with 10 farms goes from ~41 queries to ~23.
-
-### 2. Zone save atomic transaction
-File: `app/api/farms/[id]/zones/route.ts`
-What changed: Moved the DELETE, all INSERTs, and the farm timestamp UPDATE into a single `db.batch()` call, which libSQL executes as an atomic transaction. Previously the DELETE ran separately, so a concurrent save request could interleave and cause duplicate farm boundaries or lost zones. (Resolves the "Watch for" item from 2026-04-24.)
-Map/dashboard impact: Zone saves are now atomic — if any INSERT fails, the DELETE is rolled back and existing zones are preserved. Eliminates a data corruption risk under concurrent edits.
-
-### 3. Sync engine exponential backoff
-File: `lib/offline/sync-engine.ts`
-What changed: Replaced fixed 30-second retry delay with exponential backoff (5s → 10s → 20s → 40s → 80s → 120s cap). Tracks `consecutiveFailures` and resets on success.
-Map/dashboard impact: On flaky connections, the sync engine no longer hammers the server every 30s indefinitely. Reduces battery drain on mobile devices and avoids overwhelming the server during outages.
-
-### 4. AI response cache scaling
-File: `lib/ai/response-cache.ts`
-What changed: Increased LRU cache from 100 entries to 500, and added size-aware eviction (`maxSize: 50MB`, `sizeCalculation` based on response length). Prevents a few large responses from evicting the entire cache.
-Map/dashboard impact: AI analysis responses are cached more effectively for multi-farm users. Repeated similar queries hit cache instead of re-calling OpenRouter, reducing latency and API costs.
-
-## Watch for
-- `getBatchRecentActivity` returns all matching rows sorted globally then caps at 10 per farm in JS. For users with many farms and heavy activity, the SQL result set could be large. Consider adding a per-subquery LIMIT if this becomes an issue.
-- `getFarmTasks` and `getRecentAiInsights` are still per-farm queries. They're lightweight (indexed, limited), but could be batched in a future pass if dashboard latency is still a concern.
-- The sync engine backoff resets to 0 on any successful sync. If the server is intermittently failing, this could still cause bursty retries. Consider a slow-decay approach if monitoring shows issues.
-
----
-
-# PermaCraft — 2026-04-24
-## Focus: Map Core (Thursday)
-
-### 1. Fix polygon ring closure after snap-to-grid
-File: `components/map/farm-map.tsx` (snapFeatures function, ~line 1898)
-What changed: After snapping polygon vertices to grid intersections, the code now ensures the last coordinate in each ring matches the first — maintaining valid GeoJSON. Previously, independent snapping of first and last vertices could break ring closure, producing invalid polygons.
-Map/dashboard impact: Designers using snap-to-grid at zoom 20+ no longer risk invisible geometry corruption. Zones render correctly and save without data integrity issues.
-
-### 2. Add MultiPolygon support to snap-to-grid
-File: `components/map/farm-map.tsx` (snapFeatures function, ~line 1898)
-What changed: snapFeatures now handles MultiPolygon geometries by iterating all rings across all sub-polygons. Previously only single Polygon, Point, and LineString types were processed — MultiPolygon features silently skipped snapping.
-Map/dashboard impact: Any MultiPolygon zones (e.g., non-contiguous areas) now snap correctly to the grid at high zoom.
-
-### 3. Debounce draw.update propagation during vertex dragging
-File: `components/map/farm-map.tsx` (handleDrawUpdate, ~line 2034)
-What changed: Vertex dragging now debounces expensive operations (parent state propagation via onZonesChange + grid recalculation) with a 200ms delay, while keeping zone coloring updates immediate for visual feedback. Previously, every pixel of a vertex drag fired full grid regeneration and parent re-renders.
-Map/dashboard impact: Smoother vertex editing experience, especially on large farms with complex grids. Reduces unnecessary computation during drag operations.
-
-### 4. Add GeoJSON geometry validation on zone save API
-File: `app/api/farms/[id]/zones/route.ts` (Zod schema, line 42)
-What changed: Replaced `z.any()` geometry validation with a proper discriminated union schema that validates GeoJSON geometry type, coordinate structure, minimum ring lengths for polygons, and 2D/3D coordinate formats. Also added server-side ring closure normalization before persisting.
-Map/dashboard impact: Malformed geometry can no longer silently corrupt the database. Invalid saves return 400 errors with clear messages instead of storing broken data that causes rendering failures on next load.
-
-## Watch for
-- The zone POST endpoint still uses delete-all-then-reinsert pattern. If the batch insert fails after the delete, zones are lost. This needs a transactional approach (future item).
-- Schema-code mismatch: Several columns referenced in API routes (layer_ids, phase_id, catchment_properties, swale_properties on zones) may not exist in all database instances depending on migration state.
-- JSON.parse calls in lines/guilds API routes lack try-catch — malformed JSON in DB can cause unhandled exceptions.
+- PlantingMarker zoom prop: if any other consumer of PlantingMarker is added in the future, it should pass the zoom prop for consistency. Without it, the component falls back to `map.getZoom()` on mount but won't update on zoom changes.
+- Farm bounds cache: the cache is invalidated on draw events but not on external zone prop changes. If zones are modified outside of MapboxDraw (e.g., via API), the cache could become stale. Monitor for cases where grid lines don't update after zone changes from external sources.
+- Raster layer cache: rebuilt on initial load and `changeMapLayer()`. If a raster layer is added by any other code path, `rebuildRasterLayerCache()` should be called there too.
