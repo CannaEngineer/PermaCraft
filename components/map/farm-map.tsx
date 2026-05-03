@@ -407,6 +407,8 @@ export function FarmMap({
   const addColoredZoneLayersRef = useRef<(() => void) | null>(null);
   const updateGridRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
   const updateGridDebouncedRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
+  const cachedFarmBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
+  const rasterLayerIdsRef = useRef<string[]>([]);
   const initialZonesLoadedRef = useRef(false);
   const mapLoadedRef = useRef(false);
   const zonesRef = useRef(zones);
@@ -1126,6 +1128,18 @@ export function FarmMap({
     return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   };
 
+  const rebuildRasterLayerCache = () => {
+    if (!map.current) return;
+    const style = map.current.getStyle();
+    const ids: string[] = [];
+    for (const layer of style.layers) {
+      if (layer.type === 'raster') {
+        ids.push(layer.id);
+      }
+    }
+    rasterLayerIdsRef.current = ids;
+  };
+
   // Handle zoom changes for progressive visual enhancements
   const handleZoomChange = useCallback(() => {
     if (!map.current) return;
@@ -1149,19 +1163,11 @@ export function FarmMap({
     if (zoom > ZOOM_THRESHOLDS.FADE_START) {
       const opacity = getSatelliteOpacity(zoom);
 
-      // Update all raster layers
-      const style = map.current.getStyle();
-      Object.keys(style.sources).forEach((sourceId) => {
-        const source = style.sources[sourceId];
-        if (source.type === 'raster') {
-          // Find layers using this source
-          style.layers.forEach((layer) => {
-            if (layer.type === 'raster' && 'source' in layer && layer.source === sourceId) {
-              map.current!.setPaintProperty(layer.id, 'raster-opacity', opacity);
-            }
-          });
+      for (const layerId of rasterLayerIdsRef.current) {
+        if (map.current.getLayer(layerId)) {
+          map.current.setPaintProperty(layerId, 'raster-opacity', opacity);
         }
-      });
+      }
     }
 
     // Update grid thickness
@@ -1753,6 +1759,7 @@ export function FarmMap({
 
       map.current.on("load", () => {
         if (!map.current) return;
+        rebuildRasterLayerCache();
         setupGridLayers();
         updateGrid();
 
@@ -1899,9 +1906,8 @@ export function FarmMap({
           });
 
           onZonesChange(draw.current.getAll().features);
-          // Update grid when zones change (especially farm_boundary)
+          invalidateFarmBoundsCache();
           updateGrid();
-          // Update colored zones
           updateColoredZones();
         }
       };
@@ -1924,6 +1930,7 @@ export function FarmMap({
               }
             });
             onZonesChange(draw.current.getAll().features);
+            invalidateFarmBoundsCache();
             updateGrid();
           }
         }, 200);
@@ -2699,6 +2706,7 @@ export function FarmMap({
         if (!map.current) return;
 
         console.log("Map idle, re-adding custom layers...");
+        rebuildRasterLayerCache();
 
         // Enable 3D terrain if on terrain-3d layer
         if (layer === "terrain-3d" && map.current.getSource('terrain-dem')) {
@@ -2854,9 +2862,15 @@ export function FarmMap({
     }
   };
 
+  const invalidateFarmBoundsCache = useCallback(() => {
+    cachedFarmBoundsRef.current = null;
+  }, []);
+
   const getFarmBounds = () => {
+    // Return cached bounds if available (invalidated on zone changes)
+    if (cachedFarmBoundsRef.current) return cachedFarmBoundsRef.current;
+
     if (!draw.current || !map.current) {
-      // If no draw or map yet, use viewport bounds
       const bounds = map.current?.getBounds();
       if (!bounds) return null;
       return {
@@ -2867,14 +2881,14 @@ export function FarmMap({
       };
     }
 
-    // Try to find farm_boundary zone
     const allFeatures = draw.current.getAll();
     const farmBoundary = allFeatures.features.find(
       (f: any) => f.properties?.user_zone_type === "farm_boundary"
     );
 
+    let result: { north: number; south: number; east: number; west: number } | null = null;
+
     if (farmBoundary && farmBoundary.geometry.type === "Polygon") {
-      // Calculate bounds from farm boundary polygon
       const coords = farmBoundary.geometry.coordinates[0];
       let north = -Infinity, south = Infinity, east = -Infinity, west = Infinity;
 
@@ -2885,12 +2899,8 @@ export function FarmMap({
         if (lng < west) west = lng;
       });
 
-      return { north, south, east, west };
-    }
-
-    // If no farm boundary, check if there are any zones at all
-    if (allFeatures.features.length > 0) {
-      // Use bounds of all zones
+      result = { north, south, east, west };
+    } else if (allFeatures.features.length > 0) {
       let north = -Infinity, south = Infinity, east = -Infinity, west = Infinity;
 
       allFeatures.features.forEach((f: any) => {
@@ -2919,19 +2929,23 @@ export function FarmMap({
       });
 
       if (north !== -Infinity) {
-        return { north, south, east, west };
+        result = { north, south, east, west };
       }
     }
 
-    // Fall back to viewport bounds
-    const bounds = map.current.getBounds();
-    if (!bounds) return null;
-    return {
-      north: bounds.getNorth(),
-      south: bounds.getSouth(),
-      east: bounds.getEast(),
-      west: bounds.getWest(),
-    };
+    if (!result) {
+      const bounds = map.current.getBounds();
+      if (!bounds) return null;
+      result = {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+      };
+    }
+
+    cachedFarmBoundsRef.current = result;
+    return result;
   };
 
   /**
@@ -3033,8 +3047,8 @@ export function FarmMap({
       });
     }
 
-    // Generate and update dimension labels (shown at zoom 20+)
-    const dimensionLabels = generateDimensionLabels(farmBounds, gridUnit, activeSubdivision);
+    // Generate and update dimension labels (shown at zoom 20+), clipped to viewport
+    const dimensionLabels = generateDimensionLabels(farmBounds, gridUnit, activeSubdivision, viewport);
     const dimensionLabelSource = map.current.getSource(
       "grid-dimension-labels"
     ) as maplibregl.GeoJSONSource;
@@ -3475,6 +3489,7 @@ export function FarmMap({
           planting={planting}
           map={map.current!}
           currentYear={projectionYear}
+          zoom={currentZoom}
           onClick={onFeaturesAtPoint ? undefined : (p) => {
             setSelectedPlanting(p);
           }}

@@ -353,24 +353,24 @@ export function generateViewportLabels(
 
 /**
  * Generate dimension labels for grid cells at zoom 20+
- * Shows cell dimensions (10ft × 10ft or 50ft × 50ft) at grid intersections
+ * Shows cell dimensions (10ft × 10ft or 50ft × 50ft) at grid intersections.
+ * When a viewport is provided, only generates labels within the visible area.
  */
 export function generateDimensionLabels(
   bounds: { north: number; south: number; east: number; west: number },
   unit: GridUnit,
-  subdivision: 'coarse' | 'fine' = 'coarse'
+  subdivision: 'coarse' | 'fine' = 'coarse',
+  viewport?: { north: number; south: number; east: number; west: number }
 ): Feature<Point>[] {
   const features: Feature<Point>[] = [];
 
-  // Calculate spacing
-  let spacingFt = subdivision === 'fine' ? 10 : 50;
-  let spacingM = subdivision === 'fine' ? 5 : 25;
+  const spacingFt = subdivision === 'fine' ? 10 : 50;
+  const spacingM = subdivision === 'fine' ? 5 : 25;
 
   const displaySpacing = unit === 'imperial'
     ? `${spacingFt}ft × ${spacingFt}ft`
     : `${spacingM}m × ${spacingM}m`;
 
-  // Calculate grid spacing in degrees
   const intervalMeters = unit === 'imperial'
     ? feetToMeters(spacingFt)
     : spacingM;
@@ -379,14 +379,16 @@ export function generateDimensionLabels(
   const latSpacing = metersToDegreesLat(intervalMeters);
   const lngSpacing = metersToDegreesLng(intervalMeters, centerLat);
 
-  // Generate labels at every 4th intersection (to avoid clutter)
+  // Use viewport bounds if provided, otherwise fall back to farm bounds
+  const clipBounds = viewport ?? bounds;
+
   let latCount = 0;
-  for (let lat = Math.floor(bounds.south / latSpacing) * latSpacing; lat <= bounds.north; lat += latSpacing) {
+  for (let lat = Math.floor(clipBounds.south / latSpacing) * latSpacing; lat <= clipBounds.north; lat += latSpacing) {
     latCount++;
     if (latCount % 4 !== 0) continue;
 
     let lngCount = 0;
-    for (let lng = Math.floor(bounds.west / lngSpacing) * lngSpacing; lng <= bounds.east; lng += lngSpacing) {
+    for (let lng = Math.floor(clipBounds.west / lngSpacing) * lngSpacing; lng <= clipBounds.east; lng += lngSpacing) {
       lngCount++;
       if (lngCount % 4 !== 0) continue;
 
