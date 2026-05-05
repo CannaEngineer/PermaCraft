@@ -144,6 +144,7 @@ describe('buildOptimizedContext', () => {
     plantingsList: 'Apple: canopy, year 2020\nComfrey: herbaceous, year 2021',
     linesList: 'swale: unlabeled',
     nativeSpeciesList: 'Oak (canopy, 80ft), Serviceberry (understory, 20ft)',
+    guildsList: '"Apple Guild": focal=Apple, companions: Comfrey, Clover',
     goals: 'Food Production: Produce 50% of household food',
     tokenEstimate: 150
   };
@@ -166,11 +167,11 @@ describe('buildOptimizedContext', () => {
     expect(result).toContain('Food Production');
   });
 
-  test('excludes irrelevant sections', () => {
-    const result = buildOptimizedContext(compressed, 'What is the weather like?');
-    expect(result).not.toContain('Current plantings:');
-    expect(result).not.toContain('Native species available:');
-    expect(result).not.toContain('Farmer goals:');
+  test('includes all context for general queries', () => {
+    const result = buildOptimizedContext(compressed, 'How does my farm look?');
+    expect(result).toContain('Current plantings:');
+    expect(result).toContain('Native species available:');
+    expect(result).toContain('Farmer goals:');
   });
 
   test('always includes summary and key facts', () => {

@@ -18,6 +18,7 @@ export interface FarmContext {
   lines: any[];
   goals: any[];
   nativeSpecies: any[];
+  guilds?: any[];
 }
 
 export interface CompressedContext {
@@ -26,6 +27,7 @@ export interface CompressedContext {
   plantingsList: string;
   linesList: string;
   nativeSpeciesList: string;
+  guildsList: string;
   goals: string;
   tokenEstimate: number;
 }
@@ -131,13 +133,36 @@ export function compressFarmContext(
     `${s.common_name} (${s.layer}, ${s.mature_height_ft}ft)`
   ).join(', ');
 
+  // Guilds (companion planting groups)
+  const guilds = context.guilds || [];
+  let guildsList: string;
+  if (guilds.length === 0) {
+    guildsList = '';
+  } else if (verbosity === 'minimal') {
+    guildsList = `${guilds.length} guild${guilds.length > 1 ? 's' : ''} designed`;
+  } else {
+    guildsList = guilds.map(g => {
+      const focal = g.focal_common_name || g.focal_species || 'unknown focal';
+      let companions = '';
+      if (g.companion_species) {
+        try {
+          const parsed = typeof g.companion_species === 'string' ? JSON.parse(g.companion_species) : g.companion_species;
+          if (Array.isArray(parsed)) {
+            companions = parsed.map((c: any) => c.common_name || c.name || 'unknown').join(', ');
+          }
+        } catch {}
+      }
+      return `"${g.name || 'Unnamed'}": focal=${focal}${companions ? `, companions: ${companions}` : ''}`;
+    }).join('\n');
+  }
+
   // Goals (if any)
   const goalsText = goals.length > 0
     ? goals.map(g => `${g.goal_category}: ${g.description}`).join('; ')
     : 'No goals set';
 
   // Estimate tokens (rough)
-  const text = `${summary}\n${keyFacts.join('\n')}\n${plantingsList}\n${linesList}\n${nativeSpeciesList}\n${goalsText}`;
+  const text = `${summary}\n${keyFacts.join('\n')}\n${plantingsList}\n${linesList}\n${nativeSpeciesList}\n${guildsList}\n${goalsText}`;
   const tokenEstimate = Math.ceil(text.length / 4); // ~4 chars per token
 
   return {
@@ -146,6 +171,7 @@ export function compressFarmContext(
     plantingsList,
     linesList,
     nativeSpeciesList,
+    guildsList,
     goals: goalsText,
     tokenEstimate
   };
@@ -155,17 +181,22 @@ export function compressFarmContext(
  * Build optimized context string for LLM
  *
  * Always includes summary and key facts. Conditionally includes detailed
- * sections based on broad keyword matching against the user's query.
+ * sections based on keyword matching against the user's query.
+ * For general/broad questions that don't match specific patterns, includes
+ * ALL context so the AI can give site-specific answers.
  */
 export function buildOptimizedContext(
   compressed: CompressedContext,
   userQuery: string
 ): string {
-  const q = userQuery.toLowerCase();
-  const needsPlantings = /plant|tree|species|guild|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(q);
-  const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace/i.test(q);
-  const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for/i.test(q);
-  const needsGoals = /goal|objective|plan|timeline|priority|phase|year|budget|schedule|strategy|vision/i.test(q);
+  const needsPlantings = /plant|tree|species|guild|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(userQuery);
+  const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace/i.test(userQuery);
+  const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for/i.test(userQuery);
+  const needsGoals = /goal|objective|plan|timeline|priority|phase|year|budget|schedule|strategy|vision/i.test(userQuery);
+
+  // If the query doesn't match any specific pattern, it's a general/broad question —
+  // include all context so the AI has full farm awareness
+  const isGeneralQuery = !needsPlantings && !needsLines && !needsNatives && !needsGoals;
 
   const parts: string[] = [compressed.summary];
 
@@ -173,20 +204,24 @@ export function buildOptimizedContext(
     parts.push('Key facts:\n- ' + compressed.keyFacts.join('\n- '));
   }
 
-  if (needsPlantings && compressed.plantingsList) {
+  if ((needsPlantings || isGeneralQuery) && compressed.plantingsList) {
     parts.push('Current plantings:\n' + compressed.plantingsList);
   }
 
-  if (needsLines && compressed.linesList) {
+  if ((needsLines || isGeneralQuery) && compressed.linesList) {
     parts.push('Lines & water features:\n' + compressed.linesList);
   }
 
-  if (needsNatives && compressed.nativeSpeciesList) {
+  if ((needsNatives || isGeneralQuery) && compressed.nativeSpeciesList) {
     parts.push('Native species available:\n' + compressed.nativeSpeciesList);
   }
 
-  if (needsGoals && compressed.goals !== 'No goals set') {
+  if ((needsGoals || isGeneralQuery) && compressed.goals !== 'No goals set') {
     parts.push('Farmer goals: ' + compressed.goals);
+  }
+
+  if (compressed.guildsList) {
+    parts.push('Plant guilds:\n' + compressed.guildsList);
   }
 
   return parts.join('\n\n');

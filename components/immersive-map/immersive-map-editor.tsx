@@ -664,13 +664,12 @@ function ImmersiveMapEditorContent({
       }
 
       try {
-        // Capture screenshot
         const screenshot = await captureMapScreenshot();
 
-        // Use optimized analysis
         const result = await analyzeWithOptimization({
           userQuery: query,
           screenshotDataURL: screenshot,
+          conversationId,
           farmContext: {
             zones,
             plantings,
@@ -687,22 +686,12 @@ function ImmersiveMapEditorContent({
           }
         });
 
-        // Log metadata
-        console.log('Analysis complete:', result.metadata);
-
-        // Show toast (metadata display - simplified for now)
-        if (result.metadata.cached) {
-          console.log(`[Cached] Saved ${result.metadata.totalTokens} tokens`);
-        } else {
-          console.log(`[New] ${result.metadata.screenshotSize} bytes, ${result.metadata.totalTokens} tokens`);
-        }
-
         return {
           response: result.response,
-          conversationId: conversationId || 'new',
-          analysisId: 'new',
+          conversationId: result.conversationId || conversationId || 'new',
+          analysisId: result.analysisId || 'new',
           screenshot: screenshot,
-          generatedImageUrl: undefined
+          generatedImageUrl: result.generatedImageUrl || undefined
         };
       } catch (error) {
         console.error('Analysis failed:', error);
