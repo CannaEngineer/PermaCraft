@@ -1,27 +1,22 @@
-# PermaCraft — 2026-05-02
-## Focus: Performance + Reliability
+# PermaCraft — 2026-05-05
+## Focus: Map Intelligence (AI Context Quality)
 
-### 1. Eliminate per-marker zoom listeners in PlantingMarker
-File: `components/map/planting-marker.tsx`, `components/map/farm-map.tsx`
-What changed: Removed per-instance `map.on('zoom', ...)` listener from PlantingMarker. Zoom is now passed as a prop from the parent component which already tracks `currentZoom`.
-Map/dashboard impact: With 100 plantings, this eliminates 100 redundant event listeners and 100 independent React state updates on every zoom tick. Zoom/pan feels smoother on farms with many plantings.
+### 1. Fix broken conversation threading in optimized analysis flow
+Files: `lib/ai/optimized-analyze.ts`, `components/immersive-map/immersive-map-editor.tsx`
+What changed: `analyzeWithOptimization` now passes `conversationId` to the API and returns the server-assigned `conversationId`, `analysisId`, and `generatedImageUrl` back to the caller.
+Map/dashboard impact: Multi-turn design conversations now actually work — the AI remembers previous questions/answers in the same session instead of starting fresh on every message. Designers can iteratively refine recommendations.
 
-### 2. Viewport-clip dimension labels in generateDimensionLabels
-File: `lib/map/measurement-grid.ts`, `components/map/farm-map.tsx`
-What changed: Added optional `viewport` parameter to `generateDimensionLabels()`. When provided, labels are only generated within the visible viewport instead of across the entire farm bounds.
-Map/dashboard impact: At zoom 20+ on large farms, dimension label generation now processes only the visible area instead of the full property. Reduces wasted Feature objects and GeoJSON source updates.
+### 2. Fix context compression dropping all farm data for general queries
+File: `lib/ai/context-compressor.ts`
+What changed: When a user's query doesn't match any specific keyword pattern (plantings, water, natives, goals), it's now classified as a "general query" and ALL compressed context is included. Previously, queries like "How does my farm look?", "Any suggestions?", or "Analyze my design" would only receive a one-line summary.
+Map/dashboard impact: The AI now gives site-specific answers to broad questions instead of generic permaculture advice. A farmer asking "what do you think?" gets responses that reference their actual plantings, water features, and goals.
 
-### 3. Cache farm bounds computation across pan/zoom events
-File: `components/map/farm-map.tsx`
-What changed: Added `cachedFarmBoundsRef` that stores computed farm bounds and an `invalidateFarmBoundsCache()` function called only on draw.create/update/delete events. `getFarmBounds()` returns the cached value on moveend/zoomend instead of calling `draw.getAll()` and iterating every coordinate of every feature.
-Map/dashboard impact: Pan and zoom no longer trigger full feature iteration to compute bounds. On farms with complex polygons (hundreds of vertices), this eliminates redundant coordinate scanning on every map movement.
-
-### 4. Cache raster layer IDs for zoom-based opacity updates
-File: `components/map/farm-map.tsx`
-What changed: Added `rasterLayerIdsRef` populated on map load and style change. `handleZoomChange` now iterates the cached ID list directly instead of calling `map.getStyle()` (which deep-copies the entire style object) and scanning all sources/layers on every continuous zoom tick.
-Map/dashboard impact: Zoom gestures no longer trigger a full style deep-copy and source/layer iteration. The zoom handler is now O(k) where k = number of raster layers (typically 1) instead of O(n) where n = total layers + sources.
+### 3. Include guild (companion planting) data in compression pipeline
+Files: `lib/ai/context-compressor.ts`, `app/api/ai/analyze/route.ts`, `lib/ai/context-compressor.test.ts`
+What changed: Added `guilds` to `FarmContext` interface and `guildsList` to `CompressedContext`. The compression function now extracts focal species and companions from guild data. The analyze endpoint passes guild rows into the enriched farm context used by the compressor. `buildOptimizedContext` always includes guild data when present.
+Map/dashboard impact: When optimizations are enabled (the default path in the immersive editor), the AI now knows about designed companion planting guilds and can recommend species that complement existing designs rather than duplicating or conflicting with them.
 
 ## Watch for
-- PlantingMarker zoom prop: if any other consumer of PlantingMarker is added in the future, it should pass the zoom prop for consistency. Without it, the component falls back to `map.getZoom()` on mount but won't update on zoom changes.
-- Farm bounds cache: the cache is invalidated on draw events but not on external zone prop changes. If zones are modified outside of MapboxDraw (e.g., via API), the cache could become stale. Monitor for cases where grid lines don't update after zone changes from external sources.
-- Raster layer cache: rebuilt on initial load and `changeMapLayer()`. If a raster layer is added by any other code path, `rebuildRasterLayerCache()` should be called there too.
+- The `handleAnalyze` function in the immersive editor previously returned hardcoded `conversationId: 'new'` — verify that `use-ai-chat` properly updates its `currentConversationId` with the real value from the API response (it should via the existing logic in `submitMessage`).
+- General queries now include all context sections, which uses more tokens. Monitor whether this causes token budget issues on large farms with many plantings. The compressed format already keeps plantings concise, so this should be safe.
+- The test file previously tested that "irrelevant" queries excluded sections — changed this to test that general queries include everything, which better matches the desired behavior.

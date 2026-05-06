@@ -15,6 +15,7 @@
 export interface AnalyzeRequest {
   userQuery: string;
   screenshotDataURL?: string; // Base64 data URL from canvas
+  conversationId?: string;
   farmContext: {
     zones: any[];
     plantings: any[];
@@ -33,6 +34,9 @@ export interface AnalyzeRequest {
 
 export interface AnalyzeResponse {
   response: string;
+  conversationId?: string;
+  analysisId?: string;
+  generatedImageUrl?: string | null;
   metadata: {
     cached: boolean;
     screenshotTokens: number;
@@ -54,13 +58,13 @@ export interface AnalyzeResponse {
 export async function analyzeWithOptimization(
   request: AnalyzeRequest
 ): Promise<AnalyzeResponse> {
-  const { userQuery, screenshotDataURL, farmContext, farmInfo } = request;
+  const { userQuery, screenshotDataURL, conversationId, farmContext, farmInfo } = request;
 
-  // Call the API with optimization enabled
   const result = await callAIAPI({
     query: userQuery,
     context: farmContext,
     screenshot: screenshotDataURL,
+    conversationId,
     farmInfo
   });
 
@@ -74,9 +78,9 @@ async function callAIAPI(params: {
   query: string;
   context: any;
   screenshot?: string;
+  conversationId?: string;
   farmInfo: any;
 }): Promise<AnalyzeResponse> {
-  // API expects screenshots as an array of {type, data} objects
   const screenshots = params.screenshot
     ? [{ type: 'screenshot', data: params.screenshot }]
     : [];
@@ -87,10 +91,10 @@ async function callAIAPI(params: {
     body: JSON.stringify({
       query: params.query,
       farmId: params.farmInfo.id,
+      conversationId: params.conversationId,
       screenshots,
       farmContext: params.context,
       farmInfo: params.farmInfo,
-      // Enable server-side optimizations
       enableOptimizations: true
     })
   });
@@ -102,9 +106,11 @@ async function callAIAPI(params: {
 
   const data = await response.json();
 
-  // Return response with metadata
   return {
     response: data.response,
+    conversationId: data.conversationId,
+    analysisId: data.analysisId,
+    generatedImageUrl: data.generatedImageUrl,
     metadata: {
       cached: data.metadata?.cached || false,
       screenshotTokens: data.metadata?.screenshotTokens || 0,

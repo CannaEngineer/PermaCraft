@@ -443,6 +443,13 @@ export async function POST(request: NextRequest) {
         })),
         goals: [],
         nativeSpecies: [],
+        guilds: guildsRes.rows.map(g => ({
+          name: g.name,
+          focal_common_name: g.focal_common_name,
+          focal_scientific_name: g.focal_scientific_name,
+          companion_species: g.companion_species,
+          benefits: g.benefits,
+        })),
       };
     }
 
