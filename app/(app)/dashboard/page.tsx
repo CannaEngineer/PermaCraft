@@ -9,28 +9,16 @@ import {
   getFarmTasks,
   getRecentAiInsights,
   getBatchRecentActivity,
+  DashboardFarmData,
 } from "@/lib/db/queries/dashboard";
 import { getSeasonalContext } from "@/lib/dashboard/seasonal";
 import { Task } from "@/lib/db/schema";
-import { SeasonalContext } from "@/lib/dashboard/seasonal";
-import { DashboardFarm } from "@/lib/db/queries/dashboard";
 
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
-}
-
-interface FarmData {
-  farm: DashboardFarm;
-  ecoScore: number;
-  ecoFunctions: Record<string, number>;
-  tasks: Task[];
-  insights: any[];
-  activity: any[];
-  seasonal: SeasonalContext;
-  urgentCount: number;
 }
 
 export default async function DashboardPage() {
@@ -49,7 +37,7 @@ export default async function DashboardPage() {
     ]),
   ]);
 
-  const farmData: Record<string, FarmData> = {};
+  const farmData: Record<string, DashboardFarmData> = {};
   for (let i = 0; i < farms.length; i++) {
     const farm = farms[i];
     const tasks = perFarmResults[i * 2] as Task[];

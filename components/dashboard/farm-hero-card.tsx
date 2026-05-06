@@ -1,11 +1,11 @@
 'use client';
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { DashboardFarm } from '@/lib/db/queries/dashboard';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import type { Season } from '@/lib/dashboard/seasonal';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints, Pencil, Check, X } from 'lucide-react';
+import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints, Pencil, Check, X, Spline } from 'lucide-react';
 
 // Keys must match the Season union in lib/dashboard/seasonal.ts
 const SEASON_COLORS: Record<Season, string> = {
@@ -107,8 +107,8 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                     ref={nameRef}
                     type="text"
                     value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
                     className="w-full text-xl md:text-2xl font-bold tracking-tight bg-transparent border-b-2 border-primary outline-none"
                     disabled={saving}
                     autoFocus
@@ -117,8 +117,8 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                     <input
                       type="number"
                       value={editAcres}
-                      onChange={(e) => setEditAcres(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAcres(e.target.value)}
+                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
                       placeholder="Acres"
                       className="w-24 text-sm bg-transparent border-b border-border outline-none placeholder:text-muted-foreground/50"
                       step="0.1"
@@ -172,6 +172,17 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                 </div>
                 <div className="text-xs text-muted-foreground font-medium">Plants</div>
               </div>
+              {farm.line_count > 0 && (
+                <>
+                  <div className="w-px bg-border self-stretch" />
+                  <div>
+                    <div className="text-2xl md:text-3xl font-bold text-foreground">
+                      {farm.line_count}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium">Lines</div>
+                  </div>
+                </>
+              )}
               <div className="w-px bg-border self-stretch" />
               <div>
                 <div className="text-2xl md:text-3xl font-bold text-foreground">

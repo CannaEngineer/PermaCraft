@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { DashboardFarm } from '@/lib/db/queries/dashboard';
+import { DashboardFarm, DashboardFarmData } from '@/lib/db/queries/dashboard';
 import { FarmHeroCard } from './farm-hero-card';
 import { AlertBanner } from './alert-banner';
 import { EcoRing } from './eco-ring';
@@ -8,25 +8,12 @@ import { SeasonWidget } from './season-widget';
 import { TasksWidget } from './tasks-widget';
 import { InsightsWidget } from './insights-widget';
 import { ActivityTimeline } from './activity-timeline';
-import { SeasonalContext } from '@/lib/dashboard/seasonal';
-import { Task } from '@/lib/db/schema';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 
-interface FarmData {
-  farm: DashboardFarm;
-  ecoScore: number;
-  ecoFunctions: Record<string, number>;
-  tasks: Task[];
-  insights: any[];
-  activity: any[];
-  seasonal: SeasonalContext;
-  urgentCount: number;
-}
-
 interface Props {
   farms: DashboardFarm[];
-  farmData: Record<string, FarmData>;
+  farmData: Record<string, DashboardFarmData>;
   userId: string;
   progressSlot?: ReactNode;
 }
@@ -43,7 +30,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
     if (typeof window === 'undefined' || localFarms.length === 0) return;
     try {
       const stored = window.localStorage.getItem(ACTIVE_FARM_STORAGE_KEY);
-      if (stored && localFarms.some((f) => f.id === stored)) {
+      if (stored && localFarms.some((f: DashboardFarm) => f.id === stored)) {
         setActiveFarmId(stored);
       }
     } catch {
@@ -64,7 +51,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
     setLocalFarms((prev: DashboardFarm[]) =>
       prev.map((f: DashboardFarm) => f.id === farmId ? { ...f, ...updates } : f)
     );
-    setLocalFarmData((prev: Record<string, FarmData>) => {
+    setLocalFarmData((prev: Record<string, DashboardFarmData>) => {
       const existing = prev[farmId];
       if (!existing) return prev;
       return { ...prev, [farmId]: { ...existing, farm: { ...existing.farm, ...updates } } };
@@ -111,7 +98,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
       {/* Farm selector — horizontal scroll of farm cards */}
       {localFarms.length > 1 && (
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
-          {localFarms.map((farm) => {
+          {localFarms.map((farm: DashboardFarm) => {
             const data = localFarmData[farm.id];
             const eco = data?.ecoScore ?? 0;
             const ecoColor = eco >= 75 ? 'text-green-600 dark:text-green-400' : eco >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500 dark:text-red-400';
@@ -139,9 +126,8 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{farm.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {farm.zone_count} zone{farm.zone_count !== 1 ? 's' : ''}
-                      {' · '}
-                      {farm.planting_count} plant{farm.planting_count !== 1 ? 's' : ''}
+                      {farm.zone_count}z · {farm.planting_count}p
+                      {farm.line_count > 0 ? ` · ${farm.line_count}l` : ''}
                       {farm.acres ? ` · ${farm.acres}ac` : ''}
                       {' · '}
                       <span className={`font-semibold ${ecoColor}`}>{eco}%</span>

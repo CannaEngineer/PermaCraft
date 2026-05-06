@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Task } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +28,7 @@ export function TasksCard({ tasks, farmId }: Props) {
   const dayEnd = now + 86400;
   const weekEnd = now + 7 * 86400;
 
-  const filtered = localTasks.filter((t) => {
+  const filtered = localTasks.filter((t: Task) => {
     if (activeTab === 'today') return !t.due_date || t.due_date <= dayEnd || t.priority >= 3;
     if (activeTab === 'week') return !t.due_date || t.due_date <= weekEnd;
     return true;
@@ -46,7 +46,7 @@ export function TasksCard({ tasks, farmId }: Props) {
       });
       if (res.ok) {
         const { task } = await res.json();
-        setLocalTasks((prev) => [task, ...prev]);
+        setLocalTasks((prev: Task[]) => [task, ...prev]);
         setNewTaskTitle('');
         setShowAddInput(false);
       }
@@ -57,7 +57,7 @@ export function TasksCard({ tasks, farmId }: Props) {
 
   async function handleToggle(task: Task) {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    setLocalTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: newStatus as Task['status'] } : t));
+    setLocalTasks((prev: Task[]) => prev.map((t: Task) => t.id === task.id ? { ...t, status: newStatus as Task['status'] } : t));
     await fetch(`/api/farms/${farmId}/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -71,7 +71,7 @@ export function TasksCard({ tasks, farmId }: Props) {
         <span>&#9989;</span>
         <span className="flex-1 text-xs font-bold text-foreground">Tasks</span>
         <button
-          onClick={() => { setShowAddInput((v) => !v); setTimeout(() => inputRef.current?.focus(), 50); }}
+          onClick={() => { setShowAddInput((v: boolean) => !v); setTimeout(() => inputRef.current?.focus(), 50); }}
           className="flex h-5 w-5 items-center justify-center rounded-md text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           title="Add task"
         >
@@ -98,8 +98,8 @@ export function TasksCard({ tasks, farmId }: Props) {
             ref={inputRef}
             type="text"
             value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(); if (e.key === 'Escape') { setShowAddInput(false); setNewTaskTitle(''); } }}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTaskTitle(e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleAddTask(); if (e.key === 'Escape') { setShowAddInput(false); setNewTaskTitle(''); } }}
             placeholder="New task..."
             className="flex-1 bg-transparent text-[10px] text-foreground placeholder:text-muted-foreground outline-none"
             disabled={isAdding}
@@ -117,7 +117,7 @@ export function TasksCard({ tasks, farmId }: Props) {
         {filtered.length === 0 && (
           <div className="py-3 text-center text-[10px] text-muted-foreground">No tasks &mdash; enjoy the day &#127793;</div>
         )}
-        {filtered.map((task) => {
+        {filtered.map((task: Task) => {
           const done = task.status === 'completed';
           return (
             <button

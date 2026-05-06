@@ -1,9 +1,9 @@
+import type { ReactNode } from 'react';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import type { Season } from '@/lib/dashboard/seasonal';
 import { Snowflake, Sun, Leaf, Sprout } from 'lucide-react';
 
-// Keys must match the Season union in lib/dashboard/seasonal.ts
-const SEASON_ICONS: Record<Season, { icon: React.ReactNode; accent: string }> = {
+const SEASON_ICONS: Record<Season, { icon: ReactNode; accent: string }> = {
   early_spring: { icon: <Sprout className="h-5 w-5" />, accent: 'text-lime-600 dark:text-lime-400' },
   spring: { icon: <Sprout className="h-5 w-5" />, accent: 'text-green-600 dark:text-green-400' },
   early_summer: { icon: <Sun className="h-5 w-5" />, accent: 'text-yellow-600 dark:text-yellow-400' },

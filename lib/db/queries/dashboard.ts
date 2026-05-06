@@ -1,5 +1,17 @@
 import { db } from '@/lib/db';
 import { Task } from '@/lib/db/schema';
+import { SeasonalContext } from '@/lib/dashboard/seasonal';
+
+export interface DashboardFarmData {
+  farm: DashboardFarm;
+  ecoScore: number;
+  ecoFunctions: Record<string, number>;
+  tasks: Task[];
+  insights: any[];
+  activity: any[];
+  seasonal: SeasonalContext;
+  urgentCount: number;
+}
 
 export interface DashboardFarm {
   id: string;
@@ -12,6 +24,7 @@ export interface DashboardFarm {
   updated_at: number;
   planting_count: number;
   zone_count: number;
+  line_count: number;
   eco_health_score: number;
   latest_screenshot: string | null;
 }
@@ -24,11 +37,13 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
         f.center_lat, f.center_lng, f.updated_at,
         COUNT(DISTINCT p.id) as planting_count,
         COUNT(DISTINCT z.id) as zone_count,
+        COUNT(DISTINCT l.id) as line_count,
         (SELECT screenshot_data FROM ai_analyses
          WHERE farm_id = f.id ORDER BY created_at DESC LIMIT 1) as latest_screenshot_json
       FROM farms f
       LEFT JOIN plantings p ON p.farm_id = f.id
       LEFT JOIN zones z ON z.farm_id = f.id
+      LEFT JOIN lines l ON l.farm_id = f.id
       WHERE f.user_id = ?
       GROUP BY f.id
       ORDER BY f.updated_at DESC
@@ -36,7 +51,7 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
     args: [userId],
   });
 
-  return result.rows.map((row) => {
+  return result.rows.map((row: Record<string, unknown>) => {
     let latest_screenshot: string | null = null;
     if (row.latest_screenshot_json) {
       const raw = row.latest_screenshot_json as string;
@@ -64,6 +79,7 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
       updated_at: row.updated_at as number,
       planting_count: row.planting_count as number,
       zone_count: row.zone_count as number,
+      line_count: (row.line_count as number) ?? 0,
       eco_health_score: 0,
       latest_screenshot,
     };

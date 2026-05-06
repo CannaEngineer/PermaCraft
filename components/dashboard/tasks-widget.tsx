@@ -1,8 +1,9 @@
 'use client';
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Task } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, Plus, ListChecks, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, ListChecks, Trash2, Clock } from 'lucide-react';
+import { formatDistanceToNow, isToday, isTomorrow, isPast } from 'date-fns';
 
 interface Props {
   tasks: Task[];
@@ -10,6 +11,28 @@ interface Props {
 }
 
 type Tab = 'today' | 'week' | 'all';
+
+function formatDueDate(dueDate: number | null, now: number): { label: string; className: string } | null {
+  if (dueDate === null) return null;
+  const dueMs = dueDate * 1000;
+  const d = new Date(dueMs);
+  if (isPast(d) && !isToday(d)) {
+    return {
+      label: `${formatDistanceToNow(d)} overdue`,
+      className: 'text-red-600 dark:text-red-400',
+    };
+  }
+  if (isToday(d)) {
+    return { label: 'Due today', className: 'text-amber-600 dark:text-amber-400' };
+  }
+  if (isTomorrow(d)) {
+    return { label: 'Due tomorrow', className: 'text-amber-600 dark:text-amber-400' };
+  }
+  return {
+    label: `Due ${formatDistanceToNow(d, { addSuffix: true })}`,
+    className: 'text-muted-foreground/70',
+  };
+}
 
 export function TasksWidget({ tasks, farmId }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('today');
@@ -30,7 +53,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
   //  - week:  due within 7 days OR urgent OR undated (so loose tasks surface here)
   //  - all:   everything
   const filtered = localTasks
-    .filter((t) => {
+    .filter((t: Task) => {
       if (activeTab === 'today') {
         return (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4;
       }
@@ -41,7 +64,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
     })
     .slice(0, 6);
 
-  const urgentCount = localTasks.filter((t) => t.priority === 4 && t.status === 'pending').length;
+  const urgentCount = localTasks.filter((t: Task) => t.priority === 4 && t.status === 'pending').length;
 
   async function handleAdd() {
     const title = newTitle.trim();
@@ -55,7 +78,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
       });
       if (res.ok) {
         const { task } = await res.json();
-        setLocalTasks((prev) => [task, ...prev]);
+        setLocalTasks((prev: Task[]) => [task, ...prev]);
         setNewTitle('');
         setShowAdd(false);
       }
@@ -66,8 +89,8 @@ export function TasksWidget({ tasks, farmId }: Props) {
 
   async function handleToggle(task: Task) {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    setLocalTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, status: newStatus as Task['status'] } : t))
+    setLocalTasks((prev: Task[]) =>
+      prev.map((t: Task) => (t.id === task.id ? { ...t, status: newStatus as Task['status'] } : t))
     );
     await fetch(`/api/farms/${farmId}/tasks/${task.id}`, {
       method: 'PATCH',
@@ -77,7 +100,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
   }
 
   async function handleDelete(taskId: string) {
-    setLocalTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setLocalTasks((prev: Task[]) => prev.filter((t: Task) => t.id !== taskId));
     await fetch(`/api/farms/${farmId}/tasks/${taskId}`, { method: 'DELETE' });
   }
 
@@ -100,7 +123,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
         </div>
         <button
           onClick={() => {
-            setShowAdd((v) => !v);
+            setShowAdd((v: boolean) => !v);
             setTimeout(() => inputRef.current?.focus(), 50);
           }}
           className="flex h-8 w-8 items-center justify-center rounded-xl hover:bg-muted transition-colors"
@@ -135,8 +158,8 @@ export function TasksWidget({ tasks, farmId }: Props) {
             ref={inputRef}
             type="text"
             value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTitle(e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
               if (e.key === 'Enter') handleAdd();
               if (e.key === 'Escape') {
                 setShowAdd(false);
@@ -184,27 +207,40 @@ export function TasksWidget({ tasks, farmId }: Props) {
             )}
           </div>
         )}
-        {filtered.map((task) => {
+        {filtered.map((task: Task) => {
           const done = task.status === 'completed';
+          const due = !done ? formatDueDate(task.due_date, now) : null;
+          const isOverdue = due?.className.includes('red') ?? false;
           return (
             <div key={task.id} className="flex items-center gap-0 group/row">
               <button
                 onClick={() => handleToggle(task)}
-                className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-muted/40 transition-colors group min-w-0"
+                className="flex flex-1 items-start gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-muted/40 transition-colors group min-w-0"
               >
                 {done ? (
-                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-500" />
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-500 mt-0.5" />
                 ) : (
-                  <Circle className="h-5 w-5 flex-shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
+                  <Circle className={cn(
+                    'h-5 w-5 flex-shrink-0 mt-0.5 transition-colors',
+                    isOverdue ? 'text-red-400/60' : 'text-muted-foreground/40 group-hover:text-muted-foreground/60'
+                  )} />
                 )}
-                <span
-                  className={cn(
-                    'flex-1 text-sm truncate',
-                    done ? 'line-through text-muted-foreground/50' : 'text-foreground'
+                <div className="flex-1 min-w-0">
+                  <span
+                    className={cn(
+                      'text-sm truncate block',
+                      done ? 'line-through text-muted-foreground/50' : 'text-foreground'
+                    )}
+                  >
+                    {task.title}
+                  </span>
+                  {due && (
+                    <span className={cn('flex items-center gap-1 text-[11px] mt-0.5', due.className)}>
+                      <Clock className="h-3 w-3" />
+                      {due.label}
+                    </span>
                   )}
-                >
-                  {task.title}
-                </span>
+                </div>
                 {!done && task.priority === 4 && (
                   <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex-shrink-0">
                     Urgent

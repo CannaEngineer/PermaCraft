@@ -1,4 +1,5 @@
 'use client';
+import type { ReactNode } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Bot, Sprout, MapPin, FileText, CheckSquare, ArrowRight, Spline } from 'lucide-react';
 import Link from 'next/link';
@@ -10,7 +11,7 @@ interface ActivityItem {
   created_at: number;
 }
 
-const TYPE_META: Record<string, { icon: React.ReactNode; bg: string }> = {
+const TYPE_META: Record<string, { icon: ReactNode; bg: string }> = {
   ai: {
     icon: <Bot className="h-3.5 w-3.5" />,
     bg: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
