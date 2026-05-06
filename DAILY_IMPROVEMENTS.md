@@ -1,22 +1,27 @@
-# PermaCraft — 2026-05-05
-## Focus: Map Intelligence (AI Context Quality)
+# PermaCraft — 2026-05-06
+## Focus: Dashboard
 
-### 1. Fix broken conversation threading in optimized analysis flow
-Files: `lib/ai/optimized-analyze.ts`, `components/immersive-map/immersive-map-editor.tsx`
-What changed: `analyzeWithOptimization` now passes `conversationId` to the API and returns the server-assigned `conversationId`, `analysisId`, and `generatedImageUrl` back to the caller.
-Map/dashboard impact: Multi-turn design conversations now actually work — the AI remembers previous questions/answers in the same session instead of starting fresh on every message. Designers can iteratively refine recommendations.
+### 1. Show due dates on task rows with overdue highlighting
+Files: `components/dashboard/tasks-widget.tsx`
+What changed: Each task row now displays its due date relative to today (overdue, due today, due tomorrow, or "due in X days"). Overdue tasks show in red with a clock icon and a red-tinted checkbox circle. The layout shifts from single-line to a two-line format (title + due date) so dates don't compete with priority badges.
+Map/dashboard impact: Designers can now prioritize at a glance — a task due tomorrow looks different from one due in 6 days. Overdue items are immediately visible without expanding or switching tabs.
 
-### 2. Fix context compression dropping all farm data for general queries
-File: `lib/ai/context-compressor.ts`
-What changed: When a user's query doesn't match any specific keyword pattern (plantings, water, natives, goals), it's now classified as a "general query" and ALL compressed context is included. Previously, queries like "How does my farm look?", "Any suggestions?", or "Analyze my design" would only receive a one-line summary.
-Map/dashboard impact: The AI now gives site-specific answers to broad questions instead of generic permaculture advice. A farmer asking "what do you think?" gets responses that reference their actual plantings, water features, and goals.
+### 2. Fix TypeScript type safety across dashboard components
+Files: `components/dashboard/tasks-widget.tsx`, `components/dashboard/dashboard-client-v2.tsx`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/activity-timeline.tsx`, `components/dashboard/alert-banner.tsx`, `components/dashboard/season-widget.tsx`, `components/dashboard/intel/tasks-card.tsx`, `lib/db/queries/dashboard.ts`
+What changed: Added explicit type annotations to all callback parameters that were implicit `any` (filter predicates, setState callbacks, event handlers, map row accessors). Fixed `React.ReactNode` / `JSX.Element` namespace errors by importing `ReactNode` directly from React. Over 30 implicit-any errors resolved.
+Map/dashboard impact: No visible change for users, but prevents silent runtime bugs in data flowing through dashboard callbacks and improves IDE autocomplete for developers working on these components.
 
-### 3. Include guild (companion planting) data in compression pipeline
-Files: `lib/ai/context-compressor.ts`, `app/api/ai/analyze/route.ts`, `lib/ai/context-compressor.test.ts`
-What changed: Added `guilds` to `FarmContext` interface and `guildsList` to `CompressedContext`. The compression function now extracts focal species and companions from guild data. The analyze endpoint passes guild rows into the enriched farm context used by the compressor. `buildOptimizedContext` always includes guild data when present.
-Map/dashboard impact: When optimizations are enabled (the default path in the immersive editor), the AI now knows about designed companion planting guilds and can recommend species that complement existing designs rather than duplicating or conflicting with them.
+### 3. Add line count to farm stats
+Files: `lib/db/queries/dashboard.ts`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/dashboard-client-v2.tsx`
+What changed: The dashboard query now JOINs the `lines` table and counts distinct lines per farm. The `DashboardFarm` interface includes `line_count`. The hero card shows line count as a metric when > 0. The farm selector pills show the abbreviated count.
+Map/dashboard impact: Designers who draw paths, swales, fences, hedges, and contour lines now see those features represented in their farm stats — previously only zones and plantings were counted.
+
+### 4. Extract shared DashboardFarmData interface
+Files: `lib/db/queries/dashboard.ts`, `app/(app)/dashboard/page.tsx`, `components/dashboard/dashboard-client-v2.tsx`
+What changed: The `FarmData` interface (farm + eco score + tasks + insights + activity + seasonal context) was defined identically in both `page.tsx` and `dashboard-client-v2.tsx`. Extracted to `DashboardFarmData` in `lib/db/queries/dashboard.ts` and imported in both consumers.
+Map/dashboard impact: No visible change, but eliminates a maintenance hazard where the two copies could silently drift apart.
 
 ## Watch for
-- The `handleAnalyze` function in the immersive editor previously returned hardcoded `conversationId: 'new'` — verify that `use-ai-chat` properly updates its `currentConversationId` with the real value from the API response (it should via the existing logic in `submitMessage`).
-- General queries now include all context sections, which uses more tokens. Monitor whether this causes token budget issues on large farms with many plantings. The compressed format already keeps plantings concise, so this should be safe.
-- The test file previously tested that "irrelevant" queries excluded sections — changed this to test that general queries include everything, which better matches the desired behavior.
+- The `lines` LEFT JOIN in `getDashboardFarms` adds a fourth table to the GROUP BY query. For users with many farms, monitor query performance — if it degrades, consider moving line counts to a subquery like the screenshot lookup.
+- The `formatDueDate` helper compares against `isPast(d) && !isToday(d)` for overdue detection. If tasks store due dates as end-of-day timestamps, this is correct. If they store midnight timestamps, a task due "today" could briefly appear overdue before midnight.
+- The `DashboardFarmData` export from `lib/db/queries/dashboard.ts` now imports `SeasonalContext` — this creates a dependency from the DB query module to the seasonal utility. This is fine architecturally (both are server-only) but worth noting.

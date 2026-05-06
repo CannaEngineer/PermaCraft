@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import { AlertTriangle, Snowflake, X } from 'lucide-react';
 
@@ -7,7 +7,7 @@ type AlertId = 'frost' | 'urgent_tasks';
 
 interface Alert {
   id: AlertId;
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   sub: string;
   accent: string;
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function AlertBanner({ seasonal, urgentTaskCount = 0 }: Props) {
-  const [dismissed, setDismissed] = useState<Set<AlertId>>(new Set());
+  const [dismissed, setDismissed] = useState(new Set<AlertId>());
 
   const alerts: Alert[] = [];
 
@@ -61,7 +61,7 @@ export function AlertBanner({ seasonal, urgentTaskCount = 0 }: Props) {
           </div>
           <button
             onClick={() =>
-              setDismissed((prev) => {
+              setDismissed((prev: Set<AlertId>) => {
                 const next = new Set(prev);
                 next.add(alert.id);
                 return next;
