@@ -1,27 +1,26 @@
-# PermaCraft — 2026-05-06
-## Focus: Dashboard
+# PermaCraft — 2026-05-07
+## Focus: 📊 Dashboard
 
-### 1. Show due dates on task rows with overdue highlighting
-Files: `components/dashboard/tasks-widget.tsx`
-What changed: Each task row now displays its due date relative to today (overdue, due today, due tomorrow, or "due in X days"). Overdue tasks show in red with a clock icon and a red-tinted checkbox circle. The layout shifts from single-line to a two-line format (title + due date) so dates don't compete with priority badges.
-Map/dashboard impact: Designers can now prioritize at a glance — a task due tomorrow looks different from one due in 6 days. Overdue items are immediately visible without expanding or switching tabs.
+### 1. Farm selector shows "last edited" time
+File: `components/dashboard/dashboard-client-v2.tsx`
+What changed: Added relative timestamp ("2 hours ago") to each farm pill in the multi-farm selector strip.
+Map/dashboard impact: Designers with 5+ farms can instantly identify which farm they worked on most recently without guessing from zone/planting counts.
 
-### 2. Fix TypeScript type safety across dashboard components
-Files: `components/dashboard/tasks-widget.tsx`, `components/dashboard/dashboard-client-v2.tsx`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/activity-timeline.tsx`, `components/dashboard/alert-banner.tsx`, `components/dashboard/season-widget.tsx`, `components/dashboard/intel/tasks-card.tsx`, `lib/db/queries/dashboard.ts`
-What changed: Added explicit type annotations to all callback parameters that were implicit `any` (filter predicates, setState callbacks, event handlers, map row accessors). Fixed `React.ReactNode` / `JSX.Element` namespace errors by importing `ReactNode` directly from React. Over 30 implicit-any errors resolved.
-Map/dashboard impact: No visible change for users, but prevents silent runtime bugs in data flowing through dashboard callbacks and improves IDE autocomplete for developers working on these components.
+### 2. Tasks widget auto-selects the first non-empty tab
+File: `components/dashboard/tasks-widget.tsx`
+What changed: Added `pickDefaultTab()` that checks whether "today" has items, falls back to "week", then "all" — instead of always defaulting to "today".
+Map/dashboard impact: The tasks widget no longer shows "Nothing due today" as the first thing a designer sees when their tasks have no due dates. The widget now surfaces useful content immediately.
 
-### 3. Add line count to farm stats
-Files: `lib/db/queries/dashboard.ts`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/dashboard-client-v2.tsx`
-What changed: The dashboard query now JOINs the `lines` table and counts distinct lines per farm. The `DashboardFarm` interface includes `line_count`. The hero card shows line count as a metric when > 0. The farm selector pills show the abbreviated count.
-Map/dashboard impact: Designers who draw paths, swales, fences, hedges, and contour lines now see those features represented in their farm stats — previously only zones and plantings were counted.
+### 3. Activity timeline items are clickable and labeled
+File: `components/dashboard/activity-timeline.tsx`
+What changed: Each activity item now links to the farm editor (or AI tab for AI insights). Added a subtle type label ("zone", "planting", "task") below each item title.
+Map/dashboard impact: Designers can click an activity entry to jump straight to the farm that activity relates to, instead of the timeline being a dead-end display.
 
-### 4. Extract shared DashboardFarmData interface
-Files: `lib/db/queries/dashboard.ts`, `app/(app)/dashboard/page.tsx`, `components/dashboard/dashboard-client-v2.tsx`
-What changed: The `FarmData` interface (farm + eco score + tasks + insights + activity + seasonal context) was defined identically in both `page.tsx` and `dashboard-client-v2.tsx`. Extracted to `DashboardFarmData` in `lib/db/queries/dashboard.ts` and imported in both consumers.
-Map/dashboard impact: No visible change, but eliminates a maintenance hazard where the two copies could silently drift apart.
+### 4. Insights widget removes double truncation
+File: `components/dashboard/insights-widget.tsx`
+What changed: Removed the JS 140-char truncation that conflicted with CSS `line-clamp`. Now strips markdown formatting and relies solely on `line-clamp-3` for consistent text display.
+Map/dashboard impact: AI insight cards show more readable text without awkward mid-sentence "..." followed by further CSS clamping.
 
 ## Watch for
-- The `lines` LEFT JOIN in `getDashboardFarms` adds a fourth table to the GROUP BY query. For users with many farms, monitor query performance — if it degrades, consider moving line counts to a subquery like the screenshot lookup.
-- The `formatDueDate` helper compares against `isPast(d) && !isToday(d)` for overdue detection. If tasks store due dates as end-of-day timestamps, this is correct. If they store midnight timestamps, a task due "today" could briefly appear overdue before midnight.
-- The `DashboardFarmData` export from `lib/db/queries/dashboard.ts` now imports `SeasonalContext` — this creates a dependency from the DB query module to the seasonal utility. This is fine architecturally (both are server-only) but worth noting.
+- Activity timeline links go to the farm root, not to specific features — deep-linking to individual zones/plantings would require passing feature type + ID to the map editor's URL scheme.
+- Tasks widget `pickDefaultTab()` runs on initial render only; if tasks are added/completed, the tab won't auto-switch (this is intentional — don't interrupt the user's current view).

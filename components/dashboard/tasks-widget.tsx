@@ -34,8 +34,22 @@ function formatDueDate(dueDate: number | null, now: number): { label: string; cl
   };
 }
 
+function pickDefaultTab(tasks: Task[]): Tab {
+  const now = Math.floor(Date.now() / 1000);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  const dayEnd = Math.floor(today.getTime() / 1000);
+  const weekEnd = dayEnd + 7 * 86400;
+
+  const hasToday = tasks.some((t) => (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4);
+  if (hasToday) return 'today';
+  const hasWeek = tasks.some((t) => t.due_date === null || t.due_date <= weekEnd || t.priority === 4);
+  if (hasWeek) return 'week';
+  return 'all';
+}
+
 export function TasksWidget({ tasks, farmId }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>('today');
+  const [activeTab, setActiveTab] = useState<Tab>(() => pickDefaultTab(tasks));
   const [localTasks, setLocalTasks] = useState(tasks);
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
