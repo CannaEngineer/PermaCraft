@@ -44,15 +44,8 @@ const CATEGORY_STYLE = {
 
 export function InsightsWidget({ insights, farmId }: Props) {
   const parsed = insights.slice(0, 3).map((i) => {
-    const flat = i.ai_response.replace(/\n/g, ' ').trim();
-    let snippet = flat;
-    let truncated = false;
-    if (flat.length > 140) {
-      const cut = flat.lastIndexOf(' ', 140);
-      snippet = flat.slice(0, cut > 80 ? cut : 140);
-      truncated = true;
-    }
-    return { ...i, snippet, truncated, category: categorize(i.ai_response) };
+    const snippet = i.ai_response.replace(/\n/g, ' ').replace(/[#*_`>]+/g, '').trim();
+    return { ...i, snippet, category: categorize(i.ai_response) };
   });
 
   return (
@@ -105,8 +98,8 @@ export function InsightsWidget({ insights, farmId }: Props) {
                   Q: {item.user_query}
                 </p>
               )}
-              <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2">
-                {item.snippet}{item.truncated ? '...' : ''}
+              <p className="text-sm text-foreground/80 leading-relaxed line-clamp-3">
+                {item.snippet}
               </p>
             </div>
           );

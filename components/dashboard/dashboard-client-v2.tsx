@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { DashboardFarm, DashboardFarmData } from '@/lib/db/queries/dashboard';
 import { FarmHeroCard } from './farm-hero-card';
 import { AlertBanner } from './alert-banner';
@@ -128,9 +129,11 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
                     <div className="text-xs text-muted-foreground">
                       {farm.zone_count}z · {farm.planting_count}p
                       {farm.line_count > 0 ? ` · ${farm.line_count}l` : ''}
-                      {farm.acres ? ` · ${farm.acres}ac` : ''}
                       {' · '}
                       <span className={`font-semibold ${ecoColor}`}>{eco}%</span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground/60 mt-0.5">
+                      {formatDistanceToNow(new Date(farm.updated_at * 1000), { addSuffix: true })}
                     </div>
                   </div>
                 </div>
