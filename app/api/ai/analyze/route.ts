@@ -193,9 +193,12 @@ export async function POST(request: NextRequest) {
     const goalsContext = await getGoalsForAIContext(farmId);
 
     // STEP 5.1: Server-side farm data enrichment
-    // When client sends empty farmContext arrays, fetch real data from DB
-    const needsEnrichment = !farmContext ||
-      (farmContext.zones.length === 0 && farmContext.plantings.length === 0);
+    // Re-fetch from DB when client data is missing or lacks critical fields
+    const hasUsableZones = farmContext && farmContext.zones.length > 0 &&
+      farmContext.zones.some((z: any) => z.zone_type || z.name);
+    const hasUsablePlantings = farmContext && farmContext.plantings.length > 0 &&
+      farmContext.plantings.some((p: any) => p.scientific_name || p.common_name);
+    const needsEnrichment = !farmContext || (!hasUsableZones && !hasUsablePlantings);
 
     let enrichedFarmContext = farmContext;
     let enrichedZones = zones;
@@ -236,13 +239,44 @@ export async function POST(request: NextRequest) {
       ]);
       guildsResult = guildsRes;
 
-      // Build zones context for prompt (with names and types)
+      // Build zones context for prompt (with names, types, and grid coordinates)
       if (!enrichedZones || enrichedZones.length === 0) {
-        enrichedZones = zonesResult.rows.map(z => ({
-          type: z.zone_type as string,
-          name: (z.name as string) || 'Unnamed zone',
-          geometryType: 'Polygon',
-        }));
+        // Compute farm bounds from all zone geometries for grid coordinate calculation
+        const allZoneBoundsCoords: number[][] = [];
+        for (const z of zonesResult.rows) {
+          if (z.geometry) {
+            try {
+              const geom = JSON.parse(z.geometry as string);
+              if (geom.type === 'Polygon' && geom.coordinates?.[0]) allZoneBoundsCoords.push(...geom.coordinates[0]);
+              else if (geom.type === 'Point' && geom.coordinates) allZoneBoundsCoords.push(geom.coordinates);
+            } catch {}
+          }
+        }
+        const zoneFarmBounds = allZoneBoundsCoords.length > 0 ? {
+          north: Math.max(...allZoneBoundsCoords.map(c => c[1])),
+          south: Math.min(...allZoneBoundsCoords.map(c => c[1])),
+          east: Math.max(...allZoneBoundsCoords.map(c => c[0])),
+          west: Math.min(...allZoneBoundsCoords.map(c => c[0])),
+        } : null;
+
+        const { calculateGridCoordinates: calcZoneGrid, formatGridRange: fmtZoneRange } = await import('@/lib/map/zone-grid-calculator');
+
+        enrichedZones = zonesResult.rows.map(z => {
+          let gridCoordinates: string | undefined;
+          if (z.geometry && zoneFarmBounds) {
+            try {
+              const geom = JSON.parse(z.geometry as string);
+              const cells = calcZoneGrid(geom, zoneFarmBounds, 'imperial');
+              if (cells.length > 0) gridCoordinates = fmtZoneRange(cells);
+            } catch {}
+          }
+          return {
+            type: z.zone_type as string,
+            name: (z.name as string) || 'Unnamed zone',
+            geometryType: 'Polygon',
+            gridCoordinates,
+          };
+        });
       }
 
       // Build plantings context string (with permaculture functions and grid coordinates)

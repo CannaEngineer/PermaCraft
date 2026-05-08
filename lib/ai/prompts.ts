@@ -308,7 +308,7 @@ export function createAnalysisPrompt(
   }
 
   const context = `FARM: ${farmContext.name}
-${farmContext.centerLat && farmContext.centerLng ? `LOCATION: ${farmContext.centerLat.toFixed(4)}°N, ${Math.abs(farmContext.centerLng).toFixed(4)}°${farmContext.centerLng >= 0 ? 'E' : 'W'}` : ""}
+${farmContext.centerLat && farmContext.centerLng ? `LOCATION: ${Math.abs(farmContext.centerLat).toFixed(4)}°${farmContext.centerLat >= 0 ? 'N' : 'S'}, ${Math.abs(farmContext.centerLng).toFixed(4)}°${farmContext.centerLng >= 0 ? 'E' : 'W'}` : ""}
 ${farmContext.acres ? `SIZE: ${farmContext.acres} acres` : ""}
 ${farmContext.climateZone ? `CLIMATE: ${farmContext.climateZone}` : farmContext.centerLat && farmContext.centerLng ? `CLIMATE: Look up USDA Hardiness Zone for these coordinates` : ""}
 ${farmContext.rainfallInches ? `RAINFALL: ${farmContext.rainfallInches} inches/year` : ""}
@@ -429,7 +429,7 @@ export function createGeneralChatPrompt(
     rainfallInches?: number | null;
     zoneCount?: number;
     plantingCount?: number;
-    zones?: Array<{ name: string | null; zone_type: string }>;
+    zones?: Array<{ name: string | null; zone_type: string; gridCoordinates?: string }>;
     plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null }>;
     lines?: Array<{ line_type: string; label: string | null }>;
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
@@ -450,7 +450,8 @@ export function createGeneralChatPrompt(
     if (farmSummary.zones && farmSummary.zones.length > 0) {
       parts.push(`\nZONES (${farmSummary.zones.length}):`);
       farmSummary.zones.forEach(z => {
-        parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})`);
+        const gridRef = z.gridCoordinates ? ` at grid ${z.gridCoordinates}` : '';
+        parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}`);
       });
     } else if (farmSummary.zoneCount != null) {
       parts.push(`ZONES: ${farmSummary.zoneCount}`);

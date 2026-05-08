@@ -1,27 +1,27 @@
-# PermaCraft — 2026-05-06
-## Focus: Dashboard
+# PermaCraft — 2026-05-08
+## Focus: Map Intelligence
 
-### 1. Show due dates on task rows with overdue highlighting
-Files: `components/dashboard/tasks-widget.tsx`
-What changed: Each task row now displays its due date relative to today (overdue, due today, due tomorrow, or "due in X days"). Overdue tasks show in red with a clock icon and a red-tinted checkbox circle. The layout shifts from single-line to a two-line format (title + due date) so dates don't compete with priority badges.
-Map/dashboard impact: Designers can now prioritize at a glance — a task due tomorrow looks different from one due in 6 days. Overdue items are immediately visible without expanding or switching tabs.
+### 1. Fix latitude display for Southern hemisphere farms
+File: `lib/ai/prompts.ts`
+What changed: Latitude was always shown as `°N` in the AI prompt. Now correctly displays `°S` for negative latitudes.
+Map/dashboard impact: Farms in South America, Australia, sub-Saharan Africa, etc. now get accurate location context in AI analysis, leading to correct climate-appropriate species recommendations.
 
-### 2. Fix TypeScript type safety across dashboard components
-Files: `components/dashboard/tasks-widget.tsx`, `components/dashboard/dashboard-client-v2.tsx`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/activity-timeline.tsx`, `components/dashboard/alert-banner.tsx`, `components/dashboard/season-widget.tsx`, `components/dashboard/intel/tasks-card.tsx`, `lib/db/queries/dashboard.ts`
-What changed: Added explicit type annotations to all callback parameters that were implicit `any` (filter predicates, setState callbacks, event handlers, map row accessors). Fixed `React.ReactNode` / `JSX.Element` namespace errors by importing `ReactNode` directly from React. Over 30 implicit-any errors resolved.
-Map/dashboard impact: No visible change for users, but prevents silent runtime bugs in data flowing through dashboard callbacks and improves IDE autocomplete for developers working on these components.
+### 2. Add grid coordinates to zones in server-side enrichment
+File: `app/api/ai/analyze/route.ts`
+What changed: When the server re-fetches zone data from the DB, it now calculates alphanumeric grid coordinates (e.g., `B3-D5`) for each zone using their actual geometry. Previously enriched zones only had name and type with no spatial references.
+Map/dashboard impact: AI can now reference precise map locations when discussing zones — "your food forest at grid C4-E7 sits on a south-facing slope" instead of just "your food forest".
 
-### 3. Add line count to farm stats
-Files: `lib/db/queries/dashboard.ts`, `components/dashboard/farm-hero-card.tsx`, `components/dashboard/dashboard-client-v2.tsx`
-What changed: The dashboard query now JOINs the `lines` table and counts distinct lines per farm. The `DashboardFarm` interface includes `line_count`. The hero card shows line count as a metric when > 0. The farm selector pills show the abbreviated count.
-Map/dashboard impact: Designers who draw paths, swales, fences, hedges, and contour lines now see those features represented in their farm stats — previously only zones and plantings were counted.
+### 3. Add spatial awareness to text chat endpoint
+Files: `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
+What changed: The chat endpoint now fetches zone geometry and computes grid coordinates, passing them to the AI prompt. The `createGeneralChatPrompt` function displays grid references next to each zone. Previously text chat mode had zero spatial context.
+Map/dashboard impact: Users chatting about their farm design (without triggering screenshot analysis) now get spatially-aware responses. The AI can reference zone positions even in text-only conversations.
 
-### 4. Extract shared DashboardFarmData interface
-Files: `lib/db/queries/dashboard.ts`, `app/(app)/dashboard/page.tsx`, `components/dashboard/dashboard-client-v2.tsx`
-What changed: The `FarmData` interface (farm + eco score + tasks + insights + activity + seasonal context) was defined identically in both `page.tsx` and `dashboard-client-v2.tsx`. Extracted to `DashboardFarmData` in `lib/db/queries/dashboard.ts` and imported in both consumers.
-Map/dashboard impact: No visible change, but eliminates a maintenance hazard where the two copies could silently drift apart.
+### 4. Smarter server-side enrichment detection
+File: `app/api/ai/analyze/route.ts`
+What changed: The `needsEnrichment` check now validates that client-provided farm data has usable fields (`zone_type`, `name`, `scientific_name`) instead of just checking array length. This prevents the server from skipping enrichment when the client sends arrays of objects with missing critical fields.
+Map/dashboard impact: AI analysis reliably includes full farm context even when client state is incomplete (e.g., during initial page load or after partial data fetches).
 
 ## Watch for
-- The `lines` LEFT JOIN in `getDashboardFarms` adds a fourth table to the GROUP BY query. For users with many farms, monitor query performance — if it degrades, consider moving line counts to a subquery like the screenshot lookup.
-- The `formatDueDate` helper compares against `isPast(d) && !isToday(d)` for overdue detection. If tasks store due dates as end-of-day timestamps, this is correct. If they store midnight timestamps, a task due "today" could briefly appear overdue before midnight.
-- The `DashboardFarmData` export from `lib/db/queries/dashboard.ts` now imports `SeasonalContext` — this creates a dependency from the DB query module to the seasonal utility. This is fine architecturally (both are server-only) but worth noting.
+- Farms with very large numbers of zones (50+) may generate large grid coordinate strings — monitor prompt token usage
+- The grid coordinate calculation uses `imperial` units by default in both analyze and chat routes — farms with metric preference still get 50ft grid labels in chat mode (this matches the existing analyze behavior but should be unified in a future pass)
+- The `createGeneralChatPrompt` now accepts an optional `gridCoordinates` field on zones — existing callers that don't pass it will work unchanged (graceful degradation)

@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
 
       farm = farmResult.rows[0] as unknown as Farm;
 
-      // Fetch actual composition for richer AI context
+      // Fetch actual composition for richer AI context (including zone geometry for grid coordinates)
       [zonesResult, plantingsResult, linesResult, guildsResult] = await Promise.all([
         db.execute({
-          sql: "SELECT name, zone_type FROM zones WHERE farm_id = ?",
+          sql: "SELECT name, zone_type, geometry FROM zones WHERE farm_id = ?",
           args: [farmId],
         }),
         db.execute({
@@ -128,6 +128,47 @@ export async function POST(request: NextRequest) {
       ragContext = await getRAGContext(query, 3);
     }
 
+    // Compute grid coordinates for zones (spatial awareness in text chat)
+    let zonesWithGrid: Array<{ name: string | null; zone_type: string; gridCoordinates?: string }> | undefined;
+    if (zonesResult && zonesResult.rows.length > 0) {
+      const allCoords: number[][] = [];
+      for (const z of zonesResult.rows) {
+        if (z.geometry) {
+          try {
+            const geom = JSON.parse(z.geometry as string);
+            if (geom.type === 'Polygon' && geom.coordinates?.[0]) allCoords.push(...geom.coordinates[0]);
+            else if (geom.type === 'Point' && geom.coordinates) allCoords.push(geom.coordinates);
+          } catch {}
+        }
+      }
+
+      if (allCoords.length > 0) {
+        const bounds = {
+          north: Math.max(...allCoords.map(c => c[1])),
+          south: Math.min(...allCoords.map(c => c[1])),
+          east: Math.max(...allCoords.map(c => c[0])),
+          west: Math.min(...allCoords.map(c => c[0])),
+        };
+        const { calculateGridCoordinates, formatGridRange } = await import('@/lib/map/zone-grid-calculator');
+
+        zonesWithGrid = zonesResult.rows.map((z: any) => {
+          let gridCoordinates: string | undefined;
+          if (z.geometry) {
+            try {
+              const geom = JSON.parse(z.geometry as string);
+              const cells = calculateGridCoordinates(geom, bounds, 'imperial');
+              if (cells.length > 0) gridCoordinates = formatGridRange(cells);
+            } catch {}
+          }
+          return {
+            name: z.name as string | null,
+            zone_type: z.zone_type as string,
+            gridCoordinates,
+          };
+        });
+      }
+    }
+
     // Get or create conversation
     const conversationType = farm ? 'farm' : 'general';
     let activeConversationId = conversationId;
@@ -158,7 +199,7 @@ export async function POST(request: NextRequest) {
       rainfallInches: farm.rainfall_inches,
       zoneCount,
       plantingCount,
-      zones: zonesResult?.rows.map((z: any) => ({
+      zones: zonesWithGrid || zonesResult?.rows.map((z: any) => ({
         name: z.name as string | null,
         zone_type: z.zone_type as string,
       })),
