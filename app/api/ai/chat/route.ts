@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       // Fetch actual composition for richer AI context (including zone geometry for grid coordinates)
       [zonesResult, plantingsResult, linesResult, guildsResult] = await Promise.all([
         db.execute({
-          sql: "SELECT name, zone_type, geometry FROM zones WHERE farm_id = ?",
+          sql: "SELECT name, zone_type, geometry, properties FROM zones WHERE farm_id = ?",
           args: [farmId],
         }),
         db.execute({
@@ -128,8 +128,8 @@ export async function POST(request: NextRequest) {
       ragContext = await getRAGContext(query, 3);
     }
 
-    // Compute grid coordinates for zones (spatial awareness in text chat)
-    let zonesWithGrid: Array<{ name: string | null; zone_type: string; gridCoordinates?: string }> | undefined;
+    // Compute grid coordinates and area for zones (spatial awareness in text chat)
+    let zonesWithGrid: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }> | undefined;
     if (zonesResult && zonesResult.rows.length > 0) {
       const allCoords: number[][] = [];
       for (const z of zonesResult.rows) {
@@ -150,20 +150,31 @@ export async function POST(request: NextRequest) {
           west: Math.min(...allCoords.map(c => c[0])),
         };
         const { calculateGridCoordinates, formatGridRange } = await import('@/lib/map/zone-grid-calculator');
+        const { calculateAreaFromGeometry } = await import('@/lib/water/calculations');
 
         zonesWithGrid = zonesResult.rows.map((z: any) => {
           let gridCoordinates: string | undefined;
+          let areaAcres: number | undefined;
           if (z.geometry) {
             try {
               const geom = JSON.parse(z.geometry as string);
               const cells = calculateGridCoordinates(geom, bounds, 'imperial');
               if (cells.length > 0) gridCoordinates = formatGridRange(cells);
+              const areaSqFt = calculateAreaFromGeometry(geom);
+              if (areaSqFt > 0) areaAcres = Math.round((areaSqFt / 43560) * 100) / 100;
+            } catch {}
+          }
+          if (!areaAcres && z.properties) {
+            try {
+              const props = JSON.parse(z.properties as string);
+              if (props.area_acres) areaAcres = Math.round(props.area_acres * 100) / 100;
             } catch {}
           }
           return {
             name: z.name as string | null,
             zone_type: z.zone_type as string,
             gridCoordinates,
+            areaAcres,
           };
         });
       }

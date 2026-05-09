@@ -1,27 +1,27 @@
-# PermaCraft — 2026-05-08
-## Focus: Map Intelligence
+# PermaCraft — 2026-05-09
+## Focus: Map Intelligence (AI context quality)
 
-### 1. Fix latitude display for Southern hemisphere farms
-File: `lib/ai/prompts.ts`
-What changed: Latitude was always shown as `°N` in the AI prompt. Now correctly displays `°S` for negative latitudes.
-Map/dashboard impact: Farms in South America, Australia, sub-Saharan Africa, etc. now get accurate location context in AI analysis, leading to correct climate-appropriate species recommendations.
-
-### 2. Add grid coordinates to zones in server-side enrichment
+### 1. Always compute zone grid coordinates from DB geometry
 File: `app/api/ai/analyze/route.ts`
-What changed: When the server re-fetches zone data from the DB, it now calculates alphanumeric grid coordinates (e.g., `B3-D5`) for each zone using their actual geometry. Previously enriched zones only had name and type with no spatial references.
-Map/dashboard impact: AI can now reference precise map locations when discussing zones — "your food forest at grid C4-E7 sits on a south-facing slope" instead of just "your food forest".
+What changed: Zone geometry is now always fetched from the database and grid coordinates are computed server-side, regardless of whether the client sends zone data. Previously, when the immersive editor sent zones with names/types but no geometry, the server skipped enrichment and the AI received zones without spatial references.
+Map/dashboard impact: AI now consistently references zones by their exact grid positions (e.g., "at B3-D5") in all analysis responses, whether triggered from the immersive editor or the canvas view.
 
-### 3. Add spatial awareness to text chat endpoint
-Files: `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
-What changed: The chat endpoint now fetches zone geometry and computes grid coordinates, passing them to the AI prompt. The `createGeneralChatPrompt` function displays grid references next to each zone. Previously text chat mode had zero spatial context.
-Map/dashboard impact: Users chatting about their farm design (without triggering screenshot analysis) now get spatially-aware responses. The AI can reference zone positions even in text-only conversations.
+### 2. Add zone area to AI context
+Files: `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
+What changed: Zone area in acres is now computed from GeoJSON geometry (via `@turf/area`) and included in both the map analysis and text chat AI prompts. The system prompt instructs the AI to scale recommendations to actual zone sizes. Falls back to `properties.area_acres` for farm boundaries.
+Map/dashboard impact: AI recommendations are now proportional to actual space — a 0.1 acre herb garden gets different plant spacing and quantity suggestions than a 2 acre food forest zone. Previously, the AI had no concept of zone size.
 
-### 4. Smarter server-side enrichment detection
+### 3. Improve AI spatial awareness in text chat
+Files: `lib/ai/prompts.ts`, `app/api/ai/chat/route.ts`
+What changed: The general chat system prompt now instructs the AI to reference grid coordinates and zone sizes when making design recommendations. The chat route fetches `properties` alongside `geometry` to extract pre-computed area data.
+Map/dashboard impact: Text-only chat responses now include spatially-grounded advice ("your 0.5 acre zone 2 at C4-E6") instead of generic recommendations without spatial context.
+
+### 4. Deduplicate grid calculator imports in analyze route
 File: `app/api/ai/analyze/route.ts`
-What changed: The `needsEnrichment` check now validates that client-provided farm data has usable fields (`zone_type`, `name`, `scientific_name`) instead of just checking array length. This prevents the server from skipping enrichment when the client sends arrays of objects with missing critical fields.
-Map/dashboard impact: AI analysis reliably includes full farm context even when client state is incomplete (e.g., during initial page load or after partial data fetches).
+What changed: Removed three redundant `await import('@/lib/map/zone-grid-calculator')` calls inside the enrichment block, reusing the single import at the top of the zone processing section.
+Map/dashboard impact: Slightly faster AI analysis requests due to fewer dynamic imports.
 
 ## Watch for
-- Farms with very large numbers of zones (50+) may generate large grid coordinate strings — monitor prompt token usage
-- The grid coordinate calculation uses `imperial` units by default in both analyze and chat routes — farms with metric preference still get 50ft grid labels in chat mode (this matches the existing analyze behavior but should be unified in a future pass)
-- The `createGeneralChatPrompt` now accepts an optional `gridCoordinates` field on zones — existing callers that don't pass it will work unchanged (graceful degradation)
+- Zone area computation uses `@turf/area` which expects valid GeoJSON Polygons — malformed geometry will return 0 acres (handled gracefully, but watch for zones showing no area)
+- The `properties.area_acres` fallback only exists on `farm_boundary` zone types — other zones rely solely on computed area
+- The canvas AI panel (`components/canvas/panels/ai-panel.tsx`) still sends empty farmContext arrays — this works because the server enrichment path handles it, but it means an extra DB round-trip on every canvas AI request

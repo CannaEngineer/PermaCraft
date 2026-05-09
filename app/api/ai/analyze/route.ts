@@ -93,6 +93,7 @@ const analyzeSchema = z.object({
     geometryType: z.string().max(50).optional(),
     gridCoordinates: z.string().max(50).optional(),
     gridCells: z.array(z.string().max(10)).max(500).optional(),
+    areaAcres: z.number().optional(),
   })).max(100).optional(),
   enableOptimizations: z.boolean().optional(),
   farmContext: z.object({
@@ -208,12 +209,65 @@ export async function POST(request: NextRequest) {
     let enrichedGuildsContext: string | undefined;
     let guildsResult: Awaited<ReturnType<typeof db.execute>> | undefined;
 
+    // Always fetch zone geometry for grid coordinates and area — even when client
+    // sends zone data, it lacks the geometry needed for spatial calculations
+    const zoneGeomResult = await db.execute({
+      sql: `SELECT id, name, zone_type, geometry, properties FROM zones WHERE farm_id = ?`,
+      args: [farmId],
+    });
+
+    // Compute grid coordinates and area for all zones
+    const { calculateGridCoordinates: calcGrid, formatGridRange: fmtRange } = await import('@/lib/map/zone-grid-calculator');
+    const { calculateAreaFromGeometry } = await import('@/lib/water/calculations');
+
+    const allZoneBoundsCoords: number[][] = [];
+    for (const z of zoneGeomResult.rows) {
+      if (z.geometry) {
+        try {
+          const geom = JSON.parse(z.geometry as string);
+          if (geom.type === 'Polygon' && geom.coordinates?.[0]) allZoneBoundsCoords.push(...geom.coordinates[0]);
+          else if (geom.type === 'Point' && geom.coordinates) allZoneBoundsCoords.push(geom.coordinates);
+        } catch {}
+      }
+    }
+    const zoneFarmBounds = allZoneBoundsCoords.length > 0 ? {
+      north: Math.max(...allZoneBoundsCoords.map((c: number[]) => c[1])),
+      south: Math.min(...allZoneBoundsCoords.map((c: number[]) => c[1])),
+      east: Math.max(...allZoneBoundsCoords.map((c: number[]) => c[0])),
+      west: Math.min(...allZoneBoundsCoords.map((c: number[]) => c[0])),
+    } : null;
+
+    enrichedZones = zoneGeomResult.rows.map((z: any) => {
+      let gridCoordinates: string | undefined;
+      let areaAcres: number | undefined;
+      if (z.geometry) {
+        try {
+          const geom = JSON.parse(z.geometry as string);
+          if (zoneFarmBounds) {
+            const cells = calcGrid(geom, zoneFarmBounds, 'imperial');
+            if (cells.length > 0) gridCoordinates = fmtRange(cells);
+          }
+          const areaSqFt = calculateAreaFromGeometry(geom);
+          if (areaSqFt > 0) areaAcres = Math.round((areaSqFt / 43560) * 100) / 100;
+        } catch {}
+      }
+      if (!areaAcres && z.properties) {
+        try {
+          const props = JSON.parse(z.properties as string);
+          if (props.area_acres) areaAcres = Math.round(props.area_acres * 100) / 100;
+        } catch {}
+      }
+      return {
+        type: z.zone_type as string,
+        name: (z.name as string) || 'Unnamed zone',
+        geometryType: 'Polygon',
+        gridCoordinates,
+        areaAcres,
+      };
+    });
+
     if (needsEnrichment) {
-      const [zonesResult, plantingsResult, linesResult, guildsRes] = await Promise.all([
-        db.execute({
-          sql: `SELECT id, name, zone_type, geometry FROM zones WHERE farm_id = ?`,
-          args: [farmId],
-        }),
+      const [plantingsResult, linesResult, guildsRes] = await Promise.all([
         db.execute({
           sql: `SELECT p.id, p.name, p.lat, p.lng, p.planted_year, p.notes,
                        s.common_name, s.scientific_name, s.layer, s.is_native,
@@ -239,52 +293,12 @@ export async function POST(request: NextRequest) {
       ]);
       guildsResult = guildsRes;
 
-      // Build zones context for prompt (with names, types, and grid coordinates)
-      if (!enrichedZones || enrichedZones.length === 0) {
-        // Compute farm bounds from all zone geometries for grid coordinate calculation
-        const allZoneBoundsCoords: number[][] = [];
-        for (const z of zonesResult.rows) {
-          if (z.geometry) {
-            try {
-              const geom = JSON.parse(z.geometry as string);
-              if (geom.type === 'Polygon' && geom.coordinates?.[0]) allZoneBoundsCoords.push(...geom.coordinates[0]);
-              else if (geom.type === 'Point' && geom.coordinates) allZoneBoundsCoords.push(geom.coordinates);
-            } catch {}
-          }
-        }
-        const zoneFarmBounds = allZoneBoundsCoords.length > 0 ? {
-          north: Math.max(...allZoneBoundsCoords.map(c => c[1])),
-          south: Math.min(...allZoneBoundsCoords.map(c => c[1])),
-          east: Math.max(...allZoneBoundsCoords.map(c => c[0])),
-          west: Math.min(...allZoneBoundsCoords.map(c => c[0])),
-        } : null;
-
-        const { calculateGridCoordinates: calcZoneGrid, formatGridRange: fmtZoneRange } = await import('@/lib/map/zone-grid-calculator');
-
-        enrichedZones = zonesResult.rows.map(z => {
-          let gridCoordinates: string | undefined;
-          if (z.geometry && zoneFarmBounds) {
-            try {
-              const geom = JSON.parse(z.geometry as string);
-              const cells = calcZoneGrid(geom, zoneFarmBounds, 'imperial');
-              if (cells.length > 0) gridCoordinates = fmtZoneRange(cells);
-            } catch {}
-          }
-          return {
-            type: z.zone_type as string,
-            name: (z.name as string) || 'Unnamed zone',
-            geometryType: 'Polygon',
-            gridCoordinates,
-          };
-        });
-      }
-
       // Build plantings context string (with permaculture functions and grid coordinates)
       if (!enrichedPlantingsContext && plantingsResult.rows.length > 0) {
         // Compute farm bounds for grid coordinates
         const plantingCoords: number[][] = [];
         const zoneCoords: number[][] = [];
-        for (const z of zonesResult.rows) {
+        for (const z of zoneGeomResult.rows) {
           if (z.geometry) {
             try {
               const geom = JSON.parse(z.geometry as string);
@@ -303,8 +317,6 @@ export async function POST(request: NextRequest) {
           east: Math.max(...allCoords.map(c => c[0])),
           west: Math.min(...allCoords.map(c => c[0])),
         } : null;
-
-        const { calculateGridCoordinates } = await import('@/lib/map/zone-grid-calculator');
 
         const byLayer = new Map<string, any[]>();
         for (const p of plantingsResult.rows) {
@@ -330,7 +342,7 @@ export async function POST(request: NextRequest) {
             }
             let gridRef = '';
             if (p.lat && p.lng && plantingBounds) {
-              const cells = calculateGridCoordinates(
+              const cells = calcGrid(
                 { type: 'Point', coordinates: [p.lng as number, p.lat as number] },
                 plantingBounds,
                 'imperial'
@@ -355,7 +367,7 @@ export async function POST(request: NextRequest) {
         // Compute farm bounds for line grid references
         const allLineCoords: number[][] = [];
         const allZoneCoords: number[][] = [];
-        for (const z of zonesResult.rows) {
+        for (const z of zoneGeomResult.rows) {
           if (z.geometry) {
             try {
               const geom = JSON.parse(z.geometry as string);
@@ -395,8 +407,6 @@ export async function POST(request: NextRequest) {
           custom: 'Custom Lines',
         };
 
-        const { calculateGridCoordinates: calcLineGrid, formatGridRange: fmtLineRange } = await import('@/lib/map/zone-grid-calculator');
-
         const parts: string[] = [`LINES & WATER FEATURES (${linesResult.rows.length} total):`];
         for (const [lineType, items] of byType) {
           const typeLabel = lineTypeLabels[lineType] || lineType.toUpperCase();
@@ -418,8 +428,8 @@ export async function POST(request: NextRequest) {
               try {
                 const geom = JSON.parse(l.geometry as string);
                 if (geom.type === 'LineString' && geom.coordinates?.length > 0) {
-                  const gridCells = calcLineGrid(geom, lineFarmBounds, 'imperial');
-                  if (gridCells.length > 0) locationInfo = ` at grid ${fmtLineRange(gridCells)}`;
+                  const gridCells = calcGrid(geom, lineFarmBounds, 'imperial');
+                  if (gridCells.length > 0) locationInfo = ` at grid ${fmtRange(gridCells)}`;
                 }
               } catch {}
             }
@@ -459,11 +469,11 @@ export async function POST(request: NextRequest) {
 
       // Build enriched farmContext for the compressor
       enrichedFarmContext = {
-        zones: zonesResult.rows.map(z => ({
+        zones: zoneGeomResult.rows.map((z: any) => ({
           name: z.name,
           zone_type: z.zone_type,
         })),
-        plantings: plantingsResult.rows.map(p => ({
+        plantings: plantingsResult.rows.map((p: any) => ({
           common_name: p.common_name,
           scientific_name: p.scientific_name,
           layer: p.layer,
@@ -471,13 +481,13 @@ export async function POST(request: NextRequest) {
           is_native: p.is_native,
           permaculture_functions: p.permaculture_functions,
         })),
-        lines: linesResult.rows.map(l => ({
+        lines: linesResult.rows.map((l: any) => ({
           line_type: l.line_type,
           label: l.label,
         })),
         goals: [],
         nativeSpecies: [],
-        guilds: guildsRes.rows.map(g => ({
+        guilds: guildsResult!.rows.map((g: any) => ({
           name: g.name,
           focal_common_name: g.focal_common_name,
           focal_scientific_name: g.focal_scientific_name,

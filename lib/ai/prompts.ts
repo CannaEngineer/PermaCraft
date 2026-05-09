@@ -131,11 +131,12 @@ You receive:
    - Grid: Alphanumeric labels (A1, B2, C3...), 50ft spacing (imperial) or 25m (metric)
    - Columns: A, B, C... (west to east); Rows: 1, 2, 3... (south to north)
 
-2. Zone data with ACTUAL GRID COORDINATES already calculated for you:
-   - Each zone includes its name, type, and exact grid cells it occupies
-   - Example: "Barn (Polygon) at B3-D5 (12 cells)"
-   - USE THESE COORDINATES - they're accurate, not guesses
+2. Zone data with ACTUAL GRID COORDINATES and AREA already calculated for you:
+   - Each zone includes its name, type, exact grid cells, and area in acres
+   - Example: "North Garden (zone_1, Polygon) at B3-D5, ~0.25 acres"
+   - USE THESE COORDINATES and AREAS - they're accurate, not guesses
    - Reference zones by their grid location when making recommendations
+   - Scale your recommendations to the zone's actual area (e.g., a 0.1 acre zone needs fewer trees than a 2 acre zone)
 
 RESPONSE GUIDELINES:
 
@@ -268,6 +269,7 @@ export function createAnalysisPrompt(
       geometryType?: string;
       gridCoordinates?: string; // Pre-calculated: "A1-B3"
       gridCells?: string[];     // Pre-calculated: ["A1", "A2", "B1"]
+      areaAcres?: number;       // Pre-calculated zone area
     }>;
     legendContext?: string;
     nativeSpeciesContext?: string;
@@ -294,14 +296,15 @@ export function createAnalysisPrompt(
 
   const screenshotCount = mapContext?.screenshots?.length || 1;
 
-  // Format zones with their grid coordinates
+  // Format zones with their grid coordinates and area
   let zonesInfo = "";
   if (mapContext?.zones && mapContext.zones.length > 0) {
     zonesInfo = "\nZONES ON THE MAP (with accurate grid coordinates):\n";
     mapContext.zones.forEach((zone) => {
       const geomType = zone.geometryType || "Feature";
       const gridInfo = zone.gridCoordinates || "unknown location";
-      zonesInfo += `  • "${zone.name}" (${geomType}) - Located at grid ${gridInfo}\n`;
+      const areaInfo = zone.areaAcres ? `, ~${zone.areaAcres} acres` : "";
+      zonesInfo += `  • "${zone.name}" (${zone.type}, ${geomType}) - Located at grid ${gridInfo}${areaInfo}\n`;
     });
   } else {
     zonesInfo = "\nNo zones have been drawn yet. You can reference features you see in the satellite imagery.\n";
@@ -389,6 +392,8 @@ RESPONSE GUIDELINES:
 - Provide thoughtful recommendations in a natural flowing format
 - Include WHY behind suggestions (permaculture principles)
 - Give specific species with scientific names and native status
+- When zone areas are provided, scale your recommendations to the actual space available
+- Reference grid coordinates and zone sizes when making spatial recommendations
 - Suggest practical next steps
 
 **For Complex Design Requests** (e.g., "Design a food forest", "Plan my whole farm"):
@@ -429,7 +434,7 @@ export function createGeneralChatPrompt(
     rainfallInches?: number | null;
     zoneCount?: number;
     plantingCount?: number;
-    zones?: Array<{ name: string | null; zone_type: string; gridCoordinates?: string }>;
+    zones?: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }>;
     plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null }>;
     lines?: Array<{ line_type: string; label: string | null }>;
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
@@ -451,7 +456,8 @@ export function createGeneralChatPrompt(
       parts.push(`\nZONES (${farmSummary.zones.length}):`);
       farmSummary.zones.forEach(z => {
         const gridRef = z.gridCoordinates ? ` at grid ${z.gridCoordinates}` : '';
-        parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}`);
+        const areaRef = z.areaAcres ? `, ~${z.areaAcres} acres` : '';
+        parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}${areaRef}`);
       });
     } else if (farmSummary.zoneCount != null) {
       parts.push(`ZONES: ${farmSummary.zoneCount}`);
