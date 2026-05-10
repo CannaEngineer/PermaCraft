@@ -124,48 +124,16 @@ export async function DELETE(
       return Response.json({ error: "Farm not found or access denied" }, { status: 404 });
     }
 
-    // Delete all related data in correct order (respecting foreign key constraints)
-    // 1. Delete AI analyses
-    await db.execute({
-      sql: "DELETE FROM ai_analyses WHERE farm_id = ?",
-      args: [farmId],
-    });
-
-    // 2. Delete AI conversations
-    await db.execute({
-      sql: "DELETE FROM ai_conversations WHERE farm_id = ?",
-      args: [farmId],
-    });
-
-    // 3. Delete map snapshots
-    await db.execute({
-      sql: "DELETE FROM map_snapshots WHERE farm_id = ?",
-      args: [farmId],
-    });
-
-    // 4. Delete plantings
-    await db.execute({
-      sql: "DELETE FROM plantings WHERE farm_id = ?",
-      args: [farmId],
-    });
-
-    // 5. Delete zones
-    await db.execute({
-      sql: "DELETE FROM zones WHERE farm_id = ?",
-      args: [farmId],
-    });
-
-    // 6. Delete farm collaborators
-    await db.execute({
-      sql: "DELETE FROM farm_collaborators WHERE farm_id = ?",
-      args: [farmId],
-    });
-
-    // 7. Finally delete the farm itself
-    await db.execute({
-      sql: "DELETE FROM farms WHERE id = ?",
-      args: [farmId],
-    });
+    // Delete all related data and the farm in a single batch transaction
+    await db.batch([
+      { sql: "DELETE FROM ai_analyses WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM ai_conversations WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM map_snapshots WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM plantings WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM zones WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM farm_collaborators WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM farms WHERE id = ?", args: [farmId] },
+    ]);
 
     return Response.json({ success: true, message: "Farm deleted successfully" });
   } catch (error) {

@@ -624,24 +624,11 @@ export function FarmMap({
       'grid-labels-layer',
     ];
 
-    console.log("Moving custom layers to top...");
-    const existingLayers: string[] = [];
-    const missingLayers: string[] = [];
-
-    // Move each layer to the top in order
     customLayers.forEach(layerId => {
       if (map.current!.getLayer(layerId)) {
         map.current!.moveLayer(layerId);
-        existingLayers.push(layerId);
-      } else {
-        missingLayers.push(layerId);
       }
     });
-
-    console.log("Layers moved to top:", existingLayers);
-    if (missingLayers.length > 0) {
-      console.warn("Missing layers (not yet added):", missingLayers);
-    }
   }, []);
 
   // Load plantings from API
@@ -945,25 +932,16 @@ export function FarmMap({
    */
   const handlePlaceGuild = useCallback(async (guild: any, centerPoint: [number, number]) => {
     try {
-      // Parse spacing rules
-      const spacingRules = typeof guild.spacing_rules === 'string'
-        ? JSON.parse(guild.spacing_rules)
-        : guild.spacing_rules;
-
       // Parse companion species
       const companions = typeof guild.companion_species === 'string'
         ? JSON.parse(guild.companion_species)
         : guild.companion_species;
 
-      // Place companions around focal species
-      for (let index = 0; index < companions.length; index++) {
-        const companion = companions[index];
-
-        // Calculate position based on spacing rules and cardinal direction
+      // Build all planting requests in parallel
+      const plantingRequests = companions.map((companion: any, index: number) => {
         let angle: number;
 
         if (companion.cardinal_direction && companion.cardinal_direction !== 'any') {
-          // Use specific cardinal direction
           const directions: Record<string, number> = {
             'N': 0,
             'E': Math.PI / 2,
@@ -972,21 +950,16 @@ export function FarmMap({
           };
           angle = directions[companion.cardinal_direction] || 0;
         } else {
-          // Distribute evenly around the circle
           angle = (index / companions.length) * 2 * Math.PI;
         }
 
-        // Use average of min and max distance
         const distance = (companion.min_distance_feet + companion.max_distance_feet) / 2;
-
-        // Convert feet to degrees (approximate: 1 degree ≈ 364,000 feet at equator)
         const distanceDegrees = distance / 364000;
 
         const companionLng = centerPoint[0] + distanceDegrees * Math.cos(angle);
         const companionLat = centerPoint[1] + distanceDegrees * Math.sin(angle);
 
-        // Create companion planting
-        const response = await fetch(`/api/farms/${farm.id}/plantings`, {
+        return fetch(`/api/farms/${farm.id}/plantings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -997,27 +970,27 @@ export function FarmMap({
             name: `${guild.name} - Companion`
           })
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to create companion planting');
-        }
-      }
-
-      // Create focal planting at center
-      const focalResponse = await fetch(`/api/farms/${farm.id}/plantings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          species_id: guild.focal_species_id,
-          lat: centerPoint[1],
-          lng: centerPoint[0],
-          current_year: 0,
-          name: guild.name
-        })
       });
 
-      if (!focalResponse.ok) {
-        throw new Error('Failed to create focal planting');
+      // Add focal planting at center
+      plantingRequests.push(
+        fetch(`/api/farms/${farm.id}/plantings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            species_id: guild.focal_species_id,
+            lat: centerPoint[1],
+            lng: centerPoint[0],
+            current_year: 0,
+            name: guild.name
+          })
+        })
+      );
+
+      const responses = await Promise.all(plantingRequests);
+      const failed = responses.find((r: Response) => !r.ok);
+      if (failed) {
+        throw new Error('Failed to create guild planting');
       }
 
       // Reload plantings to show all guild members
@@ -1315,7 +1288,6 @@ export function FarmMap({
       return;
     }
 
-    console.log("Late-loading zones into MapboxDraw:", zones.length);
     zones.forEach((zone) => {
       try {
         const geometry =
@@ -1372,8 +1344,6 @@ export function FarmMap({
   const setupGridLayers = useCallback(() => {
     if (!map.current) return;
 
-    console.log("setupGridLayers called");
-
     /**
      * Grid Lines Source
      *
@@ -1381,13 +1351,11 @@ export function FarmMap({
      * Starts empty and is populated by updateGrid() function.
      */
     if (!map.current.getSource("grid-lines")) {
-      console.log("Adding grid-lines source");
       map.current.addSource("grid-lines", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
     } else {
-      console.log("grid-lines source already exists");
     }
 
     /**
@@ -1402,7 +1370,6 @@ export function FarmMap({
      * - Zoom 20: 0.6 (prominent)
      */
     if (!map.current.getLayer("grid-lines-layer")) {
-      console.log("Adding grid-lines-layer");
       map.current.addLayer({
         id: "grid-lines-layer",
         type: "line",
@@ -1432,13 +1399,11 @@ export function FarmMap({
      * Updated dynamically as viewport changes.
      */
     if (!map.current.getSource("grid-labels")) {
-      console.log("Adding grid-labels source");
       map.current.addSource("grid-labels", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
     } else {
-      console.log("grid-labels source already exists");
     }
 
     /**
@@ -1457,7 +1422,6 @@ export function FarmMap({
      * - At higher zooms, labels naturally space out
      */
     if (!map.current.getLayer("grid-labels-layer")) {
-      console.log("Adding grid-labels-layer");
       map.current.addLayer({
         id: "grid-labels-layer",
         type: "symbol",
@@ -1496,7 +1460,6 @@ export function FarmMap({
         },
       });
     } else {
-      console.log("grid-labels-layer already exists");
     }
 
     /**
@@ -1506,13 +1469,11 @@ export function FarmMap({
      * Only shown at zoom 20+ for precision mode.
      */
     if (!map.current.getSource("grid-dimension-labels")) {
-      console.log("Adding grid-dimension-labels source");
       map.current.addSource("grid-dimension-labels", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
     } else {
-      console.log("grid-dimension-labels source already exists");
     }
 
     /**
@@ -1522,7 +1483,6 @@ export function FarmMap({
      * Only visible at zoom 20+ to avoid clutter.
      */
     if (!map.current.getLayer("grid-dimension-labels-layer")) {
-      console.log("Adding grid-dimension-labels-layer");
       map.current.addLayer({
         id: "grid-dimension-labels-layer",
         type: "symbol",
@@ -1542,10 +1502,8 @@ export function FarmMap({
         },
       });
     } else {
-      console.log("grid-dimension-labels-layer already exists");
     }
 
-    console.log("setupGridLayers completed");
   }, []);
 
   /**
@@ -1844,7 +1802,6 @@ export function FarmMap({
         // Load initial zones (use ref to get latest value, avoiding stale closure)
         const currentZones = zonesRef.current;
         if (draw.current && currentZones.length > 0) {
-          console.log("Loading zones from database:", currentZones);
           currentZones.forEach((zone) => {
             try {
               const geometry =
@@ -1861,11 +1818,6 @@ export function FarmMap({
                 geometry: geometry,
                 properties: { ...properties, user_zone_type: zone.zone_type },
               };
-              console.log("Adding zone to map:", {
-                id: zone.id,
-                zoneType: zone.zone_type,
-                properties: feature.properties
-              });
               draw.current!.add(feature);
             } catch (error) {
               console.error("Failed to parse zone data:", error, zone);
@@ -2138,9 +2090,9 @@ export function FarmMap({
       map.current.on("draw.update", handleDrawUpdate);
       map.current.on("draw.delete", handleDrawDelete);
 
-      // Update grid labels when viewport changes (for AI context)
+      // Update grid labels when viewport changes (for AI context).
+      // moveend fires after both pans and zooms, so a single listener is sufficient.
       map.current.on("moveend", updateGrid);
-      map.current.on("zoomend", updateGrid);
 
       // Update compass bearing when map rotates
       map.current.on("rotate", () => {
@@ -2204,11 +2156,6 @@ export function FarmMap({
           setSelectedZone(feature.id);
           setZoneLabel(feature.properties?.name || "");
           setZoneType(feature.properties?.user_zone_type || "other");
-          console.log("Zone selected:", {
-            id: feature.id,
-            name: feature.properties?.name,
-            zoneType: feature.properties?.user_zone_type
-          });
         } else {
           setSelectedZone(null);
           setZoneLabel("");
@@ -2699,13 +2646,11 @@ export function FarmMap({
     map.current.once("styledata", () => {
       if (!map.current) return;
 
-      console.log("Style loaded, waiting for map to be fully ready...");
 
       // Wait for map to be fully idle before adding layers
       map.current.once("idle", () => {
         if (!map.current) return;
 
-        console.log("Map idle, re-adding custom layers...");
         rebuildRasterLayerCache();
 
         // Enable 3D terrain if on terrain-3d layer
@@ -2715,7 +2660,6 @@ export function FarmMap({
             exaggeration: 1.5 // Amplify terrain for permaculture slope analysis
           });
           setTerrainEnabled(true);
-          console.log("3D terrain enabled");
         } else {
           // Disable terrain for other layers
           if (map.current.getTerrain()) {
@@ -2803,7 +2747,6 @@ export function FarmMap({
 
     const feature = draw.current.get(selectedZone);
     if (feature) {
-      console.log("Before update:", feature.properties);
 
       // Build water properties to embed in zone properties
       const waterExtras: any = {};
@@ -2826,20 +2769,12 @@ export function FarmMap({
         }
       };
 
-      console.log("After update - Zone Type:", zoneType, "Updated feature:", updatedFeature);
 
       // Delete the old feature and add the updated one
       draw.current.delete(selectedZone);
-      const newFeatureIds = draw.current.add(updatedFeature);
+      draw.current.add(updatedFeature);
 
-      console.log("Feature re-added with IDs:", newFeatureIds);
-
-      // Get all features and log them
       const allFeatures = draw.current.getAll().features;
-      console.log("All features after update:", allFeatures.map(f => ({
-        id: f.id,
-        properties: f.properties
-      })));
 
       onZonesChange(allFeatures);
 
@@ -2848,7 +2783,6 @@ export function FarmMap({
         const source = map.current.getSource("draw-zones") as maplibregl.GeoJSONSource;
         if (source && draw.current) {
           source.setData(draw.current.getAll());
-          console.log("Updated colored zones source");
         }
       }
 
