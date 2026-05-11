@@ -1113,16 +1113,25 @@ export function FarmMap({
     rasterLayerIdsRef.current = ids;
   };
 
-  // Handle zoom changes for progressive visual enhancements
+  // Refs for zoom handler state — the handler is registered once at mount
+  // via map.on('zoom', ...) but needs access to values that change over time.
+  const currentZoomRef = useRef(currentZoom);
+  currentZoomRef.current = currentZoom;
+  const gridSubdivisionRef = useRef(gridSubdivision);
+  gridSubdivisionRef.current = gridSubdivision;
+  const hasShownPrecisionToastRef = useRef(hasShownPrecisionToast);
+  hasShownPrecisionToastRef.current = hasShownPrecisionToast;
+
+  // Stable zoom handler — reads from refs so the single event listener
+  // registered at mount always sees the latest state.
   const handleZoomChange = useCallback(() => {
     if (!map.current) return;
 
     const zoom = map.current.getZoom();
-    const prevZoom = currentZoom;
+    const prevZoom = currentZoomRef.current;
     setCurrentZoom(zoom);
 
-    // Show precision mode toast when first crossing zoom 18
-    if (!hasShownPrecisionToast && prevZoom <= 18 && zoom > 18) {
+    if (!hasShownPrecisionToastRef.current && prevZoom <= 18 && zoom > 18) {
       toast({
         title: "🔍 Precision Mode Activated",
         description: "Grid and measurements enhanced for detailed planning",
@@ -1132,7 +1141,6 @@ export function FarmMap({
       localStorage.setItem('precision-mode-toast-shown', 'true');
     }
 
-    // Update satellite opacity if zoom > 18
     if (zoom > ZOOM_THRESHOLDS.FADE_START) {
       const opacity = getSatelliteOpacity(zoom);
 
@@ -1143,28 +1151,25 @@ export function FarmMap({
       }
     }
 
-    // Update grid thickness
     const gridThickness = getGridThickness(zoom);
     if (map.current.getLayer('grid-lines-layer')) {
       map.current.setPaintProperty('grid-lines-layer', 'line-width', gridThickness);
     }
 
-    // Update zone boundary thickness
     const zoneBoundaryThickness = getZoneBoundaryThickness(zoom);
     if (map.current.getLayer('colored-zones-stroke')) {
       map.current.setPaintProperty('colored-zones-stroke', 'line-width', zoneBoundaryThickness);
     }
 
-    // Regenerate grid if crossing fine grid threshold (zoom 20)
     const showFine = zoom >= ZOOM_THRESHOLDS.FINE_GRID;
-    const currentGridIsFine = gridSubdivision === 'fine';
+    const currentGridIsFine = gridSubdivisionRef.current === 'fine';
 
     if (showFine !== currentGridIsFine) {
       const newSubdivision = showFine ? 'fine' : 'coarse';
       setGridSubdivision(newSubdivision);
       updateGridDebouncedRef.current?.(newSubdivision);
     }
-  }, [gridSubdivision, currentZoom, hasShownPrecisionToast, toast]);
+  }, [toast]);
 
   // Check if precision mode toast has been shown before
   useEffect(() => {
@@ -2395,36 +2400,46 @@ export function FarmMap({
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const radius = R * c;
 
-        // Create circle polygon
+        // Create circle polygon with the current zone type
         const circle = createCirclePolygon(center, radius);
-        draw.current.add(circle);
+        circle.properties = { user_zone_type: zoneTypeRef.current };
+        const addedIds = draw.current.add(circle);
+        const circleFeatureId = addedIds?.[0];
 
         // Reset circle mode
         setCircleMode(false);
         setCircleCenter(null);
 
-        // Update zones
+        // Update zones and colored zone layer
         onZonesChange(draw.current.getAll().features);
-
-        // Update the colored zones layer
         if (map.current) {
           const source = map.current.getSource("draw-zones") as maplibregl.GeoJSONSource;
           if (source && draw.current) {
             source.setData(draw.current.getAll());
           }
         }
+
+        // Show quick label form so the user can name/categorize the circle
+        if (circleFeatureId && map.current) {
+          const screenPt = map.current.project(edge);
+          setQuickLabelZoneId(circleFeatureId);
+          setQuickLabelPosition({ x: screenPt.x, y: screenPt.y });
+          setShowQuickLabelForm(true);
+          setSelectedZone(null);
+          draw.current.changeMode('simple_select');
+        }
       }
     };
 
-    // Listen to both click (desktop) and touchend (mobile) events
-    // This ensures planting works on both touch screens and mouse-based devices
+    // MapLibre already synthesizes a "click" event for touch taps, so
+    // listening to both "click" and "touchend" causes every touch tap to
+    // fire handleMapClick twice — double-placing plantings, double-toggling
+    // circle center, etc. A single "click" listener covers both input modes.
     map.current.on("click", handleMapClick);
-    map.current.on("touchend", handleMapClick);
 
     return () => {
       if (map.current) {
         map.current.off("click", handleMapClick);
-        map.current.off("touchend", handleMapClick);
       }
     };
   }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, plantings]);
@@ -2733,6 +2748,9 @@ export function FarmMap({
 
         // Reload lines data into the restored source
         loadLines();
+
+        // Restore custom imagery overlays (destroyed by setStyle)
+        loadCustomImagery();
 
         // Re-add colored zone layers after style change
         setTimeout(() => {
