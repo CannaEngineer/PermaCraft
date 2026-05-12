@@ -416,6 +416,11 @@ export function FarmMap({
   // Ref to access current zoneType inside event handler closures (avoids stale closure)
   const zoneTypeRef = useRef(zoneType);
   zoneTypeRef.current = zoneType;
+  // Refs for snap-to-grid state — read inside event handlers registered once at mount
+  const snapToGridEnabledRef = useRef(snapToGridEnabled);
+  snapToGridEnabledRef.current = snapToGridEnabled;
+  const gridUnitRef = useRef(gridUnit);
+  gridUnitRef.current = gridUnit;
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
@@ -622,6 +627,7 @@ export function FarmMap({
       'line-arrows',
       'grid-lines-layer',
       'grid-labels-layer',
+      'grid-dimension-labels-layer',
     ];
 
     customLayers.forEach(layerId => {
@@ -1864,7 +1870,9 @@ export function FarmMap({
 
           onZonesChange(draw.current.getAll().features);
           invalidateFarmBoundsCache();
-          updateGrid();
+          // Use ref to always call the latest updateGrid (avoids stale closure
+          // when gridUnit/gridDensity/gridSubdivision change after mount).
+          updateGridRef.current?.();
           updateColoredZones();
         }
       };
@@ -1888,7 +1896,7 @@ export function FarmMap({
             });
             onZonesChange(draw.current.getAll().features);
             invalidateFarmBoundsCache();
-            updateGrid();
+            updateGridRef.current?.();
           }
         }, 200);
       };
@@ -1912,11 +1920,17 @@ export function FarmMap({
       // Used for both draw.create and draw.update so newly drawn features get
       // the same precision treatment as edits.
       const snapFeatures = (features: any[]) => {
-        if (!map.current || !snapToGridEnabled || !draw.current) return;
+        // Read from refs to avoid stale closure — this function is defined
+        // once at mount but must always see current snap/grid settings.
+        const snapEnabled = snapToGridEnabledRef.current;
+        const unit = gridUnitRef.current;
+        const subdivision = gridSubdivisionRef.current;
+
+        if (!map.current || !snapEnabled || !draw.current) return;
         const zoom = map.current.getZoom();
         if (zoom < 20) return;
 
-        const gridSpacing = getGridSpacingDegrees(gridUnit, gridSubdivision, farm.center_lat);
+        const gridSpacing = getGridSpacingDegrees(unit, subdivision, farm.center_lat);
         const isTouch = isTouchDevice();
 
         features.forEach((feature: any) => {
@@ -1927,7 +1941,7 @@ export function FarmMap({
           let modified = false;
           if (feature.geometry.type === 'Point') {
             const [lng, lat] = feature.geometry.coordinates;
-            const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
+            const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapEnabled, isTouch);
             if (snapped.snapped) {
               feature.geometry.coordinates = [snapped.lng, snapped.lat];
               modified = true;
@@ -1939,7 +1953,7 @@ export function FarmMap({
             rings.forEach((ring: number[][]) => {
               for (let i = 0; i < ring.length; i++) {
                 const [lng, lat] = ring[i];
-                const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
+                const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapEnabled, isTouch);
                 if (snapped.snapped) {
                   ring[i] = [snapped.lng, snapped.lat];
                   modified = true;
@@ -1958,7 +1972,7 @@ export function FarmMap({
           } else if (feature.geometry.type === 'LineString') {
             feature.geometry.coordinates = feature.geometry.coordinates.map((coord: number[]) => {
               const [lng, lat] = coord;
-              const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapToGridEnabled, isTouch);
+              const snapped = snapCoordinate(map.current!, lng, lat, gridSpacing, zoom, snapEnabled, isTouch);
               if (snapped.snapped) {
                 modified = true;
                 return [snapped.lng, snapped.lat];
@@ -2097,7 +2111,9 @@ export function FarmMap({
 
       // Update grid labels when viewport changes (for AI context).
       // moveend fires after both pans and zooms, so a single listener is sufficient.
-      map.current.on("moveend", updateGrid);
+      // Wrapped in an arrow so it always calls the latest updateGrid via ref
+      // (the useCallback changes when gridUnit/gridDensity/gridSubdivision change).
+      map.current.on("moveend", () => updateGridRef.current?.());
 
       // Update compass bearing when map rotates
       map.current.on("rotate", () => {
@@ -3032,29 +3048,31 @@ export function FarmMap({
     }
   }, [gridDensity, gridUnit, updateGrid]);
 
-  // Animate flow arrows for water paths
+  // Animate flow arrows for water paths.
+  // Re-runs when mapLayer changes because setStyle() destroys and recreates
+  // the line-arrows layer, so the previous animation stops (layer gone) and
+  // a new one must start after the layer is restored.
   useEffect(() => {
     if (!map.current) return;
 
     let cleanupFn: (() => void) | undefined;
 
-    // Wait for map to be fully loaded
     const startAnimation = () => {
       if (map.current && map.current.getLayer('line-arrows')) {
         return animateFlowArrows(map.current, 'line-arrows');
       }
     };
 
-    // Start animation after a short delay to ensure layer exists
+    // Delay to ensure layer exists after map load or layer switch
     const timeoutId = setTimeout(() => {
       cleanupFn = startAnimation();
-    }, 500);
+    }, 600);
 
     return () => {
       clearTimeout(timeoutId);
       cleanupFn?.();
     };
-  }, []);
+  }, [mapLayer]);
 
   // Handle external drawing mode from immersive editor context
   useEffect(() => {

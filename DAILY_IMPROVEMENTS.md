@@ -1,27 +1,27 @@
-# PermaCraft — 2026-05-11
+# PermaCraft — 2026-05-12
 ## Focus: Map Core (Monday)
 
-### 1. Fix double-tap on mobile causing duplicate actions
+### 1. Fix snap-to-grid ignoring user toggles during drawing
 File: `components/map/farm-map.tsx`
-What changed: Removed the redundant `touchend` listener — MapLibre already synthesizes `click` for touch taps, so both were firing `handleMapClick` on every tap.
-Map impact: Mobile users no longer double-place plantings, double-toggle circle center, or fire double feature selections on a single tap.
+What changed: The `snapFeatures` function was defined inside the mount-once useEffect, capturing `snapToGridEnabled`, `gridUnit`, and `gridSubdivision` as closure values from the initial render. Pressing `S` to toggle snap, changing grid units (imperial/metric), or zoom-triggered fine grid subdivision had no effect on actual snap behavior. Replaced all three with refs (`snapToGridEnabledRef`, `gridUnitRef`, `gridSubdivisionRef`) so the function always reads current values.
+Map/dashboard impact: Designers can now reliably toggle snap-to-grid with `S` and see it take effect immediately. Switching between imperial and metric grid units also correctly changes the snap grid spacing. Previously, snap was permanently locked to the initial settings.
 
-### 2. Fix stale closure in zoom handler causing unnecessary grid regeneration
+### 2. Fix stale grid regeneration after draw operations
 File: `components/map/farm-map.tsx`
-What changed: The `handleZoomChange` callback was registered once at mount but depended on `currentZoom`, `gridSubdivision`, and `hasShownPrecisionToast` state. These were stale in the closure. Replaced with refs so the single event listener always reads the latest values.
-Map impact: Precision mode toast now fires correctly when first crossing zoom 18. Fine grid subdivision toggle at zoom 20 no longer re-triggers on every subsequent zoom change, reducing unnecessary grid regeneration.
+What changed: The `handleDrawChange`, `handleDrawChangeDragging`, and `moveend` handlers all called `updateGrid()` via a stale closure reference captured at mount. After the user changed grid unit, density, or subdivision, draw operations and map pans would regenerate the grid with the original settings. Replaced direct `updateGrid()` calls with `updateGridRef.current?.()` which always points to the latest useCallback instance.
+Map/dashboard impact: After changing grid units from feet to meters (or adjusting density), drawing a new zone or panning the map now correctly regenerates the grid with the updated settings instead of reverting to imperial/default.
 
-### 3. Fix circle-drawn zones missing type and name
+### 3. Fix water flow animation stopping after layer switch
 File: `components/map/farm-map.tsx`
-What changed: Circle mode created zones via `draw.add()` without setting `user_zone_type` or showing the quick label form. Now sets the current zone type on the circle feature and opens the quick label form at the circle's edge so users can name and categorize it.
-Map impact: Designers using the circle tool (ponds, herb spirals, etc.) now get prompted to label and type the zone immediately, matching the polygon drawing experience.
+What changed: The flow arrow animation useEffect had empty `[]` dependencies, so it started once at mount and never restarted. When `changeMapLayer()` destroys and recreates the `line-arrows` layer, the old animation stops (layer gone) but no new animation starts. Added `mapLayer` as a dependency so the effect restarts after every layer switch.
+Map/dashboard impact: Water flow arrows (streams, swales) now continue animating after switching between satellite, terrain, topo, and street base layers. Previously, arrows froze after the first layer switch.
 
-### 4. Fix custom imagery layers lost on map layer change
+### 4. Fix dimension labels rendering under other layers
 File: `components/map/farm-map.tsx`
-What changed: `changeMapLayer` restored grid, zones, and lines after a style swap but never called `loadCustomImagery()`. Added the call to the idle callback.
-Map impact: Uploaded aerial imagery or custom overlays now survive switching between satellite, terrain, topo, and street base layers.
+What changed: `ensureCustomLayersOnTop` was missing `grid-dimension-labels-layer` from its layer ordering list. At zoom 20+, dimension labels (e.g., "10ft × 10ft") could render underneath zone fills or line features instead of on top.
+Map/dashboard impact: Dimension labels at precision zoom levels (20+) are now always visible on top of all other design elements.
 
 ## Watch for
-- The `touchend` removal should be tested on actual touch devices. MapLibre's click synthesis covers standard taps, but rapid double-taps or long-press behaviors should be verified.
-- Circle snap-to-grid: circles bypass the `snapFeatures` call since they're added via `draw.add()` rather than the draw.create event. At zoom 20+, circle vertices won't snap to grid. Low priority since circles are typically used for ponds/radius features where grid snapping is less useful.
-- Custom imagery layer ordering after restore: `loadCustomImagery` inserts layers below `colored-zones-fill`, which may not exist yet during the timeout. If imagery appears on top of zones after a layer switch, the ordering needs adjustment.
+- The snap ref pattern is consistent with how `zoneTypeRef` was already used for zone type in draw handlers. If any other state is read inside the mount-once useEffect and expected to stay current, it should be converted to a ref.
+- The `moveend` handler is now an anonymous arrow wrapping `updateGridRef.current?.()`. This means it can't be removed by reference in the cleanup. Since the map instance is destroyed on unmount anyway, this is fine, but if cleanup requirements change, the handler should be stored in a ref.
+- Animation restart uses a 600ms delay (increased from 500ms) to account for the layer recreation happening inside a `setTimeout(() => addColoredZoneLayers(), 200)` call. If layer setup timing changes, the animation delay may need adjustment.
