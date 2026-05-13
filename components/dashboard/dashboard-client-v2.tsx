@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardFarm, DashboardFarmData } from '@/lib/db/queries/dashboard';
 import { FarmHeroCard } from './farm-hero-card';
 import { AlertBanner } from './alert-banner';
@@ -47,6 +48,8 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
     }
   };
 
+  const router = useRouter();
+
   const handleFarmUpdate = useCallback((farmId: string, updates: { name?: string; acres?: number | null }) => {
     setLocalFarms((prev: DashboardFarm[]) =>
       prev.map((f: DashboardFarm) => f.id === farmId ? { ...f, ...updates } : f)
@@ -57,6 +60,20 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
       return { ...prev, [farmId]: { ...existing, farm: { ...existing.farm, ...updates } } };
     });
   }, []);
+
+  const handleFarmDelete = useCallback((farmId: string) => {
+    setLocalFarms((prev: DashboardFarm[]) => prev.filter((f: DashboardFarm) => f.id !== farmId));
+    setLocalFarmData((prev: Record<string, DashboardFarmData>) => {
+      const next = { ...prev };
+      delete next[farmId];
+      return next;
+    });
+    if (activeFarmId === farmId) {
+      const remaining = localFarms.filter((f: DashboardFarm) => f.id !== farmId);
+      setActiveFarmId(remaining[0]?.id ?? '');
+    }
+    router.refresh();
+  }, [activeFarmId, localFarms, router]);
 
   const active = localFarmData[activeFarmId];
 
@@ -126,9 +143,9 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{farm.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {farm.zone_count}z · {farm.planting_count}p
-                      {farm.line_count > 0 ? ` · ${farm.line_count}l` : ''}
-                      {farm.acres ? ` · ${farm.acres}ac` : ''}
+                      {farm.zone_count} zone{farm.zone_count !== 1 ? 's' : ''} · {farm.planting_count} plant{farm.planting_count !== 1 ? 's' : ''}
+                      {farm.line_count > 0 ? ` · ${farm.line_count} line${farm.line_count !== 1 ? 's' : ''}` : ''}
+                      {farm.acres ? ` · ${farm.acres} ac` : ''}
                       {' · '}
                       <span className={`font-semibold ${ecoColor}`}>{eco}%</span>
                     </div>
@@ -156,6 +173,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
             ecoFunctions={active.ecoFunctions}
             seasonal={active.seasonal}
             onFarmUpdate={handleFarmUpdate}
+            onFarmDelete={handleFarmDelete}
           />
 
           {/* Alerts */}

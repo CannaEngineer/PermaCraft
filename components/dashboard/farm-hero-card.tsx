@@ -5,7 +5,8 @@ import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import type { Season } from '@/lib/dashboard/seasonal';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints, Pencil, Check, X, Spline } from 'lucide-react';
+import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints, Pencil, Check, X, Spline, Trash2 } from 'lucide-react';
+import { DeleteFarmDialog } from '@/components/shared/delete-farm-dialog';
 
 // Keys must match the Season union in lib/dashboard/seasonal.ts
 const SEASON_COLORS: Record<Season, string> = {
@@ -24,9 +25,10 @@ interface Props {
   ecoFunctions: Record<string, number>;
   seasonal: SeasonalContext;
   onFarmUpdate?: (farmId: string, updates: { name?: string; acres?: number | null }) => void;
+  onFarmDelete?: (farmId: string) => void;
 }
 
-export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpdate }: Props) {
+export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpdate, onFarmDelete }: Props) {
   const lastEdited = formatDistanceToNow(new Date(farm.updated_at * 1000), { addSuffix: true });
   const coveredFunctions = Object.values(ecoFunctions).filter((v) => v > 0).length;
   const totalFunctions = Object.keys(ecoFunctions).length;
@@ -36,6 +38,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
   const [editName, setEditName] = useState(farm.name);
   const [editAcres, setEditAcres] = useState(farm.acres?.toString() ?? '');
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   async function handleSave() {
@@ -129,6 +132,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                     <div className="flex gap-1 ml-auto">
                       <button onClick={handleSave} disabled={!editName.trim() || saving} className="rounded-lg bg-primary p-1.5 text-primary-foreground disabled:opacity-40" title="Save"><Check className="h-3.5 w-3.5" /></button>
                       <button onClick={handleCancel} className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground" title="Cancel"><X className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => { handleCancel(); setShowDeleteDialog(true); }} className="rounded-lg bg-red-500/10 p-1.5 text-red-600 dark:text-red-400 hover:bg-red-500/20" title="Delete farm"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </div>
                 </div>
@@ -273,6 +277,14 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
           </div>
         </div>
       </div>
+
+      <DeleteFarmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        farmName={farm.name}
+        farmId={farm.id}
+        onDeleteSuccess={() => onFarmDelete?.(farm.id)}
+      />
     </div>
   );
 }
