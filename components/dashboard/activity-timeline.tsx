@@ -71,13 +71,15 @@ export function ActivityTimeline({ items, farmId }: Props) {
       )}
 
       <div className="space-y-1">
-        {items.map((item, i) => {
+        {items.map((item) => {
           const meta = TYPE_META[item.type] || DEFAULT_META;
-          return (
-            <div
-              key={`${item.type}-${item.id}`}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/30 transition-colors"
-            >
+          const href = farmId
+            ? item.type === 'ai'
+              ? `/farm/${farmId}?tab=ai`
+              : `/farm/${farmId}`
+            : null;
+          const inner = (
+            <>
               <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${meta.bg}`}>
                 {meta.icon}
               </div>
@@ -87,6 +89,16 @@ export function ActivityTimeline({ items, farmId }: Props) {
               <span className="flex-shrink-0 text-xs text-muted-foreground/70">
                 {formatDistanceToNow(new Date(item.created_at * 1000), { addSuffix: true })}
               </span>
+            </>
+          );
+          const cls = "flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/30 transition-colors";
+          return href ? (
+            <Link key={`${item.type}-${item.id}`} href={href} className={cls}>
+              {inner}
+            </Link>
+          ) : (
+            <div key={`${item.type}-${item.id}`} className={cls}>
+              {inner}
             </div>
           );
         })}

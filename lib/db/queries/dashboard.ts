@@ -38,6 +38,12 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
         COUNT(DISTINCT p.id) as planting_count,
         COUNT(DISTINCT z.id) as zone_count,
         COUNT(DISTINCT l.id) as line_count,
+        MAX(
+          f.updated_at,
+          COALESCE(MAX(p.updated_at), 0),
+          COALESCE(MAX(z.updated_at), 0),
+          COALESCE(MAX(l.updated_at), 0)
+        ) as last_activity_at,
         (SELECT screenshot_data FROM ai_analyses
          WHERE farm_id = f.id ORDER BY created_at DESC LIMIT 1) as latest_screenshot_json
       FROM farms f
@@ -46,7 +52,7 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
       LEFT JOIN lines l ON l.farm_id = f.id
       WHERE f.user_id = ?
       GROUP BY f.id
-      ORDER BY f.updated_at DESC
+      ORDER BY last_activity_at DESC
     `,
     args: [userId],
   });
@@ -76,7 +82,7 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
       climate_zone: row.climate_zone as string | null,
       center_lat: row.center_lat as number | null,
       center_lng: row.center_lng as number | null,
-      updated_at: row.updated_at as number,
+      updated_at: (row.last_activity_at as number) ?? (row.updated_at as number),
       planting_count: row.planting_count as number,
       zone_count: row.zone_count as number,
       line_count: (row.line_count as number) ?? 0,
