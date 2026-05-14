@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
 interface Insight {
@@ -13,46 +14,21 @@ interface Props {
   farmId: string;
 }
 
-function categorize(response: string): 'gap' | 'opportunity' | 'insight' {
-  const lower = response.toLowerCase();
-  if (lower.includes('missing') || lower.includes('lack') || lower.includes('without')) return 'gap';
-  if (lower.includes('add') || lower.includes('consider') || lower.includes('would benefit') || lower.includes('could'))
-    return 'opportunity';
-  return 'insight';
+function extractSnippet(response: string): { snippet: string; truncated: boolean } {
+  const firstSentenceEnd = response.search(/[.!?]\s/);
+  if (firstSentenceEnd > 0 && firstSentenceEnd <= 160) {
+    return { snippet: response.slice(0, firstSentenceEnd + 1), truncated: response.length > firstSentenceEnd + 2 };
+  }
+  const flat = response.replace(/\n/g, ' ').trim();
+  if (flat.length <= 140) return { snippet: flat, truncated: false };
+  const cut = flat.lastIndexOf(' ', 140);
+  return { snippet: flat.slice(0, cut > 80 ? cut : 140), truncated: true };
 }
-
-const CATEGORY_STYLE = {
-  gap: {
-    label: 'Gap',
-    dot: 'bg-amber-500',
-    bg: 'bg-amber-500/5 border-amber-500/15',
-    text: 'text-amber-700 dark:text-amber-400',
-  },
-  opportunity: {
-    label: 'Opportunity',
-    dot: 'bg-teal-500',
-    bg: 'bg-teal-500/5 border-teal-500/15',
-    text: 'text-teal-700 dark:text-teal-400',
-  },
-  insight: {
-    label: 'Insight',
-    dot: 'bg-green-500',
-    bg: 'bg-green-500/5 border-green-500/15',
-    text: 'text-green-700 dark:text-green-400',
-  },
-};
 
 export function InsightsWidget({ insights, farmId }: Props) {
   const parsed = insights.slice(0, 3).map((i) => {
-    const flat = i.ai_response.replace(/\n/g, ' ').trim();
-    let snippet = flat;
-    let truncated = false;
-    if (flat.length > 140) {
-      const cut = flat.lastIndexOf(' ', 140);
-      snippet = flat.slice(0, cut > 80 ? cut : 140);
-      truncated = true;
-    }
-    return { ...i, snippet, truncated, category: categorize(i.ai_response) };
+    const { snippet, truncated } = extractSnippet(i.ai_response);
+    return { ...i, snippet, truncated };
   });
 
   return (
@@ -90,27 +66,31 @@ export function InsightsWidget({ insights, farmId }: Props) {
             </Link>
           </div>
         )}
-        {parsed.map((item) => {
-          const style = CATEGORY_STYLE[item.category];
-          return (
-            <div key={item.id} className={`rounded-xl border p-3.5 ${style.bg}`}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className={`h-2 w-2 rounded-full ${style.dot}`} />
-                <span className={`text-[11px] font-semibold uppercase tracking-wide ${style.text}`}>
-                  {style.label}
-                </span>
-              </div>
-              {item.user_query && (
-                <p className="text-xs text-muted-foreground mb-1 truncate">
-                  Q: {item.user_query}
+        {parsed.map((item) => (
+          <Link
+            key={item.id}
+            href={`/farm/${farmId}?tab=ai`}
+            className="block rounded-xl border border-border/60 bg-muted/20 p-3.5 hover:bg-muted/40 transition-colors"
+          >
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              {item.user_query ? (
+                <p className="text-xs font-medium text-foreground truncate flex-1">
+                  {item.user_query}
+                </p>
+              ) : (
+                <p className="text-xs font-medium text-muted-foreground truncate flex-1">
+                  AI Analysis
                 </p>
               )}
-              <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2">
-                {item.snippet}{item.truncated ? '...' : ''}
-              </p>
+              <span className="text-[11px] text-muted-foreground/60 flex-shrink-0">
+                {formatDistanceToNow(new Date(item.created_at * 1000), { addSuffix: true })}
+              </span>
             </div>
-          );
-        })}
+            <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2">
+              {item.snippet}{item.truncated ? '...' : ''}
+            </p>
+          </Link>
+        ))}
       </div>
     </div>
   );

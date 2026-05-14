@@ -1,27 +1,22 @@
-# PermaCraft — 2026-05-13
+# PermaCraft — 2026-05-14
 ## Focus: Dashboard (Wednesday)
 
-### 1. Fix stale "Updated X ago" timestamp on farm cards
-File: `lib/db/queries/dashboard.ts`
-What changed: The dashboard query only used `farms.updated_at` for the "Updated X ago" display, which doesn't reflect activity on child tables. Now computes `last_activity_at` as the MAX of `farms.updated_at`, the latest zone `updated_at`, latest planting `updated_at`, and latest line `updated_at`. Sort order also uses this derived timestamp so the most recently worked-on farm appears first.
-Map/dashboard impact: A designer who just added plantings or drew zones now sees "Updated 2 minutes ago" instead of a stale date from when the farm record itself was last modified. Farm ordering in the selector also reflects actual work recency.
+### 1. Smart default tab in TasksWidget
+File: `components/dashboard/tasks-widget.tsx`
+What changed: The tasks widget now auto-selects the first non-empty tab instead of always defaulting to "today". A new `computeSmartDefaultTab()` function checks if "today" has items (due/overdue/urgent tasks), falls back to "week" if that has items, and finally falls back to "all". Only defaults to "today" when no tasks exist at all (so the empty state messaging is appropriate).
+Map/dashboard impact: Designers who use tasks without due dates no longer see an empty "Nothing due today" as their first impression. The widget opens to the tab that actually has content, making the task list immediately useful.
 
-### 2. Wire up farm deletion from the dashboard
-Files: `components/dashboard/farm-hero-card.tsx`, `components/dashboard/dashboard-client-v2.tsx`
-What changed: Added a delete button (trash icon) in the FarmHeroCard's inline edit mode. Clicking it opens the existing `DeleteFarmDialog` with full confirmation flow (type "DELETE FARM"). On successful deletion, the farm is removed from local state, the active farm switches to the next available one, and the page refreshes server data via `router.refresh()`.
-Map/dashboard impact: Designers with stale test farms or abandoned designs can now delete them directly from the dashboard without navigating elsewhere. The two-step confirmation prevents accidental deletions.
+### 2. Replace unreliable insight categorization with query-first layout
+File: `components/dashboard/insights-widget.tsx`
+What changed: Removed the `categorize()` function that assigned "Gap"/"Opportunity"/"Insight" labels based on keyword matching (words like "could", "add", "missing"). These labels were often wrong because such words appear in all kinds of AI responses. Replaced with a clean layout: the user's original query is the primary header, a relative timestamp shows recency, and the AI response snippet is the body. Each insight card is now a clickable link to the AI chat. Also improved snippet extraction to prefer complete first sentences over arbitrary character cuts.
+Map/dashboard impact: Designers see their actual questions and the AI's answers without misleading auto-categories. The clickable cards let them jump back to the full conversation. Snippets read more naturally since they break at sentence boundaries when possible.
 
-### 3. Make activity timeline items clickable
-File: `components/dashboard/activity-timeline.tsx`
-What changed: Activity items (zones, plantings, lines, tasks, AI analyses) now render as `<Link>` elements pointing to the farm editor. AI-type items link to `/farm/[id]?tab=ai`; all others link to `/farm/[id]`. Previously, items were non-interactive `<div>` elements.
-Map/dashboard impact: Designers can click any activity item to jump straight to the relevant farm editor. The timeline now functions as navigation, not just a log.
-
-### 4. Clarify farm selector abbreviations
-Files: `components/dashboard/dashboard-client-v2.tsx`, `components/dashboard/farm-tab-strip.tsx`
-What changed: Replaced cryptic one-letter abbreviations ("3z · 12p · 2l") with readable labels ("3 zones · 12 plants · 2 lines") in both the horizontal farm selector cards and the tab strip variant. Added proper pluralization.
-Map/dashboard impact: First-time users and returning designers can immediately read farm stats without memorizing abbreviations.
+### 3. Add recency indicator to farm selector cards
+File: `components/dashboard/dashboard-client-v2.tsx`
+What changed: The horizontal farm selector cards (shown for users with 2+ farms) now display a relative timestamp like "2 hours ago" or "3 days ago" next to each farm name. Uses the `last_activity_at` timestamp from the dashboard query (which already accounts for zone/planting/line updates, not just the farm record).
+Map/dashboard impact: Multi-farm designers can instantly identify which farm they worked on most recently without clicking through each card. The recency info is subtle (10px muted text) so it doesn't clutter the compact card layout.
 
 ## Watch for
-- The `MAX()` function in SQLite accepts multiple arguments (multi-arg MAX), which is supported in SQLite 3.9+ and libSQL. If the Turso instance runs an older SQLite, this would need to be rewritten as nested CASE/COALESCE expressions.
-- Farm deletion removes the farm from client state immediately. If the DELETE API call fails, the farm disappears from the UI but still exists in the DB. A page refresh would restore it. Could add error handling with rollback in a future pass.
-- Activity timeline links go to the farm editor root, not to a specific feature. Deep-linking to a specific zone/planting would require the map editor to accept a `?featureId=` param and pan to it — a future enhancement.
+- The `computeSmartDefaultTab()` runs at component initialization time. If tasks are updated (added/completed/deleted) after mount, the default tab doesn't re-compute — but that's correct because by then the user has actively chosen a tab.
+- The InsightsWidget now imports `formatDistanceToNow` from date-fns, which was already a project dependency (used by FarmHeroCard and ActivityTimeline).
+- Farm selector recency text truncation: very long farm names combined with the timestamp could overflow on narrow mobile cards. The timestamp uses `flex-shrink-0` so the farm name truncates first, preserving the time info.

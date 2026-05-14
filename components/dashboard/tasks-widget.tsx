@@ -34,8 +34,27 @@ function formatDueDate(dueDate: number | null, now: number): { label: string; cl
   };
 }
 
+function computeSmartDefaultTab(tasks: Task[]): Tab {
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+  const dayEnd = Math.floor(now.getTime() / 1000);
+
+  const hasToday = tasks.some(
+    (t: Task) => (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4
+  );
+  if (hasToday) return 'today';
+
+  const weekEnd = dayEnd + 7 * 86400;
+  const hasWeek = tasks.some(
+    (t: Task) => t.due_date === null || t.due_date <= weekEnd || t.priority === 4
+  );
+  if (hasWeek) return 'week';
+
+  return tasks.length > 0 ? 'all' : 'today';
+}
+
 export function TasksWidget({ tasks, farmId }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>('today');
+  const [activeTab, setActiveTab] = useState<Tab>(() => computeSmartDefaultTab(tasks));
   const [localTasks, setLocalTasks] = useState(tasks);
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -48,10 +67,6 @@ export function TasksWidget({ tasks, farmId }: Props) {
   const dayEnd = Math.floor(today.getTime() / 1000);
   const weekEnd = dayEnd + 7 * 86400;
 
-  // Tab semantics (each tab is a strict superset of the previous):
-  //  - today: due today/overdue OR urgent (priority 4)
-  //  - week:  due within 7 days OR urgent OR undated (so loose tasks surface here)
-  //  - all:   everything
   const filtered = localTasks
     .filter((t: Task) => {
       if (activeTab === 'today') {
