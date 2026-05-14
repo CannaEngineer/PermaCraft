@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
 import { DashboardFarm, DashboardFarmData } from '@/lib/db/queries/dashboard';
 import { FarmHeroCard } from './farm-hero-card';
 import { AlertBanner } from './alert-banner';
@@ -141,7 +142,12 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{farm.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold">{farm.name}</span>
+                      <span className="flex-shrink-0 text-[10px] text-muted-foreground/60">
+                        {formatDistanceToNow(new Date(farm.updated_at * 1000), { addSuffix: true })}
+                      </span>
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {farm.zone_count} zone{farm.zone_count !== 1 ? 's' : ''} · {farm.planting_count} plant{farm.planting_count !== 1 ? 's' : ''}
                       {farm.line_count > 0 ? ` · ${farm.line_count} line${farm.line_count !== 1 ? 's' : ''}` : ''}
