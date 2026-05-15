@@ -1,22 +1,27 @@
-# PermaCraft — 2026-05-14
-## Focus: Dashboard (Wednesday)
+# PermaCraft — 2026-05-15
+## Focus: Map Core (Thursday)
 
-### 1. Smart default tab in TasksWidget
-File: `components/dashboard/tasks-widget.tsx`
-What changed: The tasks widget now auto-selects the first non-empty tab instead of always defaulting to "today". A new `computeSmartDefaultTab()` function checks if "today" has items (due/overdue/urgent tasks), falls back to "week" if that has items, and finally falls back to "all". Only defaults to "today" when no tasks exist at all (so the empty state messaging is appropriate).
-Map/dashboard impact: Designers who use tasks without due dates no longer see an empty "Nothing due today" as their first impression. The widget opens to the tab that actually has content, making the task list immediately useful.
+### 1. Fire onDrawComplete callback after zone creation
+File: `components/map/farm-map.tsx`
+What changed: The `onDrawComplete` prop was declared and destructured but never called. Added a ref-based invocation at the end of `handleDrawCreate` so the parent (unified canvas) is notified when a zone/point drawing finishes.
+Map/dashboard impact: In the unified canvas flow, drawing mode now exits automatically after completing a zone. Previously, the canvas stayed stuck in drawing mode and users had to manually toggle it off.
 
-### 2. Replace unreliable insight categorization with query-first layout
-File: `components/dashboard/insights-widget.tsx`
-What changed: Removed the `categorize()` function that assigned "Gap"/"Opportunity"/"Insight" labels based on keyword matching (words like "could", "add", "missing"). These labels were often wrong because such words appear in all kinds of AI responses. Replaced with a clean layout: the user's original query is the primary header, a relative timestamp shows recency, and the AI response snippet is the body. Each insight card is now a clickable link to the AI chat. Also improved snippet extraction to prefer complete first sentences over arbitrary character cuts.
-Map/dashboard impact: Designers see their actual questions and the AI's answers without misleading auto-categories. The clickable cards let them jump back to the full conversation. Snippets read more naturally since they break at sentence boundaries when possible.
+### 2. Replace blocking alert() with toast notifications for save feedback
+File: `app/(app)/farm/[id]/farm-editor-client.tsx`
+What changed: Replaced `alert("Zones saved successfully!")` and `alert("Failed to save zones")` with non-blocking `toast()` calls. Added `useToast` import.
+Map/dashboard impact: Saving zones no longer freezes the map with a modal dialog. Designers get a subtle toast notification that doesn't interrupt their workflow. The destructive variant is used for errors so they stand out.
 
-### 3. Add recency indicator to farm selector cards
-File: `components/dashboard/dashboard-client-v2.tsx`
-What changed: The horizontal farm selector cards (shown for users with 2+ farms) now display a relative timestamp like "2 hours ago" or "3 days ago" next to each farm name. Uses the `last_activity_at` timestamp from the dashboard query (which already accounts for zone/planting/line updates, not just the farm record).
-Map/dashboard impact: Multi-farm designers can instantly identify which farm they worked on most recently without clicking through each card. The recency info is subtle (10px muted text) so it doesn't clutter the compact card layout.
+### 3. Reorder custom layers after imagery loads on layer switch
+File: `components/map/farm-map.tsx`
+What changed: Added `ensureCustomLayersOnTop()` call after custom imagery layers load in `loadCustomImagery`. Previously, when switching map layers, imagery raster overlays could end up painted above the colored zone fills and grid lines because `addColoredZoneLayers` ran before imagery finished loading.
+Map/dashboard impact: Zone coloring and grid labels are always visible above any custom imagery overlays, regardless of when imagery finishes loading during a map layer switch.
+
+### 4. Update planting marker position when coordinates change
+File: `components/map/planting-marker.tsx`
+What changed: Added a useEffect that watches `planting.lng` and `planting.lat` and calls `marker.setLngLat()` when they change. The marker was only positioned once at creation time.
+Map/dashboard impact: When optimistic planting updates are replaced by server responses (which may have slightly adjusted coordinates), markers now move to the correct position instead of staying at the original click location.
 
 ## Watch for
-- The `computeSmartDefaultTab()` runs at component initialization time. If tasks are updated (added/completed/deleted) after mount, the default tab doesn't re-compute — but that's correct because by then the user has actively chosen a tab.
-- The InsightsWidget now imports `formatDistanceToNow` from date-fns, which was already a project dependency (used by FarmHeroCard and ActivityTimeline).
-- Farm selector recency text truncation: very long farm names combined with the timestamp could overflow on narrow mobile cards. The timestamp uses `flex-shrink-0` so the farm name truncates first, preserving the time info.
+- The `onDrawComplete` callback fires for every non-boundary, non-line feature creation. The immersive editor intentionally ignores it (`() => {}`) to stay in drawing mode until the user clicks Done. The unified canvas uses it to exit drawing mode. If a new consumer needs different behavior, they should handle it in their callback.
+- The `ensureCustomLayersOnTop` call is now also in `loadCustomImagery`'s dependency array. If imagery load is called frequently, the layer reordering runs each time — but `moveLayer` is a no-op if the layer is already topmost, so performance impact is negligible.
+- Planting marker position sync only fires when the `planting.lng`/`planting.lat` values actually change (React dependency check). Normal renders (zoom, year changes) don't trigger unnecessary setLngLat calls.

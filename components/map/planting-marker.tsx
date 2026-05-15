@@ -94,6 +94,14 @@ export function PlantingMarker({ planting, map, currentYear, zoom: zoomProp, onC
     };
   }, [planting.id, map, onClick]);
 
+  // Update marker position when coordinates change (e.g., optimistic update
+  // replaced by server response with adjusted coords)
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLngLat([planting.lng, planting.lat]);
+    }
+  }, [planting.lng, planting.lat]);
+
   // Update marker size when currentYear or zoom changes
   useEffect(() => {
     if (!elRef.current) return;
