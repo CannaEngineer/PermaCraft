@@ -7,6 +7,7 @@ import { EnhancedChatPanel } from "@/components/ai/enhanced-chat-panel";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SaveIcon, MessageSquare, Trash2, Target } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import type { Farm, Zone, FarmerGoal } from "@/lib/db/schema";
 import type maplibregl from "maplibre-gl";
 import { calculateGridCoordinates, formatGridRange } from "@/lib/map/zone-grid-calculator";
@@ -30,6 +31,7 @@ export function FarmEditorClient({
   initialIsPublic,
 }: FarmEditorClientProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [zones, setZones] = useState<any[]>(initialZones);
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -373,11 +375,11 @@ IMPORTANT: When suggesting new plantings:
 
       setHasUnsavedChanges(false);
       if (showAlert) {
-        alert("Zones saved successfully!");
+        toast({ title: "Design saved", description: "All zones saved successfully." });
       }
     } catch (error) {
       if (showAlert) {
-        alert("Failed to save zones");
+        toast({ title: "Save failed", description: "Failed to save zones. Please try again.", variant: "destructive" });
       }
       console.error(error);
     } finally {

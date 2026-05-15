@@ -586,6 +586,9 @@ export function FarmMap({
   // Uses null to distinguish "not managed" (classic editor) from "managed but idle" (immersive)
   const externalDrawingModeRef = useRef(externalDrawingMode ?? null);
   externalDrawingModeRef.current = externalDrawingMode ?? null;
+  // Ref for onDrawComplete callback so the mount-time handler can call the latest version
+  const onDrawCompleteRef = useRef(onDrawComplete);
+  onDrawCompleteRef.current = onDrawComplete;
 
   // Time Machine state - projection year for growth simulation
   // If external control props are provided, use them; otherwise use internal state
@@ -726,9 +729,19 @@ export function FarmMap({
       completedImagery.forEach((imagery: any) => {
         addImageryLayer(imagery);
       });
+
+      // Imagery raster layers can load after colored zone/grid layers were
+      // already positioned. Re-assert custom layer ordering so zones and grid
+      // stay above any newly added imagery overlays.
+      if (completedImagery.length > 0) {
+        ensureCustomLayersOnTop();
+      }
     } catch (error) {
       console.error('Failed to load custom imagery:', error);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- addImageryLayer and ensureCustomLayersOnTop
+  // have empty dependency arrays (stable references); listing them here triggers a temporal dead zone
+  // error because addImageryLayer is declared after this useCallback.
   }, [farm.id]);
 
   // Add imagery layer to map
@@ -2056,6 +2069,10 @@ export function FarmMap({
               draw.current.changeMode('simple_select');
             }
           }
+
+          // Notify parent that a draw operation completed (e.g., so the unified
+          // canvas can exit drawing mode after a zone is created).
+          onDrawCompleteRef.current?.();
         }
       };
 
