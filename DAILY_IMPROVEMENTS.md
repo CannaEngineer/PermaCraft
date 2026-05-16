@@ -1,27 +1,27 @@
-# PermaCraft — 2026-05-15
-## Focus: Map Core (Thursday)
+# PermaCraft — 2026-05-16
+## Focus: Map Intelligence (Friday)
 
-### 1. Fire onDrawComplete callback after zone creation
-File: `components/map/farm-map.tsx`
-What changed: The `onDrawComplete` prop was declared and destructured but never called. Added a ref-based invocation at the end of `handleDrawCreate` so the parent (unified canvas) is notified when a zone/point drawing finishes.
-Map/dashboard impact: In the unified canvas flow, drawing mode now exits automatically after completing a zone. Previously, the canvas stayed stuck in drawing mode and users had to manually toggle it off.
+### 1. Add implementation phases to AI context
+Files: `lib/ai/prompts.ts`, `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`
+What changed: The AI now receives the farmer's implementation phases (name, description, date range) in both map analysis and text chat. Phases are fetched server-side alongside zones, plantings, and guilds.
+Map/dashboard impact: When a farmer asks "what should I plant next?" or "help me plan my spring work", the AI can now reference their existing phases and align recommendations with their timeline rather than giving generic advice.
 
-### 2. Replace blocking alert() with toast notifications for save feedback
-File: `app/(app)/farm/[id]/farm-editor-client.tsx`
-What changed: Replaced `alert("Zones saved successfully!")` and `alert("Failed to save zones")` with non-blocking `toast()` calls. Added `useToast` import.
-Map/dashboard impact: Saving zones no longer freezes the map with a modal dialog. Designers get a subtle toast notification that doesn't interrupt their workflow. The destructive variant is used for errors so they stand out.
+### 2. Pass map layer type to AI analysis
+Files: `lib/ai/optimized-analyze.ts`, `components/immersive-map/immersive-map-editor.tsx`
+What changed: The `mapLayer` field (satellite, terrain, topo, etc.) is now sent from the client to the analyze endpoint, so the AI prompt correctly states what type of imagery the user is viewing.
+Map/dashboard impact: Previously the AI always assumed "satellite imagery" even when the user was viewing terrain/topo. Now the AI correctly interprets the screenshot type, improving terrain-aware recommendations when users are on topographic views.
 
-### 3. Reorder custom layers after imagery loads on layer switch
-File: `components/map/farm-map.tsx`
-What changed: Added `ensureCustomLayersOnTop()` call after custom imagery layers load in `loadCustomImagery`. Previously, when switching map layers, imagery raster overlays could end up painted above the colored zone fills and grid lines because `addColoredZoneLayers` ran before imagery finished loading.
-Map/dashboard impact: Zone coloring and grid labels are always visible above any custom imagery overlays, regardless of when imagery finishes loading during a map layer switch.
+### 3. Expand permaculture function gap detection
+File: `lib/ai/context-compressor.ts`
+What changed: Added 5 more critical permaculture functions to gap detection: `dynamic_accumulator`, `ground_cover`, `windbreak`, `pest_confuser`, `wildlife_habitat`. Also added dedicated keyword matching for guild/companion queries and phase/timeline queries.
+Map/dashboard impact: The AI now proactively flags more ecosystem gaps (e.g., "no ground cover", "no windbreak") in its context, prompting richer recommendations. Guild and phase queries now reliably include relevant context rather than being filtered out by the compressor.
 
-### 4. Update planting marker position when coordinates change
-File: `components/map/planting-marker.tsx`
-What changed: Added a useEffect that watches `planting.lng` and `planting.lat` and calls `marker.setLngLat()` when they change. The marker was only positioned once at creation time.
-Map/dashboard impact: When optimistic planting updates are replaced by server responses (which may have slightly adjusted coordinates), markers now move to the correct position instead of staying at the original click location.
+### 4. Fix context compressor keyword matching for guilds and phases
+File: `lib/ai/context-compressor.ts`
+What changed: Split guild keywords out of the plantings pattern into their own `needsGuilds` flag, added a `needsPhases` flag for timeline queries, and added `phasesList` to the compressed context output. Guild queries now always include both plantings and guild data; phase queries include phase timeline data.
+Map/dashboard impact: Questions like "what companions should I plant with my apple tree?" or "what should I do in phase 2?" now include the full guild and phase context in the AI prompt instead of being treated as generic queries.
 
 ## Watch for
-- The `onDrawComplete` callback fires for every non-boundary, non-line feature creation. The immersive editor intentionally ignores it (`() => {}`) to stay in drawing mode until the user clicks Done. The unified canvas uses it to exit drawing mode. If a new consumer needs different behavior, they should handle it in their callback.
-- The `ensureCustomLayersOnTop` call is now also in `loadCustomImagery`'s dependency array. If imagery load is called frequently, the layer reordering runs each time — but `moveLayer` is a no-op if the layer is already topmost, so performance impact is negligible.
-- Planting marker position sync only fires when the `planting.lng`/`planting.lat` values actually change (React dependency check). Normal renders (zoom, year changes) don't trigger unnecessary setLngLat calls.
+- Farms with many phases (10+) could add significant token count to prompts — monitor if this causes payload-too-large errors on free models
+- The `phasesRes` variable in analyze route assumes the `phases` table always exists — if a farm was created before the phases migration, the query will return empty (safe) but worth noting
+- Context compressor `phasesList` is additive to token count — no upper bound on phases text length for verbose mode

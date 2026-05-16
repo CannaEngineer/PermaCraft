@@ -19,6 +19,7 @@ export interface FarmContext {
   goals: any[];
   nativeSpecies: any[];
   guilds?: any[];
+  phases?: any[];
 }
 
 export interface CompressedContext {
@@ -28,6 +29,7 @@ export interface CompressedContext {
   linesList: string;
   nativeSpeciesList: string;
   guildsList: string;
+  phasesList: string;
   goals: string;
   tokenEstimate: number;
 }
@@ -82,7 +84,11 @@ export function compressFarmContext(
   });
 
   // Highlight gaps (important functions with 0 count)
-  const criticalFunctions = ['nitrogen_fixer', 'pollinator_support', 'edible_fruit'];
+  const criticalFunctions = [
+    'nitrogen_fixer', 'pollinator_support', 'edible_fruit',
+    'dynamic_accumulator', 'ground_cover', 'windbreak',
+    'pest_confuser', 'wildlife_habitat',
+  ];
   criticalFunctions.forEach(fn => {
     if (!functionCounts[fn]) {
       keyFacts.push(`⚠️ No ${fn.replace(/_/g, ' ')}`);
@@ -156,13 +162,27 @@ export function compressFarmContext(
     }).join('\n');
   }
 
+  // Phases (implementation timeline)
+  const phases = context.phases || [];
+  let phasesList: string;
+  if (phases.length === 0) {
+    phasesList = '';
+  } else if (verbosity === 'minimal') {
+    phasesList = `${phases.length} implementation phase${phases.length > 1 ? 's' : ''} defined`;
+  } else {
+    phasesList = phases.map(p => {
+      const dates = p.start_date && p.end_date ? ` (${p.start_date} → ${p.end_date})` : '';
+      return `"${p.name || 'Unnamed'}"${dates}${p.description ? `: ${p.description}` : ''}`;
+    }).join('\n');
+  }
+
   // Goals (if any)
   const goalsText = goals.length > 0
     ? goals.map(g => `${g.goal_category}: ${g.description}`).join('; ')
     : 'No goals set';
 
   // Estimate tokens (rough)
-  const text = `${summary}\n${keyFacts.join('\n')}\n${plantingsList}\n${linesList}\n${nativeSpeciesList}\n${guildsList}\n${goalsText}`;
+  const text = `${summary}\n${keyFacts.join('\n')}\n${plantingsList}\n${linesList}\n${nativeSpeciesList}\n${guildsList}\n${phasesList}\n${goalsText}`;
   const tokenEstimate = Math.ceil(text.length / 4); // ~4 chars per token
 
   return {
@@ -172,6 +192,7 @@ export function compressFarmContext(
     linesList,
     nativeSpeciesList,
     guildsList,
+    phasesList,
     goals: goalsText,
     tokenEstimate
   };
@@ -189,14 +210,16 @@ export function buildOptimizedContext(
   compressed: CompressedContext,
   userQuery: string
 ): string {
-  const needsPlantings = /plant|tree|species|guild|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(userQuery);
+  const needsPlantings = /plant|tree|species|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(userQuery);
+  const needsGuilds = /guild|companion|polyculture|synergy|support.*species|nitrogen.*fix|accumulator/i.test(userQuery);
   const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace/i.test(userQuery);
   const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for/i.test(userQuery);
-  const needsGoals = /goal|objective|plan|timeline|priority|phase|year|budget|schedule|strategy|vision/i.test(userQuery);
+  const needsGoals = /goal|objective|priority|budget|strategy|vision/i.test(userQuery);
+  const needsPhases = /phase|timeline|plan|schedule|year|when.*start|implementation|sequence|order/i.test(userQuery);
 
   // If the query doesn't match any specific pattern, it's a general/broad question —
   // include all context so the AI has full farm awareness
-  const isGeneralQuery = !needsPlantings && !needsLines && !needsNatives && !needsGoals;
+  const isGeneralQuery = !needsPlantings && !needsGuilds && !needsLines && !needsNatives && !needsGoals && !needsPhases;
 
   const parts: string[] = [compressed.summary];
 
@@ -204,7 +227,7 @@ export function buildOptimizedContext(
     parts.push('Key facts:\n- ' + compressed.keyFacts.join('\n- '));
   }
 
-  if ((needsPlantings || isGeneralQuery) && compressed.plantingsList) {
+  if ((needsPlantings || needsGuilds || isGeneralQuery) && compressed.plantingsList) {
     parts.push('Current plantings:\n' + compressed.plantingsList);
   }
 
@@ -220,8 +243,12 @@ export function buildOptimizedContext(
     parts.push('Farmer goals: ' + compressed.goals);
   }
 
-  if (compressed.guildsList) {
+  if ((needsGuilds || needsPlantings || isGeneralQuery) && compressed.guildsList) {
     parts.push('Plant guilds:\n' + compressed.guildsList);
+  }
+
+  if ((needsPhases || needsGoals || isGeneralQuery) && compressed.phasesList) {
+    parts.push('Implementation phases:\n' + compressed.phasesList);
   }
 
   return parts.join('\n\n');

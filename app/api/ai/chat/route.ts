@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
     let plantingsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let linesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let guildsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
+    let phasesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let goalsContext = '';
     let nativeSpeciesData: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }> = [];
     let ragContext = '';
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
       farm = farmResult.rows[0] as unknown as Farm;
 
       // Fetch actual composition for richer AI context (including zone geometry for grid coordinates)
-      [zonesResult, plantingsResult, linesResult, guildsResult] = await Promise.all([
+      [zonesResult, plantingsResult, linesResult, guildsResult, phasesResult] = await Promise.all([
         db.execute({
           sql: "SELECT name, zone_type, geometry, properties FROM zones WHERE farm_id = ?",
           args: [farmId],
@@ -91,6 +92,11 @@ export async function POST(request: NextRequest) {
                 LEFT JOIN species s ON g.focal_species_id = s.id
                 WHERE g.created_by = ?`,
           args: [session.user.id],
+        }),
+        db.execute({
+          sql: `SELECT name, description, start_date, end_date
+                FROM phases WHERE farm_id = ? ORDER BY display_order ASC`,
+          args: [farmId],
         }),
       ]);
       zoneCount = zonesResult.rows.length;
@@ -232,6 +238,14 @@ export async function POST(request: NextRequest) {
             focal_scientific_name: g.focal_scientific_name as string | undefined,
             companion_species: g.companion_species as string | undefined,
             benefits: g.benefits as string | undefined,
+          }))
+        : undefined,
+      phases: phasesResult?.rows && phasesResult.rows.length > 0
+        ? phasesResult.rows.map((p: any) => ({
+            name: p.name as string,
+            description: p.description as string | null,
+            start_date: p.start_date as string | null,
+            end_date: p.end_date as string | null,
           }))
         : undefined,
       goalsContext,

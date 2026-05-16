@@ -670,6 +670,7 @@ function ImmersiveMapEditorContent({
           userQuery: query,
           screenshotDataURL: screenshot,
           conversationId,
+          mapLayer: currentMapLayer,
           farmContext: {
             zones,
             plantings,
@@ -698,7 +699,7 @@ function ImmersiveMapEditorContent({
         throw error;
       }
     },
-    [farm.id, farm.climate_zone, farm.rainfall_inches, farm.soil_type, zones, plantings, lines, goals, nativeSpecies, guilds, captureMapScreenshot]
+    [farm.id, farm.climate_zone, farm.rainfall_inches, farm.soil_type, currentMapLayer, zones, plantings, lines, goals, nativeSpecies, guilds, captureMapScreenshot]
   );
 
   // Farm context for GuildDesigner

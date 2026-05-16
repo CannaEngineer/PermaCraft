@@ -276,6 +276,7 @@ export function createAnalysisPrompt(
     plantingsContext?: string;
     linesContext?: string;
     guildsContext?: string;
+    phasesContext?: string;
     goalsContext?: string;
     ragContext?: string;
     optimizedContext?: string; // Compressed context from context-compressor
@@ -319,7 +320,7 @@ ${farmContext.soilType ? `SOIL: ${farmContext.soilType}` : ""}
 
 MAP VIEW: ${mapContext?.layer ? layerDescriptions[mapContext.layer] || mapContext.layer : "satellite imagery"}
 ${zonesInfo}
-${mapContext?.optimizedContext ? `\n${mapContext.optimizedContext}\n` : `${mapContext?.nativeSpeciesContext ? `\n${mapContext.nativeSpeciesContext}\n` : ""}${mapContext?.plantingsContext ? `\n${mapContext.plantingsContext}\n` : ""}${mapContext?.linesContext ? `\n${mapContext.linesContext}\n` : ""}${mapContext?.guildsContext ? `\n${mapContext.guildsContext}\n` : ""}${mapContext?.goalsContext ? `\n${mapContext.goalsContext}\n` : ""}`}
+${mapContext?.optimizedContext ? `\n${mapContext.optimizedContext}\n` : `${mapContext?.nativeSpeciesContext ? `\n${mapContext.nativeSpeciesContext}\n` : ""}${mapContext?.plantingsContext ? `\n${mapContext.plantingsContext}\n` : ""}${mapContext?.linesContext ? `\n${mapContext.linesContext}\n` : ""}${mapContext?.guildsContext ? `\n${mapContext.guildsContext}\n` : ""}${mapContext?.phasesContext ? `\n${mapContext.phasesContext}\n` : ""}${mapContext?.goalsContext ? `\n${mapContext.goalsContext}\n` : ""}`}
 ${mapContext?.ragContext ? `\n${mapContext.ragContext}\n` : ""}
 GRID: Yellow grid lines visible in screenshot. 50ft spacing (imperial). Columns = A,B,C... (west to east), Rows = 1,2,3... (south to north)
 
@@ -438,6 +439,7 @@ export function createGeneralChatPrompt(
     plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null }>;
     lines?: Array<{ line_type: string; label: string | null }>;
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
+    phases?: Array<{ name: string; description?: string | null; start_date?: string | null; end_date?: string | null }>;
     goalsContext?: string;
     nativeSpecies?: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }>;
     ragContext?: string;
@@ -529,6 +531,15 @@ export function createGeneralChatPrompt(
         }
         parts.push(`  - "${g.name}": focal=${focal}${companions ? `, companions: ${companions}` : ''}${benefits ? ` — benefits: ${benefits}` : ''}`);
       });
+    }
+
+    if (farmSummary.phases && farmSummary.phases.length > 0) {
+      parts.push(`\nIMPLEMENTATION PHASES (${farmSummary.phases.length}):`);
+      farmSummary.phases.forEach(p => {
+        const dates = p.start_date && p.end_date ? ` (${p.start_date} → ${p.end_date})` : '';
+        parts.push(`  - "${p.name}"${dates}${p.description ? `: ${p.description}` : ''}`);
+      });
+      parts.push('When recommending implementation steps, align with the farmer\'s existing phases and timeline.');
     }
 
     if (farmSummary.goalsContext) {

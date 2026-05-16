@@ -16,6 +16,7 @@ export interface AnalyzeRequest {
   userQuery: string;
   screenshotDataURL?: string; // Base64 data URL from canvas
   conversationId?: string;
+  mapLayer?: string;
   farmContext: {
     zones: any[];
     plantings: any[];
@@ -58,13 +59,14 @@ export interface AnalyzeResponse {
 export async function analyzeWithOptimization(
   request: AnalyzeRequest
 ): Promise<AnalyzeResponse> {
-  const { userQuery, screenshotDataURL, conversationId, farmContext, farmInfo } = request;
+  const { userQuery, screenshotDataURL, conversationId, mapLayer, farmContext, farmInfo } = request;
 
   const result = await callAIAPI({
     query: userQuery,
     context: farmContext,
     screenshot: screenshotDataURL,
     conversationId,
+    mapLayer,
     farmInfo
   });
 
@@ -79,10 +81,11 @@ async function callAIAPI(params: {
   context: any;
   screenshot?: string;
   conversationId?: string;
+  mapLayer?: string;
   farmInfo: any;
 }): Promise<AnalyzeResponse> {
   const screenshots = params.screenshot
-    ? [{ type: 'screenshot', data: params.screenshot }]
+    ? [{ type: params.mapLayer || 'screenshot', data: params.screenshot }]
     : [];
 
   const response = await fetch('/api/ai/analyze', {
@@ -93,6 +96,7 @@ async function callAIAPI(params: {
       farmId: params.farmInfo.id,
       conversationId: params.conversationId,
       screenshots,
+      mapLayer: params.mapLayer,
       farmContext: params.context,
       farmInfo: params.farmInfo,
       enableOptimizations: true
