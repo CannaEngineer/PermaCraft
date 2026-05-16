@@ -201,12 +201,13 @@ export async function POST(request: NextRequest) {
       farmContext.plantings.some((p: any) => p.scientific_name || p.common_name);
     const needsEnrichment = !farmContext || (!hasUsableZones && !hasUsablePlantings);
 
-    let enrichedFarmContext = farmContext;
+    let enrichedFarmContext: any = farmContext;
     let enrichedZones = zones;
     let enrichedNativeSpeciesContext = nativeSpeciesContext;
     let enrichedPlantingsContext = plantingsContext;
     let enrichedLinesContext: string | undefined;
     let enrichedGuildsContext: string | undefined;
+    let enrichedPhasesContext: string | undefined;
     let guildsResult: Awaited<ReturnType<typeof db.execute>> | undefined;
 
     // Always fetch zone geometry for grid coordinates and area — even when client
@@ -267,7 +268,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (needsEnrichment) {
-      const [plantingsResult, linesResult, guildsRes] = await Promise.all([
+      const [plantingsResult, linesResult, guildsRes, phasesRes] = await Promise.all([
         db.execute({
           sql: `SELECT p.id, p.name, p.lat, p.lng, p.planted_year, p.notes,
                        s.common_name, s.scientific_name, s.layer, s.is_native,
@@ -289,6 +290,11 @@ export async function POST(request: NextRequest) {
                 LEFT JOIN species s ON g.focal_species_id = s.id
                 WHERE g.created_by = ?`,
           args: [session.user.id],
+        }),
+        db.execute({
+          sql: `SELECT name, description, start_date, end_date, display_order
+                FROM phases WHERE farm_id = ? ORDER BY display_order ASC`,
+          args: [farmId],
         }),
       ]);
       guildsResult = guildsRes;
@@ -467,6 +473,17 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Build phases context
+      if (phasesRes.rows.length > 0) {
+        const parts: string[] = [`IMPLEMENTATION PHASES (${phasesRes.rows.length}):`];
+        for (const p of phasesRes.rows) {
+          const dates = p.start_date && p.end_date ? ` (${p.start_date} → ${p.end_date})` : '';
+          parts.push(`  - "${p.name || 'Unnamed'}"${dates}${p.description ? `: ${p.description}` : ''}`);
+        }
+        parts.push('\nWhen recommending implementation steps, align with the farmer\'s existing phases and timeline.');
+        enrichedPhasesContext = parts.join('\n');
+      }
+
       // Build enriched farmContext for the compressor
       enrichedFarmContext = {
         zones: zoneGeomResult.rows.map((z: any) => ({
@@ -493,6 +510,12 @@ export async function POST(request: NextRequest) {
           focal_scientific_name: g.focal_scientific_name,
           companion_species: g.companion_species,
           benefits: g.benefits,
+        })),
+        phases: phasesRes.rows.map((p: any) => ({
+          name: p.name,
+          description: p.description,
+          start_date: p.start_date,
+          end_date: p.end_date,
         })),
       };
     }
@@ -674,6 +697,7 @@ export async function POST(request: NextRequest) {
             plantingsContext: enrichedPlantingsContext,
             linesContext: enrichedLinesContext,
             guildsContext: enrichedGuildsContext,
+            phasesContext: enrichedPhasesContext,
             goalsContext: goalsContext,
             ragContext: ragContext,
           }
