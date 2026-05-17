@@ -7,6 +7,7 @@ import { FarmVitals } from "@/components/farm/farm-vitals";
 import { FeatureListPanel } from "./feature-list-panel";
 import { MAP_INFO_TOKENS as tokens } from "@/lib/design/map-info-tokens";
 import { cn } from "@/lib/utils";
+import { getParsedFunctions } from "@/lib/map/feature-search";
 
 
 interface MapBottomDrawerProps {
@@ -46,15 +47,11 @@ export function MapBottomDrawer({
     if (plantings.length === 0) return 0;
     const functionCounts: Record<string, number> = {};
     plantings.forEach((planting: any) => {
-      if (!planting.permaculture_functions) return;
-      try {
-        const functions: string[] = JSON.parse(planting.permaculture_functions);
-        functions.forEach((fn) => {
-          functionCounts[fn] = (functionCounts[fn] || 0) + 1;
-        });
-      } catch {
-        // Ignore parse errors
-      }
+      const functions = getParsedFunctions(planting);
+      if (!functions) return;
+      functions.forEach((fn) => {
+        functionCounts[fn] = (functionCounts[fn] || 0) + 1;
+      });
     });
     const highImportanceFunctions = [
       'nitrogen_fixer', 'nitrogen_fixing',
