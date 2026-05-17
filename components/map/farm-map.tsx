@@ -1141,6 +1141,11 @@ export function FarmMap({
   const hasShownPrecisionToastRef = useRef(hasShownPrecisionToast);
   hasShownPrecisionToastRef.current = hasShownPrecisionToast;
 
+  // Debounced React state update for zoom — avoids re-rendering the entire
+  // component tree 60x/sec during smooth zoom animations. MapLibre paint
+  // property updates (GPU-side) still run on every frame for visual smoothness.
+  const zoomStateTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Stable zoom handler — reads from refs so the single event listener
   // registered at mount always sees the latest state.
   const handleZoomChange = useCallback(() => {
@@ -1148,7 +1153,15 @@ export function FarmMap({
 
     const zoom = map.current.getZoom();
     const prevZoom = currentZoomRef.current;
-    setCurrentZoom(zoom);
+
+    // Update ref immediately so threshold checks stay accurate
+    currentZoomRef.current = zoom;
+
+    // Debounce React state update — only needed for UI labels and marker sizing
+    if (zoomStateTimerRef.current) clearTimeout(zoomStateTimerRef.current);
+    zoomStateTimerRef.current = setTimeout(() => {
+      setCurrentZoom(zoom);
+    }, 100);
 
     if (!hasShownPrecisionToastRef.current && prevZoom <= 18 && zoom > 18) {
       toast({
@@ -2245,6 +2258,7 @@ export function FarmMap({
     }
 
     return () => {
+      if (zoomStateTimerRef.current) clearTimeout(zoomStateTimerRef.current);
       if (map.current) {
         map.current.off('zoom', handleZoomChange);
         map.current.remove();

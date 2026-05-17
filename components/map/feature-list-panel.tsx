@@ -73,16 +73,16 @@ function getFeatureBbox(feature: any): [number, number, number, number] | null {
   }
 }
 
-/**
- * Determine feature type from grouped features
- */
-function getFeatureType(feature: any, allFeatures: { zones: any[]; plantings: any[]; lines: any[]; guilds: any[]; phases: any[] }): 'zone' | 'planting' | 'line' | 'guild' | 'phase' | null {
-  if (allFeatures.zones.some(z => z.id === feature.id)) return 'zone';
-  if (allFeatures.plantings.some(p => p.id === feature.id)) return 'planting';
-  if (allFeatures.lines.some(l => l.id === feature.id)) return 'line';
-  if (allFeatures.guilds.some(g => g.id === feature.id)) return 'guild';
-  if (allFeatures.phases.some(p => p.id === feature.id)) return 'phase';
-  return null;
+type FeatureType = 'zone' | 'planting' | 'line' | 'guild' | 'phase';
+
+function buildFeatureTypeMap(allFeatures: { zones: any[]; plantings: any[]; lines: any[]; guilds: any[]; phases: any[] }): Map<string, FeatureType> {
+  const map = new Map<string, FeatureType>();
+  for (const z of allFeatures.zones) map.set(z.id, 'zone');
+  for (const p of allFeatures.plantings) map.set(p.id, 'planting');
+  for (const l of allFeatures.lines) map.set(l.id, 'line');
+  for (const g of allFeatures.guilds) map.set(g.id, 'guild');
+  for (const p of allFeatures.phases) map.set(p.id, 'phase');
+  return map;
 }
 
 export function FeatureListPanel({
@@ -126,6 +126,8 @@ export function FeatureListPanel({
 
   const allFeatures = useMemo(() => ({ zones, plantings, lines, guilds, phases }), [zones, plantings, lines, guilds, phases]);
 
+  const featureTypeMap = useMemo(() => buildFeatureTypeMap(allFeatures), [allFeatures]);
+
   // Group features by type (the natural, intuitive grouping)
   const groupedFeatures = useMemo(() => {
     return groupByType(filteredFeatures);
@@ -160,7 +162,7 @@ export function FeatureListPanel({
   };
 
   const handleFeatureClick = (feature: any) => {
-    const featureType = getFeatureType(feature, allFeatures);
+    const featureType = featureTypeMap.get(feature.id) ?? null;
     if (!featureType) return;
 
     const map = mapRef.current;

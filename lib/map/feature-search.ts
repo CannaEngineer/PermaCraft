@@ -14,6 +14,22 @@ export interface FilteredFeatures {
   phases: any[];
 }
 
+const parsedFunctionsCache = new WeakMap<any, string[] | null>();
+
+export function getParsedFunctions(planting: any): string[] | null {
+  if (parsedFunctionsCache.has(planting)) return parsedFunctionsCache.get(planting)!;
+  let result: string[] | null = null;
+  if (planting.permaculture_functions) {
+    try {
+      result = JSON.parse(planting.permaculture_functions);
+    } catch {
+      // ignore
+    }
+  }
+  parsedFunctionsCache.set(planting, result);
+  return result;
+}
+
 /**
  * Search features across multiple fields (case-insensitive substring matching)
  */
@@ -52,7 +68,6 @@ function matchesZone(zone: any, query: string): boolean {
 }
 
 function matchesPlanting(planting: any, query: string): boolean {
-  // Search: common name, scientific name, layer
   if (
     planting.common_name?.toLowerCase().includes(query) ||
     planting.scientific_name?.toLowerCase().includes(query) ||
@@ -61,14 +76,9 @@ function matchesPlanting(planting: any, query: string): boolean {
     return true;
   }
 
-  // Search permaculture functions (if stored as JSON string)
-  if (planting.permaculture_functions) {
-    try {
-      const functions: string[] = JSON.parse(planting.permaculture_functions);
-      return functions.some((fn) => fn.toLowerCase().includes(query));
-    } catch {
-      // Ignore parse errors
-    }
+  const functions = getParsedFunctions(planting);
+  if (functions) {
+    return functions.some((fn) => fn.toLowerCase().includes(query));
   }
 
   return false;
