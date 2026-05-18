@@ -3406,6 +3406,50 @@ export function FarmMap({
         </div>
       )}
 
+      {/* Empty Farm Onboarding Overlay — shown when farm has no features */}
+      {!hideStatusBar && !plantingMode && !showSpeciesPicker && !showPlantingForm && !showQuickLabelForm && !selectedZone &&
+       drawMode === 'simple_select' && !externalDrawingMode &&
+       plantings.length === 0 && zones.filter(z => z.zone_type !== 'farm_boundary').length === 0 && lines.length === 0 && (
+        <div className="absolute inset-0 z-[15] flex items-center justify-center pointer-events-none">
+          <div className="pointer-events-auto bg-background/85 backdrop-blur-xl border border-border/40 rounded-2xl shadow-lg px-6 py-5 max-w-xs text-center">
+            <div className="h-12 w-12 mx-auto mb-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+              <Leaf className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h3 className="text-sm font-semibold mb-1">Start designing your farm</h3>
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              Add plants or draw zones to build your permaculture design.
+            </p>
+            <div className="flex items-center gap-2 justify-center">
+              <button
+                onClick={() => {
+                  setPlantingMode(true);
+                  setShowSpeciesPicker(true);
+                }}
+                className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm transition-colors"
+              >
+                <Leaf className="h-3.5 w-3.5" />
+                Add Plant
+              </button>
+              <button
+                onClick={() => {
+                  if (draw.current) {
+                    try {
+                      draw.current.changeMode('draw_polygon' as any);
+                    } catch (e) {
+                      console.error('Failed to enter draw mode:', e);
+                    }
+                  }
+                }}
+                className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors"
+              >
+                <Square className="h-3.5 w-3.5" />
+                Draw Zone
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Drawing Mode Context Label — top center, no overlap with corners */}
       {drawMode !== 'simple_select' && drawMode !== 'direct_select' && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">

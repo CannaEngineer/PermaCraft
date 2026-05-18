@@ -41,7 +41,7 @@ const TAB_CONFIG: { id: BottomDrawerTab; label: string; icon: typeof Leaf }[] = 
 /** Quick-action tools for the scrollable strip */
 const QUICK_ACTIONS = [
   { id: 'plant', label: 'Add Plant', icon: Sprout, color: 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm' },
-  { id: 'draw', label: 'Draw Zone', icon: PenTool, color: 'bg-muted/60 hover:bg-muted text-foreground' },
+  { id: 'draw', label: 'Draw Zone', icon: PenTool, color: 'bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white shadow-sm' },
   { id: 'drop-pin', label: 'Drop Pin', icon: MapPin, color: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm' },
   { id: 'soil-test', label: 'Soil Test', icon: TestTube2, color: 'bg-amber-700 hover:bg-amber-800 active:bg-amber-900 text-white shadow-sm' },
   { id: 'walk', label: 'Walk Boundary', icon: Footprints, color: 'bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white shadow-sm' },
