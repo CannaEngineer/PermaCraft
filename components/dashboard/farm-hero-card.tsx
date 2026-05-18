@@ -83,10 +83,10 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-green-200 via-emerald-200 to-teal-300 dark:from-green-900 dark:via-emerald-900 dark:to-teal-900 flex items-center justify-center">
-              <div className="text-center opacity-60">
-                <MapPin className="h-10 w-10 mx-auto mb-2 text-green-600 dark:text-green-400" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">No snapshot yet</span>
-              </div>
+              <Link href={`/farm/${farm.id}`} className="text-center group">
+                <MapPin className="h-10 w-10 mx-auto mb-2 text-green-600 dark:text-green-400 opacity-60 group-hover:opacity-80 transition-opacity" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-300 opacity-60 group-hover:opacity-90 transition-opacity">Open map to capture a snapshot</span>
+              </Link>
             </div>
           )}
           {/* Gradient overlay for text readability on mobile */}

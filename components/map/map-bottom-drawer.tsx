@@ -88,8 +88,9 @@ export function MapBottomDrawer({
               aria-label="Expand map info drawer"
             >
               {plantings.length === 0 && nonBoundaryZoneCount === 0 && lines.length === 0 ? (
-                <span className="text-muted-foreground text-xs">
-                  Tap <span className="font-medium text-foreground">Plant</span> or <span className="font-medium text-foreground">Zone</span> to start designing
+                <span className="text-muted-foreground text-xs flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Ready to design — use <span className="font-semibold text-foreground">Plant</span> or <span className="font-semibold text-foreground">Zone</span>
                 </span>
               ) : (
                 <>

@@ -941,99 +941,81 @@ IMPORTANT: When suggesting new plantings:
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Modern Header - Two-tier design for better hierarchy */}
+      {/* Compact Header — single row on mobile, two rows on desktop */}
       <header className="bg-card border-b border-border">
-        {/* Top Row: Farm Identity & Primary Actions */}
-        <div className="px-4 sm:px-6 pt-4 pb-3">
-          <div className="flex items-start justify-between gap-4">
-            {/* Farm Identity */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground truncate">
-                  {farm.name}
-                </h1>
-                {/* Status Badges */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {hasUnsavedChanges && !saving && (
-                    <span className="hidden sm:inline-flex text-xs bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800 font-medium">
-                      Unsaved
-                    </span>
-                  )}
-                  {saving && (
-                    <span className="hidden sm:inline-flex text-xs bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-800 font-medium animate-pulse">
-                      Saving...
-                    </span>
-                  )}
-                </div>
-              </div>
-              {farm.description && (
-                <p className="text-sm text-muted-foreground line-clamp-1">
-                  {farm.description}
-                </p>
-              )}
-            </div>
-
-            {/* Primary Action: AI Chat Toggle */}
-            <Button
-              variant={isChatOpen ? "default" : "outline"}
-              size="default"
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className="flex-shrink-0"
-            >
-              <MessageSquare className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">AI Assistant</span>
-            </Button>
+        <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+          {/* Farm Identity */}
+          <div className="flex-1 min-w-0 flex items-center gap-2 sm:gap-3">
+            <h1 className="text-base sm:text-2xl font-serif font-bold text-foreground truncate">
+              {farm.name}
+            </h1>
+            {/* Status Badges — desktop only */}
+            {hasUnsavedChanges && !saving && (
+              <span className="hidden sm:inline-flex text-xs bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800 font-medium">
+                Unsaved
+              </span>
+            )}
+            {saving && (
+              <span className="hidden sm:inline-flex text-xs bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-800 font-medium animate-pulse">
+                Saving...
+              </span>
+            )}
           </div>
-        </div>
 
-        {/* Bottom Row: Secondary Actions */}
-        {isOwner && (
-          <div className="px-4 sm:px-6 pb-3 flex items-center justify-between gap-3">
-            {/* Left: Save Controls */}
-            <div className="flex items-center gap-2">
+          {/* Actions — compact row */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {isOwner && (
               <Button
                 onClick={() => handleSave(true)}
                 disabled={saving}
                 variant={hasUnsavedChanges ? "default" : "outline"}
                 size="sm"
-                className="flex-shrink-0"
+                className="h-8 px-2 sm:px-3"
               >
-                <SaveIcon className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">
-                  {saving ? "Saving..." : hasUnsavedChanges ? "Save Now" : "Saved"}
+                <SaveIcon className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline text-xs">
+                  {saving ? "Saving..." : hasUnsavedChanges ? "Save" : "Saved"}
                 </span>
               </Button>
-
-              {/* Mobile status indicator */}
-              {(hasUnsavedChanges || saving) && (
-                <span className="sm:hidden text-xs text-muted-foreground">
-                  {saving ? "Saving..." : "Unsaved"}
-                </span>
-              )}
-            </div>
-
-            {/* Right: Farm Management Actions */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowGoalsWizard(true)}
-                className="hidden md:flex items-center gap-2"
-              >
-                <Target className="h-4 w-4" />
-                <span>Goals</span>
-                {goals.length > 0 && (
-                  <span className="bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {goals.length}
-                  </span>
-                )}
-              </Button>
-              <FarmSettingsButton
-                farmId={farm.id}
-                initialIsPublic={initialIsPublic}
-                onDeleteClick={() => setDeleteDialogOpen(true)}
-              />
-            </div>
+            )}
+            <Button
+              variant={isChatOpen ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              className="h-8 px-2 sm:px-3"
+            >
+              <MessageSquare className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline text-xs">AI</span>
+            </Button>
+            {isOwner && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowGoalsWizard(true)}
+                  className="hidden md:flex items-center gap-1.5 h-8"
+                >
+                  <Target className="h-4 w-4" />
+                  <span className="text-xs">Goals</span>
+                  {goals.length > 0 && (
+                    <span className="bg-primary text-primary-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                      {goals.length}
+                    </span>
+                  )}
+                </Button>
+                <FarmSettingsButton
+                  farmId={farm.id}
+                  initialIsPublic={initialIsPublic}
+                  onDeleteClick={() => setDeleteDialogOpen(true)}
+                />
+              </>
+            )}
+          </div>
+        </div>
+        {/* Mobile status — subtle bar below header */}
+        {isOwner && (hasUnsavedChanges || saving) && (
+          <div className="sm:hidden px-3 pb-1.5 text-[11px] text-muted-foreground">
+            {saving ? "Saving changes..." : "Unsaved changes"}
           </div>
         )}
       </header>
