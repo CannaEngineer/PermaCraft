@@ -20,6 +20,12 @@ export interface FarmContext {
   nativeSpecies: any[];
   guilds?: any[];
   phases?: any[];
+  zonesWithGrid?: Array<{
+    name: string;
+    zone_type: string;
+    gridCoordinates?: string;
+    areaAcres?: number;
+  }>;
 }
 
 export interface CompressedContext {
@@ -54,8 +60,19 @@ export function compressFarmContext(
     ? Object.entries(lineTypeCounts).map(([t, c]) => `${c} ${t}${c > 1 ? 's' : ''}`).join(', ')
     : 'no line features';
 
+  // Build zone details with spatial data when available
+  const zonesWithGrid = context.zonesWithGrid;
+  let zoneDetails = '';
+  if (zonesWithGrid && zonesWithGrid.length > 0) {
+    zoneDetails = '\nZones:\n' + zonesWithGrid.map(z => {
+      const gridRef = z.gridCoordinates ? ` at grid ${z.gridCoordinates}` : '';
+      const areaRef = z.areaAcres ? `, ~${z.areaAcres} acres` : '';
+      return `  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}${areaRef}`;
+    }).join('\n');
+  }
+
   // Summary statistics
-  const summary = `Farm: ${zones.length} zones, ${plantings.length} plantings, ${linesSummary}`;
+  const summary = `Farm: ${zones.length} zones, ${plantings.length} plantings, ${linesSummary}${zoneDetails}`;
 
   // Key facts (most important info first)
   const keyFacts: string[] = [];

@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         }),
         db.execute({
           sql: `SELECT s.common_name, s.scientific_name, s.layer, s.is_native,
-                       s.permaculture_functions
+                       s.permaculture_functions, p.lat, p.lng, p.planted_year
                 FROM plantings p JOIN species s ON p.species_id = s.id
                 WHERE p.farm_id = ?`,
           args: [farmId],
@@ -134,10 +134,13 @@ export async function POST(request: NextRequest) {
       ragContext = await getRAGContext(query, 3);
     }
 
-    // Compute grid coordinates and area for zones (spatial awareness in text chat)
+    // Compute grid coordinates and area for zones and plantings (spatial awareness in text chat)
     let zonesWithGrid: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }> | undefined;
-    if (zonesResult && zonesResult.rows.length > 0) {
-      const allCoords: number[][] = [];
+    let plantingGridRefs: Map<number, string> | undefined;
+
+    // Gather all spatial coordinates to compute farm bounds
+    const allCoords: number[][] = [];
+    if (zonesResult) {
       for (const z of zonesResult.rows) {
         if (z.geometry) {
           try {
@@ -147,17 +150,24 @@ export async function POST(request: NextRequest) {
           } catch {}
         }
       }
+    }
+    if (plantingsResult) {
+      for (const p of plantingsResult.rows) {
+        if (p.lat && p.lng) allCoords.push([p.lng as number, p.lat as number]);
+      }
+    }
 
-      if (allCoords.length > 0) {
-        const bounds = {
-          north: Math.max(...allCoords.map(c => c[1])),
-          south: Math.min(...allCoords.map(c => c[1])),
-          east: Math.max(...allCoords.map(c => c[0])),
-          west: Math.min(...allCoords.map(c => c[0])),
-        };
-        const { calculateGridCoordinates, formatGridRange } = await import('@/lib/map/zone-grid-calculator');
-        const { calculateAreaFromGeometry } = await import('@/lib/water/calculations');
+    if (allCoords.length > 0) {
+      const bounds = {
+        north: Math.max(...allCoords.map(c => c[1])),
+        south: Math.min(...allCoords.map(c => c[1])),
+        east: Math.max(...allCoords.map(c => c[0])),
+        west: Math.min(...allCoords.map(c => c[0])),
+      };
+      const { calculateGridCoordinates, formatGridRange } = await import('@/lib/map/zone-grid-calculator');
+      const { calculateAreaFromGeometry } = await import('@/lib/water/calculations');
 
+      if (zonesResult && zonesResult.rows.length > 0) {
         zonesWithGrid = zonesResult.rows.map((z: any) => {
           let gridCoordinates: string | undefined;
           let areaAcres: number | undefined;
@@ -182,6 +192,23 @@ export async function POST(request: NextRequest) {
             gridCoordinates,
             areaAcres,
           };
+        });
+      }
+
+      // Compute grid refs for plantings
+      if (plantingsResult && plantingsResult.rows.length > 0) {
+        plantingGridRefs = new Map();
+        plantingsResult.rows.forEach((p: any, idx: number) => {
+          if (p.lat && p.lng) {
+            try {
+              const cells = calculateGridCoordinates(
+                { type: 'Point', coordinates: [p.lng as number, p.lat as number] },
+                bounds,
+                'imperial'
+              );
+              if (cells.length > 0) plantingGridRefs!.set(idx, cells[0]);
+            } catch {}
+          }
         });
       }
     }
@@ -220,12 +247,14 @@ export async function POST(request: NextRequest) {
         name: z.name as string | null,
         zone_type: z.zone_type as string,
       })),
-      plantings: plantingsResult?.rows.map((p: any) => ({
+      plantings: plantingsResult?.rows.map((p: any, idx: number) => ({
         common_name: p.common_name as string,
         scientific_name: p.scientific_name as string,
         layer: p.layer as string,
         is_native: p.is_native as number,
         permaculture_functions: p.permaculture_functions as string | null,
+        planted_year: p.planted_year as number | null,
+        gridRef: plantingGridRefs?.get(idx),
       })),
       lines: linesResult?.rows.map((l: any) => ({
         line_type: l.line_type as string,
