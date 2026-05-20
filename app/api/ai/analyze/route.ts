@@ -484,6 +484,35 @@ export async function POST(request: NextRequest) {
         enrichedPhasesContext = parts.join('\n');
       }
 
+      // Fetch goals for compressor context
+      const goalsResult = await db.execute({
+        sql: `SELECT goal_category, description, priority, targets, timeline
+              FROM farmer_goals
+              WHERE farm_id = ? AND status = 'active'
+              ORDER BY priority DESC`,
+        args: [farmId],
+      });
+
+      // Fetch native species for compressor context
+      let nativeSpeciesRows: any[] = [];
+      if (farm.climate_zone) {
+        const zoneNum = farm.climate_zone.replace(/[ab]/i, '');
+        const nativeRes = await db.execute({
+          sql: `SELECT common_name, scientific_name, layer, mature_height_ft
+                FROM species
+                WHERE is_native = 1
+                  AND (
+                    (min_hardiness_zone IS NOT NULL AND max_hardiness_zone IS NOT NULL
+                     AND CAST(REPLACE(REPLACE(min_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) <= ?
+                     AND CAST(REPLACE(REPLACE(max_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) >= ?)
+                    OR hardiness_zones LIKE ?
+                  )
+                LIMIT 15`,
+          args: [parseInt(zoneNum) || 0, parseInt(zoneNum) || 0, `%${farm.climate_zone}%`],
+        });
+        nativeSpeciesRows = nativeRes.rows;
+      }
+
       // Build enriched farmContext for the compressor
       enrichedFarmContext = {
         zones: zoneGeomResult.rows.map((z: any) => ({
@@ -502,8 +531,19 @@ export async function POST(request: NextRequest) {
           line_type: l.line_type,
           label: l.label,
         })),
-        goals: [],
-        nativeSpecies: [],
+        goals: goalsResult.rows.map((g: any) => ({
+          goal_category: g.goal_category,
+          description: g.description,
+          priority: g.priority,
+          targets: g.targets,
+          timeline: g.timeline,
+        })),
+        nativeSpecies: nativeSpeciesRows.map((s: any) => ({
+          common_name: s.common_name,
+          scientific_name: s.scientific_name,
+          layer: s.layer,
+          mature_height_ft: s.mature_height_ft,
+        })),
         guilds: guildsResult!.rows.map((g: any) => ({
           name: g.name,
           focal_common_name: g.focal_common_name,
@@ -545,6 +585,11 @@ export async function POST(request: NextRequest) {
       }
       parts.push('\nConsider existing guilds when recommending new plantings — suggest companions that complement these designs.');
       enrichedGuildsContext = parts.join('\n');
+    }
+
+    // Attach zone spatial data so the compressor can include grid coordinates and area
+    if (enrichedFarmContext && enrichedZones) {
+      enrichedFarmContext.zonesWithGrid = enrichedZones;
     }
 
     /**

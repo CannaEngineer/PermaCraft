@@ -436,7 +436,7 @@ export function createGeneralChatPrompt(
     zoneCount?: number;
     plantingCount?: number;
     zones?: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }>;
-    plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null }>;
+    plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null; planted_year?: number | null; gridRef?: string }>;
     lines?: Array<{ line_type: string; label: string | null }>;
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
     phases?: Array<{ name: string; description?: string | null; start_date?: string | null; end_date?: string | null }>;
@@ -485,7 +485,9 @@ export function createGeneralChatPrompt(
               }
             } catch {}
           }
-          parts.push(`    - ${s.common_name} (${s.scientific_name}) ${native}${functions}`);
+          const year = s.planted_year ? `, planted ${s.planted_year}` : '';
+          const grid = s.gridRef ? ` at grid ${s.gridRef}` : '';
+          parts.push(`    - ${s.common_name} (${s.scientific_name}) ${native}${year}${grid}${functions}`);
         });
       }
     } else if (farmSummary.plantingCount != null) {

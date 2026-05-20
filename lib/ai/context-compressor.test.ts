@@ -145,6 +145,7 @@ describe('buildOptimizedContext', () => {
     linesList: 'swale: unlabeled',
     nativeSpeciesList: 'Oak (canopy, 80ft), Serviceberry (understory, 20ft)',
     guildsList: '"Apple Guild": focal=Apple, companions: Comfrey, Clover',
+    phasesList: '"Phase 1" (2024-03 → 2024-09): Initial earthworks and water infrastructure',
     goals: 'Food Production: Produce 50% of household food',
     tokenEstimate: 150
   };
