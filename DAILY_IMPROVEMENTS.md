@@ -1,28 +1,22 @@
-# PermaCraft — 2026-05-19
-## Focus: Map Intelligence (Tuesday)
+# PermaCraft — 2026-05-20
+## Focus: Dashboard (Wednesday)
 
-### 1. Goals and native species restored in optimized AI context
-File: `app/api/ai/analyze/route.ts`
-What changed: The optimized analysis path was passing empty arrays for `goals` and `nativeSpecies` to the context compressor, so the AI never saw farmer objectives or region-appropriate native plants when optimizations were enabled (which is always from the client). Now fetches goals from `farmer_goals` table and native species from `species` table before building the compressor input.
-Map/dashboard impact: AI recommendations now align with what the farmer actually wants to achieve and suggest region-appropriate native species, instead of giving generic advice that ignores their stated priorities and local ecology.
+### 1. Fix tasks widget "week" filter including all undated tasks
+File: `components/dashboard/tasks-widget.tsx`
+What changed: Removed `due_date === null` from the "week" tab filter and the smart-default-tab computation. Tasks without a due date now only appear in the "all" tab, as intended.
+Map/dashboard impact: The "week" tab previously showed every task that lacked a due date, making it functionally identical to "all". Designers now see only tasks actually due within 7 days (plus urgent tasks), making the tab useful for weekly planning.
 
-### 2. Zone spatial data included in compressed context
-Files: `lib/ai/context-compressor.ts`, `app/api/ai/analyze/route.ts`
-What changed: Added `zonesWithGrid` to `FarmContext` interface and updated the compressor to emit zone grid coordinates and area in the summary. The analyze route now attaches `enrichedZones` (with computed grid refs and acreage) to the farm context before compression.
-Map/dashboard impact: When the AI receives compressed context, it still knows where each zone is on the grid and how large it is. Previously, compression stripped spatial data, causing the AI to give recommendations without knowing zone locations or sizes.
+### 2. Activity timeline type labels for scanability
+File: `components/dashboard/activity-timeline.tsx`
+What changed: Added a `label` field to each activity type metadata ("AI", "Plant", "Zone", "Line", "Task") and rendered it as a small prefix before the item title.
+Map/dashboard impact: When scanning recent activity, designers can now instantly distinguish "Zone: Oak Savanna" from "Plant: Oak" without relying on small color-coded icons alone. Especially useful on mobile where icons are harder to differentiate.
 
-### 3. Planting spatial and temporal data added to text chat
-Files: `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
-What changed: The chat endpoint now fetches `lat`, `lng`, and `planted_year` for each planting, computes grid references from coordinates, and passes `planted_year` and `gridRef` to the prompt builder. The `createGeneralChatPrompt` function now renders these fields (e.g., "Apple (Malus domestica) [NATIVE], planted 2022 at grid C4").
-Map/dashboard impact: Text-only chat can now give spatially aware recommendations ("your apple tree at C4 could benefit from a comfrey companion at C5") and age-aware advice ("your 4-year-old apple is approaching its first significant fruit year").
-
-### 4. Planning query detection expanded
-File: `lib/ai/planning-detection.ts`
-What changed: Added 6 new regex patterns to catch natural-language planning queries: "where do I start", "what should I do first", "prioritize", "multi-year plan", "crop rotation plan", "labor estimate", "what order", and "which comes first".
-Map/dashboard impact: More planning-style questions now route to the structured planning model (MiniMax M2.5) instead of the general vision model, producing phased timelines and cost estimates when the farmer asks common planning questions in natural language.
+### 3. Farm selector shows task count and frost alerts
+File: `components/dashboard/dashboard-client-v2.tsx`
+What changed: Replaced the minimal 2.5px urgent dot with a numbered badge showing the urgent task count, added pending task count to the farm stats line, and separated frost-risk indication into its own visual (blue dot) when there are no urgent tasks.
+Map/dashboard impact: Designers managing multiple farms can now see at a glance which farm has 3 urgent tasks vs. which just has a frost warning, without clicking through each one. The pending task count in the stats line ("5 tasks") provides triage context alongside zone/plant counts.
 
 ## Watch for
-- The additional DB queries (goals + native species) in the analyze route add ~2 round-trips when enrichment is needed — monitor latency on farms with many goals
-- Grid ref computation for plantings in the chat route uses the same bounds calculation as zones — if a farm has plantings far outside zone boundaries, the grid refs may be at extreme edges (A1 or Z99)
-- The expanded planning patterns could over-match conversational questions containing "prioritize" — watch for cases where simple questions get unnecessarily routed through the planning model
-- Test fixture in `context-compressor.test.ts` was updated to include `phasesList` to match the `CompressedContext` interface
+- The "week" filter fix means users who relied on undated tasks showing in "week" will now need to switch to "all" — this is correct behavior but may feel like tasks "disappeared" if they never set due dates
+- The `pendingTaskCount` in the farm selector iterates `data.tasks` which is pre-filtered to exclude completed/skipped tasks (from the DB query), so the count is accurate
+- Farm selector pills are slightly wider now with the task count text — monitor horizontal scroll behavior on mobile with 5+ farms

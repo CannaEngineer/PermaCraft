@@ -46,7 +46,7 @@ function computeSmartDefaultTab(tasks: Task[]): Tab {
 
   const weekEnd = dayEnd + 7 * 86400;
   const hasWeek = tasks.some(
-    (t: Task) => t.due_date === null || t.due_date <= weekEnd || t.priority === 4
+    (t: Task) => (t.due_date !== null && t.due_date <= weekEnd) || t.priority === 4
   );
   if (hasWeek) return 'week';
 
@@ -73,7 +73,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
         return (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4;
       }
       if (activeTab === 'week') {
-        return t.due_date === null || t.due_date <= weekEnd || t.priority === 4;
+        return (t.due_date !== null && t.due_date <= weekEnd) || t.priority === 4;
       }
       return true;
     })

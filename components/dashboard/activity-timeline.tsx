@@ -11,32 +11,38 @@ interface ActivityItem {
   created_at: number;
 }
 
-const TYPE_META: Record<string, { icon: ReactNode; bg: string }> = {
+const TYPE_META: Record<string, { icon: ReactNode; bg: string; label: string }> = {
   ai: {
     icon: <Bot className="h-3.5 w-3.5" />,
     bg: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+    label: 'AI',
   },
   planting: {
     icon: <Sprout className="h-3.5 w-3.5" />,
     bg: 'bg-green-500/10 text-green-600 dark:text-green-400',
+    label: 'Plant',
   },
   zone: {
     icon: <MapPin className="h-3.5 w-3.5" />,
     bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    label: 'Zone',
   },
   line: {
     icon: <Spline className="h-3.5 w-3.5" />,
     bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
+    label: 'Line',
   },
   task: {
     icon: <CheckSquare className="h-3.5 w-3.5" />,
     bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    label: 'Task',
   },
 };
 
 const DEFAULT_META = {
   icon: <FileText className="h-3.5 w-3.5" />,
   bg: 'bg-muted text-muted-foreground',
+  label: '',
 };
 
 interface Props {
@@ -84,7 +90,12 @@ export function ActivityTimeline({ items, farmId }: Props) {
                 {meta.icon}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-foreground truncate">{item.title || 'Untitled'}</p>
+                <p className="text-sm text-foreground truncate">
+                  {meta.label && (
+                    <span className="text-muted-foreground font-medium text-xs mr-1.5">{meta.label}</span>
+                  )}
+                  {item.title || 'Untitled'}
+                </p>
               </div>
               <span className="flex-shrink-0 text-xs text-muted-foreground/70">
                 {formatDistanceToNow(new Date(item.created_at * 1000), { addSuffix: true })}

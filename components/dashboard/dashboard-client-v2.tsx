@@ -78,11 +78,13 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
 
   const active = localFarmData[activeFarmId];
 
-  const urgentFarmIds = new Set<string>();
+  const farmAlerts = new Map<string, { urgentCount: number; pendingTaskCount: number; frostRisk: boolean }>();
   for (const id of Object.keys(localFarmData)) {
     const data = localFarmData[id];
-    if (data && (data.urgentCount > 0 || data.seasonal.frostRisk)) {
-      urgentFarmIds.add(id);
+    if (!data) continue;
+    const pendingTaskCount = data.tasks.filter((t: { status: string }) => t.status === 'pending').length;
+    if (data.urgentCount > 0 || data.seasonal.frostRisk || pendingTaskCount > 0) {
+      farmAlerts.set(id, { urgentCount: data.urgentCount, pendingTaskCount, frostRisk: data.seasonal.frostRisk });
     }
   }
 
@@ -120,6 +122,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
             const data = localFarmData[farm.id];
             const eco = data?.ecoScore ?? 0;
             const ecoColor = eco >= 75 ? 'text-green-600 dark:text-green-400' : eco >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500 dark:text-red-400';
+            const alerts = farmAlerts.get(farm.id);
             return (
               <button
                 key={farm.id}
@@ -130,8 +133,13 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
                     : 'border-transparent bg-card hover:bg-muted/50'
                 }`}
               >
-                {urgentFarmIds.has(farm.id) && (
-                  <div className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50" />
+                {alerts && alerts.urgentCount > 0 && (
+                  <div className="absolute top-2 right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-amber-400/50">
+                    {alerts.urgentCount}
+                  </div>
+                )}
+                {alerts && alerts.frostRisk && !alerts.urgentCount && (
+                  <div className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-blue-400 shadow-sm shadow-blue-400/50" />
                 )}
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl border border-border/50">
@@ -154,6 +162,9 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
                       {farm.acres ? ` · ${farm.acres} ac` : ''}
                       {' · '}
                       <span className={`font-semibold ${ecoColor}`}>{eco}%</span>
+                      {alerts && alerts.pendingTaskCount > 0 && (
+                        <span className="text-muted-foreground/80"> · {alerts.pendingTaskCount} task{alerts.pendingTaskCount !== 1 ? 's' : ''}</span>
+                      )}
                     </div>
                   </div>
                 </div>
