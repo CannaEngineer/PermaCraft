@@ -200,7 +200,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left column: Eco + Season */}
             <div className="flex flex-col gap-4">
-              <EcoRing score={active.ecoScore} functions={active.ecoFunctions} />
+              <EcoRing score={active.ecoScore} functions={active.ecoFunctions} farmId={activeFarmId} />
               <SeasonWidget seasonal={active.seasonal} />
             </div>
 
