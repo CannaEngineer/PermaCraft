@@ -1,22 +1,27 @@
-# PermaCraft — 2026-05-20
+# PermaCraft — 2026-05-21
 ## Focus: Dashboard (Wednesday)
 
-### 1. Fix tasks widget "week" filter including all undated tasks
-File: `components/dashboard/tasks-widget.tsx`
-What changed: Removed `due_date === null` from the "week" tab filter and the smart-default-tab computation. Tasks without a due date now only appear in the "all" tab, as intended.
-Map/dashboard impact: The "week" tab previously showed every task that lacked a due date, making it functionally identical to "all". Designers now see only tasks actually due within 7 days (plus urgent tasks), making the tab useful for weekly planning.
-
-### 2. Activity timeline type labels for scanability
+### 1. Activity Timeline Time Grouping
 File: `components/dashboard/activity-timeline.tsx`
-What changed: Added a `label` field to each activity type metadata ("AI", "Plant", "Zone", "Line", "Task") and rendered it as a small prefix before the item title.
-Map/dashboard impact: When scanning recent activity, designers can now instantly distinguish "Zone: Oak Savanna" from "Plant: Oak" without relying on small color-coded icons alone. Especially useful on mobile where icons are harder to differentiate.
+What changed: Activity items are now grouped into "Today", "This Week", and "Earlier" sections with labeled dividers instead of a flat chronological list.
+Map/dashboard impact: Designers with active farms can instantly see what happened today vs. earlier this week, making the timeline scannable at a glance instead of requiring mental date parsing for each item.
 
-### 3. Farm selector shows task count and frost alerts
-File: `components/dashboard/dashboard-client-v2.tsx`
-What changed: Replaced the minimal 2.5px urgent dot with a numbered badge showing the urgent task count, added pending task count to the farm stats line, and separated frost-risk indication into its own visual (blue dot) when there are no urgent tasks.
-Map/dashboard impact: Designers managing multiple farms can now see at a glance which farm has 3 urgent tasks vs. which just has a frost warning, without clicking through each one. The pending task count in the stats line ("5 tasks") provides triage context alongside zone/plant counts.
+### 2. Farm Description Display in Hero Card
+File: `components/dashboard/farm-hero-card.tsx`
+What changed: The farm's `description` field (which was stored but never shown) now renders below the name/meta line, clamped to 2 lines.
+Map/dashboard impact: Designers who wrote descriptions like "5-acre homestead in Zone 7b, year 2 of food forest" now see that context on the dashboard without opening the farm editor. Especially useful when managing 5+ farms.
+
+### 3. AI Insights Markdown Stripping
+File: `components/dashboard/insights-widget.tsx`
+What changed: Added `stripMarkdown()` preprocessing to `extractSnippet()` that removes headings, bold/italic, lists, links, and code formatting before truncating the AI response for display.
+Map/dashboard impact: AI insight snippets now display as clean prose instead of showing raw markdown syntax (e.g., `## Analysis` or `**Important:**`) in the dashboard cards.
+
+### 4. EcoRing Actionable Improvement Tip
+Files: `components/dashboard/eco-ring.tsx`, `components/dashboard/dashboard-client-v2.tsx`
+What changed: The eco health suggestion tip now includes a "Browse species to plant" link that navigates to the farm editor's species tab. Added `farmId` prop to `EcoRing`.
+Map/dashboard impact: When a designer's eco score is below 75%, they see not just what's missing but a direct link to act on it — reducing the steps from "read tip" to "browse and add a nitrogen fixer" from 3 clicks to 1.
 
 ## Watch for
-- The "week" filter fix means users who relied on undated tasks showing in "week" will now need to switch to "all" — this is correct behavior but may feel like tasks "disappeared" if they never set due dates
-- The `pendingTaskCount` in the farm selector iterates `data.tasks` which is pre-filtered to exclude completed/skipped tasks (from the DB query), so the count is accurate
-- Farm selector pills are slightly wider now with the task count text — monitor horizontal scroll behavior on mobile with 5+ farms
+- Activity timeline grouping uses `isThisWeek` from date-fns v4 with `weekStartsOn: 1` (Monday). Verify this matches user expectations for "this week" boundaries.
+- The species tab link (`?tab=species`) needs to be handled by the farm editor route. If the editor doesn't parse that query param, the link lands on the default tab. Worth verifying in the farm editor.
+- Farm description display relies on the existing `description` column. If descriptions contain very long text or HTML, the `line-clamp-2` CSS handles it gracefully, but sanitization may be needed if user input isn't already sanitized at write time.

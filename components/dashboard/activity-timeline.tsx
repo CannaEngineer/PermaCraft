@@ -1,6 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isToday, isThisWeek } from 'date-fns';
 import { Bot, Sprout, MapPin, FileText, CheckSquare, ArrowRight, Spline } from 'lucide-react';
 import Link from 'next/link';
 
@@ -45,12 +45,35 @@ const DEFAULT_META = {
   label: '',
 };
 
+type TimeGroup = 'today' | 'this_week' | 'earlier';
+
+function groupByTime(items: ActivityItem[]): { group: TimeGroup; label: string; items: ActivityItem[] }[] {
+  const groups: Record<TimeGroup, ActivityItem[]> = { today: [], this_week: [], earlier: [] };
+  for (const item of items) {
+    const date = new Date(item.created_at * 1000);
+    if (isToday(date)) {
+      groups.today.push(item);
+    } else if (isThisWeek(date, { weekStartsOn: 1 })) {
+      groups.this_week.push(item);
+    } else {
+      groups.earlier.push(item);
+    }
+  }
+  const result: { group: TimeGroup; label: string; items: ActivityItem[] }[] = [];
+  if (groups.today.length > 0) result.push({ group: 'today', label: 'Today', items: groups.today });
+  if (groups.this_week.length > 0) result.push({ group: 'this_week', label: 'This Week', items: groups.this_week });
+  if (groups.earlier.length > 0) result.push({ group: 'earlier', label: 'Earlier', items: groups.earlier });
+  return result;
+}
+
 interface Props {
   items: ActivityItem[];
   farmId?: string;
 }
 
 export function ActivityTimeline({ items, farmId }: Props) {
+  const grouped = groupByTime(items);
+
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between mb-4">
@@ -76,43 +99,52 @@ export function ActivityTimeline({ items, farmId }: Props) {
         </div>
       )}
 
-      <div className="space-y-1">
-        {items.map((item) => {
-          const meta = TYPE_META[item.type] || DEFAULT_META;
-          const href = farmId
-            ? item.type === 'ai'
-              ? `/farm/${farmId}?tab=ai`
-              : `/farm/${farmId}`
-            : null;
-          const inner = (
-            <>
-              <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${meta.bg}`}>
-                {meta.icon}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-foreground truncate">
-                  {meta.label && (
-                    <span className="text-muted-foreground font-medium text-xs mr-1.5">{meta.label}</span>
-                  )}
-                  {item.title || 'Untitled'}
-                </p>
-              </div>
-              <span className="flex-shrink-0 text-xs text-muted-foreground/70">
-                {formatDistanceToNow(new Date(item.created_at * 1000), { addSuffix: true })}
-              </span>
-            </>
-          );
-          const cls = "flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/30 transition-colors";
-          return href ? (
-            <Link key={`${item.type}-${item.id}`} href={href} className={cls}>
-              {inner}
-            </Link>
-          ) : (
-            <div key={`${item.type}-${item.id}`} className={cls}>
-              {inner}
+      <div className="space-y-3">
+        {grouped.map(({ group, label, items: groupItems }) => (
+          <div key={group}>
+            <div className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 mb-1">
+              {label}
             </div>
-          );
-        })}
+            <div className="space-y-1">
+              {groupItems.map((item) => {
+                const meta = TYPE_META[item.type] || DEFAULT_META;
+                const href = farmId
+                  ? item.type === 'ai'
+                    ? `/farm/${farmId}?tab=ai`
+                    : `/farm/${farmId}`
+                  : null;
+                const inner = (
+                  <>
+                    <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${meta.bg}`}>
+                      {meta.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-foreground truncate">
+                        {meta.label && (
+                          <span className="text-muted-foreground font-medium text-xs mr-1.5">{meta.label}</span>
+                        )}
+                        {item.title || 'Untitled'}
+                      </p>
+                    </div>
+                    <span className="flex-shrink-0 text-xs text-muted-foreground/70">
+                      {formatDistanceToNow(new Date(item.created_at * 1000), { addSuffix: true })}
+                    </span>
+                  </>
+                );
+                const cls = "flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/30 transition-colors";
+                return href ? (
+                  <Link key={`${item.type}-${item.id}`} href={href} className={cls}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <div key={`${item.type}-${item.id}`} className={cls}>
+                    {inner}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -14,12 +14,28 @@ interface Props {
   farmId: string;
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    .replace(/~~(.+?)~~/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
+}
+
 function extractSnippet(response: string): { snippet: string; truncated: boolean } {
-  const firstSentenceEnd = response.search(/[.!?]\s/);
+  const cleaned = stripMarkdown(response);
+  const firstSentenceEnd = cleaned.search(/[.!?]\s/);
   if (firstSentenceEnd > 0 && firstSentenceEnd <= 160) {
-    return { snippet: response.slice(0, firstSentenceEnd + 1), truncated: response.length > firstSentenceEnd + 2 };
+    return { snippet: cleaned.slice(0, firstSentenceEnd + 1), truncated: cleaned.length > firstSentenceEnd + 2 };
   }
-  const flat = response.replace(/\n/g, ' ').trim();
+  const flat = cleaned.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ').trim();
   if (flat.length <= 140) return { snippet: flat, truncated: false };
   const cut = flat.lastIndexOf(' ', 140);
   return { snippet: flat.slice(0, cut > 80 ? cut : 140), truncated: true };

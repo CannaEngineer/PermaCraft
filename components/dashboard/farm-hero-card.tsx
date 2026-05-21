@@ -157,6 +157,11 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
+                  {farm.description && (
+                    <p className="text-sm text-muted-foreground/80 mt-1.5 line-clamp-2 leading-relaxed">
+                      {farm.description}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

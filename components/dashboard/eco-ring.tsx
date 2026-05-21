@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 const FUNCTION_META: Record<string, { label: string; icon: string; color: string; bgClass: string }> = {
   nitrogen_fixer: { label: 'Nitrogen Fixers', icon: '🫘', color: '#4caf50', bgClass: 'bg-green-500/10 text-green-700 dark:text-green-400' },
@@ -14,9 +15,10 @@ const FUNCTION_META: Record<string, { label: string; icon: string; color: string
 interface Props {
   score: number;
   functions: Record<string, number>;
+  farmId?: string;
 }
 
-export function EcoRing({ score, functions }: Props) {
+export function EcoRing({ score, functions, farmId }: Props) {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
@@ -98,14 +100,23 @@ export function EcoRing({ score, functions }: Props) {
           .map(([k]) => FUNCTION_META[k]?.label.toLowerCase())
           .filter(Boolean)
           .slice(0, 2);
+        const tipText = missing.length > 0
+          ? `Add ${missing.join(' and ')} to strengthen your ecosystem diversity.`
+          : 'Add plants with diverse permaculture functions to build a resilient ecosystem.';
         return (
           <div className="mt-4 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
             <p className="text-xs text-foreground/80 leading-relaxed">
-              <span className="font-semibold">Tip:</span>{' '}
-              {missing.length > 0
-                ? `Add ${missing.join(' and ')} to strengthen your ecosystem diversity.`
-                : 'Add plants with diverse permaculture functions to build a resilient ecosystem.'}
+              <span className="font-semibold">Tip:</span> {tipText}
             </p>
+            {farmId && (
+              <Link
+                href={`/farm/${farmId}?tab=species`}
+                className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+              >
+                Browse species to plant
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
+            )}
           </div>
         );
       })()}
