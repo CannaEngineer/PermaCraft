@@ -409,6 +409,7 @@ export function FarmMap({
   const updateGridDebouncedRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
   const cachedFarmBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
   const rasterLayerIdsRef = useRef<string[]>([]);
+  const savedFeaturesRef = useRef<any>(null);
   const initialZonesLoadedRef = useRef(false);
   const mapLoadedRef = useRef(false);
   const zonesRef = useRef(zones);
@@ -416,6 +417,9 @@ export function FarmMap({
   // Ref to access current zoneType inside event handler closures (avoids stale closure)
   const zoneTypeRef = useRef(zoneType);
   zoneTypeRef.current = zoneType;
+  // Ref for onZonesChange so mount-time event handlers always call the latest version
+  const onZonesChangeRef = useRef(onZonesChange);
+  onZonesChangeRef.current = onZonesChange;
   // Refs for snap-to-grid state — read inside event handlers registered once at mount
   const snapToGridEnabledRef = useRef(snapToGridEnabled);
   snapToGridEnabledRef.current = snapToGridEnabled;
@@ -1160,13 +1164,10 @@ export function FarmMap({
       localStorage.setItem('precision-mode-toast-shown', 'true');
     }
 
-    if (zoom > ZOOM_THRESHOLDS.FADE_START) {
-      const opacity = getSatelliteOpacity(zoom);
-
-      for (const layerId of rasterLayerIdsRef.current) {
-        if (map.current.getLayer(layerId)) {
-          map.current.setPaintProperty(layerId, 'raster-opacity', opacity);
-        }
+    const opacity = getSatelliteOpacity(zoom);
+    for (const layerId of rasterLayerIdsRef.current) {
+      if (map.current.getLayer(layerId)) {
+        map.current.setPaintProperty(layerId, 'raster-opacity', opacity);
       }
     }
 
@@ -1881,7 +1882,7 @@ export function FarmMap({
             }
           });
 
-          onZonesChange(draw.current.getAll().features);
+          onZonesChangeRef.current(draw.current.getAll().features);
           invalidateFarmBoundsCache();
           // Use ref to always call the latest updateGrid (avoids stale closure
           // when gridUnit/gridDensity/gridSubdivision change after mount).
@@ -1907,7 +1908,7 @@ export function FarmMap({
                 farmBoundaryCache.set(feature.id, JSON.parse(JSON.stringify(feature)));
               }
             });
-            onZonesChange(draw.current.getAll().features);
+            onZonesChangeRef.current(draw.current.getAll().features);
             invalidateFarmBoundsCache();
             updateGridRef.current?.();
           }
@@ -2518,8 +2519,14 @@ export function FarmMap({
     if (!map.current) return;
 
     // STEP 1: Save all features before style change
-    // setStyle() will destroy MapboxDraw, so we must preserve the data
-    const features = draw.current?.getAll();
+    // setStyle() will destroy MapboxDraw, so we must preserve the data.
+    // Use a ref so rapid layer switching doesn't lose features — if a
+    // previous switch is still in-flight, its saved features are overwritten
+    // with the latest snapshot rather than being clobbered by a null draw.
+    const freshFeatures = draw.current?.getAll();
+    if (freshFeatures) {
+      savedFeaturesRef.current = freshFeatures;
+    }
 
     /**
      * Build new style object for selected layer
@@ -2723,8 +2730,8 @@ export function FarmMap({
         setupGridLayers();
         updateGrid();
 
-        if (features) {
-          draw.current.set(features);
+        if (savedFeaturesRef.current) {
+          draw.current.set(savedFeaturesRef.current);
         }
 
         // Re-add lines source and layers (destroyed by setStyle)

@@ -1,27 +1,27 @@
-# PermaCraft — 2026-05-21
-## Focus: Dashboard (Wednesday)
+# PermaCraft — 2026-05-22
+## Focus: Map Core (Thursday)
 
-### 1. Activity Timeline Time Grouping
-File: `components/dashboard/activity-timeline.tsx`
-What changed: Activity items are now grouped into "Today", "This Week", and "Earlier" sections with labeled dividers instead of a flat chronological list.
-Map/dashboard impact: Designers with active farms can instantly see what happened today vs. earlier this week, making the timeline scannable at a glance instead of requiring mental date parsing for each item.
+### 1. Satellite opacity stuck after zooming back below z18
+File: `components/map/farm-map.tsx`
+What changed: Removed the `zoom > 18` guard around satellite opacity updates so `getSatelliteOpacity()` is always called — it already returns 1.0 for zoom <= 18, which now correctly resets the raster layer.
+Map/dashboard impact: Previously, zooming into precision mode (z19+) dimmed the satellite to ~85-90% opacity, then zooming back out left it permanently dimmed. Designers now see full-brightness satellite imagery at normal zoom levels.
 
-### 2. Farm Description Display in Hero Card
-File: `components/dashboard/farm-hero-card.tsx`
-What changed: The farm's `description` field (which was stored but never shown) now renders below the name/meta line, clamped to 2 lines.
-Map/dashboard impact: Designers who wrote descriptions like "5-acre homestead in Zone 7b, year 2 of food forest" now see that context on the dashboard without opening the farm editor. Especially useful when managing 5+ farms.
+### 2. Rapid layer switching could lose all drawn features
+File: `components/map/farm-map.tsx`
+What changed: Stored pre-switch features in a ref (`savedFeaturesRef`) instead of a local variable inside `changeMapLayer`. The `idle` callback now reads from the ref, so rapid successive layer switches always restore the latest feature snapshot.
+Map/dashboard impact: If a designer quickly toggled between Satellite → Topo → Street before the map finished loading, drawn zones and the farm boundary could vanish. Features now survive any switching speed.
 
-### 3. AI Insights Markdown Stripping
-File: `components/dashboard/insights-widget.tsx`
-What changed: Added `stripMarkdown()` preprocessing to `extractSnippet()` that removes headings, bold/italic, lists, links, and code formatting before truncating the AI response for display.
-Map/dashboard impact: AI insight snippets now display as clean prose instead of showing raw markdown syntax (e.g., `## Analysis` or `**Important:**`) in the dashboard cards.
+### 3. Dimension label generation unbounded at high zoom
+File: `lib/map/measurement-grid.ts`
+What changed: Added a `MAX_DIMENSION_LABELS = 100` cap to `generateDimensionLabels()`. Both loop axes now check `features.length < MAX_DIMENSION_LABELS` before adding more Point features.
+Map/dashboard impact: On large farms at zoom 20+ with fine subdivision, the dimension label layer could generate hundreds of GeoJSON Point features per viewport update, causing stuttery pan/zoom. Now capped at 100 labels — still dense enough for readability.
 
-### 4. EcoRing Actionable Improvement Tip
-Files: `components/dashboard/eco-ring.tsx`, `components/dashboard/dashboard-client-v2.tsx`
-What changed: The eco health suggestion tip now includes a "Browse species to plant" link that navigates to the farm editor's species tab. Added `farmId` prop to `EcoRing`.
-Map/dashboard impact: When a designer's eco score is below 75%, they see not just what's missing but a direct link to act on it — reducing the steps from "read tip" to "browse and add a nitrogen fixer" from 3 clicks to 1.
+### 4. Draw event handlers used stale `onZonesChange` callback
+File: `components/map/farm-map.tsx`
+What changed: Added `onZonesChangeRef` (mirroring the existing ref pattern for `zoneType`, `snapToGridEnabled`, etc.) and updated both `handleDrawChange` and `handleDrawChangeDragging` to call `onZonesChangeRef.current()` instead of the mount-time closure capture.
+Map/dashboard impact: In the Canvas flow where the parent component re-renders with a new `onZonesChange` callback, draw events (create, update, delete) now always propagate to the latest parent handler. Prevents silent save failures where zones appear drawn but never reach the save logic.
 
 ## Watch for
-- Activity timeline grouping uses `isThisWeek` from date-fns v4 with `weekStartsOn: 1` (Monday). Verify this matches user expectations for "this week" boundaries.
-- The species tab link (`?tab=species`) needs to be handled by the farm editor route. If the editor doesn't parse that query param, the link lands on the default tab. Worth verifying in the farm editor.
-- Farm description display relies on the existing `description` column. If descriptions contain very long text or HTML, the `line-clamp-2` CSS handles it gracefully, but sanitization may be needed if user input isn't already sanitized at write time.
+- Satellite opacity is now set on every zoom event including below z18. The `getSatelliteOpacity` function returns 1.0 for those levels, so there's no visual change — but it does call `setPaintProperty` more frequently. If profiling shows zoom jank on very low-end devices, consider adding a "was in precision mode" flag to skip the reset once done.
+- The 100-label cap on dimension labels is generous for typical viewports at zoom 20+. If a user reports missing dimension labels on an extremely zoomed-out view with fine subdivision, the cap may need bumping — but that scenario is unlikely since dimension labels are only useful close up.
+- The `savedFeaturesRef` approach means the ref always holds the last valid feature collection. It's never cleared after restore, which is fine — the ref is only read during `changeMapLayer` which immediately overwrites it.

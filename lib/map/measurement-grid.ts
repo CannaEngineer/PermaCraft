@@ -382,13 +382,14 @@ export function generateDimensionLabels(
   // Use viewport bounds if provided, otherwise fall back to farm bounds
   const clipBounds = viewport ?? bounds;
 
+  const MAX_DIMENSION_LABELS = 100;
   let latCount = 0;
-  for (let lat = Math.floor(clipBounds.south / latSpacing) * latSpacing; lat <= clipBounds.north; lat += latSpacing) {
+  for (let lat = Math.floor(clipBounds.south / latSpacing) * latSpacing; lat <= clipBounds.north && features.length < MAX_DIMENSION_LABELS; lat += latSpacing) {
     latCount++;
     if (latCount % 4 !== 0) continue;
 
     let lngCount = 0;
-    for (let lng = Math.floor(clipBounds.west / lngSpacing) * lngSpacing; lng <= clipBounds.east; lng += lngSpacing) {
+    for (let lng = Math.floor(clipBounds.west / lngSpacing) * lngSpacing; lng <= clipBounds.east && features.length < MAX_DIMENSION_LABELS; lng += lngSpacing) {
       lngCount++;
       if (lngCount % 4 !== 0) continue;
 
