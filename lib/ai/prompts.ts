@@ -270,6 +270,7 @@ export function createAnalysisPrompt(
       gridCoordinates?: string; // Pre-calculated: "A1-B3"
       gridCells?: string[];     // Pre-calculated: ["A1", "A2", "B1"]
       areaAcres?: number;       // Pre-calculated zone area
+      description?: string;     // User-written zone description/notes
     }>;
     legendContext?: string;
     nativeSpeciesContext?: string;
@@ -305,11 +306,19 @@ export function createAnalysisPrompt(
       const geomType = zone.geometryType || "Feature";
       const gridInfo = zone.gridCoordinates || "unknown location";
       const areaInfo = zone.areaAcres ? `, ~${zone.areaAcres} acres` : "";
-      zonesInfo += `  • "${zone.name}" (${zone.type}, ${geomType}) - Located at grid ${gridInfo}${areaInfo}\n`;
+      const descInfo = zone.description ? ` — "${zone.description}"` : "";
+      zonesInfo += `  • "${zone.name}" (${zone.type}, ${geomType}) - Located at grid ${gridInfo}${areaInfo}${descInfo}\n`;
     });
   } else {
     zonesInfo = "\nNo zones have been drawn yet. You can reference features you see in the satellite imagery.\n";
   }
+
+  const now = new Date();
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const seasons = ['winter', 'winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'fall', 'fall', 'fall', 'winter'];
+  const currentSeason = farmContext.centerLat && farmContext.centerLat < 0
+    ? seasons[(now.getMonth() + 6) % 12]
+    : seasons[now.getMonth()];
 
   const context = `FARM: ${farmContext.name}
 ${farmContext.centerLat && farmContext.centerLng ? `LOCATION: ${Math.abs(farmContext.centerLat).toFixed(4)}°${farmContext.centerLat >= 0 ? 'N' : 'S'}, ${Math.abs(farmContext.centerLng).toFixed(4)}°${farmContext.centerLng >= 0 ? 'E' : 'W'}` : ""}
@@ -317,6 +326,7 @@ ${farmContext.acres ? `SIZE: ${farmContext.acres} acres` : ""}
 ${farmContext.climateZone ? `CLIMATE: ${farmContext.climateZone}` : farmContext.centerLat && farmContext.centerLng ? `CLIMATE: Look up USDA Hardiness Zone for these coordinates` : ""}
 ${farmContext.rainfallInches ? `RAINFALL: ${farmContext.rainfallInches} inches/year` : ""}
 ${farmContext.soilType ? `SOIL: ${farmContext.soilType}` : ""}
+CURRENT DATE: ${months[now.getMonth()]} ${now.getFullYear()} (${currentSeason})
 
 MAP VIEW: ${mapContext?.layer ? layerDescriptions[mapContext.layer] || mapContext.layer : "satellite imagery"}
 ${zonesInfo}
@@ -435,7 +445,7 @@ export function createGeneralChatPrompt(
     rainfallInches?: number | null;
     zoneCount?: number;
     plantingCount?: number;
-    zones?: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }>;
+    zones?: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number; description?: string }>;
     plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null; planted_year?: number | null; gridRef?: string }>;
     lines?: Array<{ line_type: string; label: string | null }>;
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
@@ -448,18 +458,22 @@ export function createGeneralChatPrompt(
   let context = '';
 
   if (farmSummary) {
+    const now = new Date();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const parts = [`ACTIVE FARM: ${farmSummary.name}`];
     if (farmSummary.acres) parts.push(`SIZE: ${farmSummary.acres} acres`);
     if (farmSummary.climateZone) parts.push(`CLIMATE: ${farmSummary.climateZone}`);
     if (farmSummary.soilType) parts.push(`SOIL: ${farmSummary.soilType}`);
     if (farmSummary.rainfallInches) parts.push(`RAINFALL: ${farmSummary.rainfallInches} inches/year`);
+    parts.push(`CURRENT DATE: ${monthNames[now.getMonth()]} ${now.getFullYear()}`);
 
     if (farmSummary.zones && farmSummary.zones.length > 0) {
       parts.push(`\nZONES (${farmSummary.zones.length}):`);
       farmSummary.zones.forEach(z => {
         const gridRef = z.gridCoordinates ? ` at grid ${z.gridCoordinates}` : '';
         const areaRef = z.areaAcres ? `, ~${z.areaAcres} acres` : '';
-        parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}${areaRef}`);
+        const descRef = z.description ? ` — "${z.description}"` : '';
+        parts.push(`  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}${areaRef}${descRef}`);
       });
     } else if (farmSummary.zoneCount != null) {
       parts.push(`ZONES: ${farmSummary.zoneCount}`);

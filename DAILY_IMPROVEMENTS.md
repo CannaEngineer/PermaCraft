@@ -1,27 +1,27 @@
-# PermaCraft — 2026-05-22
-## Focus: Map Core (Thursday)
+# PermaCraft — 2026-05-23
+## Focus: Map Intelligence (AI Context Quality)
 
-### 1. Satellite opacity stuck after zooming back below z18
-File: `components/map/farm-map.tsx`
-What changed: Removed the `zoom > 18` guard around satellite opacity updates so `getSatelliteOpacity()` is always called — it already returns 1.0 for zoom <= 18, which now correctly resets the raster layer.
-Map/dashboard impact: Previously, zooming into precision mode (z19+) dimmed the satellite to ~85-90% opacity, then zooming back out left it permanently dimmed. Designers now see full-brightness satellite imagery at normal zoom levels.
+### 1. Context compressor preserves critical planting attributes
+File: `lib/ai/context-compressor.ts`
+What changed: Standard and detailed verbosity modes now include native status ([NATIVE]/[NON-NATIVE]), scientific names, and permaculture functions for every planting. Minimal mode shows native status per species.
+Map/dashboard impact: AI can now accurately assess functional gaps (e.g., "you have no nitrogen fixers"), avoid recommending duplicate species, and suggest proper companion plants — even when context compression is active.
 
-### 2. Rapid layer switching could lose all drawn features
-File: `components/map/farm-map.tsx`
-What changed: Stored pre-switch features in a ref (`savedFeaturesRef`) instead of a local variable inside `changeMapLayer`. The `idle` callback now reads from the ref, so rapid successive layer switches always restore the latest feature snapshot.
-Map/dashboard impact: If a designer quickly toggled between Satellite → Topo → Street before the map finished loading, drawn zones and the farm boundary could vanish. Features now survive any switching speed.
+### 2. Compressed context includes plantings when recommending new species
+File: `lib/ai/context-compressor.ts`
+What changed: `buildOptimizedContext` now includes existing plantings whenever native species recommendations are relevant (needsNatives), not just when the query explicitly mentions "plant" or "tree". Previously, "What should I add to improve biodiversity?" would show species suggestions without listing what's already planted.
+Map/dashboard impact: AI stops suggesting species the farmer already has, and can recommend companions that complement existing plantings rather than conflict with them.
 
-### 3. Dimension label generation unbounded at high zoom
-File: `lib/map/measurement-grid.ts`
-What changed: Added a `MAX_DIMENSION_LABELS = 100` cap to `generateDimensionLabels()`. Both loop axes now check `features.length < MAX_DIMENSION_LABELS` before adding more Point features.
-Map/dashboard impact: On large farms at zoom 20+ with fine subdivision, the dimension label layer could generate hundreds of GeoJSON Point features per viewport update, causing stuttery pan/zoom. Now capped at 100 labels — still dense enough for readability.
+### 3. Current date and season added to AI prompts
+File: `lib/ai/prompts.ts`
+What changed: Both the vision analysis prompt (`createAnalysisPrompt`) and text chat prompt (`createGeneralChatPrompt`) now include the current month, year, and season. Season is hemisphere-aware (flipped for southern hemisphere farms based on latitude).
+Map/dashboard impact: AI can give season-appropriate advice ("It's late spring — ideal time to transplant your tomato seedlings") and calculate plant maturity from planting year ("Your apple tree planted in 2022 is now 4 years old, approaching first fruit").
 
-### 4. Draw event handlers used stale `onZonesChange` callback
-File: `components/map/farm-map.tsx`
-What changed: Added `onZonesChangeRef` (mirroring the existing ref pattern for `zoneType`, `snapToGridEnabled`, etc.) and updated both `handleDrawChange` and `handleDrawChangeDragging` to call `onZonesChangeRef.current()` instead of the mount-time closure capture.
-Map/dashboard impact: In the Canvas flow where the parent component re-renders with a new `onZonesChange` callback, draw events (create, update, delete) now always propagate to the latest parent handler. Prevents silent save failures where zones appear drawn but never reach the save logic.
+### 4. Zone descriptions and notes visible to AI
+Files: `lib/ai/prompts.ts`, `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`, `lib/ai/context-compressor.ts`
+What changed: Zone properties (description, notes) are now extracted from the JSON properties field and included in AI context for both vision analysis and text chat. Zone entries now show: `"North Garden" (zone_1, Polygon) - Located at grid A4-C6, ~0.25 acres — "Future food forest site, south-facing slope"`.
+Map/dashboard impact: When a designer annotates a zone with "planned rain garden" or "needs wind protection", the AI now sees and responds to those notes instead of only knowing the zone name and type.
 
 ## Watch for
-- Satellite opacity is now set on every zoom event including below z18. The `getSatelliteOpacity` function returns 1.0 for those levels, so there's no visual change — but it does call `setPaintProperty` more frequently. If profiling shows zoom jank on very low-end devices, consider adding a "was in precision mode" flag to skip the reset once done.
-- The 100-label cap on dimension labels is generous for typical viewports at zoom 20+. If a user reports missing dimension labels on an extremely zoomed-out view with fine subdivision, the cap may need bumping — but that scenario is unlikely since dimension labels are only useful close up.
-- The `savedFeaturesRef` approach means the ref always holds the last valid feature collection. It's never cleared after restore, which is fine — the ref is only read during `changeMapLayer` which immediately overwrites it.
+- Guild templates are queried by `created_by` (user_id), not `farm_id` — if a user has multiple farms, ALL guilds appear in every farm's AI context. Fixing this requires adding `farm_id` to `guild_templates` table (schema migration).
+- Client-sent `plantingsContext` prevents server from building a richer version that includes `sun_requirements` and `water_requirements`. Consider deprecating client-side context building in favor of server-side enrichment.
+- The context compressor's keyword-based section filtering could be replaced with a lightweight classification model for better relevance matching.

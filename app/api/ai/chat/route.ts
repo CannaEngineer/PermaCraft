@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Compute grid coordinates and area for zones and plantings (spatial awareness in text chat)
-    let zonesWithGrid: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }> | undefined;
+    let zonesWithGrid: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number; description?: string }> | undefined;
     let plantingGridRefs: Map<number, string> | undefined;
 
     // Gather all spatial coordinates to compute farm bounds
@@ -171,6 +171,7 @@ export async function POST(request: NextRequest) {
         zonesWithGrid = zonesResult.rows.map((z: any) => {
           let gridCoordinates: string | undefined;
           let areaAcres: number | undefined;
+          let description: string | undefined;
           if (z.geometry) {
             try {
               const geom = JSON.parse(z.geometry as string);
@@ -180,10 +181,12 @@ export async function POST(request: NextRequest) {
               if (areaSqFt > 0) areaAcres = Math.round((areaSqFt / 43560) * 100) / 100;
             } catch {}
           }
-          if (!areaAcres && z.properties) {
+          if (z.properties) {
             try {
               const props = JSON.parse(z.properties as string);
-              if (props.area_acres) areaAcres = Math.round(props.area_acres * 100) / 100;
+              if (!areaAcres && props.area_acres) areaAcres = Math.round(props.area_acres * 100) / 100;
+              if (props.description) description = props.description;
+              else if (props.notes) description = props.notes;
             } catch {}
           }
           return {
@@ -191,6 +194,7 @@ export async function POST(request: NextRequest) {
             zone_type: z.zone_type as string,
             gridCoordinates,
             areaAcres,
+            description,
           };
         });
       }

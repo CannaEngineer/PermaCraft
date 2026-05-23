@@ -241,6 +241,7 @@ export async function POST(request: NextRequest) {
     enrichedZones = zoneGeomResult.rows.map((z: any) => {
       let gridCoordinates: string | undefined;
       let areaAcres: number | undefined;
+      let description: string | undefined;
       if (z.geometry) {
         try {
           const geom = JSON.parse(z.geometry as string);
@@ -252,10 +253,12 @@ export async function POST(request: NextRequest) {
           if (areaSqFt > 0) areaAcres = Math.round((areaSqFt / 43560) * 100) / 100;
         } catch {}
       }
-      if (!areaAcres && z.properties) {
+      if (z.properties) {
         try {
           const props = JSON.parse(z.properties as string);
-          if (props.area_acres) areaAcres = Math.round(props.area_acres * 100) / 100;
+          if (!areaAcres && props.area_acres) areaAcres = Math.round(props.area_acres * 100) / 100;
+          if (props.description) description = props.description;
+          else if (props.notes) description = props.notes;
         } catch {}
       }
       return {
@@ -264,6 +267,7 @@ export async function POST(request: NextRequest) {
         geometryType: 'Polygon',
         gridCoordinates,
         areaAcres,
+        description,
       };
     });
 
