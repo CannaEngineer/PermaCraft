@@ -25,6 +25,7 @@ export interface FarmContext {
     zone_type: string;
     gridCoordinates?: string;
     areaAcres?: number;
+    description?: string;
   }>;
 }
 
@@ -67,7 +68,8 @@ export function compressFarmContext(
     zoneDetails = '\nZones:\n' + zonesWithGrid.map(z => {
       const gridRef = z.gridCoordinates ? ` at grid ${z.gridCoordinates}` : '';
       const areaRef = z.areaAcres ? `, ~${z.areaAcres} acres` : '';
-      return `  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}${areaRef}`;
+      const descRef = z.description ? ` — "${z.description}"` : '';
+      return `  - ${z.name || 'Unnamed'} (${z.zone_type})${gridRef}${areaRef}${descRef}`;
     }).join('\n');
   }
 
@@ -112,27 +114,45 @@ export function compressFarmContext(
     }
   });
 
-  // Plantings list (compressed)
+  // Plantings list (compressed but preserving critical attributes)
   let plantingsList: string;
   if (verbosity === 'minimal') {
-    // Just species names and counts
-    const speciesCounts: Record<string, number> = {};
+    // Species names with native status and counts
+    const speciesCounts: Record<string, { count: number; native: boolean }> = {};
     plantings.forEach(p => {
-      speciesCounts[p.common_name] = (speciesCounts[p.common_name] || 0) + 1;
+      const key = p.common_name;
+      if (!speciesCounts[key]) speciesCounts[key] = { count: 0, native: !!p.is_native };
+      speciesCounts[key].count++;
     });
     plantingsList = Object.entries(speciesCounts)
-      .map(([name, count]) => `${name} (${count})`)
+      .map(([name, { count, native }]) => `${name}${native ? '' : ' [NON-NATIVE]'} (${count})`)
       .join(', ');
   } else if (verbosity === 'detailed') {
-    // Full details
-    plantingsList = plantings.map(p =>
-      `${p.common_name} (${p.scientific_name}): ${p.layer}, planted ${p.planted_year}`
-    ).join('\n');
+    // Full details with functions
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '[NATIVE]' : '[NON-NATIVE]';
+      let functions = '';
+      if (p.permaculture_functions) {
+        try {
+          const fns = typeof p.permaculture_functions === 'string' ? JSON.parse(p.permaculture_functions) : p.permaculture_functions;
+          if (Array.isArray(fns) && fns.length > 0) functions = `, functions: ${fns.join(', ')}`;
+        } catch {}
+      }
+      return `${p.common_name} (${p.scientific_name}) ${native}: ${p.layer}, planted ${p.planted_year || 'unknown'}${functions}`;
+    }).join('\n');
   } else {
-    // Standard: key info only
-    plantingsList = plantings.map(p =>
-      `${p.common_name}: ${p.layer}, year ${p.planted_year || 'unknown'}`
-    ).join('\n');
+    // Standard: key info including native status and functions
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '' : ' [NON-NATIVE]';
+      let functions = '';
+      if (p.permaculture_functions) {
+        try {
+          const fns = typeof p.permaculture_functions === 'string' ? JSON.parse(p.permaculture_functions) : p.permaculture_functions;
+          if (Array.isArray(fns) && fns.length > 0) functions = ` — ${fns.join(', ')}`;
+        } catch {}
+      }
+      return `${p.common_name} (${p.scientific_name})${native}: ${p.layer}, year ${p.planted_year || 'unknown'}${functions}`;
+    }).join('\n');
   }
 
   // Lines/water features context
@@ -244,7 +264,7 @@ export function buildOptimizedContext(
     parts.push('Key facts:\n- ' + compressed.keyFacts.join('\n- '));
   }
 
-  if ((needsPlantings || needsGuilds || isGeneralQuery) && compressed.plantingsList) {
+  if ((needsPlantings || needsGuilds || needsNatives || isGeneralQuery) && compressed.plantingsList) {
     parts.push('Current plantings:\n' + compressed.plantingsList);
   }
 
