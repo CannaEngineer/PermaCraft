@@ -112,18 +112,20 @@ export function generateGridLines(
   unit: GridUnit,
   zoom: number = 15,
   density: GridDensity = 'auto',
-  subdivision: 'coarse' | 'fine' = 'coarse' // New parameter
+  subdivision: 'coarse' | 'fine' = 'coarse',
+  viewport?: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  }
 ): { lines: Feature<LineString>[], labels: Feature<Point>[], latLines: number[], lngLines: number[] } {
-  // Always use COARSE grid interval to establish the fixed origin
-  // This ensures grid alignment is consistent regardless of subdivision
   const coarseInterval = getFixedGridInterval(unit);
 
-  // If grid is off, return empty
   if (coarseInterval.value === 0) {
     return { lines: [], labels: [], latLines: [], lngLines: [] };
   }
 
-  // Calculate coarse grid spacing in degrees (for establishing origin)
   const coarseIntervalMeters = unit === 'imperial'
     ? feetToMeters(coarseInterval.value)
     : coarseInterval.value;
@@ -132,8 +134,6 @@ export function generateGridLines(
   const coarseLatStep = metersToDegreesLat(coarseIntervalMeters);
   const coarseLngStep = metersToDegreesLng(coarseIntervalMeters, centerLat);
 
-  // Determine actual interval to use based on subdivision
-  // Fine grid: 10ft/5m, Coarse grid: 50ft/25m
   const actualInterval = subdivision === 'fine'
     ? { value: coarseInterval.value / 5, unit: coarseInterval.unit }
     : coarseInterval;
@@ -145,37 +145,41 @@ export function generateGridLines(
   const latStep = metersToDegreesLat(actualIntervalMeters);
   const lngStep = metersToDegreesLng(actualIntervalMeters, centerLat);
 
-  // Add small buffer to ensure grid covers entire farm
   const latBuffer = coarseLatStep * 2;
   const lngBuffer = coarseLngStep * 2;
 
-  const north = bounds.north + latBuffer;
-  const south = bounds.south - latBuffer;
-  const east = bounds.east + lngBuffer;
-  const west = bounds.west - lngBuffer;
+  // Full farm bounds with buffer — used for origin calculation and line span
+  const farmNorth = bounds.north + latBuffer;
+  const farmSouth = bounds.south - latBuffer;
+  const farmEast = bounds.east + lngBuffer;
+  const farmWest = bounds.west - lngBuffer;
+
+  // When a viewport is provided, only generate lines that intersect it.
+  // Lines still span the full farm width/height so they don't visually
+  // clip at viewport edges, but we skip lines entirely outside the view.
+  const clipNorth = viewport ? Math.min(viewport.north + latStep, farmNorth) : farmNorth;
+  const clipSouth = viewport ? Math.max(viewport.south - latStep, farmSouth) : farmSouth;
+  const clipEast = viewport ? Math.min(viewport.east + lngStep, farmEast) : farmEast;
+  const clipWest = viewport ? Math.max(viewport.west - lngStep, farmWest) : farmWest;
 
   const lines: Feature<LineString>[] = [];
   const labels: Feature<Point>[] = [];
 
-  // Collect grid line coordinates for labeling
   const latLines: number[] = [];
   const lngLines: number[] = [];
 
-  // CRITICAL: Calculate origin based on COARSE grid to ensure consistency
-  // Fine grid will align with coarse grid (every 5th fine line = 1 coarse line)
-  const originLat = Math.floor(south / coarseLatStep) * coarseLatStep;
-  const originLng = Math.floor(west / coarseLngStep) * coarseLngStep;
+  const originLat = Math.floor(farmSouth / coarseLatStep) * coarseLatStep;
+  const originLng = Math.floor(farmWest / coarseLngStep) * coarseLngStep;
 
-  // Generate latitude lines (horizontal) - these are rows
   let count = 0;
-  for (let lat = originLat; lat <= north && count < 250; lat += latStep) {
-    if (lat >= south - latStep) {
+  for (let lat = originLat; lat <= farmNorth && count < 250; lat += latStep) {
+    if (lat >= clipSouth && lat <= clipNorth) {
       lines.push({
         type: 'Feature',
         properties: {},
         geometry: {
           type: 'LineString',
-          coordinates: [[west, lat], [east, lat]]
+          coordinates: [[farmWest, lat], [farmEast, lat]]
         }
       });
       latLines.push(lat);
@@ -183,16 +187,15 @@ export function generateGridLines(
     count++;
   }
 
-  // Generate longitude lines (vertical) - these are columns
   count = 0;
-  for (let lng = originLng; lng <= east && count < 250; lng += lngStep) {
-    if (lng >= west - lngStep) {
+  for (let lng = originLng; lng <= farmEast && count < 250; lng += lngStep) {
+    if (lng >= clipWest && lng <= clipEast) {
       lines.push({
         type: 'Feature',
         properties: {},
         geometry: {
           type: 'LineString',
-          coordinates: [[lng, south], [lng, north]]
+          coordinates: [[lng, farmSouth], [lng, farmNorth]]
         }
       });
       lngLines.push(lng);
@@ -200,26 +203,20 @@ export function generateGridLines(
     count++;
   }
 
-  // Generate alphanumeric labels ONLY at COARSE grid intersections
-  // This ensures labels stay consistent regardless of subdivision (fine/coarse).
-  // Columns are labeled A, B, C, etc. (west to east)
-  // Rows are labeled 1, 2, 3, etc. (south to north)
   count = 0;
   for (let rowIndex = 0; rowIndex < latLines.length && count < 200; rowIndex++) {
     const lat = latLines[rowIndex];
-    // Only label at coarse-aligned positions
     const coarseRowIndex = Math.round((lat - originLat) / coarseLatStep);
     const isCoarseRow = Math.abs(lat - (originLat + coarseRowIndex * coarseLatStep)) < coarseLatStep * 0.01;
     if (!isCoarseRow) continue;
 
     for (let colIndex = 0; colIndex < lngLines.length && count < 200; colIndex++) {
       const lng = lngLines[colIndex];
-      // Only label at coarse-aligned positions
       const coarseColIndex = Math.round((lng - originLng) / coarseLngStep);
       const isCoarseCol = Math.abs(lng - (originLng + coarseColIndex * coarseLngStep)) < coarseLngStep * 0.01;
       if (!isCoarseCol) continue;
 
-      const rowLabel = coarseRowIndex + 1; // Start from 1
+      const rowLabel = coarseRowIndex + 1;
       const colLabel = getColumnLabel(coarseColIndex);
 
       labels.push({

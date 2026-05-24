@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { Planting } from '@/lib/db/schema';
 
@@ -16,7 +16,7 @@ import { PLANTING_LAYER_COLORS } from '@/lib/design/design-system';
 
 const LAYER_COLORS = PLANTING_LAYER_COLORS;
 
-export function PlantingMarker({ planting, map, currentYear, zoom: zoomProp, onClick }: PlantingMarkerProps) {
+function PlantingMarkerInner({ planting, map, currentYear, zoom: zoomProp, onClick }: PlantingMarkerProps) {
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const elRef = useRef<HTMLDivElement | null>(null);
   const zoom = zoomProp ?? map.getZoom();
@@ -114,3 +114,18 @@ export function PlantingMarker({ planting, map, currentYear, zoom: zoomProp, onC
 
   return null;
 }
+
+export const PlantingMarker = memo(PlantingMarkerInner, (prev: PlantingMarkerProps, next: PlantingMarkerProps) => {
+  return (
+    prev.planting.id === next.planting.id &&
+    prev.planting.lng === next.planting.lng &&
+    prev.planting.lat === next.planting.lat &&
+    prev.planting.planted_year === next.planting.planted_year &&
+    prev.planting.layer === next.planting.layer &&
+    prev.planting.mature_width_ft === next.planting.mature_width_ft &&
+    prev.planting.years_to_maturity === next.planting.years_to_maturity &&
+    prev.currentYear === next.currentYear &&
+    prev.zoom === next.zoom &&
+    prev.onClick === next.onClick
+  );
+});
