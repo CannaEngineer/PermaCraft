@@ -1,13 +1,10 @@
 import { NextRequest } from 'next/server';
 import { getAllSpecies } from '@/lib/species/species-queries';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
 
-    // Parse filters from query params
     const nativeParam = searchParams.get('filter');
     const layer = searchParams.get('layer');
     const search = searchParams.get('search');
@@ -52,7 +49,13 @@ export async function GET(request: NextRequest) {
 
     const species = await getAllSpecies(filters);
 
-    return Response.json({ species });
+    return new Response(JSON.stringify({ species }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
   } catch (error) {
     console.error('Species API error:', error);
     return Response.json(

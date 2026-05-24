@@ -443,6 +443,16 @@ export function FarmMap({
   // Planting detail state
   const [selectedPlanting, setSelectedPlanting] = useState<any | null>(null);
 
+  // Quantized zoom for PlantingMarker: rounds to 0.5 increments so small zoom
+  // changes during pinch/scroll don't trigger re-render of every marker.
+  const quantizedZoom = Math.round(currentZoom * 2) / 2;
+
+  // Stable callback for planting marker clicks — avoids creating a new closure
+  // per render which would defeat React.memo on PlantingMarker.
+  const handlePlantingMarkerClick = useCallback((p: any) => {
+    setSelectedPlanting(p);
+  }, []);
+
   // Guild companion filter state
   const [companionFilterFor, setCompanionFilterFor] = useState<string | undefined>(undefined);
 
@@ -2352,18 +2362,30 @@ export function FarmMap({
 
         // --- Detect plantings via coordinate proximity (DOM markers, not MapLibre layers) ---
         if (interactionFilter === 'all' || interactionFilter === 'plants') {
-          const clickLngLat = e.lngLat;
-          // Touch radius: 20px on touch devices, 10px on desktop
           const isTouchEvent = 'touches' in (e.originalEvent || {});
           const hitRadiusPx = isTouchEvent ? 24 : 12;
+          const hitRadiusSq = hitRadiusPx * hitRadiusPx;
+
+          // Pre-compute a geographic bounding box around the click point to
+          // skip plantings that are clearly too far away. This avoids calling
+          // map.project() (expensive) for every planting on the farm.
+          const clickPx = e.point;
+          const topLeft = map.current.unproject([clickPx.x - hitRadiusPx, clickPx.y - hitRadiusPx]);
+          const bottomRight = map.current.unproject([clickPx.x + hitRadiusPx, clickPx.y + hitRadiusPx]);
+          const lngMin = Math.min(topLeft.lng, bottomRight.lng);
+          const lngMax = Math.max(topLeft.lng, bottomRight.lng);
+          const latMin = Math.min(topLeft.lat, bottomRight.lat);
+          const latMax = Math.max(topLeft.lat, bottomRight.lat);
 
           for (const p of plantings) {
-            const plantingPoint = map.current.project([p.lng, p.lat]);
-            const dx = plantingPoint.x - e.point.x;
-            const dy = plantingPoint.y - e.point.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (p.lng < lngMin || p.lng > lngMax || p.lat < latMin || p.lat > latMax) continue;
 
-            if (dist <= hitRadiusPx && !seenIds.has(p.id)) {
+            const plantingPoint = map.current.project([p.lng, p.lat]);
+            const dx = plantingPoint.x - clickPx.x;
+            const dy = plantingPoint.y - clickPx.y;
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq <= hitRadiusSq && !seenIds.has(p.id)) {
               seenIds.add(p.id);
               collectedFeatures.push({
                 id: p.id,
@@ -3000,7 +3022,7 @@ export function FarmMap({
      * This ensures the grid is always visible regardless of pan/zoom.
      * Now adaptive - spacing adjusts with zoom level and user preference.
      */
-    const { lines } = generateGridLines(farmBounds, gridUnit, zoom, gridDensity, activeSubdivision);
+    const { lines } = generateGridLines(farmBounds, gridUnit, zoom, gridDensity, activeSubdivision, viewport);
 
     /**
      * Generate labels ONLY for visible viewport
@@ -3527,10 +3549,8 @@ export function FarmMap({
           planting={planting}
           map={map.current!}
           currentYear={projectionYear}
-          zoom={currentZoom}
-          onClick={onFeaturesAtPoint ? undefined : (p) => {
-            setSelectedPlanting(p);
-          }}
+          zoom={quantizedZoom}
+          onClick={onFeaturesAtPoint ? undefined : handlePlantingMarkerClick}
         />
       ))}
 

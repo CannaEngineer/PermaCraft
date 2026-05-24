@@ -1,27 +1,27 @@
-# PermaCraft — 2026-05-22
-## Focus: Map Core (Thursday)
+# PermaCraft — 2026-05-24
+## Focus: Performance + Reliability (Saturday)
 
-### 1. Satellite opacity stuck after zooming back below z18
+### 1. PlantingMarker memoization prevents unnecessary re-renders
+File: `components/map/planting-marker.tsx`, `components/map/farm-map.tsx`
+What changed: Wrapped PlantingMarker in `React.memo` with a custom comparison function that checks only the properties that affect rendering (id, coordinates, growth params, zoom, year). Added zoom quantization (0.5 increments) and a stable `useCallback` click handler so memo can short-circuit during pinch-zoom and unrelated state changes.
+Map/dashboard impact: On a farm with 100+ plantings, every state change in the 3600-line FarmMap component (opening a drawer, toggling a menu, selecting a zone) previously re-rendered every marker. Now markers only re-render when their planting data, projection year, or zoom bucket actually changes — a significant reduction in DOM thrash during interactive use.
+
+### 2. Grid lines viewport-culled to reduce GeoJSON feature count
+File: `lib/map/measurement-grid.ts`, `components/map/farm-map.tsx`
+What changed: Added an optional `viewport` parameter to `generateGridLines()`. When provided, only lines that intersect the visible viewport (plus one cell of buffer) are emitted. Lines still span the full farm width/height so they don't visually clip at viewport edges. The `updateGrid` function in FarmMap now passes the current viewport bounds.
+Map/dashboard impact: On a large farm (50+ acres), panning to one corner previously generated 500 grid features covering the entire property — most off-screen. Now only the 20-60 lines visible in the viewport are generated, reducing GeoJSON source updates on every pan/zoom. The 250-line-per-axis cap remains as a safety net.
+
+### 3. Planting click detection uses bounding-box pre-filter
 File: `components/map/farm-map.tsx`
-What changed: Removed the `zoom > 18` guard around satellite opacity updates so `getSatelliteOpacity()` is always called — it already returns 1.0 for zoom <= 18, which now correctly resets the raster layer.
-Map/dashboard impact: Previously, zooming into precision mode (z19+) dimmed the satellite to ~85-90% opacity, then zooming back out left it permanently dimmed. Designers now see full-brightness satellite imagery at normal zoom levels.
+What changed: Before projecting each planting to screen coordinates (expensive `map.project()` call), the click handler now computes a geographic bounding box around the click point and skips plantings outside it. Also replaced `Math.sqrt` distance check with squared-distance comparison to avoid the square root.
+Map/dashboard impact: On a farm with 500 plantings, every map click previously called `map.project()` 500 times to find nearby plants. The bounding-box pre-filter skips the vast majority with cheap coordinate comparisons, leaving only the handful of plantings near the click to be precisely projected. Touch interactions feel snappier on farms with many plants.
 
-### 2. Rapid layer switching could lose all drawn features
-File: `components/map/farm-map.tsx`
-What changed: Stored pre-switch features in a ref (`savedFeaturesRef`) instead of a local variable inside `changeMapLayer`. The `idle` callback now reads from the ref, so rapid successive layer switches always restore the latest feature snapshot.
-Map/dashboard impact: If a designer quickly toggled between Satellite → Topo → Street before the map finished loading, drawn zones and the farm boundary could vanish. Features now survive any switching speed.
-
-### 3. Dimension label generation unbounded at high zoom
-File: `lib/map/measurement-grid.ts`
-What changed: Added a `MAX_DIMENSION_LABELS = 100` cap to `generateDimensionLabels()`. Both loop axes now check `features.length < MAX_DIMENSION_LABELS` before adding more Point features.
-Map/dashboard impact: On large farms at zoom 20+ with fine subdivision, the dimension label layer could generate hundreds of GeoJSON Point features per viewport update, causing stuttery pan/zoom. Now capped at 100 labels — still dense enough for readability.
-
-### 4. Draw event handlers used stale `onZonesChange` callback
-File: `components/map/farm-map.tsx`
-What changed: Added `onZonesChangeRef` (mirroring the existing ref pattern for `zoneType`, `snapToGridEnabled`, etc.) and updated both `handleDrawChange` and `handleDrawChangeDragging` to call `onZonesChangeRef.current()` instead of the mount-time closure capture.
-Map/dashboard impact: In the Canvas flow where the parent component re-renders with a new `onZonesChange` callback, draw events (create, update, delete) now always propagate to the latest parent handler. Prevents silent save failures where zones appear drawn but never reach the save logic.
+### 4. Species API caching with stale-while-revalidate
+File: `app/api/species/route.ts`
+What changed: Removed `export const dynamic = 'force-dynamic'` and added `Cache-Control: public, s-maxage=300, stale-while-revalidate=600` headers. Species data changes infrequently (new species are added occasionally, not per-session), so a 5-minute cache with 10-minute SWR window is appropriate.
+Map/dashboard impact: The species picker queries the full species table on every open. With force-dynamic, every picker open hit the database cold. Now Vercel's CDN serves cached responses, making species picker open near-instant after the first load. Newly added species appear within 5-10 minutes.
 
 ## Watch for
-- Satellite opacity is now set on every zoom event including below z18. The `getSatelliteOpacity` function returns 1.0 for those levels, so there's no visual change — but it does call `setPaintProperty` more frequently. If profiling shows zoom jank on very low-end devices, consider adding a "was in precision mode" flag to skip the reset once done.
-- The 100-label cap on dimension labels is generous for typical viewports at zoom 20+. If a user reports missing dimension labels on an extremely zoomed-out view with fine subdivision, the cap may need bumping — but that scenario is unlikely since dimension labels are only useful close up.
-- The `savedFeaturesRef` approach means the ref always holds the last valid feature collection. It's never cleared after restore, which is fine — the ref is only read during `changeMapLayer` which immediately overwrites it.
+- PlantingMarker memo comparison assumes `onClick` reference stability — if a parent passes a new inline function on every render, memo won't help. The immersive editor uses `onFeaturesAtPoint` (which sets onClick=undefined), so this is fine there.
+- Grid viewport culling: if a user pans very rapidly, they might briefly see grid lines disappear at the edges before the moveend handler regenerates them. The one-cell buffer mitigates this, but it's worth monitoring.
+- Species cache: custom species (user-created) go through a different endpoint (`/api/farms/[id]/custom-species`), so that path is unaffected by this caching change.
