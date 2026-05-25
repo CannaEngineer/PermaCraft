@@ -1,27 +1,26 @@
-# PermaCraft — 2026-05-24
-## Focus: Performance + Reliability (Saturday)
+# PermaCraft — 2026-05-25
+## Focus: UI/UX Polish (Sunday)
 
-### 1. PlantingMarker memoization prevents unnecessary re-renders
-File: `components/map/planting-marker.tsx`, `components/map/farm-map.tsx`
-What changed: Wrapped PlantingMarker in `React.memo` with a custom comparison function that checks only the properties that affect rendering (id, coordinates, growth params, zoom, year). Added zoom quantization (0.5 increments) and a stable `useCallback` click handler so memo can short-circuit during pinch-zoom and unrelated state changes.
-Map/dashboard impact: On a farm with 100+ plantings, every state change in the 3600-line FarmMap component (opening a drawer, toggling a menu, selecting a zone) previously re-rendered every marker. Now markers only re-render when their planting data, projection year, or zoom bucket actually changes — a significant reduction in DOM thrash during interactive use.
+### 1. Fix duplicate "Farmer Login" links in landing footer
+File: `app/page.tsx`
+What changed: The footer "For Farmers" section showed two identical "Farmer Login" links when not signed in, and a confusing "Dashboard" + "Farmer Login" pair when signed in. Now shows contextually appropriate links: signed-in users see Dashboard/Farm Editor/Create New Farm; visitors see Farmer Login/Create Account.
+Map/dashboard impact: Visitors no longer see redundant links. Signed-in farmers get useful shortcuts to the editor and farm creation.
 
-### 2. Grid lines viewport-culled to reduce GeoJSON feature count
-File: `lib/map/measurement-grid.ts`, `components/map/farm-map.tsx`
-What changed: Added an optional `viewport` parameter to `generateGridLines()`. When provided, only lines that intersect the visible viewport (plus one cell of buffer) are emitted. Lines still span the full farm width/height so they don't visually clip at viewport edges. The `updateGrid` function in FarmMap now passes the current viewport bounds.
-Map/dashboard impact: On a large farm (50+ acres), panning to one corner previously generated 500 grid features covering the entire property — most off-screen. Now only the 20-60 lines visible in the viewport are generated, reducing GeoJSON source updates on every pan/zoom. The 250-line-per-axis cap remains as a safety net.
+### 2. Improve dashboard empty state for first-time users
+File: `components/dashboard/dashboard-client-v2.tsx`
+What changed: The empty state previously showed just "Your land awaits" with a single button. Now includes three onboarding cards explaining the core workflow: Draw your land, Get AI guidance, Watch it grow. Each card has an icon, title, and concise description.
+Map/dashboard impact: First-time users understand what the platform offers before creating their first farm, reducing drop-off at this critical moment.
 
-### 3. Planting click detection uses bounding-box pre-filter
-File: `components/map/farm-map.tsx`
-What changed: Before projecting each planting to screen coordinates (expensive `map.project()` call), the click handler now computes a geographic bounding box around the click point and skips plantings outside it. Also replaced `Math.sqrt` distance check with squared-distance comparison to avoid the square root.
-Map/dashboard impact: On a farm with 500 plantings, every map click previously called `map.project()` 500 times to find nearby plants. The bounding-box pre-filter skips the vast majority with cheap coordinate comparisons, leaving only the handful of plantings near the click to be precisely projected. Touch interactions feel snappier on farms with many plants.
+### 3. Add brand identity to auth pages
+File: `app/(auth)/layout.tsx`
+What changed: Login and register pages now show the Permaculture.Studio logo and name above the form, plus a tagline below. Previously they were generic card forms with no brand connection.
+Map/dashboard impact: First impression for new users feels connected to the permaculture mission rather than a generic SaaS login.
 
-### 4. Species API caching with stale-while-revalidate
-File: `app/api/species/route.ts`
-What changed: Removed `export const dynamic = 'force-dynamic'` and added `Cache-Control: public, s-maxage=300, stale-while-revalidate=600` headers. Species data changes infrequently (new species are added occasionally, not per-session), so a 5-minute cache with 10-minute SWR window is appropriate.
-Map/dashboard impact: The species picker queries the full species table on every open. With force-dynamic, every picker open hit the database cold. Now Vercel's CDN serves cached responses, making species picker open near-instant after the first load. Newly added species appear within 5-10 minutes.
+### 4. Auto-show drawing instructions for new users
+Files: `components/map/boundary-drawer.tsx`, `app/(app)/farm/new/page.tsx`
+What changed: The boundary drawing help panel now shows automatically on first visit (remembered via localStorage after dismissal). The farm creation page's boundary section description was updated from generic "Draw the boundary" to actionable "Search for your address, then click points around your property to trace its outline. Double-click to finish."
+Map/dashboard impact: First-time users are guided through the most critical and potentially confusing step — drawing their property boundary — without needing to discover a hidden help button.
 
 ## Watch for
-- PlantingMarker memo comparison assumes `onClick` reference stability — if a parent passes a new inline function on every render, memo won't help. The immersive editor uses `onFeaturesAtPoint` (which sets onClick=undefined), so this is fine there.
-- Grid viewport culling: if a user pans very rapidly, they might briefly see grid lines disappear at the edges before the moveend handler regenerates them. The one-cell buffer mitigates this, but it's worth monitoring.
-- Species cache: custom species (user-created) go through a different endpoint (`/api/farms/[id]/custom-species`), so that path is unaffected by this caching change.
+- The boundary drawer localStorage key `boundary-drawer-help-dismissed` will persist across farms — if a user creates multiple farms, they won't see the help again. This is intentional (they already know how) but worth monitoring if user feedback suggests otherwise.
+- The auth layout adds a Leaf icon import from lucide-react (server component) — verify no hydration issues in production.

@@ -682,10 +682,18 @@ export default async function LandingPage() {
             <div>
               <p className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">For Farmers</p>
               <div className="flex flex-col gap-2.5 text-sm">
-                <Link href={isSignedIn ? "/canvas" : "/login"} className="no-underline text-muted-foreground hover:text-foreground transition-colors">
-                  {isSignedIn ? "Dashboard" : "Farmer Login"}
-                </Link>
-                <Link href="/login" className="no-underline text-muted-foreground hover:text-foreground transition-colors">Farmer Login</Link>
+                {isSignedIn ? (
+                  <>
+                    <Link href="/dashboard" className="no-underline text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
+                    <Link href="/canvas" className="no-underline text-muted-foreground hover:text-foreground transition-colors">Farm Editor</Link>
+                    <Link href="/farm/new" className="no-underline text-muted-foreground hover:text-foreground transition-colors">Create New Farm</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" className="no-underline text-muted-foreground hover:text-foreground transition-colors">Farmer Login</Link>
+                    <Link href="/register" className="no-underline text-muted-foreground hover:text-foreground transition-colors">Create Account</Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
