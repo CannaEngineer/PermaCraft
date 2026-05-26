@@ -24,7 +24,10 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [showInstructions, setShowInstructions] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !window.localStorage.getItem('boundary-drawer-help-dismissed');
+  });
   const [showSearch, setShowSearch] = useState(false);
 
   const updateGrid = () => {
@@ -461,7 +464,13 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
         {!isComplete && (
           <button
             type="button"
-            onClick={() => setShowInstructions(!showInstructions)}
+            onClick={() => {
+              const next = !showInstructions;
+              setShowInstructions(next);
+              if (!next) {
+                try { window.localStorage.setItem('boundary-drawer-help-dismissed', '1'); } catch {}
+              }
+            }}
             className="self-start bg-background/95 backdrop-blur-xl rounded-full px-4 py-3 shadow-lg font-medium text-sm flex items-center gap-2 border border-border hover:bg-background transition-all active:scale-95"
           >
             <HelpCircle className="w-4 h-4" />
@@ -476,7 +485,10 @@ function BoundaryDrawerComponent({ onBoundaryComplete }: BoundaryDrawerProps) {
               <h3 className="font-semibold text-base">Draw Your Boundary</h3>
               <button
                 type="button"
-                onClick={() => setShowInstructions(false)}
+                onClick={() => {
+                  setShowInstructions(false);
+                  try { window.localStorage.setItem('boundary-drawer-help-dismissed', '1'); } catch {}
+                }}
                 className="p-1 hover:bg-muted rounded-full transition-colors"
               >
                 <X className="w-4 h-4" />

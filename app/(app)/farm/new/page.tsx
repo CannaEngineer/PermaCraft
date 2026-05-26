@@ -155,7 +155,7 @@ export default function NewFarmPage() {
           <div className="container mx-auto px-4 md:px-6 mb-4">
             <div>
               <h3 className="text-lg font-semibold">Farm Boundary *</h3>
-              <p className="text-sm text-muted-foreground">Draw the boundary of your property on the map</p>
+              <p className="text-sm text-muted-foreground">Search for your address, then click points around your property to trace its outline. Double-click to finish.</p>
             </div>
           </div>
           <BoundaryDrawer key="farm-boundary-drawer" onBoundaryComplete={handleBoundaryComplete} />
