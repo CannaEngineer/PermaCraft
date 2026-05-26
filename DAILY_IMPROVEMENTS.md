@@ -1,26 +1,22 @@
-# PermaCraft — 2026-05-25
-## Focus: UI/UX Polish (Sunday)
+# PermaCraft — 2026-05-26
+## Focus: Map Core (Monday)
 
-### 1. Fix duplicate "Farmer Login" links in landing footer
-File: `app/page.tsx`
-What changed: The footer "For Farmers" section showed two identical "Farmer Login" links when not signed in, and a confusing "Dashboard" + "Farmer Login" pair when signed in. Now shows contextually appropriate links: signed-in users see Dashboard/Farm Editor/Create New Farm; visitors see Farmer Login/Create Account.
-Map/dashboard impact: Visitors no longer see redundant links. Signed-in farmers get useful shortcuts to the editor and farm creation.
+### 1. Fix line dash pattern rendering — 7 of 11 line types were solid
+File: `components/map/farm-map.tsx`
+What changed: MapLibre doesn't support data-driven `line-dasharray` expressions, so the single `design-lines` layer rendered ALL lines as solid regardless of their configured dash pattern. Added separate layers per dash pattern group (irrigation/fence, flow paths, access paths, wildlife corridors, terraces, drainage), each with the correct static `line-dasharray` and a `line_type` filter. Extracted `setupLineLayersOnMap()` helper to avoid duplicating the 6-layer setup between initial load and map style changes. Updated `ensureCustomLayersOnTop()` to include the new layers.
+Map/dashboard impact: Designers now see distinct dash patterns for fences ([2,4]), water flow ([6,3]), irrigation ([2,4]), drainage ([4,2,1,2]), access paths ([6,4]), terraces ([8,2]), and wildlife corridors ([8,4]). Line types that were visually identical are now distinguishable at a glance.
 
-### 2. Improve dashboard empty state for first-time users
-File: `components/dashboard/dashboard-client-v2.tsx`
-What changed: The empty state previously showed just "Your land awaits" with a single button. Now includes three onboarding cards explaining the core workflow: Draw your land, Get AI guidance, Watch it grow. Each card has an icon, title, and concise description.
-Map/dashboard impact: First-time users understand what the platform offers before creating their first farm, reducing drop-off at this critical moment.
+### 2. Fix draw debounce timer leak on unmount
+File: `components/map/farm-map.tsx`
+What changed: The `drawUpdateTimer` used for debouncing vertex-drag zone updates was a local `let` variable inside the mount effect's `try` block, making it inaccessible in the cleanup function (outside `try`). Moved it to a `drawUpdateTimerRef` and clear it on unmount.
+Map/dashboard impact: Prevents a stale callback from firing after the map component is destroyed, which could cause React state-update-on-unmounted-component warnings or call `onZonesChange` at the wrong time.
 
-### 3. Add brand identity to auth pages
-File: `app/(auth)/layout.tsx`
-What changed: Login and register pages now show the Permaculture.Studio logo and name above the form, plus a tagline below. Previously they were generic card forms with no brand connection.
-Map/dashboard impact: First impression for new users feels connected to the permaculture mission rather than a generic SaaS login.
-
-### 4. Auto-show drawing instructions for new users
-Files: `components/map/boundary-drawer.tsx`, `app/(app)/farm/new/page.tsx`
-What changed: The boundary drawing help panel now shows automatically on first visit (remembered via localStorage after dismissal). The farm creation page's boundary section description was updated from generic "Draw the boundary" to actionable "Search for your address, then click points around your property to trace its outline. Double-click to finish."
-Map/dashboard impact: First-time users are guided through the most critical and potentially confusing step — drawing their property boundary — without needing to discover a hidden help button.
+### 3. Deduplicate line layer setup between initial load and style change
+File: `components/map/farm-map.tsx`
+What changed: Line source, solid layer, 6 dashed layers, and arrow layer setup was duplicated between `map.on("load")` and `changeMapLayer`'s idle handler. Extracted into `setupLineLayersOnMap()` called from both paths.
+Map/dashboard impact: Switching map layers (satellite, topo, street, etc.) now correctly restores dash patterns instead of recreating the old broken single-layer setup.
 
 ## Watch for
-- The boundary drawer localStorage key `boundary-drawer-help-dismissed` will persist across farms — if a user creates multiple farms, they won't see the help again. This is intentional (they already know how) but worth monitoring if user feedback suggests otherwise.
-- The auth layout adds a Leaf icon import from lucide-react (server component) — verify no hydration issues in production.
+- If a new line type is added to `lib/map/line-types.ts` with a dash pattern, a corresponding entry must be added to `DASHED_LINE_CONFIGS` in `farm-map.tsx` or it will render solid.
+- The `['in', ...]` expression used for layer filters requires MapLibre GL JS v3+. If the project pins an older version, these filters may not work.
+- The `line-arrows` layer for water flow direction depends on an async arrow icon load. If the icon fails to load, directional lines still render but without arrows (graceful degradation, unchanged).
