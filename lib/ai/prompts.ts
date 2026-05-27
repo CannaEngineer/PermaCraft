@@ -437,7 +437,7 @@ export function createGeneralChatPrompt(
     plantingCount?: number;
     zones?: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }>;
     plantings?: Array<{ common_name: string; scientific_name: string; layer: string; is_native: number; permaculture_functions?: string | null; planted_year?: number | null; gridRef?: string }>;
-    lines?: Array<{ line_type: string; label: string | null }>;
+    lines?: Array<{ line_type: string; label: string | null; gridRef?: string; waterInfo?: string }>;
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
     phases?: Array<{ name: string; description?: string | null; start_date?: string | null; end_date?: string | null }>;
     goalsContext?: string;
@@ -504,7 +504,9 @@ export function createGeneralChatPrompt(
       for (const [lineType, items] of byType) {
         parts.push(`  ${lineType.toUpperCase()}:`);
         items.forEach(l => {
-          parts.push(`    - ${l.label || 'Unlabeled'}`);
+          const grid = l.gridRef ? ` at grid ${l.gridRef}` : '';
+          const water = l.waterInfo ? ` — ${l.waterInfo}` : '';
+          parts.push(`    - ${l.label || 'Unlabeled'}${grid}${water}`);
         });
       }
     }

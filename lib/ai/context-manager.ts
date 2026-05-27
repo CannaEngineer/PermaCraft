@@ -67,33 +67,75 @@ function estimateTotalTokens(messages: Message[]): number {
 /**
  * Summarize older messages into a concise context block
  *
- * Creates a bullet-point summary of key topics discussed.
- * This is a simple heuristic - could be improved with AI summarization.
+ * Captures both user questions AND key points from AI responses
+ * so the AI can build on its own prior recommendations.
  */
 function summarizeOldMessages(messages: Message[]): string {
   if (messages.length === 0) return "";
 
-  // Extract key topics from user questions
-  const topics: string[] = [];
+  const exchanges: string[] = [];
 
-  for (let i = 0; i < messages.length; i += 2) {
+  for (let i = 0; i < messages.length - 1; i += 2) {
     const userMsg = messages[i];
-    if (userMsg.role === "user") {
-      // Take first sentence or first 100 chars as topic
-      const topic = userMsg.content
+    const assistantMsg = messages[i + 1];
+
+    if (userMsg?.role === "user") {
+      const question = userMsg.content
         .split(/[.!?]/)[0]
         .substring(0, 100)
         .trim();
-      if (topic) topics.push(topic);
+
+      let recommendation = "";
+      if (assistantMsg?.role === "assistant") {
+        recommendation = extractKeyPoints(assistantMsg.content);
+      }
+
+      if (question) {
+        exchanges.push(
+          recommendation
+            ? `Q: ${question}\n   Key points: ${recommendation}`
+            : `Q: ${question}`
+        );
+      }
     }
   }
 
-  const summary = `**Earlier in this conversation:**
-${topics.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+  if (exchanges.length === 0) return "";
 
-The conversation above covered these topics. Let me help you with your current question.`;
+  return `**Earlier in this conversation:**
+${exchanges.map((e, i) => `${i + 1}. ${e}`).join('\n')}
 
-  return summary;
+Build on these prior recommendations. Do not repeat suggestions already made.`;
+}
+
+/**
+ * Extract key actionable points from an AI response.
+ * Looks for species mentions, headings, and bold items — the parts
+ * most likely to contain concrete recommendations.
+ */
+function extractKeyPoints(content: string): string {
+  const points: string[] = [];
+
+  const speciesMatches = content.match(/[A-Z][a-z]+ \([A-Z][a-z]+ [a-z]+\)/g);
+  if (speciesMatches && speciesMatches.length > 0) {
+    const unique = [...new Set(speciesMatches)].slice(0, 4);
+    points.push(`species mentioned: ${unique.join(", ")}`);
+  }
+
+  const headings = content.match(/^#{1,3}\s+(.+)/gm);
+  if (headings && headings.length > 0) {
+    const topics = headings
+      .slice(0, 3)
+      .map(h => h.replace(/^#+\s+/, "").substring(0, 50));
+    points.push(`topics: ${topics.join("; ")}`);
+  }
+
+  if (points.length === 0) {
+    const firstSentence = content.split(/[.!?\n]/)[0]?.substring(0, 80)?.trim();
+    if (firstSentence) points.push(firstSentence);
+  }
+
+  return points.join(". ").substring(0, 200);
 }
 
 /**
