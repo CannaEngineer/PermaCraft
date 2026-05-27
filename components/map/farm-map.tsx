@@ -275,6 +275,79 @@ const MAPBOX_DRAW_OPTIONS = {
   styles: MAPBOX_DRAW_STYLES,
 };
 
+// MapLibre doesn't support data-driven line-dasharray, so each distinct
+// dash pattern needs its own layer filtered by line_type.
+const DASHED_LINE_CONFIGS = [
+  { id: 'design-lines-dash-2-4', types: ['irrigation', 'fence'], dashArray: [2, 4] },
+  { id: 'design-lines-dash-6-3', types: ['flow_path'], dashArray: [6, 3] },
+  { id: 'design-lines-dash-6-4', types: ['access_path'], dashArray: [6, 4] },
+  { id: 'design-lines-dash-8-4', types: ['wildlife_corridor'], dashArray: [8, 4] },
+  { id: 'design-lines-dash-8-2', types: ['terrace'], dashArray: [8, 2] },
+  { id: 'design-lines-dash-4-2-1-2', types: ['drainage'], dashArray: [4, 2, 1, 2] },
+] as const;
+const DASHED_LINE_TYPES = DASHED_LINE_CONFIGS.flatMap(c => c.types);
+
+function setupLineLayersOnMap(mapInstance: maplibregl.Map) {
+  if (!mapInstance.getSource('lines-source')) {
+    mapInstance.addSource('lines-source', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] }
+    });
+  }
+
+  if (!mapInstance.getLayer('design-lines')) {
+    mapInstance.addLayer({
+      id: 'design-lines',
+      type: 'line',
+      source: 'lines-source',
+      filter: ['!', ['in', ['get', 'line_type'], ['literal', [...DASHED_LINE_TYPES]]]],
+      paint: {
+        'line-color': ['get', 'color'],
+        'line-width': ['get', 'width'],
+        'line-opacity': ['get', 'opacity']
+      }
+    });
+  }
+
+  for (const config of DASHED_LINE_CONFIGS) {
+    if (!mapInstance.getLayer(config.id)) {
+      mapInstance.addLayer({
+        id: config.id,
+        type: 'line',
+        source: 'lines-source',
+        filter: ['in', ['get', 'line_type'], ['literal', [...config.types]]],
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['get', 'width'],
+          'line-dasharray': [...config.dashArray],
+          'line-opacity': ['get', 'opacity']
+        }
+      });
+    }
+  }
+
+  if (!mapInstance.getLayer('line-arrows')) {
+    mapInstance.addLayer({
+      id: 'line-arrows',
+      type: 'symbol',
+      source: 'lines-source',
+      filter: ['!=', ['get', 'arrowDirection'], 'none'],
+      layout: {
+        'symbol-placement': 'line',
+        'symbol-spacing': 100,
+        'icon-image': 'arrow-icon',
+        'icon-size': 0.5,
+        'icon-rotation-alignment': 'map',
+        'icon-rotate': [
+          'case',
+          ['==', ['get', 'arrowDirection'], 'reverse'], 180,
+          0
+        ]
+      }
+    });
+  }
+}
+
 interface FarmMapProps {
   farm: Farm;
   zones: Zone[];
@@ -409,6 +482,7 @@ export function FarmMap({
   const updateGridDebouncedRef = useRef<((subdivision?: 'coarse' | 'fine') => void) | null>(null);
   const cachedFarmBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
   const rasterLayerIdsRef = useRef<string[]>([]);
+  const drawUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFeaturesRef = useRef<any>(null);
   const initialZonesLoadedRef = useRef(false);
   const mapLoadedRef = useRef(false);
@@ -641,6 +715,7 @@ export function FarmMap({
       'colored-lines',
       'colored-points',
       'design-lines',
+      ...DASHED_LINE_CONFIGS.map(c => c.id),
       'line-arrows',
       'grid-lines-layer',
       'grid-labels-layer',
@@ -1761,28 +1836,8 @@ export function FarmMap({
           addColoredZoneLayers();
         }, 100);
 
-        // Add lines source and layers
-        if (!map.current.getSource('lines-source')) {
-          map.current.addSource('lines-source', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
-          });
-        }
-
-        // Add lines layer
-        if (!map.current.getLayer('design-lines')) {
-          map.current.addLayer({
-            id: 'design-lines',
-            type: 'line',
-            source: 'lines-source',
-            paint: {
-              'line-color': ['get', 'color'],
-              'line-width': ['get', 'width'],
-              'line-dasharray': ['coalesce', ['get', 'dashArray'], ['literal', [1, 0]]],
-              'line-opacity': ['get', 'opacity']
-            }
-          });
-        }
+        // Add lines source, solid/dashed layers, and arrow layer
+        setupLineLayersOnMap(map.current);
 
         // Load arrow icon for directional lines
         map.current.loadImage('/icons/arrow.svg').then((response) => {
@@ -1796,28 +1851,6 @@ export function FarmMap({
         }).catch(() => {
           // Arrow icon is optional — line arrows degrade gracefully without it
         });
-
-        // Add arrows layer
-        if (!map.current.getLayer('line-arrows')) {
-          map.current.addLayer({
-            id: 'line-arrows',
-            type: 'symbol',
-            source: 'lines-source',
-            filter: ['!=', ['get', 'arrowDirection'], 'none'],
-            layout: {
-              'symbol-placement': 'line',
-              'symbol-spacing': 100,
-              'icon-image': 'arrow-icon',
-              'icon-size': 0.5,
-              'icon-rotation-alignment': 'map',
-              'icon-rotate': [
-                'case',
-                ['==', ['get', 'arrowDirection'], 'reverse'], 180,
-                0
-              ]
-            }
-          });
-        }
 
         // Load plantings from API
         loadPlantings();
@@ -1904,14 +1937,13 @@ export function FarmMap({
       // Debounced version for draw.update — vertex dragging fires many
       // times per second; we only need to propagate state and recalculate
       // the grid once the user pauses.
-      let drawUpdateTimer: NodeJS.Timeout | null = null;
       const handleDrawChangeDragging = () => {
         if (!draw.current) return;
         // Immediate: visual zone coloring must track the vertex drag
         updateColoredZones();
         // Deferred: parent state + grid recalculation
-        if (drawUpdateTimer) clearTimeout(drawUpdateTimer);
-        drawUpdateTimer = setTimeout(() => {
+        if (drawUpdateTimerRef.current) clearTimeout(drawUpdateTimerRef.current);
+        drawUpdateTimerRef.current = setTimeout(() => {
           if (draw.current) {
             draw.current.getAll().features.forEach((feature: any) => {
               if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCache.has(feature.id)) {
@@ -2256,6 +2288,7 @@ export function FarmMap({
     }
 
     return () => {
+      if (drawUpdateTimerRef.current) clearTimeout(drawUpdateTimerRef.current);
       if (map.current) {
         map.current.off('zoom', handleZoomChange);
         map.current.remove();
@@ -2756,46 +2789,8 @@ export function FarmMap({
           draw.current.set(savedFeaturesRef.current);
         }
 
-        // Re-add lines source and layers (destroyed by setStyle)
-        if (!map.current.getSource('lines-source')) {
-          map.current.addSource('lines-source', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
-          });
-        }
-        if (!map.current.getLayer('design-lines')) {
-          map.current.addLayer({
-            id: 'design-lines',
-            type: 'line',
-            source: 'lines-source',
-            paint: {
-              'line-color': ['get', 'color'],
-              'line-width': ['get', 'width'],
-              'line-dasharray': ['coalesce', ['get', 'dashArray'], ['literal', [1, 0]]],
-              'line-opacity': ['get', 'opacity']
-            }
-          });
-        }
-        if (!map.current.getLayer('line-arrows')) {
-          map.current.addLayer({
-            id: 'line-arrows',
-            type: 'symbol',
-            source: 'lines-source',
-            filter: ['!=', ['get', 'arrowDirection'], 'none'],
-            layout: {
-              'symbol-placement': 'line',
-              'symbol-spacing': 100,
-              'icon-image': 'arrow-icon',
-              'icon-size': 0.5,
-              'icon-rotation-alignment': 'map',
-              'icon-rotate': [
-                'case',
-                ['==', ['get', 'arrowDirection'], 'reverse'], 180,
-                0
-              ]
-            }
-          });
-        }
+        // Re-add lines source, solid/dashed layers, and arrows (destroyed by setStyle)
+        setupLineLayersOnMap(map.current);
 
         // Reload arrow icon (destroyed by setStyle)
         map.current.loadImage('/icons/arrow.svg').then((response) => {
