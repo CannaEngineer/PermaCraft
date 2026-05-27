@@ -446,10 +446,11 @@ export async function POST(request: NextRequest) {
         enrichedLinesContext = parts.join('\n');
       }
 
-      // Build native species context if not provided
-      if (!enrichedNativeSpeciesContext && farm.climate_zone) {
+      // Fetch native species once — reused for both display context and compressor
+      let nativeSpeciesRows: any[] = [];
+      if (farm.climate_zone) {
         const zoneNum = farm.climate_zone.replace(/[ab]/i, '');
-        const nativeResult = await db.execute({
+        const nativeRes = await db.execute({
           sql: `SELECT common_name, scientific_name, layer, mature_height_ft,
                        sun_requirements, water_requirements
                 FROM species
@@ -463,14 +464,16 @@ export async function POST(request: NextRequest) {
                 LIMIT 15`,
           args: [parseInt(zoneNum) || 0, parseInt(zoneNum) || 0, `%${farm.climate_zone}%`],
         });
+        nativeSpeciesRows = nativeRes.rows;
+      }
 
-        if (nativeResult.rows.length > 0) {
-          const parts: string[] = ['NATIVE SPECIES FOR THIS REGION:'];
-          for (const s of nativeResult.rows) {
-            parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height`);
-          }
-          enrichedNativeSpeciesContext = parts.join('\n');
+      // Build native species context string from the shared query result
+      if (!enrichedNativeSpeciesContext && nativeSpeciesRows.length > 0) {
+        const parts: string[] = ['NATIVE SPECIES FOR THIS REGION:'];
+        for (const s of nativeSpeciesRows) {
+          parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height`);
         }
+        enrichedNativeSpeciesContext = parts.join('\n');
       }
 
       // Build phases context
@@ -492,26 +495,6 @@ export async function POST(request: NextRequest) {
               ORDER BY priority DESC`,
         args: [farmId],
       });
-
-      // Fetch native species for compressor context
-      let nativeSpeciesRows: any[] = [];
-      if (farm.climate_zone) {
-        const zoneNum = farm.climate_zone.replace(/[ab]/i, '');
-        const nativeRes = await db.execute({
-          sql: `SELECT common_name, scientific_name, layer, mature_height_ft
-                FROM species
-                WHERE is_native = 1
-                  AND (
-                    (min_hardiness_zone IS NOT NULL AND max_hardiness_zone IS NOT NULL
-                     AND CAST(REPLACE(REPLACE(min_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) <= ?
-                     AND CAST(REPLACE(REPLACE(max_hardiness_zone, 'a', ''), 'b', '') AS INTEGER) >= ?)
-                    OR hardiness_zones LIKE ?
-                  )
-                LIMIT 15`,
-          args: [parseInt(zoneNum) || 0, parseInt(zoneNum) || 0, `%${farm.climate_zone}%`],
-        });
-        nativeSpeciesRows = nativeRes.rows;
-      }
 
       // Build enriched farmContext for the compressor
       enrichedFarmContext = {

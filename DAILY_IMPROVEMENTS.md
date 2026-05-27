@@ -1,3 +1,33 @@
+# PermaCraft — 2026-05-27
+## Focus: Map Intelligence (AI Context Quality)
+
+### 1. Fix conversation summary dropping AI responses
+File: `lib/ai/context-manager.ts`
+What changed: The `summarizeOldMessages` function now captures both user questions AND key points from AI responses (species mentioned, topics covered). Previously it only kept user questions, so the AI couldn't remember its own prior recommendations in long conversations.
+Map/dashboard impact: In multi-turn conversations, the AI now builds on its prior suggestions instead of repeating or contradicting earlier recommendations. Designers get coherent multi-step design guidance.
+
+### 2. Widen context compressor keyword filtering
+File: `lib/ai/context-compressor.ts`
+What changed: Expanded keyword patterns for all 6 context categories and added a new `needsZones` category. Previously, queries like "What should I plant near the pond?" missed water context (pond/creek/stream weren't in the water keywords), and spatial queries like "What's in this area?" missed zone and planting data. Added ~30 missing keywords across categories.
+Map/dashboard impact: The AI now receives relevant context for a much wider range of natural questions. Spatial questions ("near the pond", "beside the hedge") correctly include both line/water features AND zone/planting data.
+
+### 3. Eliminate duplicate native species DB query in analyze route
+File: `app/api/ai/analyze/route.ts`
+What changed: The identical native species query was running twice during enrichment — once to build the display context string and once for the compressor's data structure. Consolidated into a single query whose results are reused for both purposes.
+Map/dashboard impact: Faster AI analysis response time (one fewer DB roundtrip to Turso on every enriched analysis request).
+
+### 4. Add water properties and spatial data to text chat context
+Files: `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
+What changed: The text chat endpoint now fetches `geometry` and `water_properties` for lines (previously only `line_type` and `label`). Lines get grid coordinate references computed from their geometry, and water properties (flow type, flow rate, seasonality) are formatted into the prompt. Line coordinates are also included in farm bounds computation for accurate grid references.
+Map/dashboard impact: Text chat AI now knows WHERE water features are on the map and what their flow characteristics are — matching the spatial awareness that the map analysis endpoint already had.
+
+## Watch for
+- The context manager's `extractKeyPoints` function uses regex to find species names (pattern: `Capitalized (Genus species)`). If AI responses use different formatting, key points may be missed. Monitor conversation quality.
+- The expanded keyword patterns in the context compressor are intentionally broad. If token budgets become a concern with large farms, the `needsZones` trigger (which includes common words like "where", "area") may pull in too much context. Could add a token cap check.
+- Line grid coordinate computation in chat adds a small overhead. For farms with many lines (50+), this could be noticeable. Not a concern at typical farm sizes.
+
+---
+
 # PermaCraft — 2026-05-26
 ## Focus: Map Core (Monday)
 

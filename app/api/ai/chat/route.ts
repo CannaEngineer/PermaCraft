@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
           args: [farmId],
         }),
         db.execute({
-          sql: `SELECT line_type, label FROM lines WHERE farm_id = ?`,
+          sql: `SELECT line_type, label, geometry, water_properties FROM lines WHERE farm_id = ?`,
           args: [farmId],
         }),
         db.execute({
@@ -134,9 +134,10 @@ export async function POST(request: NextRequest) {
       ragContext = await getRAGContext(query, 3);
     }
 
-    // Compute grid coordinates and area for zones and plantings (spatial awareness in text chat)
+    // Compute grid coordinates and area for zones, plantings, and lines (spatial awareness in text chat)
     let zonesWithGrid: Array<{ name: string | null; zone_type: string; gridCoordinates?: string; areaAcres?: number }> | undefined;
     let plantingGridRefs: Map<number, string> | undefined;
+    let lineGridRefs: Map<number, string> | undefined;
 
     // Gather all spatial coordinates to compute farm bounds
     const allCoords: number[][] = [];
@@ -154,6 +155,16 @@ export async function POST(request: NextRequest) {
     if (plantingsResult) {
       for (const p of plantingsResult.rows) {
         if (p.lat && p.lng) allCoords.push([p.lng as number, p.lat as number]);
+      }
+    }
+    if (linesResult) {
+      for (const l of linesResult.rows) {
+        if (l.geometry) {
+          try {
+            const geom = JSON.parse(l.geometry as string);
+            if (geom.type === 'LineString' && geom.coordinates) allCoords.push(...geom.coordinates);
+          } catch {}
+        }
       }
     }
 
@@ -211,6 +222,22 @@ export async function POST(request: NextRequest) {
           }
         });
       }
+
+      // Compute grid refs for lines
+      if (linesResult && linesResult.rows.length > 0) {
+        lineGridRefs = new Map();
+        linesResult.rows.forEach((l: any, idx: number) => {
+          if (l.geometry) {
+            try {
+              const geom = JSON.parse(l.geometry as string);
+              if (geom.type === 'LineString' && geom.coordinates?.length > 0) {
+                const cells = calculateGridCoordinates(geom, bounds, 'imperial');
+                if (cells.length > 0) lineGridRefs!.set(idx, formatGridRange(cells));
+              }
+            } catch {}
+          }
+        });
+      }
     }
 
     // Get or create conversation
@@ -256,10 +283,25 @@ export async function POST(request: NextRequest) {
         planted_year: p.planted_year as number | null,
         gridRef: plantingGridRefs?.get(idx),
       })),
-      lines: linesResult?.rows.map((l: any) => ({
-        line_type: l.line_type as string,
-        label: l.label as string | null,
-      })),
+      lines: linesResult?.rows.map((l: any, idx: number) => {
+        let waterInfo: string | undefined;
+        if (l.water_properties) {
+          try {
+            const wp = JSON.parse(l.water_properties as string);
+            const details: string[] = [];
+            if (wp.flow_type) details.push(wp.flow_type);
+            if (wp.flow_rate_estimate) details.push(wp.flow_rate_estimate);
+            if (wp.seasonality) details.push(wp.seasonality);
+            if (details.length > 0) waterInfo = details.join(', ');
+          } catch {}
+        }
+        return {
+          line_type: l.line_type as string,
+          label: l.label as string | null,
+          gridRef: lineGridRefs?.get(idx),
+          waterInfo,
+        };
+      }),
       guilds: guildsResult?.rows && guildsResult.rows.length > 0
         ? guildsResult.rows.map((g: any) => ({
             name: g.name as string,
