@@ -151,7 +151,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {[
                       farm.acres && `${farm.acres} acres`,
-                      farm.climate_zone,
+                      farm.climate_zone && `USDA Zone ${farm.climate_zone.replace(/^(usda\s*)?zone\s*/i, '').toUpperCase()}`,
                       `Updated ${lastEdited}`,
                     ]
                       .filter(Boolean)

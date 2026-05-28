@@ -1,3 +1,33 @@
+# PermaCraft — 2026-05-28
+## Focus: Dashboard (Wednesday)
+
+### 1. Fix farm deletion cascade — 15 missing child tables
+File: `app/api/farms/[id]/route.ts`
+What changed: Added DELETE statements for tasks, lines, annotations, design_layers, phases, farm_posts, comments, story_entries, farm_story_sections, timeline_entries, crop_plan_items, crop_plans, harvest_logs, custom_imagery, farm_follows, farm_journal_entries, tour_stops, tour_visits, and farm_tours. Removed references to non-existent tables (guilds, soil_tests, geotagged_photos) that would cause batch failures.
+Map/dashboard impact: Designers can now delete farms that have tasks, lines, tours, crop plans, or journal entries without hitting a foreign key constraint error. Previously, deleting a farm with any of these would silently fail.
+
+### 2. Batch dashboard queries — eliminate N+1 for tasks and insights
+Files: `lib/db/queries/dashboard.ts`, `app/(app)/dashboard/page.tsx`
+What changed: Added `getBatchFarmTasks()` and `getBatchRecentAiInsights()` that fetch all farms' data in a single query each (matching the pattern already used by `getBatchEcoHealthScores` and `getBatchRecentActivity`). Dashboard page now makes 4 parallel queries instead of 2 + (2 x N) where N = number of farms.
+Map/dashboard impact: A designer with 5 farms now triggers 4 DB round trips instead of 14. Dashboard loads noticeably faster for multi-farm users.
+
+### 3. Deduplicate activity timeline + fix stale completed tasks
+File: `lib/db/queries/dashboard.ts`
+What changed: (a) Added a `seen` set per farm to prevent the same entity (same type + id) from appearing twice in the activity feed. (b) Fixed the task subquery to only show completed tasks from the last 7 days (previously showed ALL completed tasks regardless of age, flooding the timeline for long-running farms).
+Map/dashboard impact: Activity timeline no longer shows duplicate entries or months-old completed tasks that push recent design activity off-screen.
+
+### 4. Improve climate zone display in dashboard
+Files: `components/dashboard/farm-hero-card.tsx`, `components/dashboard/farm-hero-bar.tsx`
+What changed: Raw climate zone values like "7a" now display as "USDA Zone 7A" in the hero card metadata line and the hero bar. Strips any existing "usda zone" prefix before formatting to avoid duplication.
+Map/dashboard impact: Designers see a properly labeled hardiness zone instead of a cryptic code. Small but meaningful for users unfamiliar with USDA zone notation.
+
+## Watch for
+- The farm deletion cascade now lists 27 DELETE statements. If new tables with `farm_id` are added in future migrations, they must be added here too. Consider enabling `PRAGMA foreign_keys = ON` in the libSQL client initialization to make CASCADE constraints work natively.
+- Tables `guilds`, `soil_tests`, `geotagged_photos`, and `farmer_goals` are referenced in schema.ts interfaces but don't have corresponding CREATE TABLE migrations. The farmer_goals table is actively used by the goals API — it may have been created outside the migration system. If farm deletion fails on a farm with goals, `farmer_goals` needs to be added back to the cascade once the table's existence is confirmed.
+- The batched task/insight queries don't have a per-farm LIMIT in SQL — they rely on client-side truncation (20 tasks, 5 insights per farm). For users with many farms and many tasks, the result set could be large. A future optimization could use window functions if SQLite/libSQL supports them.
+
+---
+
 # PermaCraft — 2026-05-26
 ## Focus: Map Core (Monday)
 

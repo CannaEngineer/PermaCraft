@@ -27,7 +27,7 @@ export function FarmHeroBar({ farm, ecoFunctions }: Props) {
         <div className="flex items-baseline gap-2 flex-wrap">
           <h2 className="text-base font-bold text-foreground">{farm.name}</h2>
           <span className="text-xs text-muted-foreground">
-            {farm.acres ? `${farm.acres}ac` : ''}{farm.climate_zone ? ` · ${farm.climate_zone}` : ''} · edited {lastEdited}
+            {farm.acres ? `${farm.acres}ac` : ''}{farm.climate_zone ? ` · Zone ${farm.climate_zone.replace(/^(usda\s*)?zone\s*/i, '').toUpperCase()}` : ''} · edited {lastEdited}
           </span>
         </div>
         <div className="mt-1.5 flex flex-wrap gap-1.5">

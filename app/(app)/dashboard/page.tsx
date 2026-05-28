@@ -6,13 +6,12 @@ import { ProgressPanel } from "@/components/dashboard/progress-panel";
 import {
   getDashboardFarms,
   getBatchEcoHealthScores,
-  getFarmTasks,
-  getRecentAiInsights,
+  getBatchFarmTasks,
+  getBatchRecentAiInsights,
   getBatchRecentActivity,
   DashboardFarmData,
 } from "@/lib/db/queries/dashboard";
 import { getSeasonalContext } from "@/lib/dashboard/seasonal";
-import { Task } from "@/lib/db/schema";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -28,20 +27,17 @@ export default async function DashboardPage() {
   const farms = await getDashboardFarms(session.user.id);
   const farmIds = farms.map((f) => f.id);
 
-  const [ecoScores, activityByFarm, ...perFarmResults] = await Promise.all([
+  const [ecoScores, activityByFarm, tasksByFarm, insightsByFarm] = await Promise.all([
     getBatchEcoHealthScores(farmIds),
     getBatchRecentActivity(farmIds),
-    ...farms.flatMap((farm) => [
-      getFarmTasks(farm.id),
-      getRecentAiInsights(farm.id),
-    ]),
+    getBatchFarmTasks(farmIds),
+    getBatchRecentAiInsights(farmIds),
   ]);
 
   const farmData: Record<string, DashboardFarmData> = {};
-  for (let i = 0; i < farms.length; i++) {
-    const farm = farms[i];
-    const tasks = perFarmResults[i * 2] as Task[];
-    const insights = perFarmResults[i * 2 + 1] as any[];
+  for (const farm of farms) {
+    const tasks = tasksByFarm[farm.id] ?? [];
+    const insights = insightsByFarm[farm.id] ?? [];
     const ecoResult = ecoScores[farm.id] ?? { score: 0, functions: {} };
     const activity = activityByFarm[farm.id] ?? [];
     const seasonal = getSeasonalContext(farm.climate_zone, farm.center_lat);

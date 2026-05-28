@@ -181,6 +181,62 @@ export async function getRecentAiInsights(farmId: string) {
   return result.rows;
 }
 
+export async function getBatchFarmTasks(
+  farmIds: string[]
+): Promise<Record<string, Task[]>> {
+  if (farmIds.length === 0) return {};
+
+  const placeholders = farmIds.map(() => '?').join(',');
+  const result = await db.execute({
+    sql: `
+      SELECT * FROM tasks
+      WHERE farm_id IN (${placeholders})
+        AND status NOT IN ('completed', 'skipped')
+      ORDER BY priority DESC, created_at DESC
+    `,
+    args: farmIds,
+  });
+
+  const out: Record<string, Task[]> = {};
+  for (const id of farmIds) out[id] = [];
+
+  for (const row of result.rows) {
+    const fid = row.farm_id as string;
+    if (out[fid] && out[fid].length < 20) {
+      out[fid].push(row as unknown as Task);
+    }
+  }
+  return out;
+}
+
+export async function getBatchRecentAiInsights(
+  farmIds: string[]
+): Promise<Record<string, any[]>> {
+  if (farmIds.length === 0) return {};
+
+  const placeholders = farmIds.map(() => '?').join(',');
+  const result = await db.execute({
+    sql: `
+      SELECT id, farm_id, ai_response, created_at, user_query
+      FROM ai_analyses
+      WHERE farm_id IN (${placeholders})
+      ORDER BY created_at DESC
+    `,
+    args: farmIds,
+  });
+
+  const out: Record<string, any[]> = {};
+  for (const id of farmIds) out[id] = [];
+
+  for (const row of result.rows) {
+    const fid = row.farm_id as string;
+    if (out[fid] && out[fid].length < 5) {
+      out[fid].push(row);
+    }
+  }
+  return out;
+}
+
 export async function getRecentActivity(farmId: string) {
   return (await getBatchRecentActivity([farmId]))[farmId] ?? [];
 }
@@ -227,7 +283,10 @@ export async function getBatchRecentActivity(
           CASE WHEN t.status = 'completed' THEN 'Completed: ' || t.title ELSE t.title END as title,
           COALESCE(t.completed_at, t.created_at) as created_at
         FROM tasks t WHERE t.farm_id IN (${placeholders})
-          AND (t.status = 'completed' OR t.created_at > unixepoch() - 604800)
+          AND (
+            (t.status = 'completed' AND COALESCE(t.completed_at, t.created_at) > unixepoch() - 604800)
+            OR (t.status NOT IN ('completed', 'skipped') AND t.created_at > unixepoch() - 604800)
+          )
         ORDER BY created_at DESC LIMIT ${perSubqueryLimit}
       )
       ORDER BY created_at DESC
@@ -236,11 +295,17 @@ export async function getBatchRecentActivity(
   });
 
   const out: Record<string, any[]> = {};
-  for (const id of farmIds) out[id] = [];
+  const seen: Record<string, Set<string>> = {};
+  for (const id of farmIds) {
+    out[id] = [];
+    seen[id] = new Set();
+  }
 
   for (const row of result.rows) {
     const fid = row.farm_id as string;
-    if (out[fid] && out[fid].length < 10) {
+    const key = `${row.type}:${row.id}`;
+    if (out[fid] && out[fid].length < 10 && !seen[fid].has(key)) {
+      seen[fid].add(key);
       out[fid].push(row);
     }
   }
