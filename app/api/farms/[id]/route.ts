@@ -124,11 +124,31 @@ export async function DELETE(
       return Response.json({ error: "Farm not found or access denied" }, { status: 404 });
     }
 
-    // Delete all related data and the farm in a single batch transaction
+    // FK cascades are not active (no PRAGMA foreign_keys = ON), so every
+    // child table must be explicitly deleted before the farms row.
     await db.batch([
       { sql: "DELETE FROM ai_analyses WHERE farm_id = ?", args: [farmId] },
       { sql: "DELETE FROM ai_conversations WHERE farm_id = ?", args: [farmId] },
       { sql: "DELETE FROM map_snapshots WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM tasks WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM lines WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM annotations WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM design_layers WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM phases WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM farm_posts WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM comments WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM story_entries WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM farm_story_sections WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM timeline_entries WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM crop_plan_items WHERE plan_id IN (SELECT id FROM crop_plans WHERE farm_id = ?)", args: [farmId] },
+      { sql: "DELETE FROM crop_plans WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM harvest_logs WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM custom_imagery WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM farm_follows WHERE followed_farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM farm_journal_entries WHERE farm_id = ?", args: [farmId] },
+      { sql: "DELETE FROM tour_stops WHERE tour_id IN (SELECT id FROM farm_tours WHERE farm_id = ?)", args: [farmId] },
+      { sql: "DELETE FROM tour_visits WHERE tour_id IN (SELECT id FROM farm_tours WHERE farm_id = ?)", args: [farmId] },
+      { sql: "DELETE FROM farm_tours WHERE farm_id = ?", args: [farmId] },
       { sql: "DELETE FROM plantings WHERE farm_id = ?", args: [farmId] },
       { sql: "DELETE FROM zones WHERE farm_id = ?", args: [farmId] },
       { sql: "DELETE FROM farm_collaborators WHERE farm_id = ?", args: [farmId] },
