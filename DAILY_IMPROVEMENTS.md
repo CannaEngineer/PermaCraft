@@ -1,22 +1,22 @@
-# PermaCraft — 2026-05-26
-## Focus: Map Core (Monday)
+# PermaCraft — 2026-05-29
+## Focus: Map Core (Thursday)
 
-### 1. Fix line dash pattern rendering — 7 of 11 line types were solid
+### 1. Fix line click detection for API-sourced lines
 File: `components/map/farm-map.tsx`
-What changed: MapLibre doesn't support data-driven `line-dasharray` expressions, so the single `design-lines` layer rendered ALL lines as solid regardless of their configured dash pattern. Added separate layers per dash pattern group (irrigation/fence, flow paths, access paths, wildlife corridors, terraces, drainage), each with the correct static `line-dasharray` and a `line_type` filter. Extracted `setupLineLayersOnMap()` helper to avoid duplicating the 6-layer setup between initial load and map style changes. Updated `ensureCustomLayersOnTop()` to include the new layers.
-Map/dashboard impact: Designers now see distinct dash patterns for fences ([2,4]), water flow ([6,3]), irrigation ([2,4]), drainage ([4,2,1,2]), access paths ([6,4]), terraces ([8,2]), and wildlife corridors ([8,4]). Line types that were visually identical are now distinguishable at a glance.
+What changed: Added `design-lines` and all dashed line layers (irrigation, fence, flow_path, access_path, wildlife_corridor, terrace, drainage) to the click detection query layers, and updated the feature matching logic to recognize hits from these layers.
+Map/dashboard impact: Previously, lines loaded from the database (i.e., any line after a page reload) were invisible to click/tap — users couldn't select, view details, or interact with persisted lines. Now all line types are selectable regardless of how they were rendered.
 
-### 2. Fix draw debounce timer leak on unmount
+### 2. Fix stale variety data in planting submission
 File: `components/map/farm-map.tsx`
-What changed: The `drawUpdateTimer` used for debouncing vertex-drag zone updates was a local `let` variable inside the mount effect's `try` block, making it inaccessible in the cleanup function (outside `try`). Moved it to a `drawUpdateTimerRef` and clear it on unmount.
-Map/dashboard impact: Prevents a stale callback from firing after the map component is destroyed, which could cause React state-update-on-unmounted-component warnings or call `onZonesChange` at the wrong time.
+What changed: Added `externalSelectedSpecies` to the dependency array of `handlePlantingSubmit` useCallback. The callback accesses `externalSelectedSpecies?.variety` but previously didn't list it as a dependency, meaning the variety could be stale if changed after initial species selection.
+Map/dashboard impact: When a user selects a specific cultivar/variety for a species and then places it on the map, the correct variety is now guaranteed to be saved to the database.
 
-### 3. Deduplicate line layer setup between initial load and style change
+### 3. Replace fragile setTimeout with requestAnimationFrame for zone layer restoration
 File: `components/map/farm-map.tsx`
-What changed: Line source, solid layer, 6 dashed layers, and arrow layer setup was duplicated between `map.on("load")` and `changeMapLayer`'s idle handler. Extracted into `setupLineLayersOnMap()` called from both paths.
-Map/dashboard impact: Switching map layers (satellite, topo, street, etc.) now correctly restores dash patterns instead of recreating the old broken single-layer setup.
+What changed: Replaced four instances of `setTimeout(..., 100/200)` with `requestAnimationFrame()` for adding colored zone layers after map initialization, zone data loading, and map style changes. The fixed timeouts were unreliable — if the map took longer to stabilize (slow device, complex style), zone colors could fail to appear.
+Map/dashboard impact: Zone colors and grid overlays now appear reliably after map layer switches (satellite -> terrain -> topo, etc.) and after initial load, especially on slower devices or connections where 200ms wasn't enough.
 
 ## Watch for
-- If a new line type is added to `lib/map/line-types.ts` with a dash pattern, a corresponding entry must be added to `DASHED_LINE_CONFIGS` in `farm-map.tsx` or it will render solid.
-- The `['in', ...]` expression used for layer filters requires MapLibre GL JS v3+. If the project pins an older version, these filters may not work.
-- The `line-arrows` layer for water flow direction depends on an async arrow icon load. If the icon fails to load, directional lines still render but without arrows (graceful degradation, unchanged).
+- The `requestAnimationFrame` approach assumes MapboxDraw's `addControl` synchronously registers its sources within the same frame. If any browser environment defers this, zone layers could fail to attach. Monitor for "source not found" errors in the console after layer switches.
+- The line click detection now queries up to 9 layers simultaneously; on farms with hundreds of line features, this could add marginal latency to click handling. Watch for perceptible delays on feature-dense maps.
+- The `handlePlantingSubmit` dependency array change could cause more frequent callback recreation, but the planting form submit flow is infrequent enough that this has no performance impact.

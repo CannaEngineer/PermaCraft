@@ -995,7 +995,7 @@ export function FarmMap({
         variant: "destructive",
       });
     }
-  }, [selectedSpecies, plantingClickPos, farm.id, toast]);
+  }, [selectedSpecies, plantingClickPos, farm.id, toast, externalSelectedSpecies]);
 
   // Handle planting deletion with optimistic updates
   const handleDeletePlanting = useCallback(async (plantingId: string) => {
@@ -1422,11 +1422,11 @@ export function FarmMap({
 
     initialZonesLoadedRef.current = true;
 
-    // Update colored zones and grid after loading
-    setTimeout(() => {
+    // Update colored zones and grid after draw features are registered
+    requestAnimationFrame(() => {
       updateColoredZonesRef.current?.();
       updateGridRef.current?.();
-    }, 200);
+    });
   }, [zones]);
 
   /**
@@ -1831,10 +1831,10 @@ export function FarmMap({
         setupGridLayers();
         updateGrid();
 
-        // Add colored zone layers after a short delay to ensure draw is ready
-        setTimeout(() => {
+        // Add colored zone layers after MapboxDraw has registered its sources
+        requestAnimationFrame(() => {
           addColoredZoneLayers();
-        }, 100);
+        });
 
         // Add lines source, solid/dashed layers, and arrow layer
         setupLineLayersOnMap(map.current);
@@ -1894,10 +1894,10 @@ export function FarmMap({
 
           initialZonesLoadedRef.current = true;
 
-          // Update colored zones after loading initial data
-          setTimeout(() => {
+          // Update colored zones after initial zone data is added to draw
+          requestAnimationFrame(() => {
             updateColoredZones();
-          }, 200);
+          });
         }
 
         mapLoadedRef.current = true;
@@ -2335,7 +2335,11 @@ export function FarmMap({
             );
           }
           if (interactionFilter === 'all' || interactionFilter === 'lines') {
-            queryLayers.push('colored-lines');
+            queryLayers.push(
+              'colored-lines',
+              'design-lines',
+              ...DASHED_LINE_CONFIGS.map(c => c.id),
+            );
           }
 
           // Filter to only layers that actually exist on the map
@@ -2370,7 +2374,12 @@ export function FarmMap({
                     };
                   }
                 }
-              } else if (feature.layer.id === 'colored-lines' && feature.properties) {
+              } else if (
+                (feature.layer.id === 'colored-lines' ||
+                 feature.layer.id === 'design-lines' ||
+                 feature.layer.id?.startsWith('design-lines-dash-')) &&
+                feature.properties
+              ) {
                 const id = feature.properties.id || feature.id?.toString();
                 if (id && (interactionFilter === 'all' || interactionFilter === 'lines')) {
                   featureInfo = {
@@ -2809,10 +2818,13 @@ export function FarmMap({
         // Restore custom imagery overlays (destroyed by setStyle)
         loadCustomImagery();
 
-        // Re-add colored zone layers after style change
-        setTimeout(() => {
+        // Re-add colored zone layers once MapboxDraw has settled.
+        // Use requestAnimationFrame instead of a fixed 200ms timeout —
+        // rAF fires after the next paint, so sources added by MapboxDraw's
+        // addControl are guaranteed to exist.
+        requestAnimationFrame(() => {
           addColoredZoneLayersRef.current?.();
-        }, 200);
+        });
       }); // End of idle callback
     }); // End of styledata callback
   };
