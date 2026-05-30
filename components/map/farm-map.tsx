@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Farm, Zone } from "@/lib/db/schema";
@@ -287,6 +287,17 @@ const DASHED_LINE_CONFIGS = [
 ] as const;
 const DASHED_LINE_TYPES = DASHED_LINE_CONFIGS.flatMap(c => c.types);
 
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
 function setupLineLayersOnMap(mapInstance: maplibregl.Map) {
   if (!mapInstance.getSource('lines-source')) {
     mapInstance.addSource('lines-source', {
@@ -457,6 +468,7 @@ export function FarmMap({
   const [gridUnit, setGridUnit] = useState<"imperial" | "metric">("imperial");
   const [gridDensity, setGridDensity] = useState<GridDensity>("auto");
   const [currentZoom, setCurrentZoom] = useState<number>(farm.zoom_level);
+  const [viewportBoundsState, setViewportBoundsState] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
   const [gridSubdivision, setGridSubdivision] = useState<'coarse' | 'fine'>('coarse');
   const [hasShownPrecisionToast, setHasShownPrecisionToast] = useState(false);
   const [snapToGridEnabled, setSnapToGridEnabled] = useState(true);
@@ -520,6 +532,22 @@ export function FarmMap({
   // Quantized zoom for PlantingMarker: rounds to 0.5 increments so small zoom
   // changes during pinch/scroll don't trigger re-render of every marker.
   const quantizedZoom = Math.round(currentZoom * 2) / 2;
+
+  // Viewport-culled plantings: only render markers within the visible map area
+  // plus a small buffer. This prevents creating hundreds of DOM elements for
+  // off-screen plantings on large farms.
+  const visiblePlantings = useMemo(() => {
+    if (!viewportBoundsState) return plantings;
+    const latBuffer = (viewportBoundsState.north - viewportBoundsState.south) * 0.1;
+    const lngBuffer = (viewportBoundsState.east - viewportBoundsState.west) * 0.1;
+    const n = viewportBoundsState.north + latBuffer;
+    const s = viewportBoundsState.south - latBuffer;
+    const e = viewportBoundsState.east + lngBuffer;
+    const w = viewportBoundsState.west - lngBuffer;
+    return plantings.filter((p: any) =>
+      p.lat >= s && p.lat <= n && p.lng >= w && p.lng <= e
+    );
+  }, [plantings, viewportBoundsState]);
 
   // Stable callback for planting marker clicks — avoids creating a new closure
   // per render which would defeat React.memo on PlantingMarker.
@@ -740,31 +768,34 @@ export function FarmMap({
     }
   }, [farm.id]);
 
-  // Load lines from API
+  // Load lines from API — pre-parse geometry/style so downstream consumers
+  // (the lines useEffect, feature list, etc.) don't re-parse on every update.
   const loadLines = useCallback(async () => {
     if (!map.current) return;
 
     try {
       const response = await fetch(`/api/farms/${farm.id}/lines`);
       const data = await response.json();
-      setLines(data.lines || []);
+      const rawLines = data.lines || [];
 
-      const lineFeatures = (data.lines || []).map((line: any) => {
-        const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
-        const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
+      const parsed = rawLines.map((line: any) => ({
+        ...line,
+        geometry: typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry,
+        style: typeof line.style === 'string' ? JSON.parse(line.style) : line.style,
+      }));
+      setLines(parsed);
 
-        return {
-          type: 'Feature' as const,
+      const lineFeatures = parsed.map((line: any) => ({
+        type: 'Feature' as const,
+        id: line.id,
+        geometry: line.geometry,
+        properties: {
           id: line.id,
-          geometry,
-          properties: {
-            id: line.id,
-            line_type: line.line_type,
-            label: line.label,
-            ...style
-          }
-        };
-      });
+          line_type: line.line_type,
+          label: line.label,
+          ...line.style
+        }
+      }));
 
       const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
       if (source) {
@@ -1119,32 +1150,26 @@ export function FarmMap({
   }, [farm.id, loadPlantings, toast]);
 
 
-  // Update line rendering when filters change
+  // Update line rendering when lines state changes.
+  // Geometry/style are already parsed by loadLines — no re-parsing needed.
   useEffect(() => {
     if (!map.current) return;
 
     const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
     if (!source) return;
 
-    // Convert filtered lines to GeoJSON features
-    const lineFeatures = lines.map((line: any) => {
-      const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
-      const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
-
-      return {
-        type: 'Feature' as const,
+    const lineFeatures = lines.map((line: any) => ({
+      type: 'Feature' as const,
+      id: line.id,
+      geometry: line.geometry,
+      properties: {
         id: line.id,
-        geometry,
-        properties: {
-          id: line.id,
-          line_type: line.line_type,
-          label: line.label,
-          ...style
-        }
-      };
-    });
+        line_type: line.line_type,
+        label: line.label,
+        ...line.style
+      }
+    }));
 
-    // Update the source with filtered lines
     source.setData({
       type: 'FeatureCollection',
       features: lineFeatures
@@ -1192,17 +1217,7 @@ export function FarmMap({
     setQuickLabelPosition(null);
   };
 
-  // Debounce utility for performance optimization
-  const debounce = <T extends (...args: any[]) => any>(
-    func: T,
-    wait: number
-  ): ((...args: Parameters<T>) => void) => {
-    let timeout: NodeJS.Timeout | null = null;
-    return (...args: Parameters<T>) => {
-      if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
-    };
-  };
+  // debounce: moved to module scope (see top of file)
 
   // Detect touch device for enhanced touch targets
   const isTouchDevice = () => {
@@ -1902,6 +1917,17 @@ export function FarmMap({
 
         mapLoadedRef.current = true;
 
+        // Set initial viewport bounds for planting marker culling
+        if (map.current) {
+          const b = map.current.getBounds();
+          setViewportBoundsState({
+            north: b.getNorth(),
+            south: b.getSouth(),
+            east: b.getEast(),
+            west: b.getWest(),
+          });
+        }
+
         if (onMapReady) {
           onMapReady(map.current);
         }
@@ -1921,7 +1947,7 @@ export function FarmMap({
           // Cache farm boundaries
           draw.current.getAll().features.forEach((feature: any) => {
             if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCache.has(feature.id)) {
-              farmBoundaryCache.set(feature.id, JSON.parse(JSON.stringify(feature)));
+              farmBoundaryCache.set(feature.id, structuredClone(feature));
             }
           });
 
@@ -1947,7 +1973,7 @@ export function FarmMap({
           if (draw.current) {
             draw.current.getAll().features.forEach((feature: any) => {
               if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCache.has(feature.id)) {
-                farmBoundaryCache.set(feature.id, JSON.parse(JSON.stringify(feature)));
+                farmBoundaryCache.set(feature.id, structuredClone(feature));
               }
             });
             onZonesChangeRef.current(draw.current.getAll().features);
@@ -2173,7 +2199,18 @@ export function FarmMap({
       // moveend fires after both pans and zooms, so a single listener is sufficient.
       // Wrapped in an arrow so it always calls the latest updateGrid via ref
       // (the useCallback changes when gridUnit/gridDensity/gridSubdivision change).
-      map.current.on("moveend", () => updateGridRef.current?.());
+      map.current.on("moveend", () => {
+        updateGridRef.current?.();
+        if (map.current) {
+          const b = map.current.getBounds();
+          setViewportBoundsState({
+            north: b.getNorth(),
+            south: b.getSouth(),
+            east: b.getEast(),
+            west: b.getWest(),
+          });
+        }
+      });
 
       // Update compass bearing when map rotates
       map.current.on("rotate", () => {
@@ -3537,8 +3574,8 @@ export function FarmMap({
         mapRef={map}
       />}
 
-      {/* Render planting markers */}
-      {map.current && plantings.map(planting => (
+      {/* Render planting markers — only visible ones (viewport-culled) */}
+      {map.current && visiblePlantings.map(planting => (
         <PlantingMarker
           key={planting.id}
           planting={planting}
