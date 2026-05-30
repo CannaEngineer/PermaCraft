@@ -221,11 +221,14 @@ export async function POST(request: NextRequest) {
     const { calculateGridCoordinates: calcGrid, formatGridRange: fmtRange } = await import('@/lib/map/zone-grid-calculator');
     const { calculateAreaFromGeometry } = await import('@/lib/water/calculations');
 
+    // Pre-parse zone geometries once — reused for bounds, grid coords, and context building
+    const parsedZoneGeometries = new Map<string, any>();
     const allZoneBoundsCoords: number[][] = [];
     for (const z of zoneGeomResult.rows) {
       if (z.geometry) {
         try {
           const geom = JSON.parse(z.geometry as string);
+          parsedZoneGeometries.set(z.id as string, geom);
           if (geom.type === 'Polygon' && geom.coordinates?.[0]) allZoneBoundsCoords.push(...geom.coordinates[0]);
           else if (geom.type === 'Point' && geom.coordinates) allZoneBoundsCoords.push(geom.coordinates);
         } catch {}
@@ -241,9 +244,9 @@ export async function POST(request: NextRequest) {
     enrichedZones = zoneGeomResult.rows.map((z: any) => {
       let gridCoordinates: string | undefined;
       let areaAcres: number | undefined;
-      if (z.geometry) {
+      const geom = parsedZoneGeometries.get(z.id as string);
+      if (geom) {
         try {
-          const geom = JSON.parse(z.geometry as string);
           if (zoneFarmBounds) {
             const cells = calcGrid(geom, zoneFarmBounds, 'imperial');
             if (cells.length > 0) gridCoordinates = fmtRange(cells);
@@ -301,22 +304,12 @@ export async function POST(request: NextRequest) {
 
       // Build plantings context string (with permaculture functions and grid coordinates)
       if (!enrichedPlantingsContext && plantingsResult.rows.length > 0) {
-        // Compute farm bounds for grid coordinates
+        // Extend already-computed zone bounds with planting coordinates
         const plantingCoords: number[][] = [];
-        const zoneCoords: number[][] = [];
-        for (const z of zoneGeomResult.rows) {
-          if (z.geometry) {
-            try {
-              const geom = JSON.parse(z.geometry as string);
-              if (geom.type === 'Polygon' && geom.coordinates?.[0]) zoneCoords.push(...geom.coordinates[0]);
-              else if (geom.type === 'Point' && geom.coordinates) zoneCoords.push(geom.coordinates);
-            } catch {}
-          }
-        }
         for (const p of plantingsResult.rows) {
           if (p.lat && p.lng) plantingCoords.push([p.lng as number, p.lat as number]);
         }
-        const allCoords = [...zoneCoords, ...plantingCoords];
+        const allCoords = [...allZoneBoundsCoords, ...plantingCoords];
         const plantingBounds = allCoords.length > 0 ? {
           north: Math.max(...allCoords.map(c => c[1])),
           south: Math.min(...allCoords.map(c => c[1])),
@@ -370,18 +363,8 @@ export async function POST(request: NextRequest) {
           byType.get(lineType)!.push(l);
         }
 
-        // Compute farm bounds for line grid references
+        // Extend already-computed zone bounds with line coordinates
         const allLineCoords: number[][] = [];
-        const allZoneCoords: number[][] = [];
-        for (const z of zoneGeomResult.rows) {
-          if (z.geometry) {
-            try {
-              const geom = JSON.parse(z.geometry as string);
-              if (geom.type === 'Polygon' && geom.coordinates?.[0]) allZoneCoords.push(...geom.coordinates[0]);
-              else if (geom.type === 'Point' && geom.coordinates) allZoneCoords.push(geom.coordinates);
-            } catch {}
-          }
-        }
         for (const l of linesResult.rows) {
           if (l.geometry) {
             try {
@@ -390,7 +373,7 @@ export async function POST(request: NextRequest) {
             } catch {}
           }
         }
-        const allSpatialCoords = [...allZoneCoords, ...allLineCoords];
+        const allSpatialCoords = [...allZoneBoundsCoords, ...allLineCoords];
         const lineFarmBounds = allSpatialCoords.length > 0 ? {
           north: Math.max(...allSpatialCoords.map(c => c[1])),
           south: Math.min(...allSpatialCoords.map(c => c[1])),
