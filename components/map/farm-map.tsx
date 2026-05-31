@@ -35,6 +35,21 @@ import type { FeatureCollection, LineString, Point } from "geojson";
 import "../../app/mapbox-draw-override.css";
 import { calculateAreaFromGeometry } from "@/lib/water/calculations";
 
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+function isTouchDevice(): boolean {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 /**
  * MapLibre Style Expression Generators
  *
@@ -509,6 +524,8 @@ export function FarmMap({
   const [plantingMode, setPlantingMode] = useState(false);
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [plantings, setPlantings] = useState<any[]>([]);
+  const plantingsRef = useRef(plantings);
+  plantingsRef.current = plantings;
   const [showSpeciesPicker, setShowSpeciesPicker] = useState(false);
   const [useCompactPicker, setUseCompactPicker] = useState(true); // Default to compact picker
   const [showPlantingForm, setShowPlantingForm] = useState(false);
@@ -1192,22 +1209,9 @@ export function FarmMap({
     setQuickLabelPosition(null);
   };
 
-  // Debounce utility for performance optimization
-  const debounce = <T extends (...args: any[]) => any>(
-    func: T,
-    wait: number
-  ): ((...args: Parameters<T>) => void) => {
-    let timeout: NodeJS.Timeout | null = null;
-    return (...args: Parameters<T>) => {
-      if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
-    };
-  };
+  // Debounce: uses module-level utility (see top of file)
 
-  // Detect touch device for enhanced touch targets
-  const isTouchDevice = () => {
-    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  };
+  // isTouchDevice: uses module-level utility (see top of file)
 
   const rebuildRasterLayerCache = () => {
     if (!map.current) return;
@@ -1817,8 +1821,6 @@ export function FarmMap({
         if (source) {
           source.setData(draw.current.getAll());
         }
-        // Ensure layers stay on top after data updates
-        ensureCustomLayersOnTop();
       };
 
       // Store functions in refs so they can be called from changeMapLayer and other handlers
@@ -1852,20 +1854,14 @@ export function FarmMap({
           // Arrow icon is optional — line arrows degrade gracefully without it
         });
 
-        // Load plantings from API
-        loadPlantings();
-
-        // Load lines from API
-        loadLines();
-
-        // Load guilds from API
-        loadGuilds();
-
-        // Load phases from API
-        loadFarmPhases();
-
-        // Load custom imagery from API
-        loadCustomImagery();
+        // Load all farm data in parallel (independent fetches)
+        Promise.all([
+          loadPlantings(),
+          loadLines(),
+          loadGuilds(),
+          loadFarmPhases(),
+          loadCustomImagery(),
+        ]);
 
         // Load initial zones (use ref to get latest value, avoiding stale closure)
         const currentZones = zonesRef.current;
@@ -2410,7 +2406,7 @@ export function FarmMap({
           const latMin = Math.min(topLeft.lat, bottomRight.lat);
           const latMax = Math.max(topLeft.lat, bottomRight.lat);
 
-          for (const p of plantings) {
+          for (const p of plantingsRef.current) {
             if (p.lng < lngMin || p.lng > lngMax || p.lat < latMin || p.lat > latMax) continue;
 
             const plantingPoint = map.current.project([p.lng, p.lat]);
@@ -2531,7 +2527,7 @@ export function FarmMap({
         map.current.off("click", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, plantings]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {

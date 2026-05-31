@@ -44,24 +44,27 @@ export function MapBottomDrawer({
 
   const lowVitalCount = useMemo(() => {
     if (plantings.length === 0) return 0;
-    const functionCounts: Record<string, number> = {};
-    plantings.forEach((planting: any) => {
-      if (!planting.permaculture_functions) return;
-      try {
-        const functions: string[] = JSON.parse(planting.permaculture_functions);
-        functions.forEach((fn) => {
-          functionCounts[fn] = (functionCounts[fn] || 0) + 1;
-        });
-      } catch {
-        // Ignore parse errors
-      }
-    });
-    const highImportanceFunctions = [
+    const highImportanceFunctions = new Set([
       'nitrogen_fixer', 'nitrogen_fixing',
       'pollinator_support', 'pollinator', 'pollinator_attractor',
       'edible_fruit', 'edible_nuts', 'edible'
-    ];
-    return highImportanceFunctions.filter(fn => !functionCounts[fn]).length > 0 ? 1 : 0;
+    ]);
+    const foundFunctions = new Set<string>();
+    for (const planting of plantings) {
+      if (!planting.permaculture_functions) continue;
+      try {
+        const functions: string[] = JSON.parse(planting.permaculture_functions);
+        for (const fn of functions) {
+          if (highImportanceFunctions.has(fn)) {
+            foundFunctions.add(fn);
+          }
+        }
+      } catch {
+        // Ignore parse errors
+      }
+      if (foundFunctions.size === highImportanceFunctions.size) return 0;
+    }
+    return foundFunctions.size < highImportanceFunctions.size ? 1 : 0;
   }, [plantings]);
 
   const nonBoundaryZoneCount = useMemo(() => {
