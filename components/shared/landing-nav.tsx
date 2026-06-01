@@ -93,7 +93,7 @@ export function LandingNav({ isSignedIn }: LandingNavProps) {
                 <span>Farmer Login</span>
               </Link>
               <Link
-                href="/login"
+                href="/register"
                 className="rounded-full border border-border/60 px-4 py-2 text-xs font-medium text-muted-foreground no-underline transition-all hover:border-primary/40 hover:text-primary hover:bg-primary/5"
               >
                 I&apos;m a Grower

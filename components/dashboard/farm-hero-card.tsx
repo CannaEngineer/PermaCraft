@@ -5,7 +5,7 @@ import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import type { Season } from '@/lib/dashboard/seasonal';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints, Pencil, Check, X, Spline, Trash2 } from 'lucide-react';
+import { ArrowRight, Leaf, MapPin, Thermometer, Plus, FlaskConical, Camera, Footprints, Pencil, Check, X, Spline, Trash2, ChevronDown } from 'lucide-react';
 import { DeleteFarmDialog } from '@/components/shared/delete-farm-dialog';
 
 // Keys must match the Season union in lib/dashboard/seasonal.ts
@@ -39,6 +39,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
   const [editAcres, setEditAcres] = useState(farm.acres?.toString() ?? '');
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showGPSActions, setShowGPSActions] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   async function handleSave() {
@@ -241,43 +242,55 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                 Ask AI
               </Link>
             </div>
-            {/* GPS Quick Actions */}
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={`/farm/${farm.id}?gps=plant`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600/10 border border-emerald-600/20 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600/20 transition-colors active:scale-[0.97]"
-              >
-                <Plus className="h-3 w-3" />
-                Plant by GPS
-              </Link>
-              <Link
-                href={`/farm/${farm.id}?gps=pin`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600/10 border border-blue-600/20 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-600/20 transition-colors active:scale-[0.97]"
+            {/* GPS Quick Actions — collapsible to reduce visual clutter */}
+            <div>
+              <button
+                onClick={() => setShowGPSActions(!showGPSActions)}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 <MapPin className="h-3 w-3" />
-                Drop Pin
-              </Link>
-              <Link
-                href={`/farm/${farm.id}?gps=photo`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600/10 border border-rose-600/20 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-600/20 transition-colors active:scale-[0.97]"
-              >
-                <Camera className="h-3 w-3" />
-                Take Photo
-              </Link>
-              <Link
-                href={`/farm/${farm.id}?gps=soil`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600/10 border border-amber-600/20 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-600/20 transition-colors active:scale-[0.97]"
-              >
-                <FlaskConical className="h-3 w-3" />
-                Soil Test
-              </Link>
-              <Link
-                href={`/farm/${farm.id}?gps=walk`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600/10 border border-teal-600/20 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-400 hover:bg-teal-600/20 transition-colors active:scale-[0.97]"
-              >
-                <Footprints className="h-3 w-3" />
-                Walk Zone
-              </Link>
+                Field tools
+                <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showGPSActions ? 'rotate-180' : ''}`} />
+              </button>
+              {showGPSActions && (
+                <div className="flex flex-wrap gap-2 mt-2 animate-fade-in">
+                  <Link
+                    href={`/farm/${farm.id}?gps=plant`}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600/10 border border-emerald-600/20 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600/20 transition-colors active:scale-[0.97]"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Plant by GPS
+                  </Link>
+                  <Link
+                    href={`/farm/${farm.id}?gps=pin`}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600/10 border border-blue-600/20 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-600/20 transition-colors active:scale-[0.97]"
+                  >
+                    <MapPin className="h-3 w-3" />
+                    Drop Pin
+                  </Link>
+                  <Link
+                    href={`/farm/${farm.id}?gps=photo`}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600/10 border border-rose-600/20 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-600/20 transition-colors active:scale-[0.97]"
+                  >
+                    <Camera className="h-3 w-3" />
+                    Take Photo
+                  </Link>
+                  <Link
+                    href={`/farm/${farm.id}?gps=soil`}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600/10 border border-amber-600/20 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-600/20 transition-colors active:scale-[0.97]"
+                  >
+                    <FlaskConical className="h-3 w-3" />
+                    Soil Test
+                  </Link>
+                  <Link
+                    href={`/farm/${farm.id}?gps=walk`}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600/10 border border-teal-600/20 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-400 hover:bg-teal-600/20 transition-colors active:scale-[0.97]"
+                  >
+                    <Footprints className="h-3 w-3" />
+                    Walk Zone
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
