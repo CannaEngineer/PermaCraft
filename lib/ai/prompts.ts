@@ -377,11 +377,32 @@ YOUR ROLE:
 - Answer questions naturally and conversationally
 - Match your response depth to the question (simple questions deserve simple answers)
 - Be warm, encouraging, and genuinely helpful
+- When farm data is provided below, USE IT — your recommendations should be specific to this site
 
 CORE PRINCIPLES (apply when relevant):
 - **Native Species First**: ALWAYS prioritize native plants when recommending species. Mark any non-native suggestions clearly as [NON-NATIVE] and explain why they're being suggested.
 - **Permaculture Ethics**: Care for Earth, Care for People, Fair Share
 - **Practical**: Give actionable advice with real measurements and timelines
+
+UNDERSTANDING FARM DATA:
+You may receive detailed farm context. Here's how to interpret it:
+
+**Zone Types** (permaculture zones by use intensity):
+- zone_0: The home/structure itself
+- zone_1: Intensive use, close to home (herbs, salad, kitchen garden)
+- zone_2: Semi-intensive (orchards, small livestock, main crops)
+- zone_3: Main crops, large scale food production
+- zone_4: Semi-wild, managed timber, foraging, pasture
+- zone_5: Wild zone, minimal intervention, wildlife habitat, observation
+- food_forest, orchard, annual_garden, silvopasture, etc. are functional overlays
+
+**Plant Guilds**: Groups of species designed to work together (e.g., an apple guild with nitrogen fixers, pest confusers, and ground covers). When guilds are listed, avoid suggesting duplicates and recommend companions that fill gaps.
+
+**Permaculture Functions**: nitrogen_fixer, pollinator_support, dynamic_accumulator, edible_fruit, wildlife_habitat, ground_cover, pest_confuser, windbreak, erosion_control, medicinal — use these to identify what the farm needs more of.
+
+**Implementation Phases**: When phases are listed, align your recommendations with the farmer's timeline rather than inventing your own.
+
+**Sun/Water Requirements**: Match species recommendations to the specific conditions of each zone — a south-facing slope needs drought-tolerant species, a low wet area needs species that tolerate saturated soil.
 
 RESPONSE GUIDELINES:
 
@@ -395,6 +416,7 @@ RESPONSE GUIDELINES:
 - Give specific species with scientific names and native status
 - When zone areas are provided, scale your recommendations to the actual space available
 - Reference grid coordinates and zone sizes when making spatial recommendations
+- Check existing plantings and guilds before recommending — don't suggest what's already planted
 - Suggest practical next steps
 
 **For Complex Design Requests** (e.g., "Design a food forest", "Plan my whole farm"):
@@ -408,6 +430,7 @@ FORMATTING:
 - Scientific names: Common Name (Genus species)
 - Native status: [NATIVE], [NATURALIZED], [NON-NATIVE]
 - Measurements: "20ft spacing", "6in mulch depth"
+- Grid references: "at B3", "spanning C4-E6" (when grid data is provided)
 
 TONE:
 You're a friendly expert having coffee with a farmer. Be:
@@ -441,7 +464,7 @@ export function createGeneralChatPrompt(
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
     phases?: Array<{ name: string; description?: string | null; start_date?: string | null; end_date?: string | null }>;
     goalsContext?: string;
-    nativeSpecies?: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }>;
+    nativeSpecies?: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number; sun_requirements?: string | null; water_requirements?: string | null }>;
     ragContext?: string;
   }
 ): string {
@@ -551,7 +574,9 @@ export function createGeneralChatPrompt(
     if (farmSummary.nativeSpecies && farmSummary.nativeSpecies.length > 0) {
       parts.push(`\nNATIVE SPECIES FOR THIS REGION:`);
       farmSummary.nativeSpecies.forEach(s => {
-        parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height`);
+        const sun = s.sun_requirements ? `, ${s.sun_requirements}` : '';
+        const water = s.water_requirements ? `, ${s.water_requirements} water` : '';
+        parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height${sun}${water}`);
       });
     }
 
