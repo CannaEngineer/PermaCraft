@@ -227,12 +227,12 @@ export function buildOptimizedContext(
   compressed: CompressedContext,
   userQuery: string
 ): string {
-  const needsPlantings = /plant|tree|species|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(userQuery);
-  const needsGuilds = /guild|companion|polyculture|synergy|support.*species|nitrogen.*fix|accumulator/i.test(userQuery);
-  const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace/i.test(userQuery);
-  const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for/i.test(userQuery);
-  const needsGoals = /goal|objective|priority|budget|strategy|vision/i.test(userQuery);
-  const needsPhases = /phase|timeline|plan|schedule|year|when.*start|implementation|sequence|order/i.test(userQuery);
+  const needsPlantings = /plant|tree|species|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb|garden|forest|orchard|succession|mulch|ground\s*cover|vine|root/i.test(userQuery);
+  const needsGuilds = /guild|companion|polyculture|synergy|support.*species|nitrogen.*fix|accumulator|together|pair|combine|interact/i.test(userQuery);
+  const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace|path|access|corridor|stream|creek|pond|ditch/i.test(userQuery);
+  const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for|local|indigenous|region|zone/i.test(userQuery);
+  const needsGoals = /goal|objective|priority|budget|strategy|vision|aim|want|hope|dream|plan to|intend|purpose/i.test(userQuery);
+  const needsPhases = /phase|timeline|plan|schedule|year|when.*start|implementation|sequence|order|first|next|step|stage|begin/i.test(userQuery);
 
   // If the query doesn't match any specific pattern, it's a general/broad question —
   // include all context so the AI has full farm awareness

@@ -467,7 +467,9 @@ export async function POST(request: NextRequest) {
         if (nativeResult.rows.length > 0) {
           const parts: string[] = ['NATIVE SPECIES FOR THIS REGION:'];
           for (const s of nativeResult.rows) {
-            parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height`);
+            const sun = s.sun_requirements ? `, ${s.sun_requirements}` : '';
+            const water = s.water_requirements ? `, ${s.water_requirements} water` : '';
+            parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height${sun}${water}`);
           }
           enrichedNativeSpeciesContext = parts.join('\n');
         }

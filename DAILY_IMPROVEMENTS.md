@@ -1,27 +1,27 @@
-# PermaCraft -- 2026-06-01
-## Focus: UI/UX Polish (Sunday)
+# PermaCraft -- 2026-06-02
+## Focus: Map Intelligence (Tuesday)
 
-### 1. Fix "I'm a Grower" landing nav link destination
-File: `components/shared/landing-nav.tsx`
-What changed: The "I'm a Grower" button now links to `/register` instead of `/login`. The "Farmer Login" link already handles returning users; "I'm a Grower" should onboard new ones.
-Map/dashboard impact: First-time growers clicking the CTA now land on the registration page instead of being confused by a login form with no account.
+### 1. Include sun/water requirements in native species AI context
+Files: `app/api/ai/analyze/route.ts`, `app/api/ai/chat/route.ts`, `lib/ai/prompts.ts`
+What changed: Native species listed in AI prompts now include sun requirements (e.g., "Full sun", "Part shade") and water requirements (e.g., "Medium water", "Wet to medium water") alongside the existing layer and height data. The chat endpoint now also queries these columns from the database.
+Map/dashboard impact: When the AI recommends species placement, it can now match plants to site conditions — recommending shade-tolerant understory species for north-facing slopes and drought-tolerant species for exposed ridgelines instead of generic suggestions.
 
-### 2. Add password visibility toggles to auth pages
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Added eye/eye-off toggle buttons inside the password input fields so users can reveal what they typed. Uses `tabIndex={-1}` to keep Tab focus on the input, not the toggle.
-Map/dashboard impact: Reduces failed login attempts from typos, especially on mobile where password entry is error-prone. Faster path from landing to the map editor.
+### 2. Widen context compressor keyword matching
+File: `lib/ai/context-compressor.ts`
+What changed: Expanded regex patterns in `buildOptimizedContext()` to catch more natural query phrasings. Added terms like "garden", "forest", "orchard", "succession", "mulch" for plantings; "pond", "creek", "ditch", "path" for water/lines; "local", "indigenous" for natives; "aim", "want", "hope" for goals; "first", "next", "step", "begin" for phases. Also added "together", "pair", "combine" for guilds.
+Map/dashboard impact: When optimizations are enabled, queries like "What should I plant in my garden?" or "Where should I put a pond?" now correctly include all relevant farm context instead of dropping sections due to narrow keyword matching.
 
-### 3. Add loading spinners to auth form buttons
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Submit buttons now show a spinning `Loader2` icon alongside the loading text ("Signing in..." / "Creating account...") instead of just changing the label. Gives clear visual feedback that the request is in flight.
-Map/dashboard impact: Users no longer double-click or wonder if the button worked. Smoother transition into the app.
+### 3. Stop sending filler text when farm has no goals
+File: `lib/ai/goals-context.ts`
+What changed: When a farm has no goals defined, `getGoalsForAIContext()` now returns an empty string instead of "No specific goals defined yet. The farmer has not set any specific objectives." The error handler also returns empty instead of "Error retrieving farmer goals."
+Map/dashboard impact: Removes ~15 tokens of noise from every AI prompt for farms without goals. Cleaner context means the AI focuses on the actual farm data rather than acknowledging missing data.
 
-### 4. Collapse GPS quick actions on dashboard hero card
-File: `components/dashboard/farm-hero-card.tsx`
-What changed: The 5 GPS action buttons (Plant by GPS, Drop Pin, Take Photo, Soil Test, Walk Zone) are now hidden behind a "Field tools" toggle. The primary CTAs ("Open Map Editor" and "Ask AI") get clear visual priority. GPS actions expand on click with a fade-in animation.
-Map/dashboard impact: Dashboard hero card is less visually overwhelming, especially for new users who haven't used GPS field tools yet. The two most important actions (map editor and AI) stand out immediately.
+### 4. Enhance text-chat system prompt with farm data interpretation guide
+File: `lib/ai/prompts.ts`
+What changed: Added a new "UNDERSTANDING FARM DATA" section to `GENERAL_PERMACULTURE_SYSTEM_PROMPT` that teaches the AI how to interpret zone types (zone_0 through zone_5, food_forest, etc.), read permaculture functions, use guild data to avoid duplicates, align with implementation phases, and match species to sun/water conditions. Also added instruction to use grid references when available.
+Map/dashboard impact: Text-only AI chat now gives site-specific advice that acknowledges the actual zones, plantings, and guilds on the farm rather than generic permaculture guidance. For example, the AI will check existing guilds before recommending redundant companions.
 
 ## Watch for
-- Register page currently redirects to `/canvas` after signup -- if a new user has no farms, they see the empty canvas state with a walkthrough. This works but could be improved by directing to `/farm/new` for a more guided first experience.
-- The register name placeholder was changed from "John Doe" to "Your name" for inclusivity.
-- Pre-existing TypeScript errors in admin pages and test files are unrelated to these changes.
+- Farms where `climate_zone` is null may still get no native species recommendations (the query requires a hardiness zone). A future improvement could derive region from lat/lng coordinates and use the `broad_regions` field for better regional matching.
+- The context compressor's expanded keywords could theoretically include more sections than needed for very specific queries, but the "include all for general queries" fallback already did this, so the token impact is minimal.
+- Species in the database that only have `broad_regions` but not `min_hardiness_zone`/`max_hardiness_zone` may still be missed by the native species query.

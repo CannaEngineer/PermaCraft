@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     let guildsResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let phasesResult: Awaited<ReturnType<typeof db.execute>> | null = null;
     let goalsContext = '';
-    let nativeSpeciesData: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }> = [];
+    let nativeSpeciesData: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number; sun_requirements?: string | null; water_requirements?: string | null }> = [];
     let ragContext = '';
 
     if (farmId) {
@@ -108,7 +108,8 @@ export async function POST(request: NextRequest) {
       if (farm.climate_zone) {
         const zoneNum = farm.climate_zone.replace(/[ab]/i, '');
         const nativeResult = await db.execute({
-          sql: `SELECT common_name, scientific_name, layer, mature_height_ft
+          sql: `SELECT common_name, scientific_name, layer, mature_height_ft,
+                       sun_requirements, water_requirements
                 FROM species
                 WHERE is_native = 1
                   AND (
@@ -126,6 +127,8 @@ export async function POST(request: NextRequest) {
             scientific_name: s.scientific_name as string,
             layer: s.layer as string,
             mature_height_ft: s.mature_height_ft as number,
+            sun_requirements: s.sun_requirements as string | null,
+            water_requirements: s.water_requirements as string | null,
           }));
         }
       }

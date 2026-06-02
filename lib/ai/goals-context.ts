@@ -20,7 +20,7 @@ export const getGoalsForAIContext = async (farmId: string): Promise<string> => {
     const goals = goalsResult.rows as unknown as FarmerGoal[];
 
     if (goals.length === 0) {
-      return 'No specific goals defined yet. The farmer has not set any specific objectives.';
+      return '';
     }
 
     const goalsList = goals.map(goal => {
@@ -65,6 +65,6 @@ timeline horizons (short, medium, or long-term).
     `.trim();
   } catch (error) {
     console.error("Error fetching goals for AI context:", error);
-    return 'Error retrieving farmer goals. Proceed with general permaculture recommendations.';
+    return '';
   }
 };
