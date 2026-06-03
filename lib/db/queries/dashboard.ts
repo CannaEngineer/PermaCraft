@@ -203,23 +203,25 @@ export async function getBatchRecentActivity(
       SELECT * FROM (
         SELECT 'planting' as type, p.id, p.farm_id,
           COALESCE(p.name, s.common_name, 'New planting') as title,
-          p.created_at
+          MAX(p.created_at, COALESCE(p.updated_at, p.created_at)) as created_at
         FROM plantings p
         LEFT JOIN species s ON s.id = p.species_id
         WHERE p.farm_id IN (${placeholders})
-        ORDER BY p.created_at DESC LIMIT ${perSubqueryLimit}
+        ORDER BY created_at DESC LIMIT ${perSubqueryLimit}
       )
       UNION ALL
       SELECT * FROM (
-        SELECT 'zone' as type, z.id, z.farm_id, COALESCE(z.name, z.zone_type, 'New zone') as title, z.created_at
+        SELECT 'zone' as type, z.id, z.farm_id, COALESCE(z.name, z.zone_type, 'New zone') as title,
+          MAX(z.created_at, COALESCE(z.updated_at, z.created_at)) as created_at
         FROM zones z WHERE z.farm_id IN (${placeholders})
-        ORDER BY z.created_at DESC LIMIT ${perSubqueryLimit}
+        ORDER BY created_at DESC LIMIT ${perSubqueryLimit}
       )
       UNION ALL
       SELECT * FROM (
-        SELECT 'line' as type, l.id, l.farm_id, COALESCE(l.label, l.line_type, 'New line') as title, l.created_at
+        SELECT 'line' as type, l.id, l.farm_id, COALESCE(l.label, l.line_type, 'New line') as title,
+          MAX(l.created_at, COALESCE(l.updated_at, l.created_at)) as created_at
         FROM lines l WHERE l.farm_id IN (${placeholders})
-        ORDER BY l.created_at DESC LIMIT ${perSubqueryLimit}
+        ORDER BY created_at DESC LIMIT ${perSubqueryLimit}
       )
       UNION ALL
       SELECT * FROM (
