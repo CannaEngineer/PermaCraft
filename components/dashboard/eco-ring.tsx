@@ -95,25 +95,31 @@ export function EcoRing({ score, functions, farmId }: Props) {
 
       {/* Suggestion */}
       {score < 75 && (() => {
-        const missing = Object.entries(functions)
+        const missingKeys = Object.entries(functions)
           .filter(([, v]) => v === 0)
-          .map(([k]) => FUNCTION_META[k]?.label.toLowerCase())
+          .map(([k]) => k);
+        const missingLabels = missingKeys
+          .map((k) => FUNCTION_META[k]?.label.toLowerCase())
           .filter(Boolean)
           .slice(0, 2);
-        const tipText = missing.length > 0
-          ? `Add ${missing.join(' and ')} to strengthen your ecosystem diversity.`
+        const tipText = missingLabels.length > 0
+          ? `Add ${missingLabels.join(' and ')} to strengthen your ecosystem diversity.`
           : 'Add plants with diverse permaculture functions to build a resilient ecosystem.';
+        const firstMissing = missingKeys[0];
+        const speciesHref = farmId
+          ? `/farm/${farmId}?tab=species${firstMissing ? `&function=${firstMissing}` : ''}`
+          : null;
         return (
           <div className="mt-4 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
             <p className="text-xs text-foreground/80 leading-relaxed">
               <span className="font-semibold">Tip:</span> {tipText}
             </p>
-            {farmId && (
+            {speciesHref && (
               <Link
-                href={`/farm/${farmId}?tab=species`}
+                href={speciesHref}
                 className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
               >
-                Browse species to plant
+                Browse {firstMissing ? FUNCTION_META[firstMissing]?.label.toLowerCase() + ' species' : 'species to plant'}
                 <span aria-hidden="true">&rarr;</span>
               </Link>
             )}

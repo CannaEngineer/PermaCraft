@@ -24,7 +24,7 @@ interface Props {
   ecoScore: number;
   ecoFunctions: Record<string, number>;
   seasonal: SeasonalContext;
-  onFarmUpdate?: (farmId: string, updates: { name?: string; acres?: number | null }) => void;
+  onFarmUpdate?: (farmId: string, updates: { name?: string; acres?: number | null; description?: string | null }) => void;
   onFarmDelete?: (farmId: string) => void;
 }
 
@@ -37,6 +37,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(farm.name);
   const [editAcres, setEditAcres] = useState(farm.acres?.toString() ?? '');
+  const [editDescription, setEditDescription] = useState(farm.description ?? '');
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showGPSActions, setShowGPSActions] = useState(false);
@@ -47,6 +48,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
     if (!trimmed || saving) return;
     setSaving(true);
     const acresNum = editAcres.trim() ? parseFloat(editAcres) : null;
+    const desc = editDescription.trim() || null;
     try {
       const res = await fetch(`/api/farms/${farm.id}`, {
         method: 'PATCH',
@@ -54,10 +56,11 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
         body: JSON.stringify({
           name: trimmed,
           acres: acresNum && acresNum > 0 ? acresNum : null,
+          description: desc,
         }),
       });
       if (res.ok) {
-        onFarmUpdate?.(farm.id, { name: trimmed, acres: acresNum && acresNum > 0 ? acresNum : null });
+        onFarmUpdate?.(farm.id, { name: trimmed, acres: acresNum && acresNum > 0 ? acresNum : null, description: desc });
         setEditing(false);
       }
     } finally {
@@ -68,6 +71,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
   function handleCancel() {
     setEditName(farm.name);
     setEditAcres(farm.acres?.toString() ?? '');
+    setEditDescription(farm.description ?? '');
     setEditing(false);
   }
 
@@ -116,6 +120,16 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                     className="w-full text-xl md:text-2xl font-bold tracking-tight bg-transparent border-b-2 border-primary outline-none"
                     disabled={saving}
                     autoFocus
+                  />
+                  <textarea
+                    value={editDescription}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditDescription(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Escape') handleCancel(); }}
+                    placeholder="Farm description (optional)"
+                    className="w-full text-sm bg-transparent border-b border-border outline-none placeholder:text-muted-foreground/50 resize-none leading-relaxed"
+                    rows={2}
+                    maxLength={2000}
+                    disabled={saving}
                   />
                   <div className="flex items-center gap-2">
                     <input

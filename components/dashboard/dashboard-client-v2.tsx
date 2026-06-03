@@ -51,7 +51,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
 
   const router = useRouter();
 
-  const handleFarmUpdate = useCallback((farmId: string, updates: { name?: string; acres?: number | null }) => {
+  const handleFarmUpdate = useCallback((farmId: string, updates: { name?: string; acres?: number | null; description?: string | null }) => {
     setLocalFarms((prev: DashboardFarm[]) =>
       prev.map((f: DashboardFarm) => f.id === farmId ? { ...f, ...updates } : f)
     );
@@ -63,18 +63,20 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
   }, []);
 
   const handleFarmDelete = useCallback((farmId: string) => {
-    setLocalFarms((prev: DashboardFarm[]) => prev.filter((f: DashboardFarm) => f.id !== farmId));
+    setLocalFarms((prev: DashboardFarm[]) => {
+      const remaining = prev.filter((f: DashboardFarm) => f.id !== farmId);
+      if (activeFarmId === farmId) {
+        setActiveFarmId(remaining[0]?.id ?? '');
+      }
+      return remaining;
+    });
     setLocalFarmData((prev: Record<string, DashboardFarmData>) => {
       const next = { ...prev };
       delete next[farmId];
       return next;
     });
-    if (activeFarmId === farmId) {
-      const remaining = localFarms.filter((f: DashboardFarm) => f.id !== farmId);
-      setActiveFarmId(remaining[0]?.id ?? '');
-    }
     router.refresh();
-  }, [activeFarmId, localFarms, router]);
+  }, [activeFarmId, router]);
 
   const active = localFarmData[activeFarmId];
 
