@@ -82,11 +82,13 @@ export function DeleteFarmDialog({
             </p>
             <p>This action will delete:</p>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>All zones and boundaries</li>
-              <li>All plantings</li>
+              <li>All zones, plantings, and lines</li>
+              <li>All design layers, phases, and annotations</li>
               <li>All AI conversations and analyses</li>
-              <li>All map screenshots</li>
-              <li>All collaborators</li>
+              <li>All tasks, crop plans, and harvest logs</li>
+              <li>All map screenshots and custom imagery</li>
+              <li>All posts, comments, tours, and story content</li>
+              <li>All shop products, collaborators, and followers</li>
             </ul>
             <p className="font-bold text-red-600">
               This action cannot be undone!

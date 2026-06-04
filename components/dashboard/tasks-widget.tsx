@@ -58,6 +58,8 @@ export function TasksWidget({ tasks, farmId }: Props) {
   const [localTasks, setLocalTasks] = useState(tasks);
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [newPriority, setNewPriority] = useState<number>(2);
+  const [newDueDate, setNewDueDate] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -86,15 +88,21 @@ export function TasksWidget({ tasks, farmId }: Props) {
     if (!title || isAdding) return;
     setIsAdding(true);
     try {
+      const payload: Record<string, unknown> = { title, priority: newPriority };
+      if (newDueDate) {
+        payload.due_date = Math.floor(new Date(newDueDate + 'T23:59:59').getTime() / 1000);
+      }
       const res = await fetch(`/api/farms/${farmId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, priority: 2 }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const { task } = await res.json();
         setLocalTasks((prev: Task[]) => [task, ...prev]);
         setNewTitle('');
+        setNewPriority(2);
+        setNewDueDate('');
         setShowAdd(false);
       }
     } finally {
@@ -168,7 +176,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
 
       {/* Add input */}
       {showAdd && (
-        <div className="flex items-center gap-2 mx-5 mb-3 rounded-xl border border-border bg-muted/30 px-3 py-2">
+        <div className="mx-5 mb-3 rounded-xl border border-border bg-muted/30 px-3 py-2.5 space-y-2">
           <input
             ref={inputRef}
             type="text"
@@ -179,19 +187,42 @@ export function TasksWidget({ tasks, farmId }: Props) {
               if (e.key === 'Escape') {
                 setShowAdd(false);
                 setNewTitle('');
+                setNewPriority(2);
+                setNewDueDate('');
               }
             }}
             placeholder="What needs doing?"
-            className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground/60 outline-none"
+            className="w-full bg-transparent text-sm placeholder:text-muted-foreground/60 outline-none"
             disabled={isAdding}
           />
-          <button
-            onClick={handleAdd}
-            disabled={!newTitle.trim() || isAdding}
-            className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-40 transition-colors"
-          >
-            Add
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={newPriority}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewPriority(Number(e.target.value))}
+              className="rounded-lg bg-background border border-border px-2 py-1 text-xs outline-none"
+              disabled={isAdding}
+            >
+              <option value={1}>Low</option>
+              <option value={2}>Normal</option>
+              <option value={3}>High</option>
+              <option value={4}>Urgent</option>
+            </select>
+            <input
+              type="date"
+              value={newDueDate}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewDueDate(e.target.value)}
+              className="rounded-lg bg-background border border-border px-2 py-1 text-xs outline-none"
+              disabled={isAdding}
+            />
+            <div className="flex-1" />
+            <button
+              onClick={handleAdd}
+              disabled={!newTitle.trim() || isAdding}
+              className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-40 transition-colors"
+            >
+              Add
+            </button>
+          </div>
         </div>
       )}
 

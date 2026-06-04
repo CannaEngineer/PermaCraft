@@ -1,27 +1,27 @@
-# PermaCraft -- 2026-06-01
-## Focus: UI/UX Polish (Sunday)
+# PermaCraft — 2026-06-04
+## Focus: Dashboard (Wednesday)
 
-### 1. Fix "I'm a Grower" landing nav link destination
-File: `components/shared/landing-nav.tsx`
-What changed: The "I'm a Grower" button now links to `/register` instead of `/login`. The "Farmer Login" link already handles returning users; "I'm a Grower" should onboard new ones.
-Map/dashboard impact: First-time growers clicking the CTA now land on the registration page instead of being confused by a login form with no account.
+### 1. Fix incomplete farm DELETE cascade
+File: `app/api/farms/[id]/route.ts`
+What changed: Added explicit DELETE statements for 17 missing tables (lines, tasks, design_layers, phases, comments, annotations, crop_plans, harvest_logs, farm_story_sections, story_entries, timeline_entries, farm_tours, shop_products, farm_posts, custom_imagery, farm_follows, collection_items). Also updated the delete confirmation dialog to list all affected data types.
+Map/dashboard impact: Deleting a farm no longer leaves orphaned records in related tables. Previously, only 6 of 23 farm-linked tables were cleaned up.
 
-### 2. Add password visibility toggles to auth pages
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Added eye/eye-off toggle buttons inside the password input fields so users can reveal what they typed. Uses `tabIndex={-1}` to keep Tab focus on the input, not the toggle.
-Map/dashboard impact: Reduces failed login attempts from typos, especially on mobile where password entry is error-prone. Faster path from landing to the map editor.
+### 2. Task quick-add with priority and due date
+File: `components/dashboard/tasks-widget.tsx`
+What changed: The inline task creation form now includes a priority selector (Low/Normal/High/Urgent) and a date picker for due dates. Previously hardcoded to priority 2 with no due date.
+Map/dashboard impact: Designers can create properly prioritized and scheduled tasks directly from the dashboard without opening the farm editor.
 
-### 3. Add loading spinners to auth form buttons
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Submit buttons now show a spinning `Loader2` icon alongside the loading text ("Signing in..." / "Creating account...") instead of just changing the label. Gives clear visual feedback that the request is in flight.
-Map/dashboard impact: Users no longer double-click or wonder if the button worked. Smoother transition into the app.
-
-### 4. Collapse GPS quick actions on dashboard hero card
+### 3. Farm hero card edit UX improvements
 File: `components/dashboard/farm-hero-card.tsx`
-What changed: The 5 GPS action buttons (Plant by GPS, Drop Pin, Take Photo, Soil Test, Walk Zone) are now hidden behind a "Field tools" toggle. The primary CTAs ("Open Map Editor" and "Ask AI") get clear visual priority. GPS actions expand on click with a fade-in animation.
-Map/dashboard impact: Dashboard hero card is less visually overwhelming, especially for new users who haven't used GPS field tools yet. The two most important actions (map editor and AI) stand out immediately.
+What changed: Enlarged save/cancel/delete buttons from 26px to ~36px touch targets (rounded-xl px-3 py-2 with h-4 w-4 icons). Added client-side acres validation, error state display on save failure, and network error handling.
+Map/dashboard impact: Edit mode is now usable on mobile devices. Save failures show a clear error message instead of silently failing.
+
+### 4. Activity timeline date formatting
+File: `components/dashboard/activity-timeline.tsx`
+What changed: Today's activity shows relative time ("2 hours ago"), while older activity shows calendar dates ("Jun 2"). Full datetime is available on hover via title attribute.
+Map/dashboard impact: Designers can distinguish between activities across different days without mental math on relative timestamps like "3 days ago" vs "4 days ago".
 
 ## Watch for
-- Register page currently redirects to `/canvas` after signup -- if a new user has no farms, they see the empty canvas state with a walkthrough. This works but could be improved by directing to `/farm/new` for a more guided first experience.
-- The register name placeholder was changed from "John Doe" to "Your name" for inclusivity.
-- Pre-existing TypeScript errors in admin pages and test files are unrelated to these changes.
+- SQLite foreign keys are never enabled via PRAGMA. The explicit batch delete is the only protection. If new tables with farm_id are added in future migrations, the delete cascade in `app/api/farms/[id]/route.ts` must be updated manually.
+- The `farm_journal_entries` table (in `migrations/002_farm_journal.sql`, separate from `lib/db/migrations/`) was not added to the cascade since it appears to be from an older migration path. Monitor if it's actively used.
+- The delete dialog lists "shop products" but shop_orders (which reference farm_id) are not deleted — orders should likely be preserved for financial records. If this is wrong, add them to the cascade.
