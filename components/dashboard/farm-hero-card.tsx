@@ -38,6 +38,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
   const [editName, setEditName] = useState(farm.name);
   const [editAcres, setEditAcres] = useState(farm.acres?.toString() ?? '');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showGPSActions, setShowGPSActions] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -46,20 +47,31 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
     const trimmed = editName.trim();
     if (!trimmed || saving) return;
     setSaving(true);
+    setSaveError(null);
     const acresNum = editAcres.trim() ? parseFloat(editAcres) : null;
+    if (acresNum !== null && (isNaN(acresNum) || acresNum <= 0)) {
+      setSaveError('Acres must be a positive number');
+      setSaving(false);
+      return;
+    }
     try {
       const res = await fetch(`/api/farms/${farm.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: trimmed,
-          acres: acresNum && acresNum > 0 ? acresNum : null,
+          acres: acresNum,
         }),
       });
       if (res.ok) {
-        onFarmUpdate?.(farm.id, { name: trimmed, acres: acresNum && acresNum > 0 ? acresNum : null });
+        onFarmUpdate?.(farm.id, { name: trimmed, acres: acresNum });
         setEditing(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || 'Failed to save changes');
       }
+    } catch {
+      setSaveError('Network error — check your connection');
     } finally {
       setSaving(false);
     }
@@ -68,6 +80,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
   function handleCancel() {
     setEditName(farm.name);
     setEditAcres(farm.acres?.toString() ?? '');
+    setSaveError(null);
     setEditing(false);
   }
 
@@ -130,12 +143,15 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                       disabled={saving}
                     />
                     <span className="text-sm text-muted-foreground">acres</span>
-                    <div className="flex gap-1 ml-auto">
-                      <button onClick={handleSave} disabled={!editName.trim() || saving} className="rounded-lg bg-primary p-1.5 text-primary-foreground disabled:opacity-40" title="Save"><Check className="h-3.5 w-3.5" /></button>
-                      <button onClick={handleCancel} className="rounded-lg bg-muted p-1.5 text-muted-foreground hover:text-foreground" title="Cancel"><X className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => { handleCancel(); setShowDeleteDialog(true); }} className="rounded-lg bg-red-500/10 p-1.5 text-red-600 dark:text-red-400 hover:bg-red-500/20" title="Delete farm"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <div className="flex gap-1.5 ml-auto">
+                      <button onClick={handleSave} disabled={!editName.trim() || saving} className="rounded-xl bg-primary px-3 py-2 text-primary-foreground disabled:opacity-40 transition-colors" title="Save"><Check className="h-4 w-4" /></button>
+                      <button onClick={handleCancel} className="rounded-xl bg-muted px-3 py-2 text-muted-foreground hover:text-foreground transition-colors" title="Cancel"><X className="h-4 w-4" /></button>
+                      <button onClick={() => { handleCancel(); setShowDeleteDialog(true); }} className="rounded-xl bg-red-500/10 px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors" title="Delete farm"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </div>
+                  {saveError && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{saveError}</p>
+                  )}
                 </div>
               ) : (
                 <div className="flex-1">

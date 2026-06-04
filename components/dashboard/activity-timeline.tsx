@@ -1,6 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
-import { formatDistanceToNow, isToday, isThisWeek } from 'date-fns';
+import { formatDistanceToNow, isToday, isThisWeek, format } from 'date-fns';
 import { Bot, Sprout, MapPin, FileText, CheckSquare, ArrowRight, Spline } from 'lucide-react';
 import Link from 'next/link';
 
@@ -126,8 +126,13 @@ export function ActivityTimeline({ items, farmId }: Props) {
                         {item.title || 'Untitled'}
                       </p>
                     </div>
-                    <span className="flex-shrink-0 text-xs text-muted-foreground/70">
-                      {formatDistanceToNow(new Date(item.created_at * 1000), { addSuffix: true })}
+                    <span
+                      className="flex-shrink-0 text-xs text-muted-foreground/70"
+                      title={format(new Date(item.created_at * 1000), 'MMM d, yyyy h:mm a')}
+                    >
+                      {isToday(new Date(item.created_at * 1000))
+                        ? formatDistanceToNow(new Date(item.created_at * 1000), { addSuffix: true })
+                        : format(new Date(item.created_at * 1000), 'MMM d')}
                     </span>
                   </>
                 );
