@@ -1,27 +1,27 @@
-# PermaCraft -- 2026-06-01
-## Focus: UI/UX Polish (Sunday)
+# PermaCraft -- 2026-06-05
+## Focus: Map Core (Thursday)
 
-### 1. Fix "I'm a Grower" landing nav link destination
-File: `components/shared/landing-nav.tsx`
-What changed: The "I'm a Grower" button now links to `/register` instead of `/login`. The "Farmer Login" link already handles returning users; "I'm a Grower" should onboard new ones.
-Map/dashboard impact: First-time growers clicking the CTA now land on the registration page instead of being confused by a login form with no account.
+### 1. Fix circle tool in immersive editor drawing polygons instead of circles
+File: `components/map/farm-map.tsx`
+What changed: The external draw tool handler now properly activates `circleMode` state when `externalDrawTool === 'circle'`, routing clicks to the two-click center→edge circle creation flow instead of entering MapboxDraw's polygon mode.
+Map/dashboard impact: Users clicking the "Circle" button in the immersive editor now actually draw circles. Previously they got regular polygons, defeating the purpose of the tool.
 
-### 2. Add password visibility toggles to auth pages
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Added eye/eye-off toggle buttons inside the password input fields so users can reveal what they typed. Uses `tabIndex={-1}` to keep Tab focus on the input, not the toggle.
-Map/dashboard impact: Reduces failed login attempts from typos, especially on mobile where password entry is error-prone. Faster path from landing to the map editor.
+### 2. Snap circle zone vertices to grid at zoom 20+
+File: `components/map/farm-map.tsx`
+What changed: Circle polygon vertices are now run through `snapCoordinate` before being added to the draw store. Circles were previously the only geometry type that bypassed the snap-to-grid system because they don't go through the `draw.create` event handler.
+Map/dashboard impact: At precision zoom levels (20+), circles snap to grid intersections like all other geometry, maintaining consistent alignment across the design.
 
-### 3. Add loading spinners to auth form buttons
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Submit buttons now show a spinning `Loader2` icon alongside the loading text ("Signing in..." / "Creating account...") instead of just changing the label. Gives clear visual feedback that the request is in flight.
-Map/dashboard impact: Users no longer double-click or wonder if the button worked. Smoother transition into the app.
+### 3. Add MultiPolygon and MultiLineString support to farm bounds calculation
+File: `components/map/farm-map.tsx`
+What changed: `getFarmBounds()` now iterates MultiPolygon and MultiLineString coordinates when computing the bounding box used for grid placement. Previously these geometry types were silently skipped.
+Map/dashboard impact: Farms with MultiPolygon zones (valid per the API schema) now get correct grid positioning instead of falling back to the viewport bounds.
 
-### 4. Collapse GPS quick actions on dashboard hero card
-File: `components/dashboard/farm-hero-card.tsx`
-What changed: The 5 GPS action buttons (Plant by GPS, Drop Pin, Take Photo, Soil Test, Walk Zone) are now hidden behind a "Field tools" toggle. The primary CTAs ("Open Map Editor" and "Ask AI") get clear visual priority. GPS actions expand on click with a fade-in animation.
-Map/dashboard impact: Dashboard hero card is less visually overwhelming, especially for new users who haven't used GPS field tools yet. The two most important actions (map editor and AI) stand out immediately.
+### 4. Increase grid viewport clipping buffer to prevent flicker during fast pans
+File: `lib/map/measurement-grid.ts`
+What changed: Grid line clipping buffer around the viewport increased from 1× to 3× grid step. This pre-generates lines beyond the visible edge so they're already rendered when the viewport moves.
+Map/dashboard impact: Grid lines no longer visibly pop in at the screen edges during fast map pans. The grid feels stable and anchored.
 
 ## Watch for
-- Register page currently redirects to `/canvas` after signup -- if a new user has no farms, they see the empty canvas state with a walkthrough. This works but could be improved by directing to `/farm/new` for a more guided first experience.
-- The register name placeholder was changed from "John Doe" to "Your name" for inclusivity.
-- Pre-existing TypeScript errors in admin pages and test files are unrelated to these changes.
+- Circle mode state cleanup: if the user switches from circle tool to another tool and back rapidly, verify `circleCenter` resets correctly (the code clears it on tool change, but rapid switching could theoretically race).
+- MultiPolygon in farm boundary: `getFarmBounds` only handles `Polygon` type for the farm boundary specifically (line 2926). If someone ever creates a MultiPolygon farm boundary, it would fall through to the general bounds calculation, which now handles it — but the farm boundary code path itself doesn't. Low risk since farm boundaries are always simple polygons.
+- Grid buffer performance: the 3× buffer generates more grid lines per frame. For very large farms at low zoom, this could increase line count. The existing 250-line cap per axis prevents runaway generation.

@@ -2492,6 +2492,32 @@ export function FarmMap({
         // Create circle polygon with the current zone type
         const circle = createCirclePolygon(center, radius);
         circle.properties = { user_zone_type: zoneTypeRef.current };
+
+        // Snap circle vertices to grid at zoom 20+ (circles bypass draw.create)
+        if (map.current && snapToGridEnabledRef.current) {
+          const circleZoom = map.current.getZoom();
+          if (circleZoom >= 20) {
+            const spacing = getGridSpacingDegrees(
+              gridUnitRef.current,
+              gridSubdivisionRef.current,
+              farm.center_lat
+            );
+            const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const ring = circle.geometry.coordinates[0];
+            let snapped = false;
+            for (let i = 0; i < ring.length; i++) {
+              const result = snapCoordinate(map.current, ring[i][0], ring[i][1], spacing, circleZoom, true, isTouch);
+              if (result.snapped) {
+                ring[i] = [result.lng, result.lat];
+                snapped = true;
+              }
+            }
+            if (snapped && ring.length >= 2) {
+              ring[ring.length - 1] = [...ring[0]];
+            }
+          }
+        }
+
         const addedIds = draw.current.add(circle);
         const circleFeatureId = addedIds?.[0];
 
@@ -2912,27 +2938,29 @@ export function FarmMap({
     } else if (allFeatures.features.length > 0) {
       let north = -Infinity, south = Infinity, east = -Infinity, west = Infinity;
 
+      const extendBounds = (lng: number, lat: number) => {
+        if (lat > north) north = lat;
+        if (lat < south) south = lat;
+        if (lng > east) east = lng;
+        if (lng < west) west = lng;
+      };
+
       allFeatures.features.forEach((f: any) => {
         if (f.geometry.type === "Polygon") {
           const coords = f.geometry.coordinates[0];
-          coords.forEach(([lng, lat]: [number, number]) => {
-            if (lat > north) north = lat;
-            if (lat < south) south = lat;
-            if (lng > east) east = lng;
-            if (lng < west) west = lng;
+          coords.forEach(([lng, lat]: [number, number]) => extendBounds(lng, lat));
+        } else if (f.geometry.type === "MultiPolygon") {
+          f.geometry.coordinates.forEach((poly: any) => {
+            poly[0].forEach((coord: any) => extendBounds(coord[0], coord[1]));
           });
         } else if (f.geometry.type === "Point") {
           const [lng, lat] = f.geometry.coordinates;
-          if (lat > north) north = lat;
-          if (lat < south) south = lat;
-          if (lng > east) east = lng;
-          if (lng < west) west = lng;
+          extendBounds(lng, lat);
         } else if (f.geometry.type === "LineString") {
-          f.geometry.coordinates.forEach(([lng, lat]: [number, number]) => {
-            if (lat > north) north = lat;
-            if (lat < south) south = lat;
-            if (lng > east) east = lng;
-            if (lng < west) west = lng;
+          f.geometry.coordinates.forEach(([lng, lat]: [number, number]) => extendBounds(lng, lat));
+        } else if (f.geometry.type === "MultiLineString") {
+          f.geometry.coordinates.forEach((line: any) => {
+            line.forEach((coord: any) => extendBounds(coord[0], coord[1]));
           });
         }
       });
@@ -3123,25 +3151,49 @@ export function FarmMap({
     prevExternalDrawingModeRef.current = externalDrawingMode;
 
     if (externalDrawingMode && externalDrawTool) {
-      // Map tool names to MapboxDraw modes
-      const modeMap: Record<string, string> = {
-        'polygon': 'draw_polygon',
-        'circle': 'draw_polygon', // We'll handle circle with custom logic
-        'point': 'draw_point',
-        'line': 'draw_line_string',
-        'edit': 'direct_select',
-        'delete': 'simple_select',
-      };
-
-      const mode = modeMap[externalDrawTool];
-      if (mode && drawMode !== mode) {
+      // Circle tool uses a custom two-click flow (center → edge) rather than
+      // MapboxDraw modes. Activate circleMode state and put draw in
+      // simple_select so map clicks route to the circle handler.
+      if (externalDrawTool === 'circle') {
+        if (!circleMode) {
+          setCircleMode(true);
+          setCircleCenter(null);
+        }
         try {
-          draw.current.changeMode(mode as any);
+          draw.current.changeMode('simple_select');
         } catch (e) {
-          console.error('Failed to change draw mode:', e);
+          console.error('Failed to enter simple_select for circle mode:', e);
+        }
+      } else {
+        // Deactivate circle mode when switching to any non-circle tool
+        if (circleMode) {
+          setCircleMode(false);
+          setCircleCenter(null);
+        }
+
+        const modeMap: Record<string, string> = {
+          'polygon': 'draw_polygon',
+          'point': 'draw_point',
+          'line': 'draw_line_string',
+          'edit': 'direct_select',
+          'delete': 'simple_select',
+        };
+
+        const mode = modeMap[externalDrawTool];
+        if (mode && drawMode !== mode) {
+          try {
+            draw.current.changeMode(mode as any);
+          } catch (e) {
+            console.error('Failed to change draw mode:', e);
+          }
         }
       }
     } else if (!externalDrawingMode && wasDrawing) {
+      // Deactivate circle mode when exiting drawing
+      if (circleMode) {
+        setCircleMode(false);
+        setCircleCenter(null);
+      }
       // Transitioning from drawing → idle: force deselect all features so next click
       // triggers feature selection instead of re-editing the last drawn feature.
       // We must deselect even if already in simple_select, because MapboxDraw may
