@@ -2950,8 +2950,8 @@ export function FarmMap({
           const coords = f.geometry.coordinates[0];
           coords.forEach(([lng, lat]: [number, number]) => extendBounds(lng, lat));
         } else if (f.geometry.type === "MultiPolygon") {
-          f.geometry.coordinates.forEach((poly: number[][][]) => {
-            poly[0].forEach(([lng, lat]: [number, number]) => extendBounds(lng, lat));
+          f.geometry.coordinates.forEach((poly: any) => {
+            poly[0].forEach((coord: any) => extendBounds(coord[0], coord[1]));
           });
         } else if (f.geometry.type === "Point") {
           const [lng, lat] = f.geometry.coordinates;
@@ -2959,8 +2959,8 @@ export function FarmMap({
         } else if (f.geometry.type === "LineString") {
           f.geometry.coordinates.forEach(([lng, lat]: [number, number]) => extendBounds(lng, lat));
         } else if (f.geometry.type === "MultiLineString") {
-          f.geometry.coordinates.forEach((line: number[][]) => {
-            line.forEach(([lng, lat]: [number, number]) => extendBounds(lng, lat));
+          f.geometry.coordinates.forEach((line: any) => {
+            line.forEach((coord: any) => extendBounds(coord[0], coord[1]));
           });
         }
       });
