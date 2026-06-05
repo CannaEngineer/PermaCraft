@@ -157,10 +157,13 @@ export function generateGridLines(
   // When a viewport is provided, only generate lines that intersect it.
   // Lines still span the full farm width/height so they don't visually
   // clip at viewport edges, but we skip lines entirely outside the view.
-  const clipNorth = viewport ? Math.min(viewport.north + latStep, farmNorth) : farmNorth;
-  const clipSouth = viewport ? Math.max(viewport.south - latStep, farmSouth) : farmSouth;
-  const clipEast = viewport ? Math.min(viewport.east + lngStep, farmEast) : farmEast;
-  const clipWest = viewport ? Math.max(viewport.west - lngStep, farmWest) : farmWest;
+  // Use 3× step buffer so lines are pre-generated beyond the visible edge,
+  // preventing flicker during fast pans (moveend fires after pan settles).
+  const vpBuffer = 3;
+  const clipNorth = viewport ? Math.min(viewport.north + latStep * vpBuffer, farmNorth) : farmNorth;
+  const clipSouth = viewport ? Math.max(viewport.south - latStep * vpBuffer, farmSouth) : farmSouth;
+  const clipEast = viewport ? Math.min(viewport.east + lngStep * vpBuffer, farmEast) : farmEast;
+  const clipWest = viewport ? Math.max(viewport.west - lngStep * vpBuffer, farmWest) : farmWest;
 
   const lines: Feature<LineString>[] = [];
   const labels: Feature<Point>[] = [];
