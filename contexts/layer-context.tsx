@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { DesignLayer, getLayerOrder } from '@/lib/layers/layer-types';
 
 interface LayerContextValue {
@@ -40,6 +40,8 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
   const [visibleLayers, setVisibleLayers] = useState<Set<string>>(new Set());
   const [lockedLayers, setLockedLayers] = useState<Set<string>>(new Set());
   const [activeLayer, setActiveLayerState] = useState<string | null>(null);
+  const activeLayerRef = useRef(activeLayer);
+  activeLayerRef.current = activeLayer;
 
   // Load layers from API
   const refreshLayers = useCallback(async () => {
@@ -65,8 +67,7 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
       setVisibleLayers(visible);
       setLockedLayers(locked);
 
-      // Set first visible, unlocked layer as active if no active layer set
-      if (!activeLayer && data.layers.length > 0) {
+      if (!activeLayerRef.current && data.layers.length > 0) {
         const firstEditable = data.layers.find(
           (l: DesignLayer) => l.visible && !l.locked
         );
@@ -77,71 +78,77 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
     } catch (error) {
       console.error('Failed to load layers:', error);
     }
-  }, [farmId, activeLayer]);
+  }, [farmId]);
 
   useEffect(() => {
     refreshLayers();
   }, [refreshLayers]);
 
-  // Toggle visibility
+  // Toggle visibility — optimistic update, no re-fetch
   const toggleLayerVisibility = useCallback(async (layerId: string) => {
     const layer = layers.find(l => l.id === layerId);
     if (!layer) return;
 
-    const newVisible = !layer.visible;
+    const newVisible = layer.visible ? 0 : 1;
+
+    // Optimistic: update local state immediately
+    setLayers(prev => prev.map(l => l.id === layerId ? { ...l, visible: newVisible } : l));
+    setVisibleLayers(prev => {
+      const next = new Set(prev);
+      if (newVisible) next.add(layerId); else next.delete(layerId);
+      return next;
+    });
 
     try {
       await fetch(`/api/farms/${farmId}/layers/${layerId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visible: newVisible ? 1 : 0 })
+        body: JSON.stringify({ visible: newVisible })
       });
-
+    } catch (error) {
+      const revert = newVisible ? 0 : 1;
+      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, visible: revert } : l));
       setVisibleLayers(prev => {
         const next = new Set(prev);
-        if (newVisible) {
-          next.add(layerId);
-        } else {
-          next.delete(layerId);
-        }
+        if (revert) next.add(layerId); else next.delete(layerId);
         return next;
       });
-
-      await refreshLayers();
-    } catch (error) {
       console.error('Failed to toggle visibility:', error);
     }
-  }, [farmId, layers, refreshLayers]);
+  }, [farmId, layers]);
 
-  // Toggle lock
+  // Toggle lock — optimistic update, no re-fetch
   const toggleLayerLock = useCallback(async (layerId: string) => {
     const layer = layers.find(l => l.id === layerId);
     if (!layer) return;
 
-    const newLocked = !layer.locked;
+    const newLocked = layer.locked ? 0 : 1;
+
+    // Optimistic: update local state immediately
+    setLayers(prev => prev.map(l => l.id === layerId ? { ...l, locked: newLocked } : l));
+    setLockedLayers(prev => {
+      const next = new Set(prev);
+      if (newLocked) next.add(layerId); else next.delete(layerId);
+      return next;
+    });
 
     try {
       await fetch(`/api/farms/${farmId}/layers/${layerId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locked: newLocked ? 1 : 0 })
+        body: JSON.stringify({ locked: newLocked })
       });
-
+    } catch (error) {
+      const revert = newLocked ? 0 : 1;
+      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, locked: revert } : l));
       setLockedLayers(prev => {
         const next = new Set(prev);
-        if (newLocked) {
-          next.add(layerId);
-        } else {
-          next.delete(layerId);
-        }
+        if (revert) next.add(layerId); else next.delete(layerId);
         return next;
       });
-
-      await refreshLayers();
-    } catch (error) {
       console.error('Failed to toggle lock:', error);
     }
-  }, [farmId, layers, refreshLayers]);
+  }, [farmId, layers]);
 
   // Reorder layers
   const reorderLayers = useCallback(async (layerId: string, newOrder: number) => {
