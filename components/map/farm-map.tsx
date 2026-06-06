@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Farm, Zone } from "@/lib/db/schema";
@@ -520,6 +520,35 @@ export function FarmMap({
   // Quantized zoom for PlantingMarker: rounds to 0.5 increments so small zoom
   // changes during pinch/scroll don't trigger re-render of every marker.
   const quantizedZoom = Math.round(currentZoom * 2) / 2;
+
+  // Viewport bounds for planting marker culling — only render markers visible
+  // on screen (plus a margin) to avoid thousands of DOM nodes on large farms.
+  const [viewportBounds, setViewportBounds] = useState<{
+    north: number; south: number; east: number; west: number;
+  } | null>(null);
+  const viewportBoundsRef = useRef(viewportBounds);
+  viewportBoundsRef.current = viewportBounds;
+
+  const updateViewportBounds = useCallback(() => {
+    if (!map.current) return;
+    const bounds = map.current.getBounds();
+    const latMargin = (bounds.getNorth() - bounds.getSouth()) * 0.2;
+    const lngMargin = (bounds.getEast() - bounds.getWest()) * 0.2;
+    setViewportBounds({
+      north: bounds.getNorth() + latMargin,
+      south: bounds.getSouth() - latMargin,
+      east: bounds.getEast() + lngMargin,
+      west: bounds.getWest() - lngMargin,
+    });
+  }, []);
+
+  const visiblePlantings = useMemo(() => {
+    if (!viewportBounds) return plantings;
+    return plantings.filter(p =>
+      p.lat >= viewportBounds.south && p.lat <= viewportBounds.north &&
+      p.lng >= viewportBounds.west && p.lng <= viewportBounds.east
+    );
+  }, [plantings, viewportBounds]);
 
   // Stable callback for planting marker clicks — avoids creating a new closure
   // per render which would defeat React.memo on PlantingMarker.
@@ -1902,6 +1931,8 @@ export function FarmMap({
 
         mapLoadedRef.current = true;
 
+        updateViewportBounds();
+
         if (onMapReady) {
           onMapReady(map.current);
         }
@@ -2173,7 +2204,10 @@ export function FarmMap({
       // moveend fires after both pans and zooms, so a single listener is sufficient.
       // Wrapped in an arrow so it always calls the latest updateGrid via ref
       // (the useCallback changes when gridUnit/gridDensity/gridSubdivision change).
-      map.current.on("moveend", () => updateGridRef.current?.());
+      map.current.on("moveend", () => {
+        updateGridRef.current?.();
+        updateViewportBounds();
+      });
 
       // Update compass bearing when map rotates
       map.current.on("rotate", () => {
@@ -3537,8 +3571,8 @@ export function FarmMap({
         mapRef={map}
       />}
 
-      {/* Render planting markers */}
-      {map.current && plantings.map(planting => (
+      {/* Render planting markers — only those within the viewport + margin */}
+      {map.current && visiblePlantings.map(planting => (
         <PlantingMarker
           key={planting.id}
           planting={planting}

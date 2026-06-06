@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode, type MutableRefObject } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, type ReactNode, type MutableRefObject } from 'react';
 import type { Farm } from '@/lib/db/schema';
 import type maplibregl from 'maplibre-gl';
 
@@ -131,7 +131,7 @@ export function UnifiedCanvasProvider({ children, initialFarms }: UnifiedCanvasP
     setPanelStack([]);
   }, []);
 
-  const value: UnifiedCanvasState = {
+  const value = useMemo<UnifiedCanvasState>(() => ({
     activeSection,
     setActiveSection,
     farms,
@@ -149,7 +149,12 @@ export function UnifiedCanvasProvider({ children, initialFarms }: UnifiedCanvasP
     setCaptureScreenshot,
     pendingAIMessage,
     setPendingAIMessage,
-  };
+  }), [
+    activeSection, setActiveSection, farms, activeFarmId, activeFarm,
+    setActiveFarmId, contextPanelOpen, panelStack, pushPanel, popPanel,
+    clearPanelStack, captureScreenshot, setCaptureScreenshot,
+    pendingAIMessage,
+  ]);
 
   return (
     <UnifiedCanvasContext.Provider value={value}>

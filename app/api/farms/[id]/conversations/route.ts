@@ -25,38 +25,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return Response.json({ error: "Farm not found" }, { status: 404 });
     }
 
-    // Get farm-specific conversations (farm_id filter is sufficient)
+    // Single query: join conversations with their first message for preview
     const conversationsResult = await db.execute({
-      sql: `SELECT id, title, created_at, updated_at
-            FROM ai_conversations
-            WHERE farm_id = ?
-            ORDER BY updated_at DESC
+      sql: `SELECT c.id, c.title, c.created_at, c.updated_at,
+                   SUBSTR(first_msg.user_query, 1, 100) AS preview
+            FROM ai_conversations c
+            LEFT JOIN (
+              SELECT conversation_id, user_query,
+                     ROW_NUMBER() OVER (PARTITION BY conversation_id ORDER BY created_at ASC) AS rn
+              FROM ai_analyses
+            ) first_msg ON first_msg.conversation_id = c.id AND first_msg.rn = 1
+            WHERE c.farm_id = ?
+            ORDER BY c.updated_at DESC
             LIMIT 50`,
       args: [farmId],
     });
 
-    // Get first message from each conversation for preview
-    const conversations = await Promise.all(
-      conversationsResult.rows.map(async (conv: any) => {
-        const messagesResult = await db.execute({
-          sql: `SELECT user_query FROM ai_analyses
-                WHERE conversation_id = ?
-                ORDER BY created_at ASC
-                LIMIT 1`,
-          args: [conv.id],
-        });
-
-        const firstMessage = messagesResult.rows[0] as any;
-
-        return {
-          id: conv.id,
-          title: conv.title,
-          created_at: conv.created_at,
-          updated_at: conv.updated_at,
-          preview: firstMessage?.user_query?.substring(0, 100) || 'No messages',
-        };
-      })
-    );
+    const conversations = conversationsResult.rows.map((conv: any) => ({
+      id: conv.id,
+      title: conv.title,
+      created_at: conv.created_at,
+      updated_at: conv.updated_at,
+      preview: conv.preview || 'No messages',
+    }));
 
     return Response.json({ conversations });
   } catch (error) {
