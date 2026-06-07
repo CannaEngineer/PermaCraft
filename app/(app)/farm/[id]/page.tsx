@@ -15,22 +15,15 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const { refresh } = await searchParams;
 
-  // If authenticated, check if owner
-  if (session?.user?.id) {
-    const ownerResult = await db.execute({
-      sql: "SELECT id FROM farms WHERE id = ? AND user_id = ?",
-      args: [id, session.user.id],
-    });
-
-    if (ownerResult.rows.length > 0) {
-      redirect(`/canvas?farm=${id}&section=farm`);
-    }
-  }
-
-  // Fetch as public farm
+  // Single query: check ownership and fetch farm data in one round-trip.
+  // Returns the farm if the user owns it OR it's public, distinguishing via is_owner flag.
+  const userId = session?.user?.id || null;
   const farmResult = await db.execute({
-    sql: "SELECT * FROM farms WHERE id = ? AND is_public = 1",
-    args: [id],
+    sql: `SELECT f.*,
+                 CASE WHEN f.user_id = ? THEN 1 ELSE 0 END as is_owner
+          FROM farms f
+          WHERE f.id = ? AND (f.user_id = ? OR f.is_public = 1)`,
+    args: [userId, id, userId],
   });
 
   const farmRow = farmResult.rows[0] as any;
@@ -38,7 +31,10 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     notFound();
   }
 
-  // Convert to plain object for client component
+  if (farmRow.is_owner === 1) {
+    redirect(`/canvas?farm=${id}&section=farm`);
+  }
+
   const farm: Farm = {
     id: farmRow.id,
     user_id: farmRow.user_id,
@@ -56,36 +52,7 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     updated_at: farmRow.updated_at,
   };
 
-  // Security note: Private farms are already restricted at this point
-  // The SQL query above only fetches public farms (is_public = 1) for non-owners
-  // This means private farms automatically return notFound() for visitors
-
-  // Get farm owner information
-  const ownerResult = await db.execute({
-    sql: "SELECT name, image FROM users WHERE id = ?",
-    args: [farm.user_id],
-  });
-
-  const ownerRow = ownerResult.rows[0] as any;
-  if (!ownerRow) {
-    notFound(); // Farm has no valid owner
-  }
-
-  const farmOwner = {
-    name: ownerRow.name as string,
-    image: ownerRow.image as string | null,
-  };
-
-  // Get zones
-  const zonesResult = await db.execute({
-    sql: "SELECT * FROM zones WHERE farm_id = ? ORDER BY created_at ASC",
-    args: [id],
-  });
-
-  const zones = zonesResult.rows as unknown as Zone[];
-
-  // Get feed posts
-  const userId = session?.user?.id || null;
+  // Parallel fetch: owner info, zones, feed posts, screenshot, and tours
   const feedArgs: any[] = userId ? [userId, id] : [id];
   const feedSql = userId
     ? `SELECT p.*,
@@ -111,17 +78,46 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
       WHERE p.farm_id = ? AND p.is_published = 1
       ORDER BY p.created_at DESC
       LIMIT 21`;
-  const feedResult = await db.execute({ sql: feedSql, args: feedArgs });
+
+  const [ownerResult2, zonesResult, feedResult, screenshotResult, toursResult] = await Promise.all([
+    db.execute({ sql: "SELECT name, image FROM users WHERE id = ?", args: [farm.user_id] }),
+    db.execute({ sql: "SELECT * FROM zones WHERE farm_id = ? ORDER BY created_at ASC", args: [id] }),
+    db.execute({ sql: feedSql, args: feedArgs }),
+    db.execute({
+      sql: `SELECT screenshot_data FROM ai_analyses
+            WHERE farm_id = ? AND screenshot_data IS NOT NULL
+            ORDER BY created_at DESC LIMIT 1`,
+      args: [id],
+    }),
+    db.execute({
+      sql: `SELECT t.id, t.title, t.share_slug, t.estimated_duration_minutes,
+                   (SELECT COUNT(*) FROM tour_stops WHERE tour_id = t.id) as stop_count
+            FROM farm_tours t
+            WHERE t.farm_id = ? AND t.status = 'published' AND t.access_type != 'password'
+            ORDER BY t.updated_at DESC`,
+      args: [id],
+    }),
+  ]);
+
+  const ownerRow = ownerResult2.rows[0] as any;
+  if (!ownerRow) {
+    notFound();
+  }
+
+  const farmOwner = {
+    name: ownerRow.name as string,
+    image: ownerRow.image as string | null,
+  };
+
+  const zones = zonesResult.rows as unknown as Zone[];
 
   const posts = feedResult.rows.map((post: any) => {
-    // Parse ai_screenshot JSON array and get first URL
     let aiScreenshot = null;
     if (post.ai_screenshot) {
       try {
         const urls = JSON.parse(post.ai_screenshot);
         aiScreenshot = Array.isArray(urls) && urls.length > 0 ? urls[0] : null;
       } catch (e) {
-        // If not JSON, use as-is (fallback for base64)
         aiScreenshot = post.ai_screenshot;
       }
     }
@@ -155,14 +151,6 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
     has_more: posts.length === 21,
   };
 
-  // Get latest screenshot for cover image
-  const screenshotResult = await db.execute({
-    sql: `SELECT screenshot_data FROM ai_analyses
-          WHERE farm_id = ? AND screenshot_data IS NOT NULL
-          ORDER BY created_at DESC LIMIT 1`,
-    args: [id],
-  });
-
   let latestScreenshot = null;
   if (screenshotResult.rows.length > 0) {
     const screenshotJson = (screenshotResult.rows[0] as any).screenshot_data;
@@ -177,16 +165,6 @@ export default async function FarmPage({ params, searchParams }: PageProps) {
   const isShopEnabled = farmRow.is_shop_enabled as number | null;
   const storyPublished = farmRow.story_published as number | null;
   const storyTheme = (farmRow.story_theme as string) || 'earth';
-
-  // Fetch published tours for visitors
-  const toursResult = await db.execute({
-    sql: `SELECT t.id, t.title, t.share_slug, t.estimated_duration_minutes,
-                 (SELECT COUNT(*) FROM tour_stops WHERE tour_id = t.id) as stop_count
-          FROM farm_tours t
-          WHERE t.farm_id = ? AND t.status = 'published' AND t.access_type != 'password'
-          ORDER BY t.updated_at DESC`,
-    args: [id],
-  });
   const publishedTours = toursResult.rows as any[];
 
   // Show story page (if published) or public view

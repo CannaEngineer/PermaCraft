@@ -73,16 +73,14 @@ export async function optimizeScreenshot(
 
     const optimized = await pipeline.toBuffer();
 
-    // Prevent infinite recursion and warn about quality loss
     if (optimized.byteLength > 200 * 1024) {
       if (quality <= 60) {
         console.warn('Could not optimize image below 200KB at quality 60');
-        const finalMetadata = await sharp(optimized).metadata();
         return {
           buffer: optimized,
           format,
-          width: finalMetadata.width || 0,
-          height: finalMetadata.height || 0,
+          width: targetWidth,
+          height: targetHeight,
           size: optimized.byteLength
         };
       }
@@ -92,13 +90,11 @@ export async function optimizeScreenshot(
       });
     }
 
-    // Return full metadata
-    const finalMetadata = await sharp(optimized).metadata();
     return {
       buffer: optimized,
       format,
-      width: finalMetadata.width || 0,
-      height: finalMetadata.height || 0,
+      width: targetWidth,
+      height: targetHeight,
       size: optimized.byteLength
     };
   } catch (error) {

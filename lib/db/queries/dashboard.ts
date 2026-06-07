@@ -191,7 +191,10 @@ export async function getBatchRecentActivity(
   if (farmIds.length === 0) return {};
 
   const placeholders = farmIds.map(() => '?').join(',');
-  const perSubqueryLimit = farmIds.length * 15;
+  // Cap each subquery at 50 rows to prevent blowup with many farms
+  // (10 farms * 10 items/farm = 100 needed, 50 per type is generous)
+  const perSubqueryLimit = Math.min(farmIds.length * 15, 50);
+  const totalLimit = farmIds.length * 10;
   const result = await db.execute({
     sql: `
       SELECT * FROM (
@@ -231,6 +234,7 @@ export async function getBatchRecentActivity(
         ORDER BY created_at DESC LIMIT ${perSubqueryLimit}
       )
       ORDER BY created_at DESC
+      LIMIT ${totalLimit}
     `,
     args: [...farmIds, ...farmIds, ...farmIds, ...farmIds, ...farmIds],
   });

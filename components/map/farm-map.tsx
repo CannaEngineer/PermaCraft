@@ -1810,15 +1810,16 @@ export function FarmMap({
         ensureCustomLayersOnTop();
       };
 
-      // Update the colored zones when features change
+      // Update the colored zones when features change.
+      // Note: setData() only changes the source data — layer ordering is
+      // unaffected, so ensureCustomLayersOnTop() is NOT needed here.
+      // It's only needed after addLayer / style reload.
       const updateColoredZones = () => {
         if (!map.current || !draw.current) return;
         const source = map.current.getSource("draw-zones") as maplibregl.GeoJSONSource;
         if (source) {
           source.setData(draw.current.getAll());
         }
-        // Ensure layers stay on top after data updates
-        ensureCustomLayersOnTop();
       };
 
       // Store functions in refs so they can be called from changeMapLayer and other handlers
