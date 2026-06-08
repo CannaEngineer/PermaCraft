@@ -110,7 +110,7 @@ export function EcoRing({ score, functions, farmId }: Props) {
             </p>
             {farmId && (
               <Link
-                href={`/farm/${farmId}?tab=species`}
+                href={`/canvas?farm=${farmId}&section=farm`}
                 className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
               >
                 Browse species to plant

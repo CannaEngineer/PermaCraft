@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Leaf, Eye } from "lucide-react";
+import { Menu, X, Leaf, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isRouteActive } from "@/lib/nav/navigation";
 
@@ -66,15 +66,20 @@ export function PublicTopBar() {
           })}
         </div>
 
-        {/* Farmer entry - subtle */}
+        {/* Auth actions */}
         <div className="hidden lg:flex items-center gap-2">
           <Link
             href="/login"
-            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-muted-foreground/60 no-underline transition-all hover:text-foreground hover:bg-foreground/5"
-            title="Farmer login"
+            className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-foreground/5"
           >
-            <Eye className="h-3.5 w-3.5" />
-            <span>Farmer Login</span>
+            <LogIn className="h-3.5 w-3.5" />
+            Sign In
+          </Link>
+          <Link
+            href="/register"
+            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground no-underline transition-all hover:bg-primary/90"
+          >
+            Get Started
           </Link>
         </div>
 
@@ -118,10 +123,17 @@ export function PublicTopBar() {
             <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-border/50 py-2.5 text-xs font-medium text-muted-foreground no-underline"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-border/50 py-2.5 text-sm font-medium text-foreground no-underline"
             >
-              <Eye className="h-3.5 w-3.5" />
-              Login
+              <LogIn className="h-3.5 w-3.5" />
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex-1 flex items-center justify-center rounded-full bg-primary py-2.5 text-sm font-medium text-primary-foreground no-underline"
+            >
+              Get Started
             </Link>
           </div>
         </div>
