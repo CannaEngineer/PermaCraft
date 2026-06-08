@@ -80,7 +80,7 @@ export function ActivityTimeline({ items, farmId }: Props) {
         <h3 className="text-sm font-semibold">Recent Activity</h3>
         {farmId && items.length > 0 && (
           <Link
-            href={`/farm/${farmId}`}
+            href={`/canvas?farm=${farmId}&section=farm`}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Open farm
@@ -110,8 +110,8 @@ export function ActivityTimeline({ items, farmId }: Props) {
                 const meta = TYPE_META[item.type] || DEFAULT_META;
                 const href = farmId
                   ? item.type === 'ai'
-                    ? `/farm/${farmId}?tab=ai`
-                    : `/farm/${farmId}`
+                    ? `/canvas?farm=${farmId}&section=ai`
+                    : `/canvas?farm=${farmId}&section=farm`
                   : null;
                 const inner = (
                   <>
