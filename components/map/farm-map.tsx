@@ -348,6 +348,21 @@ function setupLineLayersOnMap(mapInstance: maplibregl.Map) {
   }
 }
 
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+function isTouchDevice(): boolean {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 interface FarmMapProps {
   farm: Farm;
   zones: Zone[];
@@ -509,6 +524,8 @@ export function FarmMap({
   const [plantingMode, setPlantingMode] = useState(false);
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
   const [plantings, setPlantings] = useState<any[]>([]);
+  const plantingsRef = useRef(plantings);
+  plantingsRef.current = plantings;
   const [showSpeciesPicker, setShowSpeciesPicker] = useState(false);
   const [useCompactPicker, setUseCompactPicker] = useState(true); // Default to compact picker
   const [showPlantingForm, setShowPlantingForm] = useState(false);
@@ -1192,22 +1209,7 @@ export function FarmMap({
     setQuickLabelPosition(null);
   };
 
-  // Debounce utility for performance optimization
-  const debounce = <T extends (...args: any[]) => any>(
-    func: T,
-    wait: number
-  ): ((...args: Parameters<T>) => void) => {
-    let timeout: NodeJS.Timeout | null = null;
-    return (...args: Parameters<T>) => {
-      if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
-    };
-  };
-
-  // Detect touch device for enhanced touch targets
-  const isTouchDevice = () => {
-    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  };
+  // debounce and isTouchDevice are module-level (above component)
 
   const rebuildRasterLayerCache = () => {
     if (!map.current) return;
@@ -1831,10 +1833,8 @@ export function FarmMap({
         setupGridLayers();
         updateGrid();
 
-        // Add colored zone layers after a short delay to ensure draw is ready
-        setTimeout(() => {
-          addColoredZoneLayers();
-        }, 100);
+        // Add colored zone layers — Draw is initialized before load fires
+        addColoredZoneLayers();
 
         // Add lines source, solid/dashed layers, and arrow layer
         setupLineLayersOnMap(map.current);
@@ -1893,11 +1893,7 @@ export function FarmMap({
           });
 
           initialZonesLoadedRef.current = true;
-
-          // Update colored zones after loading initial data
-          setTimeout(() => {
-            updateColoredZones();
-          }, 200);
+          updateColoredZones();
         }
 
         mapLoadedRef.current = true;
@@ -2410,7 +2406,7 @@ export function FarmMap({
           const latMin = Math.min(topLeft.lat, bottomRight.lat);
           const latMax = Math.max(topLeft.lat, bottomRight.lat);
 
-          for (const p of plantings) {
+          for (const p of plantingsRef.current) {
             if (p.lng < lngMin || p.lng > lngMax || p.lat < latMin || p.lat > latMax) continue;
 
             const plantingPoint = map.current.project([p.lng, p.lat]);
@@ -2531,7 +2527,7 @@ export function FarmMap({
         map.current.off("click", handleMapClick);
       }
     };
-  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter, plantings]);
+  }, [circleMode, circleCenter, plantingMode, handlePlantingClick, onZonesChange, externalDrawingMode, onFeatureSelect, onFeaturesAtPoint, interactionFilter]);
 
   // Update circle button active state when circleMode changes
   useEffect(() => {
@@ -2803,16 +2799,16 @@ export function FarmMap({
           }
         }).catch(() => {});
 
+        // Re-add colored zone layers immediately — Draw is re-initialized
+        // and features restored, so the source data is ready.
+        addColoredZoneLayersRef.current?.();
+
         // Reload lines data into the restored source
         loadLines();
 
-        // Restore custom imagery overlays (destroyed by setStyle)
+        // Restore custom imagery overlays (destroyed by setStyle).
+        // Must come after zone layers so ensureCustomLayersOnTop works.
         loadCustomImagery();
-
-        // Re-add colored zone layers after style change
-        setTimeout(() => {
-          addColoredZoneLayersRef.current?.();
-        }, 200);
       }); // End of idle callback
     }); // End of styledata callback
   };

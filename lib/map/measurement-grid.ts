@@ -171,8 +171,7 @@ export function generateGridLines(
   const originLat = Math.floor(farmSouth / coarseLatStep) * coarseLatStep;
   const originLng = Math.floor(farmWest / coarseLngStep) * coarseLngStep;
 
-  let count = 0;
-  for (let lat = originLat; lat <= farmNorth && count < 250; lat += latStep) {
+  for (let lat = originLat; lat <= farmNorth && lines.length < 500; lat += latStep) {
     if (lat >= clipSouth && lat <= clipNorth) {
       lines.push({
         type: 'Feature',
@@ -184,11 +183,9 @@ export function generateGridLines(
       });
       latLines.push(lat);
     }
-    count++;
   }
 
-  count = 0;
-  for (let lng = originLng; lng <= farmEast && count < 250; lng += lngStep) {
+  for (let lng = originLng; lng <= farmEast && lines.length < 500; lng += lngStep) {
     if (lng >= clipWest && lng <= clipEast) {
       lines.push({
         type: 'Feature',
@@ -200,17 +197,15 @@ export function generateGridLines(
       });
       lngLines.push(lng);
     }
-    count++;
   }
 
-  count = 0;
-  for (let rowIndex = 0; rowIndex < latLines.length && count < 200; rowIndex++) {
+  for (let rowIndex = 0; rowIndex < latLines.length && labels.length < 400; rowIndex++) {
     const lat = latLines[rowIndex];
     const coarseRowIndex = Math.round((lat - originLat) / coarseLatStep);
     const isCoarseRow = Math.abs(lat - (originLat + coarseRowIndex * coarseLatStep)) < coarseLatStep * 0.01;
     if (!isCoarseRow) continue;
 
-    for (let colIndex = 0; colIndex < lngLines.length && count < 200; colIndex++) {
+    for (let colIndex = 0; colIndex < lngLines.length && labels.length < 400; colIndex++) {
       const lng = lngLines[colIndex];
       const coarseColIndex = Math.round((lng - originLng) / coarseLngStep);
       const isCoarseCol = Math.abs(lng - (originLng + coarseColIndex * coarseLngStep)) < coarseLngStep * 0.01;
@@ -229,7 +224,6 @@ export function generateGridLines(
           coordinates: [lng, lat]
         }
       });
-      count++;
     }
   }
 
