@@ -1,27 +1,26 @@
-# PermaCraft -- 2026-06-01
-## Focus: UI/UX Polish (Sunday)
+# PermaCraft — 2026-06-09
+## Focus: Map Core (Monday)
 
-### 1. Fix "I'm a Grower" landing nav link destination
-File: `components/shared/landing-nav.tsx`
-What changed: The "I'm a Grower" button now links to `/register` instead of `/login`. The "Farmer Login" link already handles returning users; "I'm a Grower" should onboard new ones.
-Map/dashboard impact: First-time growers clicking the CTA now land on the registration page instead of being confused by a login form with no account.
+### 1. Fix grid line generation cap skipping visible lines on large farms
+File: `lib/map/measurement-grid.ts`
+What changed: The grid generation loops used a `count` variable that incremented for every grid interval (including those outside the viewport), prematurely hitting the 250 cap on large farms. Changed to cap on actual output count (`lines.length < 500`, `labels.length < 400`) so the limit only applies to generated features, not skipped intervals.
+Map/dashboard impact: Large farms at fine grid subdivision (zoom 20+) now show complete grid coverage instead of missing lines on the east/south edges.
 
-### 2. Add password visibility toggles to auth pages
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Added eye/eye-off toggle buttons inside the password input fields so users can reveal what they typed. Uses `tabIndex={-1}` to keep Tab focus on the input, not the toggle.
-Map/dashboard impact: Reduces failed login attempts from typos, especially on mobile where password entry is error-prone. Faster path from landing to the map editor.
+### 2. Fix handleMapClick re-registering on every planting change
+File: `components/map/farm-map.tsx`
+What changed: The map click handler (for feature selection, circle drawing, planting placement) had `plantings` in its useEffect dependency array, causing it to detach and reattach every time a plant was added or removed. Moved planting data access to a ref (`plantingsRef`) so the handler stays stable.
+Map/dashboard impact: Eliminates brief click-registration gaps when placing multiple plants in succession. Reduces unnecessary event listener churn on farms with many plantings.
 
-### 3. Add loading spinners to auth form buttons
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Submit buttons now show a spinning `Loader2` icon alongside the loading text ("Signing in..." / "Creating account...") instead of just changing the label. Gives clear visual feedback that the request is in flight.
-Map/dashboard impact: Users no longer double-click or wonder if the button worked. Smoother transition into the app.
+### 3. Fix zone layer ordering race after map layer switch
+File: `components/map/farm-map.tsx`
+What changed: After switching map layers (satellite to topo, etc.), colored zone layers were added via `setTimeout(..., 200)` while line layers and custom imagery loaded immediately. This caused custom imagery's `ensureCustomLayersOnTop()` to fire before zone layers existed, resulting in imagery overlapping zones until the next interaction. Changed zone layer restoration to be synchronous. Also removed the `setTimeout(..., 100)` on initial load for the same reason.
+Map/dashboard impact: Switching map layers no longer causes a brief flash where zones disappear behind imagery overlays. Initial load shows zones ~200ms sooner.
 
-### 4. Collapse GPS quick actions on dashboard hero card
-File: `components/dashboard/farm-hero-card.tsx`
-What changed: The 5 GPS action buttons (Plant by GPS, Drop Pin, Take Photo, Soil Test, Walk Zone) are now hidden behind a "Field tools" toggle. The primary CTAs ("Open Map Editor" and "Ask AI") get clear visual priority. GPS actions expand on click with a fade-in animation.
-Map/dashboard impact: Dashboard hero card is less visually overwhelming, especially for new users who haven't used GPS field tools yet. The two most important actions (map editor and AI) stand out immediately.
+### 4. Hoist debounce utility and isTouchDevice out of component body
+File: `components/map/farm-map.tsx`
+What changed: Moved `debounce()` and `isTouchDevice()` from inside the FarmMap component to module scope. These were being redefined on every render, creating unnecessary closures.
+Map/dashboard impact: Minor memory/GC improvement on every FarmMap re-render. No behavioral change.
 
 ## Watch for
-- Register page currently redirects to `/canvas` after signup -- if a new user has no farms, they see the empty canvas state with a walkthrough. This works but could be improved by directing to `/farm/new` for a more guided first experience.
-- The register name placeholder was changed from "John Doe" to "Your name" for inclusivity.
-- Pre-existing TypeScript errors in admin pages and test files are unrelated to these changes.
+- The synchronous zone layer addition (removing setTimeout) assumes MapboxDraw's internal store is ready by the time MapLibre's `load` event fires. This is guaranteed by the current init order (addControl before on("load")), but if the init sequence changes, zone layers could fail to render.
+- The grid line cap increase (250 to 500) may need monitoring on very large farms with fine subdivision. If performance regresses, consider viewport-clipping the line coordinates themselves (not just which lines to include).
