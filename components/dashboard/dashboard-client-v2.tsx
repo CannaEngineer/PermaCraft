@@ -11,7 +11,7 @@ import { TasksWidget } from './tasks-widget';
 import { InsightsWidget } from './insights-widget';
 import { ActivityTimeline } from './activity-timeline';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, MapPin, Sprout, Spline, AlertTriangle } from 'lucide-react';
 
 interface Props {
   farms: DashboardFarm[];
@@ -88,6 +88,23 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
     }
   }
 
+  const aggregate = localFarms.length > 1 ? (() => {
+    let totalZones = 0, totalPlants = 0, totalLines = 0, totalUrgent = 0;
+    let avgEco = 0;
+    for (const farm of localFarms) {
+      totalZones += farm.zone_count;
+      totalPlants += farm.planting_count;
+      totalLines += farm.line_count;
+      const data = localFarmData[farm.id];
+      if (data) {
+        totalUrgent += data.urgentCount;
+        avgEco += data.ecoScore;
+      }
+    }
+    avgEco = localFarms.length > 0 ? Math.round(avgEco / localFarms.length) : 0;
+    return { totalZones, totalPlants, totalLines, totalUrgent, avgEco };
+  })() : null;
+
   if (localFarms.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center max-w-2xl mx-auto">
@@ -139,6 +156,36 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-6xl mx-auto pb-32">
+      {/* Aggregate summary for multi-farm users */}
+      {aggregate && (
+        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+          <span className="font-semibold text-foreground">{localFarms.length} farms</span>
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" />
+            {aggregate.totalZones} zone{aggregate.totalZones !== 1 ? 's' : ''}
+          </span>
+          <span className="flex items-center gap-1">
+            <Sprout className="h-3.5 w-3.5" />
+            {aggregate.totalPlants} plant{aggregate.totalPlants !== 1 ? 's' : ''}
+          </span>
+          {aggregate.totalLines > 0 && (
+            <span className="flex items-center gap-1">
+              <Spline className="h-3.5 w-3.5" />
+              {aggregate.totalLines} line{aggregate.totalLines !== 1 ? 's' : ''}
+            </span>
+          )}
+          <span className="text-xs">
+            Avg eco: <span className={`font-semibold ${aggregate.avgEco >= 75 ? 'text-green-600 dark:text-green-400' : aggregate.avgEco >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500 dark:text-red-400'}`}>{aggregate.avgEco}%</span>
+          </span>
+          {aggregate.totalUrgent > 0 && (
+            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {aggregate.totalUrgent} urgent
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Farm selector — horizontal scroll of farm cards */}
       {localFarms.length > 1 && (
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
