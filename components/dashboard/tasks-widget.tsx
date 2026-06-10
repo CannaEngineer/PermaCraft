@@ -67,7 +67,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
   const dayEnd = Math.floor(today.getTime() / 1000);
   const weekEnd = dayEnd + 7 * 86400;
 
-  const filtered = localTasks
+  const allFiltered = localTasks
     .filter((t: Task) => {
       if (activeTab === 'today') {
         return (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4;
@@ -77,8 +77,18 @@ export function TasksWidget({ tasks, farmId }: Props) {
       }
       return true;
     })
-    .slice(0, 6);
+    .sort((a: Task, b: Task) => {
+      const aOverdue = a.due_date !== null && a.due_date * 1000 < Date.now() && a.status !== 'completed';
+      const bOverdue = b.due_date !== null && b.due_date * 1000 < Date.now() && b.status !== 'completed';
+      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+      return (b.priority ?? 0) - (a.priority ?? 0);
+    });
 
+  const MAX_VISIBLE = 6;
+  const filtered = allFiltered.slice(0, MAX_VISIBLE);
+  const hiddenCount = allFiltered.length - filtered.length;
+
+  const completedCount = localTasks.filter((t: Task) => t.status === 'completed').length;
   const urgentCount = localTasks.filter((t: Task) => t.priority === 4 && t.status === 'pending').length;
 
   async function handleAdd() {
@@ -211,13 +221,15 @@ export function TasksWidget({ tasks, farmId }: Props) {
                 <p className="text-xs text-muted-foreground/60 mt-1">
                   {activeTab === 'today' && localTasks.length > 0
                     ? `${localTasks.length} task${localTasks.length !== 1 ? 's' : ''} in "all"`
-                    : 'Enjoy the day 🌿'}
+                    : completedCount > 0
+                    ? `${completedCount} completed`
+                    : 'Enjoy the day'}
                 </p>
               </>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">All clear for now</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Enjoy the day 🌿</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Add a task to get started</p>
               </>
             )}
           </div>
@@ -277,6 +289,27 @@ export function TasksWidget({ tasks, farmId }: Props) {
             </div>
           );
         })}
+
+        {/* Footer: overflow + completed count */}
+        {(hiddenCount > 0 || completedCount > 0) && filtered.length > 0 && (
+          <div className="flex items-center justify-between px-3 pt-2 border-t border-border/40 mt-1">
+            {hiddenCount > 0 ? (
+              <button
+                onClick={() => setActiveTab('all')}
+                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                +{hiddenCount} more task{hiddenCount !== 1 ? 's' : ''}
+              </button>
+            ) : (
+              <span />
+            )}
+            {completedCount > 0 && (
+              <span className="text-[11px] text-muted-foreground/60">
+                {completedCount} done
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
