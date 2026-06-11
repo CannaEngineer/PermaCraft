@@ -230,7 +230,7 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
 
             {/* Right column: Tasks + Insights */}
             <div className="flex flex-col gap-4">
-              <TasksWidget tasks={active.tasks} farmId={activeFarmId} />
+              <TasksWidget tasks={active.tasks} farmId={activeFarmId} completedThisWeek={active.completedThisWeek} />
               <InsightsWidget insights={active.insights} farmId={activeFarmId} />
             </div>
           </div>

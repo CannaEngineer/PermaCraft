@@ -11,6 +11,7 @@ export interface DashboardFarmData {
   activity: any[];
   seasonal: SeasonalContext;
   urgentCount: number;
+  completedThisWeek: number;
 }
 
 export interface DashboardFarm {
@@ -157,6 +158,14 @@ export async function getFarmTasks(farmId: string): Promise<Task[]> {
     args: [farmId],
   });
   return result.rows as unknown as Task[];
+}
+
+export async function getCompletedTaskCount(farmId: string): Promise<number> {
+  const result = await db.execute({
+    sql: `SELECT COUNT(*) as count FROM tasks WHERE farm_id = ? AND status = 'completed' AND completed_at > unixepoch() - 604800`,
+    args: [farmId],
+  });
+  return (result.rows[0]?.count as number) ?? 0;
 }
 
 export async function getUrgentTaskCount(farmId: string): Promise<number> {

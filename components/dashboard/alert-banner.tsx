@@ -1,5 +1,5 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { SeasonalContext } from '@/lib/dashboard/seasonal';
 import { AlertTriangle, Snowflake, X } from 'lucide-react';
 
@@ -18,8 +18,38 @@ interface Props {
   urgentTaskCount?: number;
 }
 
+const DISMISSED_STORAGE_KEY = 'dashboard:dismissedAlerts';
+
+function loadDismissed(): Set<AlertId> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as { ids: AlertId[]; date: string };
+    const today = new Date().toISOString().slice(0, 10);
+    if (parsed.date !== today) return new Set();
+    return new Set(parsed.ids);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(dismissed: Set<AlertId>) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    window.localStorage.setItem(
+      DISMISSED_STORAGE_KEY,
+      JSON.stringify({ ids: Array.from(dismissed), date: today })
+    );
+  } catch {}
+}
+
 export function AlertBanner({ seasonal, urgentTaskCount = 0 }: Props) {
   const [dismissed, setDismissed] = useState(new Set<AlertId>());
+
+  useEffect(() => {
+    setDismissed(loadDismissed());
+  }, []);
 
   const alerts: Alert[] = [];
 
@@ -64,6 +94,7 @@ export function AlertBanner({ seasonal, urgentTaskCount = 0 }: Props) {
               setDismissed((prev: Set<AlertId>) => {
                 const next = new Set(prev);
                 next.add(alert.id);
+                saveDismissed(next);
                 return next;
               })
             }

@@ -7,6 +7,7 @@ import {
   getDashboardFarms,
   getBatchEcoHealthScores,
   getFarmTasks,
+  getCompletedTaskCount,
   getRecentAiInsights,
   getBatchRecentActivity,
   DashboardFarmData,
@@ -34,14 +35,16 @@ export default async function DashboardPage() {
     ...farms.flatMap((farm) => [
       getFarmTasks(farm.id),
       getRecentAiInsights(farm.id),
+      getCompletedTaskCount(farm.id),
     ]),
   ]);
 
   const farmData: Record<string, DashboardFarmData> = {};
   for (let i = 0; i < farms.length; i++) {
     const farm = farms[i];
-    const tasks = perFarmResults[i * 2] as Task[];
-    const insights = perFarmResults[i * 2 + 1] as any[];
+    const tasks = perFarmResults[i * 3] as Task[];
+    const insights = perFarmResults[i * 3 + 1] as any[];
+    const completedThisWeek = perFarmResults[i * 3 + 2] as number;
     const ecoResult = ecoScores[farm.id] ?? { score: 0, functions: {} };
     const activity = activityByFarm[farm.id] ?? [];
     const seasonal = getSeasonalContext(farm.climate_zone, farm.center_lat);
@@ -58,6 +61,7 @@ export default async function DashboardPage() {
       activity,
       seasonal,
       urgentCount,
+      completedThisWeek,
     };
   }
 
