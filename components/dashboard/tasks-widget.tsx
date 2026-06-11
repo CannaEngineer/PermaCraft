@@ -8,6 +8,7 @@ import { formatDistanceToNow, isToday, isTomorrow, isPast } from 'date-fns';
 interface Props {
   tasks: Task[];
   farmId: string;
+  completedThisWeek?: number;
 }
 
 type Tab = 'today' | 'week' | 'all';
@@ -53,7 +54,7 @@ function computeSmartDefaultTab(tasks: Task[]): Tab {
   return tasks.length > 0 ? 'all' : 'today';
 }
 
-export function TasksWidget({ tasks, farmId }: Props) {
+export function TasksWidget({ tasks, farmId, completedThisWeek = 0 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>(() => computeSmartDefaultTab(tasks));
   const [localTasks, setLocalTasks] = useState(tasks);
   const [showAdd, setShowAdd] = useState(false);
@@ -211,13 +212,21 @@ export function TasksWidget({ tasks, farmId }: Props) {
                 <p className="text-xs text-muted-foreground/60 mt-1">
                   {activeTab === 'today' && localTasks.length > 0
                     ? `${localTasks.length} task${localTasks.length !== 1 ? 's' : ''} in "all"`
-                    : 'Enjoy the day 🌿'}
+                    : completedThisWeek > 0
+                    ? `${completedThisWeek} completed this week`
+                    : 'Enjoy the day'}
                 </p>
               </>
             ) : (
               <>
-                <p className="text-sm text-muted-foreground">All clear for now</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Enjoy the day 🌿</p>
+                <p className="text-sm text-muted-foreground">
+                  {completedThisWeek > 0 ? 'All caught up!' : 'All clear for now'}
+                </p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  {completedThisWeek > 0
+                    ? `${completedThisWeek} task${completedThisWeek !== 1 ? 's' : ''} completed this week`
+                    : 'Add tasks to track your farm work'}
+                </p>
               </>
             )}
           </div>

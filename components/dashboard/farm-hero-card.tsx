@@ -31,7 +31,7 @@ interface Props {
 export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpdate, onFarmDelete }: Props) {
   const lastEdited = formatDistanceToNow(new Date(farm.updated_at * 1000), { addSuffix: true });
   const coveredFunctions = Object.values(ecoFunctions).filter((v) => v > 0).length;
-  const totalFunctions = Object.keys(ecoFunctions).length;
+  const totalFunctions = 8;
   const seasonGradient = SEASON_COLORS[seasonal.season] ?? 'from-green-500/10 to-emerald-500/10';
 
   const [editing, setEditing] = useState(false);

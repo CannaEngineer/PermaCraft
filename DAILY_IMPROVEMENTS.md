@@ -1,27 +1,26 @@
-# PermaCraft -- 2026-06-01
-## Focus: UI/UX Polish (Sunday)
+# PermaCraft — 2026-06-11
+## Focus: Dashboard (Wednesday)
 
-### 1. Fix "I'm a Grower" landing nav link destination
-File: `components/shared/landing-nav.tsx`
-What changed: The "I'm a Grower" button now links to `/register` instead of `/login`. The "Farmer Login" link already handles returning users; "I'm a Grower" should onboard new ones.
-Map/dashboard impact: First-time growers clicking the CTA now land on the registration page instead of being confused by a login form with no account.
+### 1. Persist alert dismissals across page loads
+File: `components/dashboard/alert-banner.tsx`
+What changed: Alert dismissals (frost risk, urgent tasks) now persist to localStorage with a date-based expiry — dismissed alerts stay hidden for the rest of the day but reappear the next morning when conditions may have changed.
+Map/dashboard impact: Designers who check the dashboard multiple times per day no longer see the same frost or urgent-task banners after dismissing them.
 
-### 2. Add password visibility toggles to auth pages
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Added eye/eye-off toggle buttons inside the password input fields so users can reveal what they typed. Uses `tabIndex={-1}` to keep Tab focus on the input, not the toggle.
-Map/dashboard impact: Reduces failed login attempts from typos, especially on mobile where password entry is error-prone. Faster path from landing to the map editor.
+### 2. Show completed task count in empty states
+Files: `lib/db/queries/dashboard.ts`, `app/(app)/dashboard/page.tsx`, `components/dashboard/tasks-widget.tsx`, `components/dashboard/dashboard-client-v2.tsx`
+What changed: Added `getCompletedTaskCount` query (tasks completed in the past 7 days) and plumbed it through to the TasksWidget. Empty states now show "All caught up! — X tasks completed this week" instead of a generic message.
+Map/dashboard impact: Designers who complete all their tasks now see concrete progress feedback instead of a message that could mean "nothing was ever here."
 
-### 3. Add loading spinners to auth form buttons
-Files: `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`
-What changed: Submit buttons now show a spinning `Loader2` icon alongside the loading text ("Signing in..." / "Creating account...") instead of just changing the label. Gives clear visual feedback that the request is in flight.
-Map/dashboard impact: Users no longer double-click or wonder if the button worked. Smoother transition into the app.
+### 3. Fix loading skeleton layout shift
+File: `app/(app)/dashboard/loading.tsx`
+What changed: Added skeleton placeholders for the farm selector strip (for multi-farm users) and the bottom section (activity timeline + progress panel). Corrected the hero card stats skeleton to show 4 metric placeholders instead of 3.
+Map/dashboard impact: Page load no longer causes visible layout jumps as content streams in.
 
-### 4. Collapse GPS quick actions on dashboard hero card
+### 4. Fix eco functions denominator fragility
 File: `components/dashboard/farm-hero-card.tsx`
-What changed: The 5 GPS action buttons (Plant by GPS, Drop Pin, Take Photo, Soil Test, Walk Zone) are now hidden behind a "Field tools" toggle. The primary CTAs ("Open Map Editor" and "Ask AI") get clear visual priority. GPS actions expand on click with a fade-in animation.
-Map/dashboard impact: Dashboard hero card is less visually overwhelming, especially for new users who haven't used GPS field tools yet. The two most important actions (map editor and AI) stand out immediately.
+What changed: Changed `totalFunctions` from `Object.keys(ecoFunctions).length` (dynamic) to the constant `8`, matching the canonical `ECO_FUNCTIONS` list in the query layer.
+Map/dashboard impact: New farms or farms with no species always show "0/8 Functions" instead of a confusing "0/0".
 
 ## Watch for
-- Register page currently redirects to `/canvas` after signup -- if a new user has no farms, they see the empty canvas state with a walkthrough. This works but could be improved by directing to `/farm/new` for a more guided first experience.
-- The register name placeholder was changed from "John Doe" to "Your name" for inclusivity.
-- Pre-existing TypeScript errors in admin pages and test files are unrelated to these changes.
+- The `getCompletedTaskCount` query uses `unixepoch() - 604800` for a 7-day window. If task volume grows, consider adding an index on `(farm_id, status, completed_at)`.
+- Alert dismissals use local timezone date for expiry. A designer crossing midnight while working might see alerts re-appear mid-session.

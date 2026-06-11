@@ -13,6 +13,24 @@ export default function DashboardLoading() {
       </div>
 
       <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+        {/* Farm selector strip skeleton */}
+        <div className="flex gap-3 overflow-hidden -mx-4 px-4 md:-mx-6 md:px-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 rounded-2xl border-2 border-transparent bg-card p-3 min-w-[180px]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 flex-shrink-0 rounded-xl animate-pulse bg-muted" />
+                <div className="min-w-0 flex-1">
+                  <div className="h-4 w-24 animate-pulse rounded bg-muted mb-1.5" />
+                  <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Hero card skeleton */}
         <div className="rounded-3xl border border-border overflow-hidden">
           <div className="flex flex-col md:flex-row">
@@ -23,7 +41,7 @@ export default function DashboardLoading() {
                 <div className="h-4 w-64 animate-pulse rounded-lg bg-muted" />
               </div>
               <div className="flex gap-6">
-                {Array.from({ length: 3 }).map((_, i) => (
+                {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i}>
                     <div className="h-9 w-12 animate-pulse rounded-lg bg-muted mb-1" />
                     <div className="h-3 w-16 animate-pulse rounded bg-muted" />
@@ -48,6 +66,12 @@ export default function DashboardLoading() {
             <div className="h-64 animate-pulse rounded-2xl bg-muted" />
             <div className="h-48 animate-pulse rounded-2xl bg-muted" />
           </div>
+        </div>
+
+        {/* Bottom section skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-52 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-52 animate-pulse rounded-2xl bg-muted" />
         </div>
       </div>
     </div>
