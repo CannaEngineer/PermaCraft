@@ -506,7 +506,7 @@ export function FarmMap({
   // Track previous externalDrawingMode to detect transitions.
   // Initialized to false so the first render with externalDrawingMode=true
   // is correctly detected as an idle→drawing transition (not skipped).
-  const prevExternalDrawingModeRef = useRef(false);
+  const prevExternalDrawingModeRef = useRef<boolean | undefined>(false);
 
   // Planting mode state
   const [plantingMode, setPlantingMode] = useState(false);
