@@ -484,6 +484,7 @@ export function FarmMap({
   const rasterLayerIdsRef = useRef<string[]>([]);
   const drawUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFeaturesRef = useRef<any>(null);
+  const layerSwitchInProgressRef = useRef(false);
   const initialZonesLoadedRef = useRef(false);
   const mapLoadedRef = useRef(false);
   const zonesRef = useRef(zones);
@@ -502,8 +503,10 @@ export function FarmMap({
 
   // Drawing mode state for context labels
   const [drawMode, setDrawMode] = useState<string>('simple_select');
-  // Track previous externalDrawingMode to detect transitions
-  const prevExternalDrawingModeRef = useRef(externalDrawingMode);
+  // Track previous externalDrawingMode to detect transitions.
+  // Initialized to false so the first render with externalDrawingMode=true
+  // is correctly detected as an idle→drawing transition (not skipped).
+  const prevExternalDrawingModeRef = useRef(false);
 
   // Planting mode state
   const [plantingMode, setPlantingMode] = useState(false);
@@ -703,7 +706,10 @@ export function FarmMap({
   // Custom imagery state
   const [customImagery, setCustomImagery] = useState<any[]>([]);
 
-  // Helper function to ensure custom layers are always on top
+  // Moves custom design layers above the base map in a fixed stacking order.
+  // Each layer is moved to the top in sequence, so the last entry ends up
+  // highest. Layers that don't exist yet are silently skipped — they'll be
+  // placed correctly the next time this function is called after they're added.
   const ensureCustomLayersOnTop = useCallback(() => {
     if (!map.current) return;
 
@@ -722,11 +728,16 @@ export function FarmMap({
       'grid-dimension-labels-layer',
     ];
 
-    customLayers.forEach(layerId => {
-      if (map.current!.getLayer(layerId)) {
-        map.current!.moveLayer(layerId);
+    for (const layerId of customLayers) {
+      try {
+        if (map.current!.getLayer(layerId)) {
+          map.current!.moveLayer(layerId);
+        }
+      } catch {
+        // Layer may have been removed between getLayer check and moveLayer call
+        // during a concurrent style change — safe to ignore.
       }
-    });
+    }
   }, []);
 
   // Load plantings from API
@@ -749,22 +760,27 @@ export function FarmMap({
       const data = await response.json();
       setLines(data.lines || []);
 
-      const lineFeatures = (data.lines || []).map((line: any) => {
-        const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
-        const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
-
-        return {
-          type: 'Feature' as const,
-          id: line.id,
-          geometry,
-          properties: {
+      const lineFeatures: any[] = [];
+      for (const line of (data.lines || [])) {
+        try {
+          const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
+          const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
+          if (!geometry?.type) continue;
+          lineFeatures.push({
+            type: 'Feature' as const,
             id: line.id,
-            line_type: line.line_type,
-            label: line.label,
-            ...style
-          }
-        };
-      });
+            geometry,
+            properties: {
+              id: line.id,
+              line_type: line.line_type,
+              label: line.label,
+              ...style
+            }
+          });
+        } catch {
+          console.error('Skipping corrupt line:', line.id);
+        }
+      }
 
       const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
       if (source) {
@@ -1126,25 +1142,28 @@ export function FarmMap({
     const source = map.current.getSource('lines-source') as maplibregl.GeoJSONSource;
     if (!source) return;
 
-    // Convert filtered lines to GeoJSON features
-    const lineFeatures = lines.map((line: any) => {
-      const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
-      const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
-
-      return {
-        type: 'Feature' as const,
-        id: line.id,
-        geometry,
-        properties: {
+    const lineFeatures: any[] = [];
+    for (const line of lines) {
+      try {
+        const geometry = typeof line.geometry === 'string' ? JSON.parse(line.geometry) : line.geometry;
+        const style = typeof line.style === 'string' ? JSON.parse(line.style) : line.style;
+        if (!geometry?.type) continue;
+        lineFeatures.push({
+          type: 'Feature' as const,
           id: line.id,
-          line_type: line.line_type,
-          label: line.label,
-          ...style
-        }
-      };
-    });
+          geometry,
+          properties: {
+            id: line.id,
+            line_type: line.line_type,
+            label: line.label,
+            ...style
+          }
+        });
+      } catch {
+        console.error('Skipping corrupt line during render:', line.id);
+      }
+    }
 
-    // Update the source with filtered lines
     source.setData({
       type: 'FeatureCollection',
       features: lineFeatures
@@ -2573,11 +2592,15 @@ export function FarmMap({
   const changeMapLayer = (layer: MapLayer) => {
     if (!map.current) return;
 
+    // Block concurrent layer switches — a previous setStyle() may still be
+    // waiting for its "idle" event before restoring features. Starting another
+    // switch mid-flight would overwrite savedFeaturesRef with an empty draw
+    // store (draw was already destroyed by the first setStyle).
+    if (layerSwitchInProgressRef.current) return;
+    layerSwitchInProgressRef.current = true;
+
     // STEP 1: Save all features before style change
     // setStyle() will destroy MapboxDraw, so we must preserve the data.
-    // Use a ref so rapid layer switching doesn't lose features — if a
-    // previous switch is still in-flight, its saved features are overwritten
-    // with the latest snapshot rather than being clobbered by a null draw.
     const freshFeatures = draw.current?.getAll();
     if (freshFeatures) {
       savedFeaturesRef.current = freshFeatures;
@@ -2813,8 +2836,16 @@ export function FarmMap({
         setTimeout(() => {
           addColoredZoneLayersRef.current?.();
         }, 200);
+
+        layerSwitchInProgressRef.current = false;
       }); // End of idle callback
     }); // End of styledata callback
+
+    // Safety net: if idle never fires (e.g. tab is hidden), unlock after 10s
+    // so the user isn't permanently locked out of layer switching.
+    setTimeout(() => {
+      layerSwitchInProgressRef.current = false;
+    }, 10000);
   };
 
   const handleLabelZone = () => {
