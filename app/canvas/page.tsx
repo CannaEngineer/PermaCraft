@@ -14,7 +14,8 @@ export default async function CanvasPage() {
                    soil_type, center_lat, center_lng, zoom_level, is_public, created_at, updated_at
             FROM farms
             WHERE user_id = ?
-            ORDER BY updated_at DESC`,
+            ORDER BY updated_at DESC
+            LIMIT 100`,
       args: [session.user.id],
     });
     farms = result.rows as any[];

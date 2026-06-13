@@ -845,10 +845,15 @@ export function FarmMap({
       return;
     }
 
-    // Parse bounds
-    const bounds = JSON.parse(imagery.bounds);
+    let bounds: any;
+    try {
+      bounds = typeof imagery.bounds === 'string' ? JSON.parse(imagery.bounds) : imagery.bounds;
+    } catch {
+      console.error(`Invalid bounds for imagery ${imagery.id}`);
+      return;
+    }
+    if (!bounds?.[0]?.[0] || !bounds?.[1]?.[1]) return;
 
-    // Add raster source
     map.current.addSource(sourceId, {
       type: 'raster',
       tiles: [imagery.tile_url_template],
@@ -1852,20 +1857,13 @@ export function FarmMap({
           // Arrow icon is optional — line arrows degrade gracefully without it
         });
 
-        // Load plantings from API
-        loadPlantings();
-
-        // Load lines from API
-        loadLines();
-
-        // Load guilds from API
-        loadGuilds();
-
-        // Load phases from API
-        loadFarmPhases();
-
-        // Load custom imagery from API
-        loadCustomImagery();
+        Promise.all([
+          loadPlantings(),
+          loadLines(),
+          loadGuilds(),
+          loadFarmPhases(),
+          loadCustomImagery(),
+        ]);
 
         // Load initial zones (use ref to get latest value, avoiding stale closure)
         const currentZones = zonesRef.current;
@@ -2169,28 +2167,24 @@ export function FarmMap({
       map.current.on("draw.update", handleDrawUpdate);
       map.current.on("draw.delete", handleDrawDelete);
 
-      // Update grid labels when viewport changes (for AI context).
-      // moveend fires after both pans and zooms, so a single listener is sufficient.
-      // Wrapped in an arrow so it always calls the latest updateGrid via ref
-      // (the useCallback changes when gridUnit/gridDensity/gridSubdivision change).
-      map.current.on("moveend", () => updateGridRef.current?.());
+      const handleMoveEnd = () => updateGridRef.current?.();
+      map.current.on("moveend", handleMoveEnd);
 
-      // Update compass bearing when map rotates
-      map.current.on("rotate", () => {
+      const handleRotate = () => {
         if (map.current) {
           setBearing(map.current.getBearing());
         }
-      });
+      };
+      map.current.on("rotate", handleRotate);
 
-      // Update pitch when map tilts
-      map.current.on("pitch", () => {
+      const handlePitch = () => {
         if (map.current) {
           setPitch(map.current.getPitch());
         }
-      });
+      };
+      map.current.on("pitch", handlePitch);
 
-      // Prevent farm boundary from being edited or moved
-      map.current.on("draw.selectionchange", (e: any) => {
+      const handleSelectionChange = (e: any) => {
         // Skip selection changes when the quick label form is showing
         // to prevent the old Label Zone panel from appearing alongside it
         if (showQuickLabelFormRef.current) return;
@@ -2242,10 +2236,10 @@ export function FarmMap({
           setZoneLabel("");
           setZoneType("other");
         }
-      });
+      };
+      map.current.on("draw.selectionchange", handleSelectionChange);
 
-      // Handle mode changes for both circle deselection and farm boundary protection
-      map.current.on("draw.modechange", (e: any) => {
+      const handleModeChange = (e: any) => {
         // Update draw mode state for context labels
         if (e.mode) {
           setDrawMode(e.mode);
@@ -2282,7 +2276,8 @@ export function FarmMap({
             }
           }
         }
-      });
+      };
+      map.current.on("draw.modechange", handleModeChange);
     } catch (error) {
       console.error("Failed to initialize map:", error);
     }
@@ -2291,6 +2286,14 @@ export function FarmMap({
       if (drawUpdateTimerRef.current) clearTimeout(drawUpdateTimerRef.current);
       if (map.current) {
         map.current.off('zoom', handleZoomChange);
+        map.current.off('moveend', handleMoveEnd);
+        map.current.off('rotate', handleRotate);
+        map.current.off('pitch', handlePitch);
+        map.current.off('draw.create', handleDrawCreate);
+        map.current.off('draw.update', handleDrawUpdate);
+        map.current.off('draw.delete', handleDrawDelete);
+        map.current.off('draw.selectionchange', handleSelectionChange);
+        map.current.off('draw.modechange', handleModeChange);
         map.current.remove();
         map.current = null;
       }
