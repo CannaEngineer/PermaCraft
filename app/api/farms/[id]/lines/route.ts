@@ -71,6 +71,19 @@ export async function GET(
   const session = await requireAuth();
 
   const farmId = params.id;
+
+  const farmCheck = await db.execute({
+    sql: 'SELECT id, user_id, is_public FROM farms WHERE id = ?',
+    args: [farmId]
+  });
+  if (farmCheck.rows.length === 0) {
+    return NextResponse.json({ error: 'Farm not found' }, { status: 404 });
+  }
+  const farm = farmCheck.rows[0];
+  if (farm.user_id !== session.user.id && !farm.is_public) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const lineType = searchParams.get('line_type');
 
@@ -86,12 +99,21 @@ export async function GET(
 
   const result = await db.execute({ sql, args });
 
-  // Parse JSON fields
-  const lines = result.rows.map(row => ({
-    ...row,
-    style: row.style ? JSON.parse(row.style as string) : null,
-    layer_ids: row.layer_ids ? JSON.parse(row.layer_ids as string) : []
-  }));
+  const lines = result.rows.map(row => {
+    let style = null;
+    let layer_ids: string[] = [];
+    try {
+      if (row.style) style = JSON.parse(row.style as string);
+    } catch {
+      console.error(`Corrupted style JSON for line ${row.id}`);
+    }
+    try {
+      if (row.layer_ids) layer_ids = JSON.parse(row.layer_ids as string);
+    } catch {
+      console.error(`Corrupted layer_ids JSON for line ${row.id}`);
+    }
+    return { ...row, style, layer_ids };
+  });
 
   return NextResponse.json({ lines });
 }

@@ -30,15 +30,25 @@ export async function GET(
       args: [session.user.id],
     });
 
-    const guilds = guildsResult.rows.map((row: any) => ({
-      ...row,
-      companion_species: typeof row.companion_species === 'string'
-        ? JSON.parse(row.companion_species)
-        : row.companion_species,
-      benefits: row.benefits
-        ? (typeof row.benefits === 'string' ? JSON.parse(row.benefits) : row.benefits)
-        : [],
-    }));
+    const guilds = guildsResult.rows.map((row: any) => {
+      let companion_species = row.companion_species;
+      let benefits: any[] = [];
+      try {
+        if (typeof row.companion_species === 'string') {
+          companion_species = JSON.parse(row.companion_species);
+        }
+      } catch {
+        console.error(`Corrupted companion_species JSON for guild ${row.id}`);
+      }
+      try {
+        if (row.benefits) {
+          benefits = typeof row.benefits === 'string' ? JSON.parse(row.benefits) : row.benefits;
+        }
+      } catch {
+        console.error(`Corrupted benefits JSON for guild ${row.id}`);
+      }
+      return { ...row, companion_species, benefits };
+    });
 
     return Response.json({ guilds });
   } catch (error) {
