@@ -1646,6 +1646,16 @@ export function FarmMap({
   useEffect(() => {
     if (map.current) return; // Initialize map only once
 
+    // Declare handler refs outside try so the cleanup function can access them
+    let handleMoveEnd: (() => void) | null = null;
+    let handleRotate: (() => void) | null = null;
+    let handlePitch: (() => void) | null = null;
+    let handleDrawCreate: ((e: any) => void) | null = null;
+    let handleDrawUpdate: ((e: any) => void) | null = null;
+    let handleDrawDelete: ((e: any) => void) | null = null;
+    let handleSelectionChange: ((e: any) => void) | null = null;
+    let handleModeChange: ((e: any) => void) | null = null;
+
     try {
       /**
        * Initialize MapLibre Map
@@ -2041,7 +2051,7 @@ export function FarmMap({
         });
       };
 
-      const handleDrawCreate = (e: any) => {
+      handleDrawCreate = (e: any) => {
         // Apply the current zone type to the newly created feature immediately
         if (e.features && e.features.length > 0 && draw.current) {
           const currentZT = zoneTypeRef.current;
@@ -2117,7 +2127,7 @@ export function FarmMap({
         }
       };
 
-      const handleDrawUpdate = (e: any) => {
+      handleDrawUpdate = (e: any) => {
         if (e.features && e.features.length > 0 && draw.current) {
           // Check if any updated feature is a farm boundary
           const updatedFarmBoundaries = e.features.filter(
@@ -2146,7 +2156,7 @@ export function FarmMap({
       };
 
       // Prevent farm boundary from being deleted
-      const handleDrawDelete = (e: any) => {
+      handleDrawDelete = (e: any) => {
         if (e.features && e.features.length > 0) {
           // Check if any deleted feature was a farm boundary
           const deletedFarmBoundary = e.features.find(
@@ -2167,24 +2177,24 @@ export function FarmMap({
       map.current.on("draw.update", handleDrawUpdate);
       map.current.on("draw.delete", handleDrawDelete);
 
-      const handleMoveEnd = () => updateGridRef.current?.();
+      handleMoveEnd = () => updateGridRef.current?.();
       map.current.on("moveend", handleMoveEnd);
 
-      const handleRotate = () => {
+      handleRotate = () => {
         if (map.current) {
           setBearing(map.current.getBearing());
         }
       };
       map.current.on("rotate", handleRotate);
 
-      const handlePitch = () => {
+      handlePitch = () => {
         if (map.current) {
           setPitch(map.current.getPitch());
         }
       };
       map.current.on("pitch", handlePitch);
 
-      const handleSelectionChange = (e: any) => {
+      handleSelectionChange = (e: any) => {
         // Skip selection changes when the quick label form is showing
         // to prevent the old Label Zone panel from appearing alongside it
         if (showQuickLabelFormRef.current) return;
@@ -2239,7 +2249,7 @@ export function FarmMap({
       };
       map.current.on("draw.selectionchange", handleSelectionChange);
 
-      const handleModeChange = (e: any) => {
+      handleModeChange = (e: any) => {
         // Update draw mode state for context labels
         if (e.mode) {
           setDrawMode(e.mode);
@@ -2286,14 +2296,14 @@ export function FarmMap({
       if (drawUpdateTimerRef.current) clearTimeout(drawUpdateTimerRef.current);
       if (map.current) {
         map.current.off('zoom', handleZoomChange);
-        map.current.off('moveend', handleMoveEnd);
-        map.current.off('rotate', handleRotate);
-        map.current.off('pitch', handlePitch);
-        map.current.off('draw.create', handleDrawCreate);
-        map.current.off('draw.update', handleDrawUpdate);
-        map.current.off('draw.delete', handleDrawDelete);
-        map.current.off('draw.selectionchange', handleSelectionChange);
-        map.current.off('draw.modechange', handleModeChange);
+        if (handleMoveEnd) map.current.off('moveend', handleMoveEnd);
+        if (handleRotate) map.current.off('rotate', handleRotate);
+        if (handlePitch) map.current.off('pitch', handlePitch);
+        if (handleDrawCreate) map.current.off('draw.create', handleDrawCreate);
+        if (handleDrawUpdate) map.current.off('draw.update', handleDrawUpdate);
+        if (handleDrawDelete) map.current.off('draw.delete', handleDrawDelete);
+        if (handleSelectionChange) map.current.off('draw.selectionchange', handleSelectionChange);
+        if (handleModeChange) map.current.off('draw.modechange', handleModeChange);
         map.current.remove();
         map.current = null;
       }
