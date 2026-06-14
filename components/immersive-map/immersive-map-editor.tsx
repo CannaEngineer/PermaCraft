@@ -1122,26 +1122,22 @@ function ImmersiveMapEditorContent({
     openDrawer('details', 'medium');
   }, [openDrawer]);
 
-  // Filter zones by visible layers
   const filteredZones = useMemo(() => {
     if (visibleLayerIds.length === 0) {
-      // No layer filtering - show all zones
       return zones;
     }
 
+    const visibleSet = new Set(visibleLayerIds);
     return zones.filter(zone => {
-      // Parse layer_ids from zone
-      const layerIds = zone.layer_ids
-        ? JSON.parse(zone.layer_ids as any)
-        : [];
-
-      // Show zones with no layers assigned
-      if (layerIds.length === 0) {
+      if (!zone.layer_ids) return true;
+      let layerIds: string[];
+      try {
+        layerIds = JSON.parse(zone.layer_ids as any);
+      } catch {
         return true;
       }
-
-      // Show zones that belong to at least one visible layer
-      return layerIds.some((layerId: string) => visibleLayerIds.includes(layerId));
+      if (layerIds.length === 0) return true;
+      return layerIds.some((id: string) => visibleSet.has(id));
     });
   }, [zones, visibleLayerIds]);
 

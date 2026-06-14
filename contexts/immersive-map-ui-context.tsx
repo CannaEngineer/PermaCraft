@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
 
 export type DrawerContentType =
   | 'zone' | 'planting' | 'species-picker' | 'zone-quick-label'
@@ -137,7 +137,7 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
     }
   }, [mapInteracted]);
 
-  const value: ImmersiveMapUIState = {
+  const value: ImmersiveMapUIState = useMemo(() => ({
     uiMode,
     setUIMode,
     headerCollapsed,
@@ -164,7 +164,12 @@ export function ImmersiveMapUIProvider({ children }: { children: ReactNode }) {
     setChatOpen,
     mapInteracted,
     registerMapInteraction,
-  };
+  }), [uiMode, setUIMode, headerCollapsed, controlPanelMinimized,
+    controlPanelSection, setControlPanelSection, toggleControlPanel,
+    drawingMode, activeDrawTool, enterDrawingMode, exitDrawingMode,
+    drawerContent, drawerHeight, openDrawer, closeDrawer,
+    activeTab, zoneLinkMode, chatOpen, setChatOpen,
+    mapInteracted, registerMapInteraction]);
 
   return (
     <ImmersiveMapUIContext.Provider value={value}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { DesignLayer, getLayerOrder } from '@/lib/layers/layer-types';
 
 interface LayerContextValue {
@@ -97,6 +97,7 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
         body: JSON.stringify({ visible: newVisible ? 1 : 0 })
       });
 
+      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, visible: newVisible ? 1 : 0 } : l));
       setVisibleLayers(prev => {
         const next = new Set(prev);
         if (newVisible) {
@@ -106,12 +107,10 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
         }
         return next;
       });
-
-      await refreshLayers();
     } catch (error) {
       console.error('Failed to toggle visibility:', error);
     }
-  }, [farmId, layers, refreshLayers]);
+  }, [farmId, layers]);
 
   // Toggle lock
   const toggleLayerLock = useCallback(async (layerId: string) => {
@@ -127,6 +126,7 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
         body: JSON.stringify({ locked: newLocked ? 1 : 0 })
       });
 
+      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, locked: newLocked ? 1 : 0 } : l));
       setLockedLayers(prev => {
         const next = new Set(prev);
         if (newLocked) {
@@ -136,12 +136,10 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
         }
         return next;
       });
-
-      await refreshLayers();
     } catch (error) {
       console.error('Failed to toggle lock:', error);
     }
-  }, [farmId, layers, refreshLayers]);
+  }, [farmId, layers]);
 
   // Reorder layers
   const reorderLayers = useCallback(async (layerId: string, newOrder: number) => {
@@ -177,8 +175,10 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
     }
   }, [activeLayer]);
 
-  const value: LayerContextValue = {
-    layers: getLayerOrder(layers),
+  const orderedLayers = useMemo(() => getLayerOrder(layers), [layers]);
+
+  const value: LayerContextValue = useMemo(() => ({
+    layers: orderedLayers,
     visibleLayers,
     lockedLayers,
     activeLayer,
@@ -190,7 +190,9 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
     isLayerVisible,
     isLayerLocked,
     isFeatureInActiveLayer
-  };
+  }), [orderedLayers, visibleLayers, lockedLayers, activeLayer,
+    toggleLayerVisibility, toggleLayerLock, reorderLayers, refreshLayers,
+    isLayerVisible, isLayerLocked, isFeatureInActiveLayer]);
 
   return (
     <LayerContext.Provider value={value}>
