@@ -483,6 +483,7 @@ export function FarmMap({
   const cachedFarmBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
   const rasterLayerIdsRef = useRef<string[]>([]);
   const drawUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const zoomThrottleRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const savedFeaturesRef = useRef<any>(null);
   const initialZonesLoadedRef = useRef(false);
   const mapLoadedRef = useRef(false);
@@ -1867,13 +1868,20 @@ export function FarmMap({
           // Arrow icon is optional — line arrows degrade gracefully without it
         });
 
-        Promise.all([
+        Promise.allSettled([
           loadPlantings(),
           loadLines(),
           loadGuilds(),
           loadFarmPhases(),
           loadCustomImagery(),
-        ]);
+        ]).then((results) => {
+          results.forEach((result, i) => {
+            if (result.status === 'rejected') {
+              const names = ['plantings', 'lines', 'guilds', 'phases', 'imagery'];
+              console.error(`Failed to load ${names[i]}:`, result.reason);
+            }
+          });
+        });
 
         // Load initial zones (use ref to get latest value, avoiding stale closure)
         const currentZones = zonesRef.current;
@@ -1915,8 +1923,17 @@ export function FarmMap({
         }
       });
 
-      // Listen for zoom changes
-      map.current.on('zoom', handleZoomChange);
+      // Listen for zoom changes — throttle to once per animation frame to
+      // avoid firing 8+ setPaintProperty calls on every sub-pixel zoom tick
+      // during pinch/scroll zoom animations.
+      const throttledZoomHandler = () => {
+        if (zoomThrottleRef.current) return;
+        zoomThrottleRef.current = requestAnimationFrame(() => {
+          zoomThrottleRef.current = null;
+          handleZoomChange();
+        });
+      };
+      map.current.on('zoom', throttledZoomHandler);
 
       // Initial call to set correct opacity/thickness
       handleZoomChange();
