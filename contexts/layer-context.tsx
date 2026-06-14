@@ -97,7 +97,7 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
         body: JSON.stringify({ visible: newVisible ? 1 : 0 })
       });
 
-      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, visible: newVisible } : l));
+      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, visible: newVisible ? 1 : 0 } : l));
       setVisibleLayers(prev => {
         const next = new Set(prev);
         if (newVisible) {
@@ -126,7 +126,7 @@ export function LayerProvider({ farmId, children }: LayerProviderProps) {
         body: JSON.stringify({ locked: newLocked ? 1 : 0 })
       });
 
-      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, locked: newLocked } : l));
+      setLayers(prev => prev.map(l => l.id === layerId ? { ...l, locked: newLocked ? 1 : 0 } : l));
       setLockedLayers(prev => {
         const next = new Set(prev);
         if (newLocked) {
