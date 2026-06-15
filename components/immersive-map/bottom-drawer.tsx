@@ -156,7 +156,7 @@ export function BottomDrawer({
       dragElastic={0.1}
       onDragEnd={handleDragEnd}
       className="fixed inset-x-0 bottom-0 md:bottom-0 z-[55] flex flex-col overflow-hidden rounded-t-2xl border-t border-border/30 bg-background/85 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-4px_32px_rgba(0,0,0,0.08)] max-md:bottom-14"
-      style={{ willChange: 'height' }}
+      style={{ willChange: 'height', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       data-bottom-drawer
     >
       {/* Drag handle */}
@@ -218,7 +218,7 @@ export function BottomDrawer({
         {zoneLinkMode && (
           <button
             onClick={handleCancelZoneLink}
-            className="flex items-center gap-1 h-8 px-3 rounded-xl text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors active:scale-95 flex-shrink-0"
+            className="flex items-center gap-1 min-h-[44px] h-11 px-4 rounded-xl text-xs font-medium bg-muted hover:bg-muted/80 text-foreground transition-colors active:scale-95 flex-shrink-0"
           >
             <X className="h-3 w-3" />
             Cancel
@@ -240,9 +240,9 @@ export function BottomDrawer({
                 <button
                   key={action.id}
                   onClick={() => handleAction(action.id)}
-                  className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 flex-shrink-0 ${action.color}`}
+                  className={`flex items-center gap-1.5 min-h-[44px] h-11 px-4 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 flex-shrink-0 ${action.color}`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-4 w-4" />
                   {action.label}
                 </button>
               );
