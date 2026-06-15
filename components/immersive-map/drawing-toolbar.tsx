@@ -173,14 +173,17 @@ export function DrawingToolbar({
               );
             })}
 
-            {/* Done button */}
+            {/* Exit drawing mode — zones auto-save as they're drawn */}
             <button
               onClick={exitDrawingMode}
-              className="flex items-center justify-center h-11 px-3 md:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-sm transition-colors active:scale-95 shadow-md flex-shrink-0"
-              title="Done (Esc)"
+              className="flex flex-col items-center justify-center h-11 px-3 md:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium transition-colors active:scale-95 shadow-md flex-shrink-0"
+              title="Exit drawing mode (Esc) — zones are saved automatically"
             >
-              <Check className="h-4 w-4 mr-1" />
-              Done
+              <span className="flex items-center text-sm">
+                <Check className="h-4 w-4 mr-1" />
+                Done
+              </span>
+              <span className="text-[9px] opacity-75 font-normal leading-none -mt-0.5">auto-saved</span>
             </button>
           </div>
         </div>

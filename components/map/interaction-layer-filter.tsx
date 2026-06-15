@@ -34,21 +34,24 @@ export function InteractionLayerFilter({ activeFilter, onFilterChange, counts }:
   const activeConfig = FILTERS.find(f => f.key === activeFilter) || FILTERS[0];
   const ActiveIcon = activeConfig.icon;
 
-  // Collapsed: just show the active filter as a single pill
+  // Collapsed: show the active filter as a pill with a tap-target hint
   if (!expanded) {
     return (
       <button
         onClick={handleToggle}
         className={`
-          flex items-center gap-1.5 px-3 py-2 rounded-full
+          flex items-center gap-1.5 min-h-[44px] px-3 py-2 rounded-full
           bg-background/90 backdrop-blur-md border border-border/50
           shadow-lg hover:shadow-xl transition-all duration-200
           active:scale-95 touch-manipulation
         `}
-        aria-label={`Interaction filter: ${activeConfig.label}. Tap to change.`}
+        aria-label={`Interaction filter: ${activeConfig.label}. Tap to change which features respond to touch.`}
       >
         <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium">{activeConfig.label}</span>
+        <div className="flex flex-col items-start">
+          <span className="text-xs font-medium leading-tight">{activeConfig.label}</span>
+          <span className="text-[9px] text-muted-foreground leading-tight">tap target</span>
+        </div>
       </button>
     );
   }
@@ -65,8 +68,8 @@ export function InteractionLayerFilter({ activeFilter, onFilterChange, counts }:
             key={key}
             onClick={() => handleSelect(key)}
             className={`
-              flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-              transition-all duration-150 touch-manipulation min-h-[36px]
+              flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium
+              transition-all duration-150 touch-manipulation min-h-[44px]
               ${isActive
                 ? activeColor + ' shadow-sm'
                 : 'hover:bg-muted/70 active:bg-muted ' + color
