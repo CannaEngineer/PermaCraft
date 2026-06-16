@@ -112,27 +112,44 @@ export function compressFarmContext(
     }
   });
 
-  // Plantings list (compressed)
+  // Plantings list (compressed but preserving key data the AI needs)
   let plantingsList: string;
   if (verbosity === 'minimal') {
-    // Just species names and counts
-    const speciesCounts: Record<string, number> = {};
+    // Species names, counts, and native status
+    const speciesCounts: Record<string, { count: number; native: boolean }> = {};
     plantings.forEach(p => {
-      speciesCounts[p.common_name] = (speciesCounts[p.common_name] || 0) + 1;
+      const key = p.common_name;
+      if (!speciesCounts[key]) speciesCounts[key] = { count: 0, native: !!p.is_native };
+      speciesCounts[key].count += 1;
     });
     plantingsList = Object.entries(speciesCounts)
-      .map(([name, count]) => `${name} (${count})`)
+      .map(([name, { count, native }]) => `${name} (${count})${native ? '' : ' [NON-NATIVE]'}`)
       .join(', ');
   } else if (verbosity === 'detailed') {
-    // Full details
-    plantingsList = plantings.map(p =>
-      `${p.common_name} (${p.scientific_name}): ${p.layer}, planted ${p.planted_year}`
-    ).join('\n');
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '[NATIVE]' : '[NON-NATIVE]';
+      let functions = '';
+      if (p.permaculture_functions) {
+        try {
+          const fns = typeof p.permaculture_functions === 'string' ? JSON.parse(p.permaculture_functions) : p.permaculture_functions;
+          if (Array.isArray(fns) && fns.length > 0) functions = ` — ${fns.join(', ')}`;
+        } catch {}
+      }
+      return `${p.common_name} (${p.scientific_name}): ${p.layer} ${native}, planted ${p.planted_year || 'unknown'}${functions}`;
+    }).join('\n');
   } else {
-    // Standard: key info only
-    plantingsList = plantings.map(p =>
-      `${p.common_name}: ${p.layer}, year ${p.planted_year || 'unknown'}`
-    ).join('\n');
+    // Standard: include scientific name, native status, and functions
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '' : ' [NON-NATIVE]';
+      let functions = '';
+      if (p.permaculture_functions) {
+        try {
+          const fns = typeof p.permaculture_functions === 'string' ? JSON.parse(p.permaculture_functions) : p.permaculture_functions;
+          if (Array.isArray(fns) && fns.length > 0) functions = ` — ${fns.join(', ')}`;
+        } catch {}
+      }
+      return `${p.common_name} (${p.scientific_name}): ${p.layer}${native}, year ${p.planted_year || 'unknown'}${functions}`;
+    }).join('\n');
   }
 
   // Lines/water features context
@@ -150,11 +167,11 @@ export function compressFarmContext(
     }).join('\n');
   }
 
-  // Native species (top 10 by relevance)
+  // Native species (top 10 by relevance) — include scientific names so the AI can give proper recommendations
   const topNatives = nativeSpecies.slice(0, 10);
   const nativeSpeciesList = topNatives.map(s =>
-    `${s.common_name} (${s.layer}, ${s.mature_height_ft}ft)`
-  ).join(', ');
+    `${s.common_name} (${s.scientific_name}) — ${s.layer}, ${s.mature_height_ft}ft`
+  ).join('\n');
 
   // Guilds (companion planting groups)
   const guilds = context.guilds || [];
@@ -238,13 +255,17 @@ export function buildOptimizedContext(
   // include all context so the AI has full farm awareness
   const isGeneralQuery = !needsPlantings && !needsGuilds && !needsLines && !needsNatives && !needsGoals && !needsPhases;
 
+  // When recommending new species or natives, the AI needs to know existing plantings
+  // to avoid duplicates and suggest complementary species
+  const plantingsAlsoNeeded = needsNatives || needsGuilds;
+
   const parts: string[] = [compressed.summary];
 
   if (compressed.keyFacts.length > 0) {
     parts.push('Key facts:\n- ' + compressed.keyFacts.join('\n- '));
   }
 
-  if ((needsPlantings || needsGuilds || isGeneralQuery) && compressed.plantingsList) {
+  if ((needsPlantings || plantingsAlsoNeeded || isGeneralQuery) && compressed.plantingsList) {
     parts.push('Current plantings:\n' + compressed.plantingsList);
   }
 
