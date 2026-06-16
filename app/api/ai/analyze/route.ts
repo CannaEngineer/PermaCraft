@@ -1078,16 +1078,56 @@ export async function POST(request: NextRequest) {
         const planningModel = await getFarmPlanningModel();
         if (DEBUG) console.log(`Enhancing planning query with ${planningModel}`);
 
+        // Build rich farm context for the planner so it can account for
+        // existing plantings, zones, phases, goals, and native species
+        const planningFarmParts: string[] = [
+          `FARM CONTEXT:`,
+          `Name: ${farm.name}`,
+          `Acres: ${farm.acres || 'unknown'}`,
+          `Climate Zone: ${farm.climate_zone || 'unknown'}`,
+          `Soil: ${farm.soil_type || 'unknown'}`,
+          `Rainfall: ${farm.rainfall_inches ? `${farm.rainfall_inches} inches/year` : 'unknown'}`,
+        ];
+
+        if (enrichedZones && enrichedZones.length > 0) {
+          planningFarmParts.push(`\nZONES (${enrichedZones.length}):`);
+          for (const z of enrichedZones) {
+            const grid = z.gridCoordinates ? ` at grid ${z.gridCoordinates}` : '';
+            const area = z.areaAcres ? `, ~${z.areaAcres} acres` : '';
+            planningFarmParts.push(`  - ${z.name} (${z.type})${grid}${area}`);
+          }
+        }
+
+        if (enrichedPlantingsContext) {
+          planningFarmParts.push(`\n${enrichedPlantingsContext}`);
+        }
+
+        if (enrichedLinesContext) {
+          planningFarmParts.push(`\n${enrichedLinesContext}`);
+        }
+
+        if (enrichedPhasesContext) {
+          planningFarmParts.push(`\n${enrichedPhasesContext}`);
+        }
+
+        if (goalsContext) {
+          planningFarmParts.push(`\n${goalsContext}`);
+        }
+
+        if (enrichedNativeSpeciesContext) {
+          planningFarmParts.push(`\n${enrichedNativeSpeciesContext}`);
+        }
+
         const planningCompletion = await openrouter.chat.completions.create({
           model: planningModel,
           messages: [
             {
               role: "system",
-              content: `You are an expert permaculture implementation planner. You take terrain analysis from a vision AI and enhance it with structured, actionable planning details. Add specific timelines, cost estimates, material lists, and phased implementation steps. Keep the original analysis content but enrich it with planning structure. Format your response in markdown with clear headings.`,
+              content: `You are an expert permaculture implementation planner. You take terrain analysis from a vision AI and enhance it with structured, actionable planning details. Add specific timelines, cost estimates, material lists, and phased implementation steps. Keep the original analysis content but enrich it with planning structure. Account for the farmer's existing plantings, zones, goals, and phases — never recommend duplicating what already exists. Format your response in markdown with clear headings.`,
             },
             {
               role: "user",
-              content: `ORIGINAL TERRAIN ANALYSIS:\n${response}\n\nUSER'S PLANNING REQUEST:\n${query}\n\nFARM CONTEXT:\nName: ${farm.name}\nAcres: ${farm.acres || 'unknown'}\nClimate Zone: ${farm.climate_zone || 'unknown'}\nSoil: ${farm.soil_type || 'unknown'}\n\nEnhance the terrain analysis above with structured implementation planning: phases, timelines, cost estimates, and material lists. Preserve the terrain-specific insights while adding actionable planning structure.`,
+              content: `ORIGINAL TERRAIN ANALYSIS:\n${response}\n\nUSER'S PLANNING REQUEST:\n${query}\n\n${planningFarmParts.join('\n')}\n\nEnhance the terrain analysis above with structured implementation planning: phases, timelines, cost estimates, and material lists. Preserve the terrain-specific insights while adding actionable planning structure. Align with existing phases and goals when present.`,
             },
           ],
           temperature: 0.3,

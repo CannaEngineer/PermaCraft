@@ -73,25 +73,45 @@ function estimateTotalTokens(messages: Message[]): number {
 function summarizeOldMessages(messages: Message[]): string {
   if (messages.length === 0) return "";
 
-  // Extract key topics from user questions
-  const topics: string[] = [];
+  const exchanges: string[] = [];
 
-  for (let i = 0; i < messages.length; i += 2) {
+  for (let i = 0; i < messages.length - 1; i += 2) {
     const userMsg = messages[i];
-    if (userMsg.role === "user") {
-      // Take first sentence or first 100 chars as topic
-      const topic = userMsg.content
+    const assistantMsg = messages[i + 1];
+
+    if (userMsg?.role === "user") {
+      const question = userMsg.content
         .split(/[.!?]/)[0]
         .substring(0, 100)
         .trim();
-      if (topic) topics.push(topic);
+
+      let recommendation = '';
+      if (assistantMsg?.role === "assistant") {
+        // Extract the first substantive sentence from the AI response,
+        // skipping markdown headings and very short fragments
+        const lines = assistantMsg.content.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.length > 30 && !trimmed.startsWith('#') && !trimmed.startsWith('*') && !trimmed.startsWith('-')) {
+            recommendation = trimmed.substring(0, 150);
+            break;
+          }
+        }
+      }
+
+      if (question) {
+        exchanges.push(recommendation
+          ? `${question} → AI recommended: ${recommendation}`
+          : question
+        );
+      }
     }
   }
 
   const summary = `**Earlier in this conversation:**
-${topics.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+${exchanges.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 
-The conversation above covered these topics. Let me help you with your current question.`;
+Build on these earlier recommendations. Do not repeat suggestions already given.`;
 
   return summary;
 }
