@@ -48,7 +48,7 @@ export async function getDashboardFarms(userId: string): Promise<DashboardFarm[]
          WHERE farm_id = f.id ORDER BY created_at DESC LIMIT 1) as latest_screenshot_json
       FROM farms f
       LEFT JOIN plantings p ON p.farm_id = f.id
-      LEFT JOIN zones z ON z.farm_id = f.id
+      LEFT JOIN zones z ON z.farm_id = f.id AND z.zone_type != 'farm_boundary'
       LEFT JOIN lines l ON l.farm_id = f.id
       WHERE f.user_id = ?
       GROUP BY f.id
