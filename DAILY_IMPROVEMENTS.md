@@ -1,3 +1,33 @@
+# PermaCraft — 2026-06-17
+## Focus: Dashboard (Wednesday)
+
+### 1. Zone count no longer includes farm boundary
+File: `lib/db/queries/dashboard.ts`
+What changed: Added `AND z.zone_type != 'farm_boundary'` to the zone count JOIN in `getDashboardFarms`, so the auto-created boundary polygon is excluded from the count.
+Dashboard impact: A designer with 2 drawn zones now correctly sees "2 Zones" instead of "3 Zones". Every farm was inflated by 1.
+
+### 2. Dashboard links go directly to canvas editor
+Files: `components/dashboard/farm-hero-card.tsx`, `activity-timeline.tsx`, `insights-widget.tsx`, `eco-ring.tsx`
+What changed: All "Open Map Editor", "Ask AI", GPS field tool, activity timeline, insights, and eco-ring links now point to `/canvas?farm=X&section=Y` instead of `/farm/X`. The old `/farm/[id]` route redirects owners to `/canvas` anyway, causing an unnecessary server round-trip.
+Dashboard impact: Clicking any action button loads the editor instantly instead of bouncing through a redirect. Every dashboard-to-editor transition is one hop faster.
+
+### 3. Lines metric always visible
+File: `components/dashboard/farm-hero-card.tsx`
+What changed: Removed the `farm.line_count > 0` conditional wrapper around the Lines metric in the hero card. Lines now always displays alongside Zones, Plants, Eco Health, and Functions.
+Dashboard impact: A designer can see at a glance that they have 0 water management lines, signaling they haven't started that part of their design. Previously the metric just disappeared, hiding that information.
+
+### 4. Farm selector strip always visible
+File: `components/dashboard/dashboard-client-v2.tsx`
+What changed: Removed the `localFarms.length > 1` gate on the farm selector strip. The strip (which includes a "+ New Farm" dashed button) now renders even when the user has a single farm.
+Dashboard impact: A new user with 1 farm sees the "+ New Farm" affordance in the main content area, not just in the header. Makes adding a second farm more discoverable.
+
+## Watch for
+- The `/farm/[id]` public view route still exists and works for non-owners (visitors). Only owner links were changed to use `/canvas` directly.
+- If the canvas route ever changes its query parameter format, all dashboard links will need updating. Consider a shared URL builder utility if this happens.
+- The zone count exclusion only filters `farm_boundary`. If other auto-generated zone types are added in the future, they may also need exclusion.
+
+---
+
 # PermaCraft — 2026-06-13
 ## Focus: Performance + Reliability (Saturday)
 

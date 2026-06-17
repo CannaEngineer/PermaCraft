@@ -84,7 +84,7 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-green-200 via-emerald-200 to-teal-300 dark:from-green-900 dark:via-emerald-900 dark:to-teal-900 flex items-center justify-center">
-              <Link href={`/farm/${farm.id}`} className="text-center group">
+              <Link href={`/canvas?farm=${farm.id}&section=farm`} className="text-center group">
                 <MapPin className="h-10 w-10 mx-auto mb-2 text-green-600 dark:text-green-400 opacity-60 group-hover:opacity-80 transition-opacity" />
                 <span className="text-sm font-medium text-green-700 dark:text-green-300 opacity-60 group-hover:opacity-90 transition-opacity">Open map to capture a snapshot</span>
               </Link>
@@ -182,17 +182,13 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
                 </div>
                 <div className="text-xs text-muted-foreground font-medium">Plants</div>
               </div>
-              {farm.line_count > 0 && (
-                <>
-                  <div className="w-px bg-border self-stretch" />
-                  <div>
-                    <div className="text-2xl md:text-3xl font-bold text-foreground">
-                      {farm.line_count}
-                    </div>
-                    <div className="text-xs text-muted-foreground font-medium">Lines</div>
-                  </div>
-                </>
-              )}
+              <div className="w-px bg-border self-stretch" />
+              <div>
+                <div className="text-2xl md:text-3xl font-bold text-foreground">
+                  {farm.line_count}
+                </div>
+                <div className="text-xs text-muted-foreground font-medium">Lines</div>
+              </div>
               <div className="w-px bg-border self-stretch" />
               <div>
                 <div className="text-2xl md:text-3xl font-bold text-foreground">
@@ -228,14 +224,14 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-3">
               <Link
-                href={`/farm/${farm.id}`}
+                href={`/canvas?farm=${farm.id}&section=farm`}
                 className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-[0.98]"
               >
                 Open Map Editor
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href={`/farm/${farm.id}?tab=ai`}
+                href={`/canvas?farm=${farm.id}&section=ai`}
                 className="inline-flex items-center gap-2 rounded-2xl bg-card border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
                 <Leaf className="h-4 w-4 text-primary" />
@@ -255,35 +251,35 @@ export function FarmHeroCard({ farm, ecoScore, ecoFunctions, seasonal, onFarmUpd
               {showGPSActions && (
                 <div className="flex flex-wrap gap-2 mt-2 animate-fade-in">
                   <Link
-                    href={`/farm/${farm.id}?gps=plant`}
+                    href={`/canvas?farm=${farm.id}&gps=plant`}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600/10 border border-emerald-600/20 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600/20 transition-colors active:scale-[0.97]"
                   >
                     <Plus className="h-3 w-3" />
                     Plant by GPS
                   </Link>
                   <Link
-                    href={`/farm/${farm.id}?gps=pin`}
+                    href={`/canvas?farm=${farm.id}&gps=pin`}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600/10 border border-blue-600/20 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-600/20 transition-colors active:scale-[0.97]"
                   >
                     <MapPin className="h-3 w-3" />
                     Drop Pin
                   </Link>
                   <Link
-                    href={`/farm/${farm.id}?gps=photo`}
+                    href={`/canvas?farm=${farm.id}&gps=photo`}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600/10 border border-rose-600/20 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-600/20 transition-colors active:scale-[0.97]"
                   >
                     <Camera className="h-3 w-3" />
                     Take Photo
                   </Link>
                   <Link
-                    href={`/farm/${farm.id}?gps=soil`}
+                    href={`/canvas?farm=${farm.id}&gps=soil`}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600/10 border border-amber-600/20 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-600/20 transition-colors active:scale-[0.97]"
                   >
                     <FlaskConical className="h-3 w-3" />
                     Soil Test
                   </Link>
                   <Link
-                    href={`/farm/${farm.id}?gps=walk`}
+                    href={`/canvas?farm=${farm.id}&gps=walk`}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600/10 border border-teal-600/20 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-400 hover:bg-teal-600/20 transition-colors active:scale-[0.97]"
                   >
                     <Footprints className="h-3 w-3" />

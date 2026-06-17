@@ -140,9 +140,8 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-6xl mx-auto pb-32">
       {/* Farm selector — horizontal scroll of farm cards */}
-      {localFarms.length > 1 && (
-        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
-          {localFarms.map((farm: DashboardFarm) => {
+      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+        {localFarms.map((farm: DashboardFarm) => {
             const data = localFarmData[farm.id];
             const eco = data?.ecoScore ?? 0;
             const ecoColor = eco >= 75 ? 'text-green-600 dark:text-green-400' : eco >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500 dark:text-red-400';
@@ -203,7 +202,6 @@ export function DashboardClientV2({ farms: initialFarms, farmData: initialFarmDa
             <span>New Farm</span>
           </Link>
         </div>
-      )}
 
       {active && (
         <>
