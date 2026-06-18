@@ -484,6 +484,8 @@ export function FarmMap({
   const rasterLayerIdsRef = useRef<string[]>([]);
   const drawUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedFeaturesRef = useRef<any>(null);
+  const farmBoundaryCacheRef = useRef<Map<string, any>>(new Map());
+  const styleChangeGenRef = useRef(0);
   const initialZonesLoadedRef = useRef(false);
   const mapLoadedRef = useRef(false);
   const zonesRef = useRef(zones);
@@ -1921,15 +1923,12 @@ export function FarmMap({
       // Initial call to set correct opacity/thickness
       handleZoomChange();
 
-      // Store original farm boundary for restoration
-      const farmBoundaryCache = new Map<string, any>();
-
       const handleDrawChange = (e: any) => {
         if (draw.current) {
-          // Cache farm boundaries
+          // Cache farm boundaries for protection against accidental edits
           draw.current.getAll().features.forEach((feature: any) => {
-            if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCache.has(feature.id)) {
-              farmBoundaryCache.set(feature.id, JSON.parse(JSON.stringify(feature)));
+            if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCacheRef.current.has(feature.id)) {
+              farmBoundaryCacheRef.current.set(feature.id, JSON.parse(JSON.stringify(feature)));
             }
           });
 
@@ -1954,8 +1953,8 @@ export function FarmMap({
         drawUpdateTimerRef.current = setTimeout(() => {
           if (draw.current) {
             draw.current.getAll().features.forEach((feature: any) => {
-              if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCache.has(feature.id)) {
-                farmBoundaryCache.set(feature.id, JSON.parse(JSON.stringify(feature)));
+              if (feature.properties?.user_zone_type === "farm_boundary" && !farmBoundaryCacheRef.current.has(feature.id)) {
+                farmBoundaryCacheRef.current.set(feature.id, JSON.parse(JSON.stringify(feature)));
               }
             });
             onZonesChangeRef.current(draw.current.getAll().features);
@@ -2137,7 +2136,7 @@ export function FarmMap({
           if (updatedFarmBoundaries.length > 0) {
             // Restore original farm boundaries
             updatedFarmBoundaries.forEach((feature: any) => {
-              const original = farmBoundaryCache.get(feature.id);
+              const original = farmBoundaryCacheRef.current.get(feature.id);
               if (original && draw.current) {
                 draw.current.delete(feature.id);
                 draw.current.add(original);
@@ -2586,6 +2585,11 @@ export function FarmMap({
   const changeMapLayer = (layer: MapLayer) => {
     if (!map.current) return;
 
+    // Increment generation so stale styledata/idle callbacks from a previous
+    // changeMapLayer call become no-ops — prevents concurrent recovery races
+    // when the user switches layers rapidly.
+    const gen = ++styleChangeGenRef.current;
+
     // STEP 1: Save all features before style change
     // setStyle() will destroy MapboxDraw, so we must preserve the data.
     // Use a ref so rapid layer switching doesn't lose features — if a
@@ -2767,12 +2771,11 @@ export function FarmMap({
     }
 
     map.current.once("styledata", () => {
-      if (!map.current) return;
-
+      if (!map.current || gen !== styleChangeGenRef.current) return;
 
       // Wait for map to be fully idle before adding layers
       map.current.once("idle", () => {
-        if (!map.current) return;
+        if (!map.current || gen !== styleChangeGenRef.current) return;
 
         rebuildRasterLayerCache();
 
@@ -2800,6 +2803,13 @@ export function FarmMap({
 
         if (savedFeaturesRef.current) {
           draw.current.set(savedFeaturesRef.current);
+          // Repopulate farm boundary cache — setStyle() destroyed the draw
+          // instance, so restored boundaries need re-caching for edit protection.
+          savedFeaturesRef.current.features?.forEach((feature: any) => {
+            if (feature.properties?.user_zone_type === "farm_boundary") {
+              farmBoundaryCacheRef.current.set(feature.id, JSON.parse(JSON.stringify(feature)));
+            }
+          });
         }
 
         // Re-add lines source, solid/dashed layers, and arrows (destroyed by setStyle)

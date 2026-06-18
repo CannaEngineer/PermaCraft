@@ -408,6 +408,16 @@ IMPORTANT: When suggesting new plantings:
     };
   }, [zones, hasUnsavedChanges]);
 
+  // Warn before closing/navigating when unsaved changes exist
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
+
   // Handle zones change with unsaved flag
   const handleZonesChange = (newZones: any[]) => {
     setZones(newZones);
