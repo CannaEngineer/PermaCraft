@@ -9,6 +9,16 @@ export async function PATCH(
   const session = await requireAuth();
 
   const { id: farmId, lineId } = params;
+
+  // Verify farm ownership before allowing updates
+  const farm = await db.execute({
+    sql: 'SELECT id FROM farms WHERE id = ? AND user_id = ?',
+    args: [farmId, session!.user.id]
+  });
+  if (farm.rows.length === 0) {
+    return NextResponse.json({ error: 'Farm not found' }, { status: 404 });
+  }
+
   const body = await request.json();
 
   const updates: string[] = [];
@@ -45,16 +55,16 @@ export async function PATCH(
     return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
   }
 
-  args.push(lineId);
+  args.push(lineId, farmId);
 
   await db.execute({
-    sql: `UPDATE lines SET ${updates.join(', ')} WHERE id = ?`,
+    sql: `UPDATE lines SET ${updates.join(', ')} WHERE id = ? AND farm_id = ?`,
     args
   });
 
   const result = await db.execute({
-    sql: 'SELECT * FROM lines WHERE id = ?',
-    args: [lineId]
+    sql: 'SELECT * FROM lines WHERE id = ? AND farm_id = ?',
+    args: [lineId, farmId]
   });
 
   return NextResponse.json(result.rows[0]);
