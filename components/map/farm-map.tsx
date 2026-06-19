@@ -1067,10 +1067,14 @@ export function FarmMap({
         }
 
         const distance = (companion.min_distance_feet + companion.max_distance_feet) / 2;
-        const distanceDegrees = distance / 364000;
+        const distanceMeters = distance * 0.3048;
+        const METERS_PER_DEGREE_LAT = 111320;
+        const cosLat = Math.cos(centerPoint[1] * Math.PI / 180);
+        const latDegrees = distanceMeters / METERS_PER_DEGREE_LAT;
+        const lngDegrees = distanceMeters / (METERS_PER_DEGREE_LAT * (cosLat || 1e-6));
 
-        const companionLng = centerPoint[0] + distanceDegrees * Math.cos(angle);
-        const companionLat = centerPoint[1] + distanceDegrees * Math.sin(angle);
+        const companionLng = centerPoint[0] + lngDegrees * Math.cos(angle);
+        const companionLat = centerPoint[1] + latDegrees * Math.sin(angle);
 
         return fetch(`/api/farms/${farm.id}/plantings`, {
           method: 'POST',
@@ -2348,7 +2352,11 @@ export function FarmMap({
             );
           }
           if (interactionFilter === 'all' || interactionFilter === 'lines') {
-            queryLayers.push('colored-lines');
+            queryLayers.push(
+              'colored-lines',
+              'design-lines',
+              ...DASHED_LINE_CONFIGS.map(c => c.id),
+            );
           }
 
           // Filter to only layers that actually exist on the map
@@ -2383,7 +2391,12 @@ export function FarmMap({
                     };
                   }
                 }
-              } else if (feature.layer.id === 'colored-lines' && feature.properties) {
+              } else if (
+                (feature.layer.id === 'colored-lines' ||
+                 feature.layer.id === 'design-lines' ||
+                 feature.layer.id?.startsWith('design-lines-dash-')) &&
+                feature.properties
+              ) {
                 const id = feature.properties.id || feature.id?.toString();
                 if (id && (interactionFilter === 'all' || interactionFilter === 'lines')) {
                   featureInfo = {
@@ -2822,10 +2835,8 @@ export function FarmMap({
         // Restore custom imagery overlays (destroyed by setStyle)
         loadCustomImagery();
 
-        // Re-add colored zone layers after style change
-        setTimeout(() => {
-          addColoredZoneLayersRef.current?.();
-        }, 200);
+        // Re-add colored zone layers immediately (idle event ensures style is ready)
+        addColoredZoneLayersRef.current?.();
       }); // End of idle callback
     }); // End of styledata callback
   };

@@ -45,10 +45,14 @@ function PlantingMarkerInner({ planting, map, currentYear, zoom: zoomProp, onCli
     const lat = planting.lat;
     const metersPerPixel = (156543.03392 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, currentZoom);
 
-    // Convert width in meters to pixels (diameter)
-    const diameterPixels = (currentWidthMeters / metersPerPixel) * 2.5;
+    // Scale multiplier: 2.5x at low zoom for visibility, 1.0 at zoom 20+ for
+    // spatially accurate canopy representation during precision design work.
+    const scaleMultiplier = currentZoom <= 16 ? 2.5
+      : currentZoom >= 20 ? 1.0
+      : 2.5 - (currentZoom - 16) * (1.5 / 4); // linear 2.5→1.0 over z16–z20
 
-    // Ensure minimum visible size
+    const diameterPixels = (currentWidthMeters / metersPerPixel) * scaleMultiplier;
+
     return Math.max(14, diameterPixels);
   };
 
