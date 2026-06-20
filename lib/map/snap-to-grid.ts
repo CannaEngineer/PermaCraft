@@ -105,23 +105,37 @@ export function snapCoordinate(
  * Returns separate lat/lng steps so snap aligns to the visual grid.
  * 1° latitude ≈ 111,320 m (~364,567 ft) — effectively constant.
  * 1° longitude ≈ 111,320 × cos(latitude) m — shrinks toward the poles.
+ *
+ * Memoized: during a drag operation the arguments are constant (unit and
+ * subdivision don't change, latitude varies by < 0.001°). Rounding
+ * latitude to 0.01° (~1 km) gives a stable cache key while keeping
+ * sub-meter accuracy in the spacing result.
  */
+let _spacingCache: { key: string; value: GridSpacing } | null = null;
+
 export function getGridSpacingDegrees(
   unit: 'imperial' | 'metric',
   subdivision: 'coarse' | 'fine',
   latitude: number
 ): GridSpacing {
+  const roundedLat = Math.round(latitude * 100) / 100;
+  const key = `${unit}-${subdivision}-${roundedLat}`;
+  if (_spacingCache && _spacingCache.key === key) {
+    return _spacingCache.value;
+  }
+
   const METERS_PER_DEGREE_LAT = 111320;
-  const cosLat = Math.cos(latitude * Math.PI / 180);
-  // Avoid divide-by-zero at the poles; clamp to a tiny non-zero value.
+  const cosLat = Math.cos(roundedLat * Math.PI / 180);
   const safeCos = Math.abs(cosLat) < 1e-6 ? 1e-6 : cosLat;
 
   const spacingMeters = unit === 'imperial'
     ? (subdivision === 'fine' ? 10 : 50) * 0.3048 // ft → m
     : (subdivision === 'fine' ? 5 : 25);
 
-  return {
+  const value: GridSpacing = {
     latDegrees: spacingMeters / METERS_PER_DEGREE_LAT,
     lngDegrees: spacingMeters / (METERS_PER_DEGREE_LAT * safeCos),
   };
+  _spacingCache = { key, value };
+  return value;
 }
