@@ -95,7 +95,7 @@ const analyzeSchema = z.object({
     gridCells: z.array(z.string().max(10)).max(500).optional(),
     areaAcres: z.number().optional(),
   })).max(100).optional(),
-  enableOptimizations: z.boolean().optional(),
+  enableOptimizations: z.boolean().default(true),
   farmContext: z.object({
     zones: z.array(z.record(z.unknown())).max(100),
     plantings: z.array(z.record(z.unknown())).max(500),

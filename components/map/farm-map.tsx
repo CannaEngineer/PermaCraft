@@ -1237,23 +1237,22 @@ export function FarmMap({
 
   // Stable zoom handler — reads from refs so the single event listener
   // registered at mount always sees the latest state.
+  //
+  // Performance: MapLibre's `zoom` event fires on every animation frame
+  // (~60/sec during pinch/scroll). Paint property updates are cheap GPU
+  // calls, but `setCurrentZoom` triggers a full React re-render. We only
+  // flush to React state when the 0.1-quantized zoom actually changes,
+  // cutting re-renders from ~60/sec to ~5-10/sec during smooth zooms.
+  const zoomRAFRef = useRef<number | null>(null);
+  const pendingZoomRef = useRef<number | null>(null);
+
   const handleZoomChange = useCallback(() => {
     if (!map.current) return;
 
     const zoom = map.current.getZoom();
     const prevZoom = currentZoomRef.current;
-    setCurrentZoom(zoom);
 
-    if (!hasShownPrecisionToastRef.current && prevZoom <= 18 && zoom > 18) {
-      toast({
-        title: "🔍 Precision Mode Activated",
-        description: "Grid and measurements enhanced for detailed planning",
-        duration: 4000,
-      });
-      setHasShownPrecisionToast(true);
-      localStorage.setItem('precision-mode-toast-shown', 'true');
-    }
-
+    // Paint property updates — cheap GPU calls, run every frame for smooth visuals
     const opacity = getSatelliteOpacity(zoom);
     for (const layerId of rasterLayerIdsRef.current) {
       if (map.current.getLayer(layerId)) {
@@ -1278,6 +1277,33 @@ export function FarmMap({
       const newSubdivision = showFine ? 'fine' : 'coarse';
       setGridSubdivision(newSubdivision);
       updateGridDebouncedRef.current?.(newSubdivision);
+    }
+
+    // React state update — only when 0.1-quantized value changes
+    const quantized = Math.round(zoom * 10) / 10;
+    const prevQuantized = Math.round(prevZoom * 10) / 10;
+    if (quantized !== prevQuantized) {
+      pendingZoomRef.current = zoom;
+      if (zoomRAFRef.current === null) {
+        zoomRAFRef.current = requestAnimationFrame(() => {
+          zoomRAFRef.current = null;
+          if (pendingZoomRef.current !== null) {
+            const z = pendingZoomRef.current;
+            pendingZoomRef.current = null;
+            setCurrentZoom(z);
+
+            if (!hasShownPrecisionToastRef.current && prevZoom <= 18 && z > 18) {
+              toast({
+                title: "🔍 Precision Mode Activated",
+                description: "Grid and measurements enhanced for detailed planning",
+                duration: 4000,
+              });
+              setHasShownPrecisionToast(true);
+              localStorage.setItem('precision-mode-toast-shown', 'true');
+            }
+          }
+        });
+      }
     }
   }, [toast]);
 
@@ -2177,7 +2203,7 @@ export function FarmMap({
       map.current.on("draw.update", handleDrawUpdate);
       map.current.on("draw.delete", handleDrawDelete);
 
-      handleMoveEnd = () => updateGridRef.current?.();
+      handleMoveEnd = () => updateGridDebouncedRef.current?.();
       map.current.on("moveend", handleMoveEnd);
 
       handleRotate = () => {
@@ -2294,6 +2320,10 @@ export function FarmMap({
 
     return () => {
       if (drawUpdateTimerRef.current) clearTimeout(drawUpdateTimerRef.current);
+      if (zoomRAFRef.current !== null) {
+        cancelAnimationFrame(zoomRAFRef.current);
+        zoomRAFRef.current = null;
+      }
       if (map.current) {
         map.current.off('zoom', handleZoomChange);
         if (handleMoveEnd) map.current.off('moveend', handleMoveEnd);
