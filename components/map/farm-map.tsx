@@ -1825,15 +1825,19 @@ export function FarmMap({
         ensureCustomLayersOnTop();
       };
 
-      // Update the colored zones when features change
-      const updateColoredZones = () => {
+      // Update the colored zones when features change.
+      // Pass skipLayerReorder=true during rapid updates (vertex dragging)
+      // to avoid 15 moveLayer() calls per frame — layer order only changes
+      // after style reloads or new layers are added.
+      const updateColoredZones = (skipLayerReorder = false) => {
         if (!map.current || !draw.current) return;
         const source = map.current.getSource("draw-zones") as maplibregl.GeoJSONSource;
         if (source) {
           source.setData(draw.current.getAll());
         }
-        // Ensure layers stay on top after data updates
-        ensureCustomLayersOnTop();
+        if (!skipLayerReorder) {
+          ensureCustomLayersOnTop();
+        }
       };
 
       // Store functions in refs so they can be called from changeMapLayer and other handlers
@@ -1947,9 +1951,11 @@ export function FarmMap({
       // the grid once the user pauses.
       const handleDrawChangeDragging = () => {
         if (!draw.current) return;
-        // Immediate: visual zone coloring must track the vertex drag
-        updateColoredZones();
-        // Deferred: parent state + grid recalculation
+        // Immediate: visual zone coloring must track the vertex drag.
+        // Skip layer reordering — it's expensive (15 moveLayer calls) and
+        // layer order doesn't change during a drag.
+        updateColoredZones(true);
+        // Deferred: parent state + grid recalculation + full layer reorder
         if (drawUpdateTimerRef.current) clearTimeout(drawUpdateTimerRef.current);
         drawUpdateTimerRef.current = setTimeout(() => {
           if (draw.current) {
@@ -1961,6 +1967,7 @@ export function FarmMap({
             onZonesChangeRef.current(draw.current.getAll().features);
             invalidateFarmBoundsCache();
             updateGridRef.current?.();
+            ensureCustomLayersOnTop();
           }
         }, 200);
       };
@@ -2177,7 +2184,7 @@ export function FarmMap({
       map.current.on("draw.update", handleDrawUpdate);
       map.current.on("draw.delete", handleDrawDelete);
 
-      handleMoveEnd = () => updateGridRef.current?.();
+      handleMoveEnd = () => updateGridDebouncedRef.current?.();
       map.current.on("moveend", handleMoveEnd);
 
       handleRotate = () => {

@@ -146,17 +146,35 @@ export async function getBatchEcoHealthScores(
 }
 
 export async function getFarmTasks(farmId: string): Promise<Task[]> {
+  return ((await getBatchFarmTasks([farmId]))[farmId]) ?? [];
+}
+
+export async function getBatchFarmTasks(
+  farmIds: string[]
+): Promise<Record<string, Task[]>> {
+  if (farmIds.length === 0) return {};
+
+  const placeholders = farmIds.map(() => '?').join(',');
   const result = await db.execute({
     sql: `
       SELECT * FROM tasks
-      WHERE farm_id = ?
+      WHERE farm_id IN (${placeholders})
         AND status NOT IN ('completed', 'skipped')
       ORDER BY priority DESC, created_at DESC
-      LIMIT 20
     `,
-    args: [farmId],
+    args: farmIds,
   });
-  return result.rows as unknown as Task[];
+
+  const out: Record<string, Task[]> = {};
+  for (const id of farmIds) out[id] = [];
+
+  for (const row of result.rows) {
+    const fid = row.farm_id as string;
+    if (out[fid] && out[fid].length < 20) {
+      out[fid].push(row as unknown as Task);
+    }
+  }
+  return out;
 }
 
 export async function getUrgentTaskCount(farmId: string): Promise<number> {
@@ -168,17 +186,35 @@ export async function getUrgentTaskCount(farmId: string): Promise<number> {
 }
 
 export async function getRecentAiInsights(farmId: string) {
+  return ((await getBatchRecentAiInsights([farmId]))[farmId]) ?? [];
+}
+
+export async function getBatchRecentAiInsights(
+  farmIds: string[]
+): Promise<Record<string, any[]>> {
+  if (farmIds.length === 0) return {};
+
+  const placeholders = farmIds.map(() => '?').join(',');
   const result = await db.execute({
     sql: `
-      SELECT id, ai_response, created_at, user_query
+      SELECT id, farm_id, ai_response, created_at, user_query
       FROM ai_analyses
-      WHERE farm_id = ?
+      WHERE farm_id IN (${placeholders})
       ORDER BY created_at DESC
-      LIMIT 5
     `,
-    args: [farmId],
+    args: farmIds,
   });
-  return result.rows;
+
+  const out: Record<string, any[]> = {};
+  for (const id of farmIds) out[id] = [];
+
+  for (const row of result.rows) {
+    const fid = row.farm_id as string;
+    if (out[fid] && out[fid].length < 5) {
+      out[fid].push(row);
+    }
+  }
+  return out;
 }
 
 export async function getRecentActivity(farmId: string) {
