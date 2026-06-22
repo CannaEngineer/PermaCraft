@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Sparkles,
   MessageSquare,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -244,6 +245,24 @@ export function UnifiedBottomNav({
                         onOpenPlayer={() => setIsMusicSheetOpen(true)}
                         variant="mobile"
                       />
+                    </div>
+
+                    <Separator className="my-1" />
+
+                    {/* Replay Tour */}
+                    <div className="py-1 px-3">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-11"
+                        onClick={() => {
+                          try { localStorage.removeItem('onboarding-complete'); } catch {}
+                          setShowProfileMenu(false);
+                          window.location.href = '/canvas';
+                        }}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-3" />
+                        <span className="font-medium">Replay Welcome Tour</span>
+                      </Button>
                     </div>
 
                     <Separator className="my-1" />

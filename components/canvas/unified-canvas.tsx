@@ -42,6 +42,7 @@ import { GPSToolsMenu, type GPSTool } from '@/components/map/gps-tools-menu';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Sparkles, Leaf, MapPin, Globe, Sprout, GraduationCap, Droplets, Timer, Download, BookOpen, Footprints, FlaskConical, Camera } from 'lucide-react';
 import { WelcomeWalkthrough } from './welcome-walkthrough';
+import { KeyboardShortcutsOverlay } from '@/components/shared/keyboard-shortcuts-overlay';
 import { toPng } from 'html-to-image';
 import type { Farm, Zone, FarmerGoal, Species } from '@/lib/db/schema';
 import type maplibregl from 'maplibre-gl';
@@ -184,6 +185,7 @@ function UnifiedCanvasEmpty({ userId, userName }: { userId: string; userName: st
         isAuthenticated={true}
         canvasContext={canvasCtx}
       />
+      <KeyboardShortcutsOverlay />
     </div>
   );
 }
@@ -956,6 +958,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
                 plantings={plantings}
                 currentYear={projectionYear}
                 onYearChange={setProjectionYear}
+                saveState={saving ? 'saving' : hasUnsavedChanges ? 'idle' : 'saved'}
               />
               <DrawingToolbar
                 onToolSelect={() => {}}
@@ -1258,6 +1261,7 @@ function UnifiedCanvasContent({ userId, userName, farm }: UnifiedCanvasContentPr
         isAuthenticated={true}
         canvasContext={{ activeSection, setActiveSection }}
       />
+      <KeyboardShortcutsOverlay />
     </div>
   );
 }

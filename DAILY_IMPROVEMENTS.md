@@ -1,32 +1,27 @@
-# PermaCraft — 2026-06-13
-## Focus: Performance + Reliability (Saturday)
+# PermaCraft — 2026-06-22
+## Focus: UI/UX Polish (Sunday)
 
-### 1. Fix map event listener memory leak
-File: `components/map/farm-map.tsx`
-What changed: Extracted 8 anonymous event handlers (moveend, rotate, pitch, draw.create, draw.update, draw.delete, draw.selectionchange, draw.modechange) into named variables and added cleanup calls in the useEffect return. Previously only `zoom` was cleaned up on unmount.
-Map/dashboard impact: Prevents memory leaks and double-firing of handlers when the map component remounts (e.g. navigating between farms). Eliminates stale-closure bugs where old handlers reference outdated state.
+### 1. Bottom Drawer Touch Targets Fixed
+File: `components/immersive-map/bottom-drawer.tsx`
+What changed: Increased tab touch targets from ~24px to 44px minimum (`min-h-[44px]` + `py-2.5`), and quick-action chips from 32px to 44px (`h-11` + `touch-manipulation`).
+Map/dashboard impact: Mobile users can now reliably tap Design/Plan/Story tabs and primary action buttons (Add Plant, Draw Zone, etc.) without mis-taps. Follows the project's own design system requirement of 44px minimum targets.
 
-### 2. Parallelize map data loading on init
-File: `components/map/farm-map.tsx`
-What changed: Wrapped the 5 sequential data-loading calls (plantings, lines, guilds, phases, custom imagery) in `Promise.all()` inside the map's `load` event handler.
-Map/dashboard impact: Faster initial map load — all 5 API calls now execute concurrently instead of in series. On a typical farm with all feature types, this saves 1-3 seconds of waterfall time.
+### 2. Keyboard Shortcuts Help Overlay
+File: `components/shared/keyboard-shortcuts-overlay.tsx` (new)
+What changed: Added a discoverable keyboard shortcuts overlay, triggered by pressing `?` or `/`. Shows all navigation keys (1-6), map shortcuts (C=chat, S=snap), and general shortcuts. Also added a subtle "Keys" button at the bottom of the desktop nav rail for mouse-only users.
+Map/dashboard impact: First-time users can now discover that keyboard shortcuts exist. Previously, the only shortcut reference was a tiny icon buried inside the Layers control panel — effectively invisible.
 
-### 3. Add defensive JSON parsing in API routes and map component
-Files: `app/api/farms/[id]/lines/route.ts`, `app/api/farms/[id]/guilds/route.ts`, `components/map/farm-map.tsx`
-What changed: Wrapped all `JSON.parse()` calls in try-catch blocks in the lines GET route (style, layer_ids), guilds GET route (companion_species, benefits), and imagery bounds parsing in the map component. A single corrupted JSON field previously crashed the entire API response or map rendering.
-Map/dashboard impact: A corrupted record now logs an error and returns gracefully instead of taking down the entire feature list.
+### 3. Welcome Tour Replay
+File: `components/shared/unified-bottom-nav.tsx`
+What changed: Added a "Replay Welcome Tour" button to the mobile profile menu. Clears the `onboarding-complete` localStorage flag and navigates to `/canvas` to restart the 4-step walkthrough.
+Map/dashboard impact: Users who accidentally skipped or dismissed the welcome tour can now replay it. Previously, the tour was permanently gone after first dismissal with no way to restart.
 
-### 4. Add farm ownership check to lines GET route
-File: `app/api/farms/[id]/lines/route.ts`
-What changed: Added farm ownership verification (matching user_id or is_public flag) before returning line data. The POST route had this check but GET was missing it.
-Map/dashboard impact: Security fix — private farm line data is no longer accessible to unauthorized users.
-
-### 5. Bound canvas farms query
-File: `app/canvas/page.tsx`
-What changed: Added `LIMIT 100` to the farms query on the canvas page.
-Map/dashboard impact: Prevents memory bloat for power users with many farms.
+### 4. Save State Wired to Map Header
+File: `components/canvas/unified-canvas.tsx`
+What changed: Passed the `saveState` prop to `ThinHeader` (which already had the UI for it but was never receiving data). Now shows "Saving..." spinner during auto-save, green "Saved" checkmark on completion, and "Offline" indicator on error.
+Map/dashboard impact: Designers now see real-time save feedback in the map header bar — previously the save state was only visible in the CommandBar top bar, which is less prominent on mobile when the map fills the screen.
 
 ## Watch for
-- The map event listener cleanup relies on MapboxDraw's `.off()` for custom draw events — verify these are properly unbound in the MapboxDraw version used.
-- Parallel data loading means all 5 API calls compete for bandwidth simultaneously. On very slow connections, monitor for increased timeouts.
-- Imagery records with corrupted bounds data will now silently not render instead of crashing the map.
+- The keyboard shortcuts overlay uses `window.dispatchEvent(new KeyboardEvent(...))` from the nav rail button — this works in all modern browsers but is a synthetic event dispatch pattern. If any event listeners do `e.isTrusted` checks, the button trigger won't work. The direct `?` key press always works.
+- Touch target changes increase the vertical space used by the bottom drawer header and quick-action strip by ~20px total. On very small screens (iPhone SE / 320px width), verify the drawer content area still has sufficient scroll space at `medium` height.
+- The "Replay Tour" button does a full page navigation (`window.location.href`) rather than a client-side route. This is intentional to ensure clean state reset, but it means a brief flash of white during navigation.
