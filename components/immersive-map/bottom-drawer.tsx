@@ -166,7 +166,7 @@ export function BottomDrawer({
 
       {/* Header: tabs + summary badges — always visible */}
       <div className="flex items-center gap-2 px-4 pb-1.5 flex-shrink-0">
-        {/* Segmented control tabs */}
+        {/* Segmented control tabs — min 44px touch target */}
         <div className="flex items-center bg-muted/40 rounded-lg p-0.5 flex-1 min-w-0">
           {TAB_CONFIG.map((tab) => {
             const isActive = activeTab === tab.id && !showDetailOverlay;
@@ -178,7 +178,7 @@ export function BottomDrawer({
                   if (isPeek) setDrawerHeight('medium');
                 }}
                 className={`
-                  relative flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                  relative flex-1 px-2 py-2.5 rounded-md text-xs font-medium transition-all duration-200 min-h-[44px] flex items-center justify-center
                   ${isActive
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -240,7 +240,7 @@ export function BottomDrawer({
                 <button
                   key={action.id}
                   onClick={() => handleAction(action.id)}
-                  className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 flex-shrink-0 ${action.color}`}
+                  className={`flex items-center gap-1.5 h-11 px-3.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 flex-shrink-0 touch-manipulation ${action.color}`}
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {action.label}

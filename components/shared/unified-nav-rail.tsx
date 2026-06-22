@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { getNavItems, isRouteActive } from '@/lib/nav/navigation';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Keyboard } from 'lucide-react';
 import type { CanvasSection } from '@/contexts/unified-canvas-context';
 
 interface UnifiedNavRailProps {
@@ -108,6 +108,26 @@ export function UnifiedNavRail({ canvasContext }: UnifiedNavRailProps) {
           </div>
         </button>
       )}
+
+      {/* Keyboard shortcuts hint */}
+      <button
+        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))}
+        className={cn(
+          'relative flex flex-col items-center justify-center w-14 h-auto py-1.5 px-1 rounded-xl transition-all duration-200 group gap-0.5',
+          !isCanvas && 'mt-auto',
+          'text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent'
+        )}
+        aria-label="Keyboard shortcuts"
+      >
+        <Keyboard className="h-3.5 w-3.5" />
+        <span className="text-[9px] leading-tight font-medium">Keys</span>
+        <div
+          className="absolute left-full ml-2 px-2 py-1 rounded-md bg-popover text-popover-foreground text-xs font-medium shadow-md border border-border/40 invisible group-hover:visible opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50"
+          aria-hidden="true"
+        >
+          Keyboard shortcuts (?)
+        </div>
+      </button>
     </nav>
   );
 }
