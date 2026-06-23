@@ -1,32 +1,26 @@
-# PermaCraft — 2026-06-13
-## Focus: Performance + Reliability (Saturday)
+# PermaCraft — 2026-06-23
+## Focus: Map Core (Monday)
 
-### 1. Fix map event listener memory leak
-File: `components/map/farm-map.tsx`
-What changed: Extracted 8 anonymous event handlers (moveend, rotate, pitch, draw.create, draw.update, draw.delete, draw.selectionchange, draw.modechange) into named variables and added cleanup calls in the useEffect return. Previously only `zoom` was cleaned up on unmount.
-Map/dashboard impact: Prevents memory leaks and double-firing of handlers when the map component remounts (e.g. navigating between farms). Eliminates stale-closure bugs where old handlers reference outdated state.
+### 1. Add farm ownership verification to line PATCH/DELETE
+File: `app/api/farms/[id]/lines/[lineId]/route.ts`
+What changed: Both PATCH and DELETE now verify the authenticated user owns the farm before allowing modifications, using a JOIN to the farms table.
+Map/dashboard impact: Previously any authenticated user who knew a line ID could modify or delete lines on any farm. Now line mutations are properly scoped to the farm owner, preventing unauthorized edits to other designers' work.
 
-### 2. Parallelize map data loading on init
-File: `components/map/farm-map.tsx`
-What changed: Wrapped the 5 sequential data-loading calls (plantings, lines, guilds, phases, custom imagery) in `Promise.all()` inside the map's `load` event handler.
-Map/dashboard impact: Faster initial map load — all 5 API calls now execute concurrently instead of in series. On a typical farm with all feature types, this saves 1-3 seconds of waterfall time.
+### 2. Make zone deletion atomic with db.batch()
+File: `app/api/farms/[id]/zones/[zoneId]/route.ts`
+What changed: Replaced two sequential db.execute() calls (unlink plantings, then delete zone) with a single db.batch() transaction that also updates the farm's updated_at timestamp.
+Map/dashboard impact: If the zone DELETE query previously failed after the planting UPDATE, plantings would be orphaned with zone_id = NULL and no way to restore the association. Now the entire operation succeeds or fails as a unit.
 
-### 3. Add defensive JSON parsing in API routes and map component
-Files: `app/api/farms/[id]/lines/route.ts`, `app/api/farms/[id]/guilds/route.ts`, `components/map/farm-map.tsx`
-What changed: Wrapped all `JSON.parse()` calls in try-catch blocks in the lines GET route (style, layer_ids), guilds GET route (companion_species, benefits), and imagery bounds parsing in the map component. A single corrupted JSON field previously crashed the entire API response or map rendering.
-Map/dashboard impact: A corrupted record now logs an error and returns gracefully instead of taking down the entire feature list.
+### 3. Add updated_at timestamp to planting PATCH
+File: `app/api/farms/[id]/plantings/[plantingId]/route.ts`
+What changed: Planting updates now set `updated_at = unixepoch()` on the planting row and also update the parent farm's `updated_at` timestamp, both in a single batch transaction.
+Map/dashboard impact: Dashboard "last modified" timestamps and any client-side caching that depends on updated_at now accurately reflect when plantings were last changed.
 
-### 4. Add farm ownership check to lines GET route
-File: `app/api/farms/[id]/lines/route.ts`
-What changed: Added farm ownership verification (matching user_id or is_public flag) before returning line data. The POST route had this check but GET was missing it.
-Map/dashboard impact: Security fix — private farm line data is no longer accessible to unauthorized users.
-
-### 5. Bound canvas farms query
-File: `app/canvas/page.tsx`
-What changed: Added `LIMIT 100` to the farms query on the canvas page.
-Map/dashboard impact: Prevents memory bloat for power users with many farms.
+### 4. Consistent JSON parsing in line API responses
+Files: `app/api/farms/[id]/lines/route.ts`, `app/api/farms/[id]/lines/[lineId]/route.ts`
+What changed: Line POST and PATCH responses now parse style and layer_ids JSON before returning, matching the GET response format.
+Map/dashboard impact: The client previously received raw JSON strings from POST/PATCH but parsed objects from GET, which could cause rendering bugs when a newly created or updated line's style wasn't applied until the next page load.
 
 ## Watch for
-- The map event listener cleanup relies on MapboxDraw's `.off()` for custom draw events — verify these are properly unbound in the MapboxDraw version used.
-- Parallel data loading means all 5 API calls compete for bandwidth simultaneously. On very slow connections, monitor for increased timeouts.
-- Imagery records with corrupted bounds data will now silently not render instead of crashing the map.
+- The lines GET handler silently swallows corrupted JSON for style/layer_ids — if corruption is happening, errors only appear in server logs, not to the user. Consider surfacing a warning if this ever fires on real data.
+- The zones batch POST route deletes ALL zones then re-inserts — if the client sends a partial zone list (e.g., due to a network timeout truncating the request body), zones could be lost. The Zod validation catches malformed bodies but can't detect a truncated-but-valid array.

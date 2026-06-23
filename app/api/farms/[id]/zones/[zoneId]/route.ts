@@ -25,17 +25,20 @@ export async function DELETE(
       );
     }
 
-    // Unlink any plantings in this zone (set zone_id to null)
-    await db.execute({
-      sql: 'UPDATE plantings SET zone_id = NULL WHERE zone_id = ?',
-      args: [zoneId]
-    });
-
-    // Delete the zone
-    await db.execute({
-      sql: 'DELETE FROM zones WHERE id = ?',
-      args: [zoneId]
-    });
+    await db.batch([
+      {
+        sql: 'UPDATE plantings SET zone_id = NULL WHERE zone_id = ?',
+        args: [zoneId]
+      },
+      {
+        sql: 'DELETE FROM zones WHERE id = ?',
+        args: [zoneId]
+      },
+      {
+        sql: 'UPDATE farms SET updated_at = unixepoch() WHERE id = ?',
+        args: [farmId]
+      }
+    ]);
 
     return Response.json({ success: true });
   } catch (error) {

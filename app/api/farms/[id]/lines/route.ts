@@ -61,7 +61,17 @@ export async function POST(
     args: [lineId]
   });
 
-  return NextResponse.json(result.rows[0], { status: 201 });
+  const row = result.rows[0];
+  let parsedStyle = null;
+  let parsedLayerIds: string[] = [];
+  try {
+    if (row.style) parsedStyle = JSON.parse(row.style as string);
+  } catch { /* use null */ }
+  try {
+    if (row.layer_ids) parsedLayerIds = JSON.parse(row.layer_ids as string);
+  } catch { /* use [] */ }
+
+  return NextResponse.json({ ...row, style: parsedStyle, layer_ids: parsedLayerIds }, { status: 201 });
 }
 
 export async function GET(
