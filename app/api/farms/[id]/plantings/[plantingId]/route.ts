@@ -50,11 +50,19 @@ export async function PATCH(
       return Response.json({ error: 'No fields to update' }, { status: 400 });
     }
 
+    updates.push('updated_at = unixepoch()');
+
     args.push(plantingId);
-    await db.execute({
-      sql: `UPDATE plantings SET ${updates.join(', ')} WHERE id = ?`,
-      args,
-    });
+    await db.batch([
+      {
+        sql: `UPDATE plantings SET ${updates.join(', ')} WHERE id = ?`,
+        args,
+      },
+      {
+        sql: 'UPDATE farms SET updated_at = unixepoch() WHERE id = ?',
+        args: [farmId],
+      }
+    ]);
 
     return Response.json({ success: true });
   } catch (error) {

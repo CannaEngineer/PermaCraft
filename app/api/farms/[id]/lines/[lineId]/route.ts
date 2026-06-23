@@ -9,6 +9,18 @@ export async function PATCH(
   const session = await requireAuth();
 
   const { id: farmId, lineId } = params;
+
+  const lineCheck = await db.execute({
+    sql: `SELECT l.id FROM lines l
+          JOIN farms f ON l.farm_id = f.id
+          WHERE l.id = ? AND l.farm_id = ? AND f.user_id = ?`,
+    args: [lineId, farmId, session.user.id]
+  });
+
+  if (lineCheck.rows.length === 0) {
+    return NextResponse.json({ error: 'Line not found or access denied' }, { status: 404 });
+  }
+
   const body = await request.json();
 
   const updates: string[] = [];
@@ -57,7 +69,17 @@ export async function PATCH(
     args: [lineId]
   });
 
-  return NextResponse.json(result.rows[0]);
+  const row = result.rows[0];
+  let parsedStyle = null;
+  let parsedLayerIds: string[] = [];
+  try {
+    if (row.style) parsedStyle = JSON.parse(row.style as string);
+  } catch { /* use null */ }
+  try {
+    if (row.layer_ids) parsedLayerIds = JSON.parse(row.layer_ids as string);
+  } catch { /* use [] */ }
+
+  return NextResponse.json({ ...row, style: parsedStyle, layer_ids: parsedLayerIds });
 }
 
 export async function DELETE(
@@ -68,9 +90,20 @@ export async function DELETE(
 
   const { id: farmId, lineId } = params;
 
+  const lineCheck = await db.execute({
+    sql: `SELECT l.id FROM lines l
+          JOIN farms f ON l.farm_id = f.id
+          WHERE l.id = ? AND l.farm_id = ? AND f.user_id = ?`,
+    args: [lineId, farmId, session.user.id]
+  });
+
+  if (lineCheck.rows.length === 0) {
+    return NextResponse.json({ error: 'Line not found or access denied' }, { status: 404 });
+  }
+
   await db.execute({
-    sql: 'DELETE FROM lines WHERE id = ? AND farm_id = ?',
-    args: [lineId, farmId]
+    sql: 'DELETE FROM lines WHERE id = ?',
+    args: [lineId]
   });
 
   return NextResponse.json({ success: true });
