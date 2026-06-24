@@ -1,32 +1,22 @@
-# PermaCraft — 2026-06-13
-## Focus: Performance + Reliability (Saturday)
+# PermaCraft — 2026-06-24
+## Focus: Dashboard (Wednesday)
 
-### 1. Fix map event listener memory leak
-File: `components/map/farm-map.tsx`
-What changed: Extracted 8 anonymous event handlers (moveend, rotate, pitch, draw.create, draw.update, draw.delete, draw.selectionchange, draw.modechange) into named variables and added cleanup calls in the useEffect return. Previously only `zoom` was cleaned up on unmount.
-Map/dashboard impact: Prevents memory leaks and double-firing of handlers when the map component remounts (e.g. navigating between farms). Eliminates stale-closure bugs where old handlers reference outdated state.
+### 1. Tasks widget: completed tasks visibility
+Files: `lib/db/queries/dashboard.ts`, `components/dashboard/tasks-widget.tsx`, `app/(app)/dashboard/page.tsx`, `components/dashboard/dashboard-client-v2.tsx`
+What changed: `getFarmTasks` now returns both active tasks and recently completed tasks (last 7 days) in parallel queries. Added a "Done" tab to the tasks widget showing completed tasks with completion timestamps. Toggling a task to completed moves it to the done list optimistically; re-opening moves it back.
+Map/dashboard impact: Designers can now see their accomplishment history on the dashboard. Previously, completing a task caused it to vanish on refresh — no progress tracking was possible.
 
-### 2. Parallelize map data loading on init
-File: `components/map/farm-map.tsx`
-What changed: Wrapped the 5 sequential data-loading calls (plantings, lines, guilds, phases, custom imagery) in `Promise.all()` inside the map's `load` event handler.
-Map/dashboard impact: Faster initial map load — all 5 API calls now execute concurrently instead of in series. On a typical farm with all feature types, this saves 1-3 seconds of waterfall time.
+### 2. Tasks widget: priority picker on inline creation
+File: `components/dashboard/tasks-widget.tsx`
+What changed: The inline "add task" form now includes a priority selector with 4 levels (Low, Normal, High, Urgent). Previously all tasks created from the dashboard were hardcoded to priority 2 (Normal).
+Map/dashboard impact: Designers can create properly prioritized tasks without leaving the dashboard. Urgent field tasks show up in the "today" tab immediately after creation.
 
-### 3. Add defensive JSON parsing in API routes and map component
-Files: `app/api/farms/[id]/lines/route.ts`, `app/api/farms/[id]/guilds/route.ts`, `components/map/farm-map.tsx`
-What changed: Wrapped all `JSON.parse()` calls in try-catch blocks in the lines GET route (style, layer_ids), guilds GET route (companion_species, benefits), and imagery bounds parsing in the map component. A single corrupted JSON field previously crashed the entire API response or map rendering.
-Map/dashboard impact: A corrupted record now logs an error and returns gracefully instead of taking down the entire feature list.
-
-### 4. Add farm ownership check to lines GET route
-File: `app/api/farms/[id]/lines/route.ts`
-What changed: Added farm ownership verification (matching user_id or is_public flag) before returning line data. The POST route had this check but GET was missing it.
-Map/dashboard impact: Security fix — private farm line data is no longer accessible to unauthorized users.
-
-### 5. Bound canvas farms query
-File: `app/canvas/page.tsx`
-What changed: Added `LIMIT 100` to the farms query on the canvas page.
-Map/dashboard impact: Prevents memory bloat for power users with many farms.
+### 3. Learning progress: parallelize DB queries
+File: `components/dashboard/learning-progress.tsx`
+What changed: The 4 independent database queries (next lessons, completed count, total lessons, recent badges) now run via `Promise.all` instead of sequentially. The first query (user progress) still runs first since its result determines which queries to run.
+Map/dashboard impact: Reduces dashboard load time by ~200-600ms depending on DB latency, since 4 round-trips become 1.
 
 ## Watch for
-- The map event listener cleanup relies on MapboxDraw's `.off()` for custom draw events — verify these are properly unbound in the MapboxDraw version used.
-- Parallel data loading means all 5 API calls compete for bandwidth simultaneously. On very slow connections, monitor for increased timeouts.
-- Imagery records with corrupted bounds data will now silently not render instead of crashing the map.
+- The `getFarmTasks` return type changed from `Task[]` to `{ active: Task[]; recentlyCompleted: Task[] }`. The intel/tasks-card.tsx component (used in IntelligenceRow) still accepts flat `Task[]` — it's currently unused but would need updating if re-enabled.
+- Recently completed tasks query filters on `completed_at > unixepoch() - 604800` (7 days). Tasks completed without `completed_at` being set won't appear in the done tab.
+- The optimistic toggle moves tasks between active/completed lists client-side. If the PATCH request fails silently, the UI will be out of sync until refresh.

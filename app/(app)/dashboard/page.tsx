@@ -40,12 +40,12 @@ export default async function DashboardPage() {
   const farmData: Record<string, DashboardFarmData> = {};
   for (let i = 0; i < farms.length; i++) {
     const farm = farms[i];
-    const tasks = perFarmResults[i * 2] as Task[];
+    const taskResult = perFarmResults[i * 2] as { active: Task[]; recentlyCompleted: Task[] };
     const insights = perFarmResults[i * 2 + 1] as any[];
     const ecoResult = ecoScores[farm.id] ?? { score: 0, functions: {} };
     const activity = activityByFarm[farm.id] ?? [];
     const seasonal = getSeasonalContext(farm.climate_zone, farm.center_lat);
-    const urgentCount = tasks.filter(
+    const urgentCount = taskResult.active.filter(
       (t) => t.priority === 4 && t.status === "pending"
     ).length;
 
@@ -53,7 +53,8 @@ export default async function DashboardPage() {
       farm: { ...farm, eco_health_score: ecoResult.score },
       ecoScore: ecoResult.score,
       ecoFunctions: ecoResult.functions,
-      tasks,
+      tasks: taskResult.active,
+      recentlyCompleted: taskResult.recentlyCompleted,
       insights,
       activity,
       seasonal,

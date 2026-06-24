@@ -7,6 +7,7 @@ export interface DashboardFarmData {
   ecoScore: number;
   ecoFunctions: Record<string, number>;
   tasks: Task[];
+  recentlyCompleted: Task[];
   insights: any[];
   activity: any[];
   seasonal: SeasonalContext;
@@ -145,18 +146,35 @@ export async function getBatchEcoHealthScores(
   return out;
 }
 
-export async function getFarmTasks(farmId: string): Promise<Task[]> {
-  const result = await db.execute({
-    sql: `
-      SELECT * FROM tasks
-      WHERE farm_id = ?
-        AND status NOT IN ('completed', 'skipped')
-      ORDER BY priority DESC, created_at DESC
-      LIMIT 20
-    `,
-    args: [farmId],
-  });
-  return result.rows as unknown as Task[];
+export async function getFarmTasks(farmId: string): Promise<{ active: Task[]; recentlyCompleted: Task[] }> {
+  const [activeResult, completedResult] = await Promise.all([
+    db.execute({
+      sql: `
+        SELECT * FROM tasks
+        WHERE farm_id = ?
+          AND status NOT IN ('completed', 'skipped')
+        ORDER BY priority DESC, created_at DESC
+        LIMIT 20
+      `,
+      args: [farmId],
+    }),
+    db.execute({
+      sql: `
+        SELECT * FROM tasks
+        WHERE farm_id = ?
+          AND status = 'completed'
+          AND completed_at IS NOT NULL
+          AND completed_at > unixepoch() - 604800
+        ORDER BY completed_at DESC
+        LIMIT 10
+      `,
+      args: [farmId],
+    }),
+  ]);
+  return {
+    active: activeResult.rows as unknown as Task[],
+    recentlyCompleted: completedResult.rows as unknown as Task[],
+  };
 }
 
 export async function getUrgentTaskCount(farmId: string): Promise<number> {
