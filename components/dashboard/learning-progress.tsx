@@ -36,92 +36,75 @@ async function fetchLearningData(userId: string) {
     const userProgress = progressResult.rows.length > 0 ? progressResult.rows[0] : null;
     const activePath = (userProgress as any)?.learning_path_id;
 
-    // Get next lessons from active path if one is set, otherwise general
-    let nextLessonsResult;
-    if (activePath) {
-      nextLessonsResult = await db.execute({
+    // Run remaining queries in parallel — they only depend on activePath, not on each other
+    const [nextLessonsResult, completedCountResult, totalLessonsResult, recentBadgesResult] = await Promise.all([
+      activePath
+        ? db.execute({
+            sql: `
+              SELECT
+                l.id, l.title, l.slug, l.description,
+                l.estimated_minutes, l.xp_reward,
+                t.name as topic_name, pl.order_index
+              FROM path_lessons pl
+              JOIN lessons l ON pl.lesson_id = l.id
+              JOIN topics t ON l.topic_id = t.id
+              LEFT JOIN lesson_completions lc ON l.id = lc.lesson_id AND lc.user_id = ?
+              WHERE pl.learning_path_id = ? AND lc.lesson_id IS NULL
+              ORDER BY pl.order_index ASC
+              LIMIT 3
+            `,
+            args: [userId, activePath],
+          })
+        : db.execute({
+            sql: `
+              SELECT
+                l.id, l.title, l.slug, l.description,
+                l.estimated_minutes, l.xp_reward,
+                t.name as topic_name
+              FROM lessons l
+              JOIN topics t ON l.topic_id = t.id
+              LEFT JOIN lesson_completions lc ON l.id = lc.lesson_id AND lc.user_id = ?
+              WHERE lc.lesson_id IS NULL
+              ORDER BY l.order_index ASC
+              LIMIT 3
+            `,
+            args: [userId],
+          }),
+      activePath
+        ? db.execute({
+            sql: `
+              SELECT COUNT(*) as count
+              FROM lesson_completions lc
+              JOIN path_lessons pl ON lc.lesson_id = pl.lesson_id
+              WHERE lc.user_id = ? AND pl.learning_path_id = ?
+            `,
+            args: [userId, activePath],
+          })
+        : db.execute({
+            sql: `SELECT COUNT(*) as count FROM lesson_completions WHERE user_id = ?`,
+            args: [userId],
+          }),
+      activePath
+        ? db.execute({
+            sql: `SELECT COUNT(*) as total FROM path_lessons WHERE learning_path_id = ?`,
+            args: [activePath],
+          })
+        : db.execute({
+            sql: `SELECT COUNT(*) as total FROM lessons`,
+            args: [],
+          }),
+      db.execute({
         sql: `
-          SELECT
-            l.id,
-            l.title,
-            l.slug,
-            l.description,
-            l.estimated_minutes,
-            l.xp_reward,
-            t.name as topic_name,
-            pl.order_index
-          FROM path_lessons pl
-          JOIN lessons l ON pl.lesson_id = l.id
-          JOIN topics t ON l.topic_id = t.id
-          LEFT JOIN lesson_completions lc ON l.id = lc.lesson_id AND lc.user_id = ?
-          WHERE pl.learning_path_id = ? AND lc.lesson_id IS NULL
-          ORDER BY pl.order_index ASC
-          LIMIT 3
-        `,
-        args: [userId, activePath],
-      });
-    } else {
-      nextLessonsResult = await db.execute({
-        sql: `
-          SELECT
-            l.id,
-            l.title,
-            l.slug,
-            l.description,
-            l.estimated_minutes,
-            l.xp_reward,
-            t.name as topic_name
-          FROM lessons l
-          JOIN topics t ON l.topic_id = t.id
-          LEFT JOIN lesson_completions lc ON l.id = lc.lesson_id AND lc.user_id = ?
-          WHERE lc.lesson_id IS NULL
-          ORDER BY l.order_index ASC
-          LIMIT 3
+          SELECT b.*, ub.earned_at
+          FROM badges b
+          JOIN user_badges ub ON b.id = ub.badge_id
+          WHERE ub.user_id = ?
+          ORDER BY ub.earned_at DESC
+          LIMIT 2
         `,
         args: [userId],
-      });
-    }
-
-    // Get completed lesson count (for active path or overall)
-    let completedCountResult;
-    let totalLessonsResult;
-    if (activePath) {
-      completedCountResult = await db.execute({
-        sql: `
-          SELECT COUNT(*) as count
-          FROM lesson_completions lc
-          JOIN path_lessons pl ON lc.lesson_id = pl.lesson_id
-          WHERE lc.user_id = ? AND pl.learning_path_id = ?
-        `,
-        args: [userId, activePath],
-      });
-      totalLessonsResult = await db.execute({
-        sql: `SELECT COUNT(*) as total FROM path_lessons WHERE learning_path_id = ?`,
-        args: [activePath],
-      });
-    } else {
-      completedCountResult = await db.execute({
-        sql: `SELECT COUNT(*) as count FROM lesson_completions WHERE user_id = ?`,
-        args: [userId],
-      });
-      totalLessonsResult = await db.execute({
-        sql: `SELECT COUNT(*) as total FROM lessons`,
-        args: [],
-      });
-    }
-
-    // Get recent badges
-    const recentBadgesResult = await db.execute({
-      sql: `
-        SELECT b.*, ub.earned_at
-        FROM badges b
-        JOIN user_badges ub ON b.id = ub.badge_id
-        WHERE ub.user_id = ?
-        ORDER BY ub.earned_at DESC
-        LIMIT 2
-      `,
-      args: [userId],
-    });
+      }),
+    ]);
 
     const completedCount = (completedCountResult.rows[0] as any)?.count || 0;
     const totalLessons = (totalLessonsResult.rows[0] as any)?.total || 0;

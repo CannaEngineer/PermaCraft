@@ -2,15 +2,24 @@
 import React, { useState, useRef } from 'react';
 import { Task } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, Plus, ListChecks, Trash2, Clock } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, ListChecks, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow, isToday, isTomorrow, isPast } from 'date-fns';
+import Link from 'next/link';
 
 interface Props {
   tasks: Task[];
+  recentlyCompleted?: Task[];
   farmId: string;
 }
 
-type Tab = 'today' | 'week' | 'all';
+type Tab = 'today' | 'week' | 'all' | 'done';
+
+const PRIORITY_OPTIONS = [
+  { value: 1, label: 'Low', className: 'text-muted-foreground bg-muted/50 border-border/60' },
+  { value: 2, label: 'Normal', className: 'text-foreground bg-muted/50 border-border/60' },
+  { value: 3, label: 'High', className: 'text-blue-700 dark:text-blue-400 bg-blue-500/10 border-blue-500/30' },
+  { value: 4, label: 'Urgent', className: 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/30' },
+] as const;
 
 function formatDueDate(dueDate: number | null, now: number): { label: string; className: string } | null {
   if (dueDate === null) return null;
@@ -53,11 +62,13 @@ function computeSmartDefaultTab(tasks: Task[]): Tab {
   return tasks.length > 0 ? 'all' : 'today';
 }
 
-export function TasksWidget({ tasks, farmId }: Props) {
+export function TasksWidget({ tasks, recentlyCompleted = [], farmId }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>(() => computeSmartDefaultTab(tasks));
   const [localTasks, setLocalTasks] = useState(tasks);
+  const [localCompleted, setLocalCompleted] = useState(recentlyCompleted);
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [newPriority, setNewPriority] = useState(2);
   const [isAdding, setIsAdding] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -67,19 +78,22 @@ export function TasksWidget({ tasks, farmId }: Props) {
   const dayEnd = Math.floor(today.getTime() / 1000);
   const weekEnd = dayEnd + 7 * 86400;
 
-  const filtered = localTasks
-    .filter((t: Task) => {
-      if (activeTab === 'today') {
-        return (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4;
-      }
-      if (activeTab === 'week') {
-        return (t.due_date !== null && t.due_date <= weekEnd) || t.priority === 4;
-      }
-      return true;
-    })
-    .slice(0, 6);
+  const filtered = activeTab === 'done'
+    ? localCompleted.slice(0, 8)
+    : localTasks
+        .filter((t: Task) => {
+          if (activeTab === 'today') {
+            return (t.due_date !== null && t.due_date <= dayEnd) || t.priority === 4;
+          }
+          if (activeTab === 'week') {
+            return (t.due_date !== null && t.due_date <= weekEnd) || t.priority === 4;
+          }
+          return true;
+        })
+        .slice(0, 6);
 
   const urgentCount = localTasks.filter((t: Task) => t.priority === 4 && t.status === 'pending').length;
+  const doneCount = localCompleted.length;
 
   async function handleAdd() {
     const title = newTitle.trim();
@@ -89,12 +103,13 @@ export function TasksWidget({ tasks, farmId }: Props) {
       const res = await fetch(`/api/farms/${farmId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, priority: 2 }),
+        body: JSON.stringify({ title, priority: newPriority }),
       });
       if (res.ok) {
         const { task } = await res.json();
         setLocalTasks((prev: Task[]) => [task, ...prev]);
         setNewTitle('');
+        setNewPriority(2);
         setShowAdd(false);
       }
     } finally {
@@ -104,9 +119,15 @@ export function TasksWidget({ tasks, farmId }: Props) {
 
   async function handleToggle(task: Task) {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    setLocalTasks((prev: Task[]) =>
-      prev.map((t: Task) => (t.id === task.id ? { ...t, status: newStatus as Task['status'] } : t))
-    );
+    if (newStatus === 'completed') {
+      setLocalTasks((prev: Task[]) => prev.filter((t: Task) => t.id !== task.id));
+      const completedTask = { ...task, status: 'completed' as Task['status'], completed_at: now };
+      setLocalCompleted((prev: Task[]) => [completedTask, ...prev]);
+    } else {
+      setLocalCompleted((prev: Task[]) => prev.filter((t: Task) => t.id !== task.id));
+      const reopenedTask = { ...task, status: 'pending' as Task['status'], completed_at: null };
+      setLocalTasks((prev: Task[]) => [reopenedTask, ...prev]);
+    }
     await fetch(`/api/farms/${farmId}/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -116,6 +137,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
 
   async function handleDelete(taskId: string) {
     setLocalTasks((prev: Task[]) => prev.filter((t: Task) => t.id !== taskId));
+    setLocalCompleted((prev: Task[]) => prev.filter((t: Task) => t.id !== taskId));
     await fetch(`/api/farms/${farmId}/tasks/${taskId}`, { method: 'DELETE' });
   }
 
@@ -150,48 +172,79 @@ export function TasksWidget({ tasks, farmId }: Props) {
 
       {/* Tab bar */}
       <div className="flex gap-1 px-5 mb-3">
-        {(['today', 'week', 'all'] as Tab[]).map((tab) => (
+        {(['today', 'week', 'all', 'done'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors',
+              'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
               activeTab === tab
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             )}
           >
-            {tab}
+            {tab === 'done' ? (
+              <span className="flex items-center gap-1">
+                Done
+                {doneCount > 0 && (
+                  <span className="rounded-full bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 text-[10px] font-bold">
+                    {doneCount}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="capitalize">{tab}</span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Add input */}
       {showAdd && (
-        <div className="flex items-center gap-2 mx-5 mb-3 rounded-xl border border-border bg-muted/30 px-3 py-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={newTitle}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTitle(e.target.value)}
-            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-              if (e.key === 'Enter') handleAdd();
-              if (e.key === 'Escape') {
-                setShowAdd(false);
-                setNewTitle('');
-              }
-            }}
-            placeholder="What needs doing?"
-            className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground/60 outline-none"
-            disabled={isAdding}
-          />
-          <button
-            onClick={handleAdd}
-            disabled={!newTitle.trim() || isAdding}
-            className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-40 transition-colors"
-          >
-            Add
-          </button>
+        <div className="mx-5 mb-3 rounded-xl border border-border bg-muted/30 px-3 py-2.5 space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={newTitle}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTitle(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === 'Enter') handleAdd();
+                if (e.key === 'Escape') {
+                  setShowAdd(false);
+                  setNewTitle('');
+                  setNewPriority(2);
+                }
+              }}
+              placeholder="What needs doing?"
+              className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground/60 outline-none"
+              disabled={isAdding}
+            />
+            <button
+              onClick={handleAdd}
+              disabled={!newTitle.trim() || isAdding}
+              className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-40 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground/60 mr-1">Priority:</span>
+            {PRIORITY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setNewPriority(opt.value)}
+                className={cn(
+                  'rounded-md border px-2 py-0.5 text-[11px] font-medium transition-all',
+                  newPriority === opt.value
+                    ? opt.className + ' ring-1 ring-current/20'
+                    : 'border-transparent text-muted-foreground/50 hover:text-muted-foreground'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -199,7 +252,13 @@ export function TasksWidget({ tasks, farmId }: Props) {
       <div className="px-3 pb-3">
         {filtered.length === 0 && (
           <div className="py-8 text-center">
-            {localTasks.length > 0 ? (
+            {activeTab === 'done' ? (
+              <>
+                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No completed tasks this week</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Tasks you complete will appear here</p>
+              </>
+            ) : localTasks.length > 0 ? (
               <>
                 <p className="text-sm text-muted-foreground">
                   {activeTab === 'today'
@@ -211,13 +270,13 @@ export function TasksWidget({ tasks, farmId }: Props) {
                 <p className="text-xs text-muted-foreground/60 mt-1">
                   {activeTab === 'today' && localTasks.length > 0
                     ? `${localTasks.length} task${localTasks.length !== 1 ? 's' : ''} in "all"`
-                    : 'Enjoy the day 🌿'}
+                    : 'Enjoy the day'}
                 </p>
               </>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">All clear for now</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Enjoy the day 🌿</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Enjoy the day</p>
               </>
             )}
           </div>
@@ -249,6 +308,11 @@ export function TasksWidget({ tasks, farmId }: Props) {
                   >
                     {task.title}
                   </span>
+                  {done && task.completed_at && (
+                    <span className="text-[11px] text-muted-foreground/50 mt-0.5 block">
+                      Completed {formatDistanceToNow(new Date(task.completed_at * 1000), { addSuffix: true })}
+                    </span>
+                  )}
                   {due && (
                     <span className={cn('flex items-center gap-1 text-[11px] mt-0.5', due.className)}>
                       <Clock className="h-3 w-3" />
@@ -263,7 +327,7 @@ export function TasksWidget({ tasks, farmId }: Props) {
                 )}
                 {!done && task.priority === 3 && (
                   <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">
-                    Today
+                    High
                   </span>
                 )}
               </button>
@@ -277,6 +341,17 @@ export function TasksWidget({ tasks, farmId }: Props) {
             </div>
           );
         })}
+
+        {/* Link to full tasks page */}
+        {activeTab !== 'done' && localTasks.length > 6 && (
+          <Link
+            href={`/farm/${farmId}/tasks`}
+            className="flex items-center justify-center gap-1 rounded-xl px-3 py-2 mt-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+          >
+            View all {localTasks.length} tasks
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+        )}
       </div>
     </div>
   );
