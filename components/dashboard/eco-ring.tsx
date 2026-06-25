@@ -98,11 +98,16 @@ export function EcoRing({ score, functions, farmId }: Props) {
         const missing = Object.entries(functions)
           .filter(([, v]) => v === 0)
           .map(([k]) => FUNCTION_META[k]?.label.toLowerCase())
-          .filter(Boolean)
-          .slice(0, 2);
-        const tipText = missing.length > 0
-          ? `Add ${missing.join(' and ')} to strengthen your ecosystem diversity.`
-          : 'Add plants with diverse permaculture functions to build a resilient ecosystem.';
+          .filter(Boolean);
+        const missingCount = missing.length;
+        let tipText: string;
+        if (missingCount === 0) {
+          tipText = 'Add plants with diverse permaculture functions to build a resilient ecosystem.';
+        } else if (missingCount <= 2) {
+          tipText = `Add ${missing.join(' and ')} to reach full ecosystem coverage.`;
+        } else {
+          tipText = `${missingCount} functions still missing — start with ${missing.slice(0, 2).join(' and ')} to build diversity.`;
+        }
         return (
           <div className="mt-4 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
             <p className="text-xs text-foreground/80 leading-relaxed">

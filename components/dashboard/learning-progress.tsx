@@ -82,46 +82,43 @@ async function fetchLearningData(userId: string) {
       });
     }
 
-    // Get completed lesson count (for active path or overall)
-    let completedCountResult;
-    let totalLessonsResult;
-    if (activePath) {
-      completedCountResult = await db.execute({
+    // Get completed lesson count, total lessons, and recent badges in parallel
+    const [completedCountResult, totalLessonsResult, recentBadgesResult] = await Promise.all([
+      activePath
+        ? db.execute({
+            sql: `
+              SELECT COUNT(*) as count
+              FROM lesson_completions lc
+              JOIN path_lessons pl ON lc.lesson_id = pl.lesson_id
+              WHERE lc.user_id = ? AND pl.learning_path_id = ?
+            `,
+            args: [userId, activePath],
+          })
+        : db.execute({
+            sql: `SELECT COUNT(*) as count FROM lesson_completions WHERE user_id = ?`,
+            args: [userId],
+          }),
+      activePath
+        ? db.execute({
+            sql: `SELECT COUNT(*) as total FROM path_lessons WHERE learning_path_id = ?`,
+            args: [activePath],
+          })
+        : db.execute({
+            sql: `SELECT COUNT(*) as total FROM lessons`,
+            args: [],
+          }),
+      db.execute({
         sql: `
-          SELECT COUNT(*) as count
-          FROM lesson_completions lc
-          JOIN path_lessons pl ON lc.lesson_id = pl.lesson_id
-          WHERE lc.user_id = ? AND pl.learning_path_id = ?
+          SELECT b.*, ub.earned_at
+          FROM badges b
+          JOIN user_badges ub ON b.id = ub.badge_id
+          WHERE ub.user_id = ?
+          ORDER BY ub.earned_at DESC
+          LIMIT 2
         `,
-        args: [userId, activePath],
-      });
-      totalLessonsResult = await db.execute({
-        sql: `SELECT COUNT(*) as total FROM path_lessons WHERE learning_path_id = ?`,
-        args: [activePath],
-      });
-    } else {
-      completedCountResult = await db.execute({
-        sql: `SELECT COUNT(*) as count FROM lesson_completions WHERE user_id = ?`,
         args: [userId],
-      });
-      totalLessonsResult = await db.execute({
-        sql: `SELECT COUNT(*) as total FROM lessons`,
-        args: [],
-      });
-    }
-
-    // Get recent badges
-    const recentBadgesResult = await db.execute({
-      sql: `
-        SELECT b.*, ub.earned_at
-        FROM badges b
-        JOIN user_badges ub ON b.id = ub.badge_id
-        WHERE ub.user_id = ?
-        ORDER BY ub.earned_at DESC
-        LIMIT 2
-      `,
-      args: [userId],
-    });
+      }),
+    ]);
 
     const completedCount = (completedCountResult.rows[0] as any)?.count || 0;
     const totalLessons = (totalLessonsResult.rows[0] as any)?.total || 0;

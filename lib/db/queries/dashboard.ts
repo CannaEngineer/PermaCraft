@@ -191,7 +191,7 @@ export async function getBatchRecentActivity(
   if (farmIds.length === 0) return {};
 
   const placeholders = farmIds.map(() => '?').join(',');
-  const perSubqueryLimit = farmIds.length * 15;
+  const perSubqueryLimit = Math.min(farmIds.length * 15, 100);
   const result = await db.execute({
     sql: `
       SELECT * FROM (
