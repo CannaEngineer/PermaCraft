@@ -124,15 +124,23 @@ export function compressFarmContext(
       .map(([name, count]) => `${name} (${count})`)
       .join(', ');
   } else if (verbosity === 'detailed') {
-    // Full details
-    plantingsList = plantings.map(p =>
-      `${p.common_name} (${p.scientific_name}): ${p.layer}, planted ${p.planted_year}`
-    ).join('\n');
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '[NATIVE]' : '[NON-NATIVE]';
+      let functions = '';
+      if (p.permaculture_functions) {
+        try {
+          const fns = typeof p.permaculture_functions === 'string'
+            ? JSON.parse(p.permaculture_functions) : p.permaculture_functions;
+          if (Array.isArray(fns) && fns.length > 0) functions = ` — ${fns.join(', ')}`;
+        } catch {}
+      }
+      return `${p.common_name} (${p.scientific_name}) ${native}: ${p.layer}, planted ${p.planted_year || 'unknown'}${functions}`;
+    }).join('\n');
   } else {
-    // Standard: key info only
-    plantingsList = plantings.map(p =>
-      `${p.common_name}: ${p.layer}, year ${p.planted_year || 'unknown'}`
-    ).join('\n');
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '[N]' : '[NN]';
+      return `${p.common_name} (${p.scientific_name}) ${native}: ${p.layer}, yr ${p.planted_year || '?'}`;
+    }).join('\n');
   }
 
   // Lines/water features context
