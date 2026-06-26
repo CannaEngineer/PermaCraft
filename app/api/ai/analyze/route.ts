@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     // Always fetch zone geometry for grid coordinates and area — even when client
     // sends zone data, it lacks the geometry needed for spatial calculations
     const zoneGeomResult = await db.execute({
-      sql: `SELECT id, name, zone_type, geometry, properties FROM zones WHERE farm_id = ?`,
+      sql: `SELECT id, name, zone_type, geometry, properties, catchment_properties, swale_properties FROM zones WHERE farm_id = ?`,
       args: [farmId],
     });
 
@@ -258,12 +258,38 @@ export async function POST(request: NextRequest) {
           if (props.area_acres) areaAcres = Math.round(props.area_acres * 100) / 100;
         } catch {}
       }
+      let waterInfo: string | undefined;
+      if (z.catchment_properties) {
+        try {
+          const cp = JSON.parse(z.catchment_properties as string);
+          if (cp.is_catchment) {
+            const parts: string[] = ['catchment'];
+            if (cp.rainfall_inches_per_year) parts.push(`${cp.rainfall_inches_per_year}in rain/yr`);
+            if (cp.estimated_capture_gallons) parts.push(`~${Math.round(cp.estimated_capture_gallons).toLocaleString()}gal capture`);
+            waterInfo = parts.join(', ');
+          }
+        } catch {}
+      }
+      if (z.swale_properties) {
+        try {
+          const sp = JSON.parse(z.swale_properties as string);
+          if (sp.is_swale) {
+            const parts: string[] = ['swale'];
+            if (sp.length_feet) parts.push(`${sp.length_feet}ft long`);
+            if (sp.cross_section_depth_feet) parts.push(`${sp.cross_section_depth_feet}ft deep`);
+            if (sp.estimated_volume_gallons) parts.push(`~${Math.round(sp.estimated_volume_gallons).toLocaleString()}gal capacity`);
+            waterInfo = (waterInfo ? waterInfo + '; ' : '') + parts.join(', ');
+          }
+        } catch {}
+      }
+
       return {
         type: z.zone_type as string,
         name: (z.name as string) || 'Unnamed zone',
         geometryType: 'Polygon',
         gridCoordinates,
         areaAcres,
+        waterInfo,
       };
     });
 
@@ -272,7 +298,8 @@ export async function POST(request: NextRequest) {
         db.execute({
           sql: `SELECT p.id, p.name, p.lat, p.lng, p.planted_year, p.notes,
                        s.common_name, s.scientific_name, s.layer, s.is_native,
-                       s.mature_height_ft, s.sun_requirements, s.water_requirements,
+                       s.mature_height_ft, s.mature_width_ft, s.years_to_maturity,
+                       s.sun_requirements, s.water_requirements,
                        s.permaculture_functions
                 FROM plantings p
                 JOIN species s ON p.species_id = s.id
@@ -355,7 +382,16 @@ export async function POST(request: NextRequest) {
               );
               if (cells.length > 0) gridRef = ` at grid ${cells[0]}`;
             }
-            parts.push(`    - ${p.common_name} (${p.scientific_name}) ${native}${year}${gridRef}${functions}`);
+            const heightWidth = p.mature_height_ft
+              ? `, ${p.mature_height_ft}ft tall${p.mature_width_ft ? `/${p.mature_width_ft}ft wide` : ''}`
+              : '';
+            const maturity = p.years_to_maturity
+              ? `, matures in ${p.years_to_maturity}yr`
+              : '';
+            const sunWater = (p.sun_requirements || p.water_requirements)
+              ? ` (${[p.sun_requirements, p.water_requirements].filter(Boolean).join(', ')})`
+              : '';
+            parts.push(`    - ${p.common_name} (${p.scientific_name}) ${native}${year}${gridRef}${heightWidth}${maturity}${sunWater}${functions}`);
           }
         }
         enrichedPlantingsContext = parts.join('\n');
@@ -467,7 +503,9 @@ export async function POST(request: NextRequest) {
         if (nativeResult.rows.length > 0) {
           const parts: string[] = ['NATIVE SPECIES FOR THIS REGION:'];
           for (const s of nativeResult.rows) {
-            parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height`);
+            const reqs = [s.sun_requirements, s.water_requirements].filter(Boolean).join(', ');
+            const reqsInfo = reqs ? ` (${reqs})` : '';
+            parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft tall${reqsInfo}`);
           }
           enrichedNativeSpeciesContext = parts.join('\n');
         }

@@ -270,6 +270,7 @@ export function createAnalysisPrompt(
       gridCoordinates?: string; // Pre-calculated: "A1-B3"
       gridCells?: string[];     // Pre-calculated: ["A1", "A2", "B1"]
       areaAcres?: number;       // Pre-calculated zone area
+      waterInfo?: string;       // Catchment/swale water data
     }>;
     legendContext?: string;
     nativeSpeciesContext?: string;
@@ -305,7 +306,8 @@ export function createAnalysisPrompt(
       const geomType = zone.geometryType || "Feature";
       const gridInfo = zone.gridCoordinates || "unknown location";
       const areaInfo = zone.areaAcres ? `, ~${zone.areaAcres} acres` : "";
-      zonesInfo += `  • "${zone.name}" (${zone.type}, ${geomType}) - Located at grid ${gridInfo}${areaInfo}\n`;
+      const waterData = zone.waterInfo ? ` [${zone.waterInfo}]` : "";
+      zonesInfo += `  • "${zone.name}" (${zone.type}, ${geomType}) - Located at grid ${gridInfo}${areaInfo}${waterData}\n`;
     });
   } else {
     zonesInfo = "\nNo zones have been drawn yet. You can reference features you see in the satellite imagery.\n";
@@ -441,7 +443,7 @@ export function createGeneralChatPrompt(
     guilds?: Array<{ name: string; focal_common_name?: string; focal_scientific_name?: string; companion_species?: string; benefits?: string }>;
     phases?: Array<{ name: string; description?: string | null; start_date?: string | null; end_date?: string | null }>;
     goalsContext?: string;
-    nativeSpecies?: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number }>;
+    nativeSpecies?: Array<{ common_name: string; scientific_name: string; layer: string; mature_height_ft: number; sun_requirements?: string; water_requirements?: string }>;
     ragContext?: string;
   }
 ): string {
@@ -551,7 +553,9 @@ export function createGeneralChatPrompt(
     if (farmSummary.nativeSpecies && farmSummary.nativeSpecies.length > 0) {
       parts.push(`\nNATIVE SPECIES FOR THIS REGION:`);
       farmSummary.nativeSpecies.forEach(s => {
-        parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft mature height`);
+        const reqs = [s.sun_requirements, s.water_requirements].filter(Boolean).join(', ');
+        const reqsInfo = reqs ? ` (${reqs})` : '';
+        parts.push(`  - ${s.common_name} (${s.scientific_name}) — ${s.layer} layer, ${s.mature_height_ft}ft tall${reqsInfo}`);
       });
     }
 
