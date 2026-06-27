@@ -1,32 +1,27 @@
-# PermaCraft — 2026-06-13
-## Focus: Performance + Reliability (Saturday)
+# PermaCraft — 2026-06-27
+## Focus: Map Intelligence (AI Context Quality)
 
-### 1. Fix map event listener memory leak
-File: `components/map/farm-map.tsx`
-What changed: Extracted 8 anonymous event handlers (moveend, rotate, pitch, draw.create, draw.update, draw.delete, draw.selectionchange, draw.modechange) into named variables and added cleanup calls in the useEffect return. Previously only `zoom` was cleaned up on unmount.
-Map/dashboard impact: Prevents memory leaks and double-firing of handlers when the map component remounts (e.g. navigating between farms). Eliminates stale-closure bugs where old handlers reference outdated state.
+### 1. Native status preserved in compressed AI context
+File: `lib/ai/context-compressor.ts`
+What changed: Added `[N]`/`[NN]` native status markers to all verbosity levels of the plantings list, plus a native vs non-native balance count in key facts.
+Map/dashboard impact: When optimizations are enabled and the context compressor is used, the AI now always knows which plants are native — it can give accurate "Native Species First" recommendations instead of losing that critical data during compression.
 
-### 2. Parallelize map data loading on init
-File: `components/map/farm-map.tsx`
-What changed: Wrapped the 5 sequential data-loading calls (plantings, lines, guilds, phases, custom imagery) in `Promise.all()` inside the map's `load` event handler.
-Map/dashboard impact: Faster initial map load — all 5 API calls now execute concurrently instead of in series. On a typical farm with all feature types, this saves 1-3 seconds of waterfall time.
+### 2. Function coverage balance reported to AI (not just gaps)
+File: `lib/ai/context-compressor.ts`
+What changed: Key facts now include counts of present permaculture functions (e.g., "Functions present: 3 nitrogen fixer, 8 pollinator support") alongside the existing gap warnings. Also fixed permaculture_functions parsing to handle both string and array types.
+Map/dashboard impact: The AI can now assess ecological balance — it knows the farm has 8 pollinator plants but only 1 nitrogen fixer, enabling targeted recommendations for what's underrepresented rather than just what's missing.
 
-### 3. Add defensive JSON parsing in API routes and map component
-Files: `app/api/farms/[id]/lines/route.ts`, `app/api/farms/[id]/guilds/route.ts`, `components/map/farm-map.tsx`
-What changed: Wrapped all `JSON.parse()` calls in try-catch blocks in the lines GET route (style, layer_ids), guilds GET route (companion_species, benefits), and imagery bounds parsing in the map component. A single corrupted JSON field previously crashed the entire API response or map rendering.
-Map/dashboard impact: A corrupted record now logs an error and returns gracefully instead of taking down the entire feature list.
+### 3. Query-aware context matching expanded for common permaculture terms
+File: `lib/ai/context-compressor.ts`
+What changed: Extended keyword patterns in `buildOptimizedContext()` to include common terms that were being missed: "garden", "orchard", "forest", "mulch", "diversity" for plantings; "path", "corridor", "slope" for lines; "climate", "hardiness" for natives; "season", "spring/summer/fall/winter" for phases; "purpose", "focus" for goals; "together", "pair", "combination" for guilds.
+Map/dashboard impact: Users asking "What should I plant in my garden?" or "How do I manage the slope?" now receive relevant plantings/lines context instead of the AI answering without farm-specific data.
 
-### 4. Add farm ownership check to lines GET route
-File: `app/api/farms/[id]/lines/route.ts`
-What changed: Added farm ownership verification (matching user_id or is_public flag) before returning line data. The POST route had this check but GET was missing it.
-Map/dashboard impact: Security fix — private farm line data is no longer accessible to unauthorized users.
-
-### 5. Bound canvas farms query
-File: `app/canvas/page.tsx`
-What changed: Added `LIMIT 100` to the farms query on the canvas page.
-Map/dashboard impact: Prevents memory bloat for power users with many farms.
+### 4. Water infrastructure data now included in AI context
+Files: `lib/ai/context-compressor.ts`, `app/api/ai/analyze/route.ts`
+What changed: The context compressor now extracts swale properties (length, volume capacity) and catchment properties (estimated annual capture) from zone data and appends them as a "Water infrastructure" section. The analyze route now fetches `swale_properties` and `catchment_properties` columns and passes them through to the compressor. Line water_properties (flow type, flow rate) are also included in the compressed lines context.
+Map/dashboard impact: When a designer asks about water management, the AI now knows their swale holds ~500 gallons and their catchment captures ~12,000 gal/year — enabling specific, quantitative water management advice.
 
 ## Watch for
-- The map event listener cleanup relies on MapboxDraw's `.off()` for custom draw events — verify these are properly unbound in the MapboxDraw version used.
-- Parallel data loading means all 5 API calls compete for bandwidth simultaneously. On very slow connections, monitor for increased timeouts.
-- Imagery records with corrupted bounds data will now silently not render instead of crashing the map.
+- Test file `lib/ai/context-compressor.test.ts` assertions updated to match new format — run tests to confirm all pass
+- The chat route (`app/api/ai/chat/route.ts`) zones query still doesn't fetch water properties — the chat endpoint constructs its prompt directly via `createGeneralChatPrompt()` rather than through the compressor, so water data only flows through the map analysis path for now
+- If farms have zones with JSON-encoded `swale_properties` or `catchment_properties` that don't match the expected structure, the try/catch blocks will silently skip them — no data corruption risk but the AI won't see malformed data

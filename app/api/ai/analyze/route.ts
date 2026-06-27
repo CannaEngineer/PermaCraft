@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     // Always fetch zone geometry for grid coordinates and area — even when client
     // sends zone data, it lacks the geometry needed for spatial calculations
     const zoneGeomResult = await db.execute({
-      sql: `SELECT id, name, zone_type, geometry, properties FROM zones WHERE farm_id = ?`,
+      sql: `SELECT id, name, zone_type, geometry, properties, swale_properties, catchment_properties FROM zones WHERE farm_id = ?`,
       args: [farmId],
     });
 
@@ -518,6 +518,8 @@ export async function POST(request: NextRequest) {
         zones: zoneGeomResult.rows.map((z: any) => ({
           name: z.name,
           zone_type: z.zone_type,
+          swale_properties: z.swale_properties,
+          catchment_properties: z.catchment_properties,
         })),
         plantings: plantingsResult.rows.map((p: any) => ({
           common_name: p.common_name,
@@ -530,6 +532,7 @@ export async function POST(request: NextRequest) {
         lines: linesResult.rows.map((l: any) => ({
           line_type: l.line_type,
           label: l.label,
+          water_properties: l.water_properties,
         })),
         goals: goalsResult.rows.map((g: any) => ({
           goal_category: g.goal_category,
