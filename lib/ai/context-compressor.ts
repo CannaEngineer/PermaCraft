@@ -87,52 +87,79 @@ export function compressFarmContext(
     keyFacts.push(`${count} ${layer} layer plants`);
   });
 
+  // Native vs non-native balance
+  let nativeCount = 0;
+  let nonNativeCount = 0;
+  plantings.forEach(p => {
+    if (p.is_native) nativeCount++;
+    else nonNativeCount++;
+  });
+  if (plantings.length > 0) {
+    keyFacts.push(`${nativeCount} native, ${nonNativeCount} non-native plantings`);
+  }
+
   // Function coverage
   const functionCounts: Record<string, number> = {};
   plantings.forEach(p => {
     if (p.permaculture_functions) {
       try {
-        const functions = JSON.parse(p.permaculture_functions);
-        functions.forEach((fn: string) => {
-          functionCounts[fn] = (functionCounts[fn] || 0) + 1;
-        });
+        const fns = typeof p.permaculture_functions === 'string'
+          ? JSON.parse(p.permaculture_functions)
+          : p.permaculture_functions;
+        if (Array.isArray(fns)) {
+          fns.forEach((fn: string) => {
+            functionCounts[fn] = (functionCounts[fn] || 0) + 1;
+          });
+        }
       } catch {}
     }
   });
 
-  // Highlight gaps (important functions with 0 count)
   const criticalFunctions = [
     'nitrogen_fixer', 'pollinator_support', 'edible_fruit',
     'dynamic_accumulator', 'ground_cover', 'windbreak',
     'pest_confuser', 'wildlife_habitat',
   ];
+
+  // Report present functions with counts so AI can assess ecological balance
+  const presentFunctions: string[] = [];
+  const missingFunctions: string[] = [];
   criticalFunctions.forEach(fn => {
-    if (!functionCounts[fn]) {
-      keyFacts.push(`⚠️ No ${fn.replace(/_/g, ' ')}`);
+    if (functionCounts[fn]) {
+      presentFunctions.push(`${functionCounts[fn]} ${fn.replace(/_/g, ' ')}`);
+    } else {
+      missingFunctions.push(fn.replace(/_/g, ' '));
     }
   });
+  if (presentFunctions.length > 0) {
+    keyFacts.push(`Functions present: ${presentFunctions.join(', ')}`);
+  }
+  missingFunctions.forEach(fn => {
+    keyFacts.push(`⚠️ No ${fn}`);
+  });
 
-  // Plantings list (compressed)
+  // Plantings list (compressed) — always includes native status per core principle
   let plantingsList: string;
   if (verbosity === 'minimal') {
-    // Just species names and counts
-    const speciesCounts: Record<string, number> = {};
+    const speciesCounts: Record<string, { count: number; native: boolean }> = {};
     plantings.forEach(p => {
-      speciesCounts[p.common_name] = (speciesCounts[p.common_name] || 0) + 1;
+      const key = p.common_name;
+      if (!speciesCounts[key]) speciesCounts[key] = { count: 0, native: !!p.is_native };
+      speciesCounts[key].count++;
     });
     plantingsList = Object.entries(speciesCounts)
-      .map(([name, count]) => `${name} (${count})`)
+      .map(([name, info]) => `${name} (${info.count}) ${info.native ? '[N]' : '[NN]'}`)
       .join(', ');
   } else if (verbosity === 'detailed') {
-    // Full details
-    plantingsList = plantings.map(p =>
-      `${p.common_name} (${p.scientific_name}): ${p.layer}, planted ${p.planted_year}`
-    ).join('\n');
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '[NATIVE]' : '[NON-NATIVE]';
+      return `${p.common_name} (${p.scientific_name}) ${native}: ${p.layer}, planted ${p.planted_year}`;
+    }).join('\n');
   } else {
-    // Standard: key info only
-    plantingsList = plantings.map(p =>
-      `${p.common_name}: ${p.layer}, year ${p.planted_year || 'unknown'}`
-    ).join('\n');
+    plantingsList = plantings.map(p => {
+      const native = p.is_native ? '[N]' : '[NN]';
+      return `${p.common_name} ${native}: ${p.layer}, year ${p.planted_year || 'unknown'}`;
+    }).join('\n');
   }
 
   // Lines/water features context
@@ -146,8 +173,49 @@ export function compressFarmContext(
   } else {
     linesList = lines.map(l => {
       const label = l.label ? `"${l.label}"` : 'unlabeled';
-      return `${l.line_type}: ${label}`;
+      let waterInfo = '';
+      if (l.water_properties) {
+        try {
+          const wp = typeof l.water_properties === 'string' ? JSON.parse(l.water_properties) : l.water_properties;
+          const details: string[] = [];
+          if (wp.flow_type) details.push(wp.flow_type);
+          if (wp.flow_rate_estimate) details.push(wp.flow_rate_estimate);
+          if (details.length > 0) waterInfo = ` (${details.join(', ')})`;
+        } catch {}
+      }
+      return `${l.line_type}: ${label}${waterInfo}`;
     }).join('\n');
+  }
+
+  // Water infrastructure summary from zones (swales, catchments)
+  const waterZones = zones.filter(z =>
+    z.swale_properties || z.catchment_properties ||
+    ['swale', 'pond', 'water_body', 'water_flow'].includes(z.zone_type)
+  );
+  if (waterZones.length > 0) {
+    const waterParts: string[] = [];
+    for (const z of waterZones) {
+      const parts: string[] = [z.name || z.zone_type];
+      if (z.swale_properties) {
+        try {
+          const sp = typeof z.swale_properties === 'string' ? JSON.parse(z.swale_properties) : z.swale_properties;
+          if (sp.length_feet) parts.push(`${sp.length_feet}ft long`);
+          if (sp.estimated_volume_gallons) parts.push(`~${sp.estimated_volume_gallons} gal capacity`);
+        } catch {}
+      }
+      if (z.catchment_properties) {
+        try {
+          const cp = typeof z.catchment_properties === 'string' ? JSON.parse(z.catchment_properties) : z.catchment_properties;
+          if (cp.estimated_capture_gallons) parts.push(`captures ~${cp.estimated_capture_gallons} gal/yr`);
+        } catch {}
+      }
+      waterParts.push(parts.join(', '));
+    }
+    if (linesList) {
+      linesList += '\nWater infrastructure:\n' + waterParts.map(w => `  - ${w}`).join('\n');
+    } else {
+      linesList = 'Water infrastructure:\n' + waterParts.map(w => `  - ${w}`).join('\n');
+    }
   }
 
   // Native species (top 10 by relevance)
@@ -227,12 +295,12 @@ export function buildOptimizedContext(
   compressed: CompressedContext,
   userQuery: string
 ): string {
-  const needsPlantings = /plant|tree|species|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb/i.test(userQuery);
-  const needsGuilds = /guild|companion|polyculture|synergy|support.*species|nitrogen.*fix|accumulator/i.test(userQuery);
-  const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace/i.test(userQuery);
-  const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for/i.test(userQuery);
-  const needsGoals = /goal|objective|priority|budget|strategy|vision/i.test(userQuery);
-  const needsPhases = /phase|timeline|plan|schedule|year|when.*start|implementation|sequence|order/i.test(userQuery);
+  const needsPlantings = /plant|tree|species|grow|harvest|food|fruit|crop|layer|canopy|understory|shrub|herb|garden|orchard|forest|mulch|prune|spacing|diversity/i.test(userQuery);
+  const needsGuilds = /guild|companion|polyculture|synergy|support.*species|nitrogen.*fix|accumulator|together|pair|combination/i.test(userQuery);
+  const needsLines = /water|swale|drain|flow|fence|hedge|contour|erosion|runoff|irrigation|catchment|terrace|path|access|corridor|slope/i.test(userQuery);
+  const needsNatives = /native|recommend|suggest|add|what.*should|improve|best|suitable|appropriate|good.*for|zone\s?\d|hardiness|climate/i.test(userQuery);
+  const needsGoals = /goal|objective|priority|budget|strategy|vision|purpose|focus/i.test(userQuery);
+  const needsPhases = /phase|timeline|plan|schedule|year|when.*start|implementation|sequence|order|season|spring|summer|fall|winter|autumn/i.test(userQuery);
 
   // If the query doesn't match any specific pattern, it's a general/broad question —
   // include all context so the AI has full farm awareness

@@ -79,22 +79,25 @@ describe('compressFarmContext', () => {
     expect(result.keyFacts).toContain('⚠️ No edible fruit');
   });
 
-  test('minimal verbosity returns species counts', () => {
+  test('minimal verbosity returns species counts with native markers', () => {
     const result = compressFarmContext(mockContext, 'minimal');
     expect(result.plantingsList).toContain('Apple (2)');
     expect(result.plantingsList).toContain('Comfrey (1)');
+    expect(result.plantingsList).toMatch(/\[N\]|\[NN\]/);
   });
 
-  test('standard verbosity returns layer and year', () => {
+  test('standard verbosity returns layer, year, and native status', () => {
     const result = compressFarmContext(mockContext, 'standard');
-    expect(result.plantingsList).toContain('Apple: canopy, year 2020');
-    expect(result.plantingsList).toContain('Comfrey: herbaceous, year 2021');
+    expect(result.plantingsList).toContain('Apple');
+    expect(result.plantingsList).toContain('canopy');
+    expect(result.plantingsList).toMatch(/\[N\]|\[NN\]/);
   });
 
-  test('detailed verbosity returns full details', () => {
+  test('detailed verbosity returns full details with native status', () => {
     const result = compressFarmContext(mockContext, 'detailed');
-    expect(result.plantingsList).toContain('Apple (Malus domestica): canopy, planted 2020');
-    expect(result.plantingsList).toContain('Comfrey (Symphytum officinale): herbaceous, planted 2021');
+    expect(result.plantingsList).toContain('Apple (Malus domestica)');
+    expect(result.plantingsList).toContain('Comfrey (Symphytum officinale)');
+    expect(result.plantingsList).toMatch(/\[NATIVE\]|\[NON-NATIVE\]/);
   });
 
   test('limits native species to top 10', () => {
@@ -141,7 +144,7 @@ describe('buildOptimizedContext', () => {
   const compressed = {
     summary: 'Farm: 2 zones, 3 plantings, 1 swale',
     keyFacts: ['2 canopy layer plants', '1 herbaceous layer plants'],
-    plantingsList: 'Apple: canopy, year 2020\nComfrey: herbaceous, year 2021',
+    plantingsList: 'Apple [NN]: canopy, year 2020\nComfrey [NN]: herbaceous, year 2021',
     linesList: 'swale: unlabeled',
     nativeSpeciesList: 'Oak (canopy, 80ft), Serviceberry (understory, 20ft)',
     guildsList: '"Apple Guild": focal=Apple, companions: Comfrey, Clover',
@@ -153,7 +156,7 @@ describe('buildOptimizedContext', () => {
   test('includes plantings for plant-related query', () => {
     const result = buildOptimizedContext(compressed, 'What fruit trees should I plant?');
     expect(result).toContain('Current plantings:');
-    expect(result).toContain('Apple: canopy');
+    expect(result).toContain('Apple');
   });
 
   test('includes natives for recommendation query', () => {
